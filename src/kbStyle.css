@@ -2,9 +2,38 @@
  * kbStyle.css: CSS style definition file for KINOBOARDS.
  */
 
-/* $Id: kbStyle.css,v 5.3 1999-08-28 08:33:09 nakahiro Exp $ */
+/* $Id: kbStyle.css,v 5.4 1999-09-03 10:55:24 nakahiro Exp $ */
 
 /* General definition */
+
+/* Definitions of colours around A element is derived from Modernist.css of W3C Stylesheet Core. */
+a:link
+{
+    color: #c00;
+}
+
+a:visited
+{
+    color: #999;
+}
+
+a:active
+{
+    background: #fc0;
+    color: #f00;
+}
+
+a:hover
+{
+    background: #ffc;
+    color: #c00;
+}
+
+a.offsite
+{
+    color: #c00;
+}
+
 body
 {
     background: #EEEEEE;
@@ -24,11 +53,13 @@ h1
     margin: 2%;
 }
 
+/* Let NC confuse...
 dt
 {
     margin-left: 1em;
     margin-top: 2ex;
 }
+*/
 
 address
 {
@@ -54,11 +85,13 @@ p.kbStatus
     font-weight: bold;
 }    
 
+p.kbPageLink { text-align: center; }
+
 span.kbTitle {}
 
 div.kbTopMenu {}
 
 div.kbArticle {}
-div.kbArticle p.command {}
+div.kbArticle p.command { text-align: right; }
 div.kbArticle p.header {}
 div.kbArticle div.body {}
