@@ -1,7 +1,10 @@
-# $Id: kb.ph,v 1.1 1995-12-15 12:38:44 nakahiro Exp $
+# $Id: kb.ph,v 1.2 1995-12-15 14:20:24 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 1.1  1995-12-15 12:38:44  nakahiro
+# Revision 1.2  1995-12-15 14:20:24  nakahiro
+# String for Header of Search Module.
+#
+# Revision 1.1  1995/12/15 12:38:44  nakahiro
 # Initial revision
 #
 
@@ -53,6 +56,7 @@ $THANKS_MSG = "書き込みありがとうございました";
 $SORT_MSG = "日付順ソート";
 $NEWARTICLE_MSG = "最近の記事";
 $THREADARTICLE_MSG = "反応まとめ読み";
+$SEARCHARTICLE_MSG = "記事の検索";
 $ERROR_MSG   = "ERROR!";
 
 $H_BOARD = "ボード:";
@@ -81,12 +85,20 @@ $DEFAULT_QMARK = " ] ";
 #
 # 各入力項目の大きさ
 #
+# 題
 $SUBJECT_LENGTH = 45;
-$TEXT_ROWS      = 15;
-$TEXT_COLS      = 50;
-$NAME_LENGTH    = 45;
-$MAIL_LENGTH    = 45;
-$URL_LENGTH     = 37;
+# 記事行数
+$TEXT_ROWS = 15;
+# 記事幅
+$TEXT_COLS = 50;
+# 名前幅
+$NAME_LENGTH = 45;
+# E-mail幅
+$MAIL_LENGTH = 45;
+# URL幅
+$URL_LENGTH = 37;
+# 検索キーワード幅
+$KEYWORD_LENGTH = 40;
 
 
 #/////////////////////////////////////////////////////////////////////
