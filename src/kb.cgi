@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.21 1996-08-21 16:52:28 nakahiro Exp $
+# $Id: kb.cgi,v 4.22 1996-09-09 07:39:54 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -61,7 +61,7 @@ $[ = 0;
 #
 # 著作権表示
 #
-$ADDRESS = "KINOBOARDS/1.0 R2.2: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
+$ADDRESS = "KINOBOARDS/1.0 R2.3: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
 
 #
 # ファイル
@@ -249,7 +249,7 @@ sub Entry {
     }
 
     # ヘッダ部分の表示
-    &EntryHeader((($Id !=0 ) ? &GetReplySubject($Id, $BOARDDIR) : ''), $Id);
+    &EntryHeader((($Id !=0 ) ? &GetReplySubject($Id) : ''), $Id);
 
     # 本文(引用ありなら元記事を挿入)
     print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
@@ -369,7 +369,7 @@ __EOF__
 sub GetReplySubject {
 
     # IdとBoard
-    local($Id, $Board) = @_;
+    local($Id) = @_;
 
     # 記事情報
     local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = &GetArticlesInfo($Id);
@@ -448,8 +448,7 @@ sub Preview {
     }
 
     # 入力された記事情報のチェック
-    ($Name, $Email, $Url, $Icon, $Article)
-	= &CheckArticle($Name, $Email, $Url, $Subject, $Icon, $Article);
+    ($Name, $Email, $Url, $Icon) = &CheckArticle($Name, $Email, $Url, $Subject, $Icon, *Article);
 
     # 確認画面の作成
     &MsgHeader($PREVIEW_MSG);
@@ -491,7 +490,7 @@ __EOF__
     }
 
     # メール
-    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
+    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
 
     # 反応元(引用の場合)
     &ShowFormattedLinkToFollowedArticle($Id, $rIcon, $rSubject);
@@ -503,8 +502,8 @@ __EOF__
     print("<pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
     # 記事
-    $Article = &DQDecode($Article);
-    $Article = &tag_secure'decode($Article);
+    &DQDecode(*Article);
+    &tag_secure'decode(*Article);
     print("$Article\n");
 
     # TextType用後処理
@@ -523,7 +522,7 @@ __EOF__
 sub CheckArticle {
 
     # 記事情報いろいろ
-    local($Name, $Email, $Url, $Subject, $Icon, $Article) = @_;
+    local($Name, $Email, $Url, $Subject, $Icon, *Article) = @_;
     local($Tmp) = '';
 
     # エイリアスチェック
@@ -544,10 +543,10 @@ sub CheckArticle {
     $Icon = $H_NOICON unless (&GetIconURLFromTitle($Icon));
 
     # 記事中の"をエンコード
-    $Article = &DQEncode($Article);
+    &DQEncode(*Article);
 
     # 名前，e-mail，URLを返す．
-    return($Name, $Email, $Url, $Icon, $Article);
+    return($Name, $Email, $Url, $Icon);
 }
 
 
@@ -597,8 +596,7 @@ sub MakeNewArticle {
 	   $cgi'TAGS{'qurl'}, $cgi'TAGS{'fmail'});
 
     # 入力された記事情報のチェック
-    ($Name, $Email, $Url, $Icon, $Article)
-	= &CheckArticle($Name, $Email, $Url, $Subject, $Icon, $Article);
+    ($Name, $Email, $Url, $Icon) = &CheckArticle($Name, $Email, $Url, $Subject, $Icon, *Article);
 
     # 新しい記事番号を取得(まだ記事番号は増えてない)
     local($ArticleId) = &GetNewArticleId();
@@ -635,8 +633,8 @@ sub MakeArticleFile {
     print(TMP "<pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
     # 記事; "をデコードし，セキュリティチェック
-    $Article = &DQDecode($Article);
-    $Article = &tag_secure'decode($Article);
+    &DQDecode(*Article);
+    &tag_secure'decode(*Article);
     print(TMP "$Article\n");
 
     # TextType用後処理
@@ -652,21 +650,19 @@ sub MakeArticleFile {
 ## "のencode and decode
 #
 sub DQEncode {
-    local($_) = @_;
+    local(*_) = @_;
     s/\"/$DOUBLE_QUOTE/g;
     s/\>/$GREATER_THAN/g;
     s/\</$LESSER_THAN/g;
     s/\&/$AND_MARK/g;
-    return($_);
 }
 
 sub DQDecode {
-    local($_) = @_;
+    local(*_) = @_;
     s/$DOUBLE_QUOTE/\"/g;
     s/$GREATER_THAN/\>/g;
     s/$LESSER_THAN/\</g;
     s/$AND_MARK/\&/g;
-    return($_);
 }
 
 
@@ -819,7 +815,7 @@ __EOF__
     }
 
     # メール
-    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
+    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
 
     # マシン
     print("<strong>$H_HOST</strong>: $RemoteHost<br>\n") if $SYS_SHOWHOST;
@@ -1577,7 +1573,7 @@ __EOF__
 	   (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED'));
 	
     # 一つ一つ表示
-    open(ICON, &GetIconPath("$BOARDDIR.$ICONDEF_POSTFIX"))
+    open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
 	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
@@ -2226,11 +2222,15 @@ sub CheckEmail {
 
     local($String) = @_;
 
-    # 空チェック
-    ($String eq '') && &Fatal(2, '');
+    if ($SYS_POSTERMAIL) {
 
-    # `@'が入ってなきゃアウト
-    ($String =~ (/@/)) || &Fatal(8, 'E-Mail');
+	# 空チェック
+	&Fatal(2, '') if ($String eq '');
+
+	# `@'が入ってなきゃアウト
+	&Fatal(8, 'E-Mail') if ($String !~ (/@/));
+
+    }
 
     # 改行コードをチェック
     ($String =~ /\n/o) && &Fatal(3, '');
@@ -2374,7 +2374,7 @@ __EOF__
     }
 
     # メール
-    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
+    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
 
     # マシン
     print("<strong>$H_HOST</strong>: $RemoteHost<br>\n") if $SYS_SHOWHOST;
