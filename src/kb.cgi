@@ -1,6 +1,6 @@
 #!/usr/local/bin/GNU/perl
 #
-# $Id: kb.cgi,v 4.2 1996-04-24 18:00:43 nakahiro Exp $
+# $Id: kb.cgi,v 4.3 1996-04-24 18:55:32 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -2257,8 +2257,11 @@ sub BoardHeader {
 #
 sub GetNewArticleId {
 
+    # 記事番号を収めるファイル
+    local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
+
     # 1増やして返す
-    return(&GetArticleId() + 1);
+    return(&GetArticleId($ArticleNumFile) + 1);
 
 }
 
