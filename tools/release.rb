@@ -59,11 +59,11 @@ end
 `chmod 700 KB/tools/*`
 `chmod 400 KB/COPYING KB/README KB/doc/html/* KB/redist/*`
 `chmod 777 KB/kb KB/kb/test KB/kb/board KB/kb/log`
-`chmod 755 KB/kb/UI KB/kb/icons`
+`chmod 755 KB/kb/UI KB/kb/icon KB/kb/idef KB/kb/style`
 `chmod 755 KB/kb/kb.cgi`
 `chmod 666 KB/kb/board/* KB/kb/test/* KB/kb/kb.user KB/kb/kinoboards`
-`chmod 644 KB/kb/icons/* KB/kb/index* KB/kb/kb.ph KB/kb/UI/* KB/kb/kbStyle.css`
-`chmod 444 KB/kb/cgi.pl KB/kb/icons/*.gif KB/kb/kinologue.pl`
+`chmod 644 KB/kb/idef/* KB/kb/index* KB/kb/kb.ph KB/kb/UI/* KB/kb/style/*`
+`chmod 444 KB/kb/cgi.pl KB/kb/icon/*.gif KB/kb/kinologue.pl`
 `chmod 444 KB/kb/jcode.pl KB/kb/mimer.pl KB/kb/mimew.pl`
 
 # rename
