@@ -31,7 +31,7 @@ ThreadArticle:
     &MsgHeader('Message view (threaded)', "$H_REPLYをまとめ読み");
 
     # メイン関数の呼び出し(記事概要)
-    &ThreadArticleMain( 6, @FollowIdTree );
+    &ThreadArticleMain( 7, @FollowIdTree );
 
     # メイン関数の呼び出し(記事)
     &ThreadArticleMain( 2, @FollowIdTree );
