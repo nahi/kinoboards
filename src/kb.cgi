@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.84 2000-08-10 09:56:38 nakahiro Exp $
+# $Id: kb.cgi,v 5.85 2000-08-11 11:15:26 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -77,7 +77,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7.3-dev';		# release
+$KB_RELEASE = '7.3';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -118,7 +118,7 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 # メインのヘッダファイルの読み込み
 if ( !$KBDIR_PATH || !chdir( $KBDIR_PATH ))
 {
-    print "Content-Type: text/plain; charset=EUC-JP\r\n\r\n";
+    print "Content-Type: text/plain; charset=EUC-JP\x0d\x0a\x0d\x0a";
     print "エラー．管理者様へ:\n";
     print "$0の先頭部分に置かれている\$KBDIR_PATHが，\n";
     print "正しく設定されていません\n";
@@ -1493,7 +1493,7 @@ sub uiBoardEntryExec
     &secureSubject( *intro );
 # <kb:... />も入る可能性があるので，うかつに&secureArticleを呼べない．
 #    &secureArticle( *header, $H_TTLABEL[2] );
-    local( @arriveMail ) = split( /\n/, $armail );
+    local( @arriveMail ) = split( /\x0a/, $armail );
 
     &insertBoard( $name, $intro, $conf, *arriveMail, *header );
 
@@ -1516,7 +1516,7 @@ sub uiBoardConfig
     @gArriveMail = ();
     $gConfig = &getBoardInfo( $BOARD );
     &getBoardSubscriber(1, $BOARD, *gArriveMail); # 宛先とコメントを取り出す
-    $gHeader = "";
+    $gHeader = '';
     &getBoardHeader( $BOARD, *gHeader ); # ヘッダ文字列を取り出す
 
     &htmlGen( 'BoardConfig.xml' );
@@ -1534,7 +1534,7 @@ sub hg_board_config_form
     $msg .= &tagLabel( "$H_BOARD固有の設定ファイル（$CONF_FILE_NAME）を利用", 'conf', 'C' ) . ': ' . &tagInputCheck( 'conf', $gConfig ) . $HTML_BR . $HTML_BR;
 
     local( $all );
-    foreach ( @gArriveMail ) { $all .= $_ . "\n"; }
+    foreach ( @gArriveMail ) { $all .= $_ . "\x0a"; }
     $msg .= &tagLabel( "「$BOARD」の自動$H_MAIL配信先", 'armail', 'M' ) . $HTML_BR . &tagTextarea( 'armail', $all, $TEXT_ROWS, $MAIL_LENGTH ) . $HTML_BR . $HTML_BR;
     $msg .= &tagLabel( "「$BOARD」の$H_BOARDヘッダ部分", 'article', 'H' ) . $HTML_BR . &tagTextarea( 'article', $gHeader, $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
     %tags = ( 'c', 'bcx', 'b', $BOARD );
@@ -1561,7 +1561,7 @@ sub uiBoardConfigExec
     &secureSubject( *intro );
 # <kb:... />も入る可能性があるので，うかつに&secureArticleを呼べない．
 #    &secureArticle( *header, $H_TTLABEL[2] );
-    local( @arriveMail ) = split( /\n/, $armail );
+    local( @arriveMail ) = split( /\x0a/, $armail );
 
     &updateBoard( $BOARD, $valid, $intro, $conf, *arriveMail, *header );
 
@@ -1721,13 +1721,13 @@ sub uiSupersedeEntry
 sub hg_post_reply_entry_orig_article
 {
     &fatal( 18, "$_[0]/PostReplyEntryOrigArticle" ) if ( $_[0] ne 'PostReplyEntry.xml' );
-    &dumpArtBody( $gId, 0, 1 );
+    &dumpArtBody( $gId, 0 );
 }
 
 sub hg_supersede_entry_orig_article
 {
     &fatal( 18, "$_[0]/SupersedeEntryOrigArticle" ) if ( $_[0] ne 'SupersedeEntry.xml' );
-    &dumpArtBody( $gId, 0, 1 );
+    &dumpArtBody( $gId, 0 );
 }
 
 
@@ -1849,7 +1849,7 @@ sub hg_post_preview_body
 
     local( $postDate ) = $^T;
     $postDate = &getUtcFromYYYY_MM_DD_HH_MM_SS( $gPostDateStr ) if ( $gPostDateStr ne '' );
-    &dumpArtBody( '', 0, 1, $gOrigId, '', $postDate, $gSubject, $gIcon, 0, $gName, $gEmail, $gUrl, $gArticle );
+    &dumpArtBody( '', 0, $gOrigId, '', $postDate, $gSubject, $gIcon, 0, $gName, $gEmail, $gUrl, $gArticle );
 }
 
 sub hg_supersede_preview_body
@@ -1860,13 +1860,13 @@ sub hg_supersede_preview_body
     $postDate = &getUtcFromYYYY_MM_DD_HH_MM_SS( $gPostDateStr ) if ( $gPostDateStr ne '' );
 
     # hg_post_preview_bodyとは異なり，fidが空（リプライ元ではない）．
-    &dumpArtBody( '', 0, 1, '', '', $postDate, $gSubject, $gIcon, 0, $gName, $gEmail, $gUrl, $gArticle );
+    &dumpArtBody( '', 0, '', '', $postDate, $gSubject, $gIcon, 0, $gName, $gEmail, $gUrl, $gArticle );
 }
 
 sub hg_supersede_preview_orig_article
 {
     &fatal( 18, "$_[0]/SupersedePreviewOrigArticle" ) if ( $_[0] ne 'SupersedePreview.xml' );
-    &dumpArtBody( $gOrigId, 0, 1 );
+    &dumpArtBody( $gOrigId, 0 );
 }
 
 
@@ -2091,7 +2091,7 @@ sub hg_thread_article_body
 	$gHgStr .= $HTML_HR;
 	while ( $id = shift( @gIDLIST ))
 	{
-	    &dumpArtBody( $id, $SYS_COMMAND_EACH, 1 );
+	    &dumpArtBody( $id, $SYS_COMMAND_EACH );
 	    $gHgStr .= $HTML_HR;
 	}
     }
@@ -2414,7 +2414,7 @@ sub threadTitleMaintIcon
 {
     local( $id, $addNum ) = @_;
 
-    $gHgStr .= " .......... \n";
+    $gHgStr .= " ..... \n";
 
     local( $fromId ) = &cgi'tag( 'rfid' );
     local( $oldId ) = &cgi'tag( 'roid' );
@@ -2617,7 +2617,7 @@ sub hg_sort_article_body
 	    for ( $IdNum = $From; $IdNum <= $To; $IdNum++ )
 	    {
 		$Id = &getArtId( $IdNum );
-		&dumpArtBody( $Id, $SYS_COMMAND_EACH, 1 );
+		&dumpArtBody( $Id, $SYS_COMMAND_EACH );
 		$gHgStr .= $HTML_HR;
 	    }
 	}
@@ -2626,7 +2626,7 @@ sub hg_sort_article_body
 	    for ( $IdNum = $To; $IdNum >= $From; $IdNum-- )
 	    {
 		$Id = &getArtId( $IdNum );
-		&dumpArtBody( $Id, $SYS_COMMAND_EACH, 1 );
+		&dumpArtBody( $Id, $SYS_COMMAND_EACH );
 		$gHgStr .= $HTML_HR;
 	    }
 	}
@@ -2659,7 +2659,7 @@ sub hg_show_article_title
 sub hg_show_article_body
 {
     &fatal( 18, "$_[0]/ShowArticleBody" ) if ( $_[0] ne 'ShowArticle.xml' );
-    &dumpArtBody( $gId, 1, 1 );
+    &dumpArtBody( $gId, 1 );
 }
 
 sub hg_show_article_original
@@ -2697,14 +2697,15 @@ sub hg_search_article_result
 {
     &fatal( 18, "$_[0]/SearchArticleResult" ) if ( $_[0] ne 'SearchArticle.xml' );
 
-    local( $SearchView ) = &cgi'tag( 'searchthread' )? 1 : 0;
-    local( $Key ) = &cgi'tag( 'key' );
-    local( $SearchSubject ) = &cgi'tag( 'searchsubject' );
-    local( $SearchPerson ) = &cgi'tag( 'searchperson' );
-    local( $SearchArticle ) = &cgi'tag( 'searcharticle' );
-    local( $SearchPostTimeFrom ) = &cgi'tag( 'tpi' ) || &cgi'tag( 'searchposttimefrom' ) || &cgi'tag( 'tpf' );
-    local( $SearchPostTimeTo ) = &cgi'tag( 'tpi' ) || &cgi'tag( 'searchposttimeto' ) || &cgi'tag( 'tpt' );
-    local( $SearchIcon ) = &cgi'tag( 'searchicon' );
+    local( $view ) = &cgi'tag( 'searchthread' )? 1 : 0;
+    local( $inverse ) = &cgi'tag( 'searchinverse' )? 1 : 0;
+    local( $key ) = &cgi'tag( 'key' );
+    local( $subject ) = &cgi'tag( 'searchsubject' );
+    local( $author ) = &cgi'tag( 'searchperson' );
+    local( $article ) = &cgi'tag( 'searcharticle' );
+    local( $postTimeFrom ) = &cgi'tag( 'tpi' ) || &cgi'tag( 'searchposttimefrom' ) || &cgi'tag( 'tpf' );
+    local( $postTimeTo ) = &cgi'tag( 'tpi' ) || &cgi'tag( 'searchposttimeto' ) || &cgi'tag( 'tpt' );
+    local( $icon ) = &cgi'tag( 'searchicon' );
 
     local( %iconHash );
     foreach ( &cgi'tag( 'icon' ))
@@ -2714,14 +2715,12 @@ sub hg_search_article_result
     }
 
     # キーワード関連検索対象が指定されなかった場合は，キーワードは空扱い．
-    $Key = '' unless ( $SearchSubject || $SearchPerson || $SearchArticle );
+    $key = '' unless ( $subject || $author || $article );
 
     # 対象があれば検索
-    if (( $Key ne '' ) || ( $SearchPostTimeFrom || $SearchPostTimeTo ) || $SearchIcon )
+    if (( $key ne '' ) || ( $postTimeFrom || $postTimeTo ) || $icon )
     {
-	&dumpSearchResult( $SearchView, $Key, $SearchSubject, $SearchPerson,
-	    $SearchArticle, $SearchPostTimeFrom, $SearchPostTimeTo,
-	    $SearchIcon, *iconHash );
+	&dumpSearchResult( $view, $inverse, $key, $subject, $author, $article, $postTimeFrom, $postTimeTo, $icon, *iconHash );
     }
 }
 
@@ -2769,7 +2768,7 @@ sub hg_delete_preview_form
 sub hg_delete_preview_body
 {
     &fatal( 18, "$_[0]/DeletePreviewBody" ) if ( $_[0] ne 'DeletePreview.xml' );
-    &dumpArtBody( $gId, 0, 1 );
+    &dumpArtBody( $gId, 0 );
 }
 
 sub hg_delete_preview_reply
@@ -3021,8 +3020,7 @@ sub hg_c_func_link
     if ( $POLICY & 8 )
     {
 	$gHgStr .= qq(<dt>「新規に$H_BOARDを作りたい」</dt>\n);
-	$gHgStr .= '<dd>→' . &linkP( 'c=be', "$H_BOARDの新規作成" .
-	    &tagAccessKey( 'A' ), 'A' ) . qq(</dd>\n);
+	$gHgStr .= '<dd>→' . &linkP( 'c=be', "$H_BOARDの新規作成" . &tagAccessKey( 'A' ), 'A' ) . qq(</dd>\n);
     }
 
     $gHgStr .= qq(</dl>\n);
@@ -3045,7 +3043,7 @@ sub hg_c_board_link_all
 	$modTime = &getDateTimeFormatFromUtc( $modTimeUtc );
 	if ( $SYS_BLIST_NEWICON_DATE && (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
 	{
-	    $newIcon = " " . &tagArtImg( $H_NEWARTICLE );
+	    $newIcon = ' ' . &tagArtImg( $H_NEWARTICLE );
 	}
 	else
 	{
@@ -3103,7 +3101,7 @@ sub hg_c_board_link
     $modTime = &getDateTimeFormatFromUtc( $modTimeUtc );
     if ( $SYS_BLIST_NEWICON_DATE && (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
     {
-	$newIcon = " " . &tagArtImg( $H_NEWARTICLE );
+	$newIcon = ' ' . &tagArtImg( $H_NEWARTICLE );
     }
     else
     {
@@ -3175,7 +3173,10 @@ sub hg_c_command
     delete( $var{ 'comment' } );
     while (( $tag, $value ) = each( %var ))
     {
-	push( @comm, $tag . '=' . $value );
+	foreach ( split( / /, $value ))
+	{
+	    push( @comm, $tag . '=' . $_ );
+	}
     }
     $gHgStr .= &linkP( join( '&', @comm ), $comment );
 }
@@ -3205,6 +3206,7 @@ sub hg_b_search_article_form
 {
     return unless $BOARD;
     local( $SearchThread ) = &cgi'tag( 'searchthread' );
+    local( $SearchInverse ) = &cgi'tag( 'searchinverse' );
     local( $Key ) = &cgi'tag( 'key' );
     local( $SearchSubject ) = &cgi'tag( 'searchsubject' );
     local( $SearchPerson ) = &cgi'tag( 'searchperson' );
@@ -3266,7 +3268,9 @@ sub hg_b_search_article_form
 #	$contents .= &tagInputCheck( 'searchicon', $SearchIcon ) . ': ' . &tagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
 
     }
-    $contents .= $HTML_BR . &tagInputCheck( 'searchthread', $SearchThread ) . ': ' . &tagLabel( 'スレッドを検索する', 'searchthread', 'Z' ) . $HTML_BR;
+    $contents .= $HTML_BR;
+    $contents .= &tagInputCheck( 'searchthread', $SearchThread ) . ': ' . &tagLabel( 'スレッドを検索する', 'searchthread', 'Z' ) . $HTML_BR;
+    $contents .= &tagInputCheck( 'searchinverse', $SearchInverse ) . ': ' . &tagLabel( '否定検索を行なう', 'searchinverse', 'X' ) . $HTML_BR;
 
     $msg .= &tagFieldset( "検索対象$HTML_BR", $contents ) . $HTML_BR;
 
@@ -3508,13 +3512,11 @@ sub dumpArtEntryNormal
 ## dumpArtBody - メッセージ本体の表示
 #
 # - SYNOPSIS
-#	&dumpArtBody( $Id, $CommandFlag, $OriginalFlag, @articleInfo );
+#	&dumpArtBody( $Id, $CommandFlag, @articleInfo );
 #
 # - ARGS
 #	$Id			メッセージID
 #	$CommandFlag		コマンドを表示するか否か(表示する=1)
-#	$OriginalFlag		その記事中に，(あれば)元記事へのリンクを
-#				表示するか否か(表示する=1)
 #	@articleInfo		$Idが''だった時に使われるメッセージ情報
 #
 # - DESCRIPTION
@@ -3523,7 +3525,7 @@ sub dumpArtEntryNormal
 #
 sub dumpArtBody
 {
-    local( $id, $commandFlag, $origFlag, @articleInfo ) = @_;
+    local( $id, $commandFlag, @articleInfo ) = @_;
 
     local( $fid, $aids, $date, $title, $icon, $host, $name, $eMail, $url );
 
@@ -3627,7 +3629,7 @@ sub dumpArtThread
     {
 	# 元記事の表示(コマンド付き, 元記事なし)
 	$gHgStr .= $HTML_HR;
-	&dumpArtBody( $Head, $SYS_COMMAND_EACH, 0 );
+	&dumpArtBody( $Head, $SYS_COMMAND_EACH );
     }
 
     &cgiprint'cache( $gHgStr ); $gHgStr = '';
@@ -3640,19 +3642,20 @@ sub dumpArtThread
 ## dumpSearchResult - 記事検索
 #
 # - SYNOPSIS
-#	&dumpSearchResult( $type, $Key, $Subject, $Person, $Article, $PostTimeFrom, $PostTimeTo, $IconType, *iconHash );
+#	&dumpSearchResult( $type, $inverse, $key, $subject, $author, $article, $postTimeFrom, $postTimeTo, $iconType, *iconHash );
 #
 # - ARGS
 #	$type		表示形式
 #			  0 ... メッセージ表示
 #			  1 ... スレッド表示
-#	$Key		キーワード
-#	$Subject	タイトルを検索するか否か
-#	$Person		投稿者を検索するか否か
-#	$Article	本文を検索するか否か
-#	$PostTimeFrom	開始日付
-#	$PostTimeTo	終了日付
-#	$IconType	アイコンの検索手法
+#	$inverse	否定検索か否か
+#	$key		キーワード
+#	$subject	タイトルを検索するか否か
+#	$author		投稿者を検索するか否か
+#	$article	本文を検索するか否か
+#	$postTimeFrom	開始日付
+#	$postTimeTo	終了日付
+#	$iconType	アイコンの検索手法
 #	%iconHash	検索アイコン用ハッシュ．
 #			  $iconHash{ 'アイコン' }が真のアイコンが検索される．
 #
@@ -3661,10 +3664,10 @@ sub dumpArtThread
 #
 sub dumpSearchResult
 {
-    local( $type, $Key, $Subject, $Person, $Article, $PostTimeFrom, $PostTimeTo, $IconType, *iconHash ) = @_;
+    local( $type, $inverse, $key, $subject, $author, $article, $postTimeFrom, $postTimeTo, $iconType, *iconHash ) = @_;
 
-    local( @KeyList ) = split( /\s+/, $Key );
-    local( $postTime ) = ( $PostTimeTo || $PostTimeFrom );
+    local( @keyList ) = split( /\s+/, $key );
+    local( $postTime ) = ( $postTimeTo || $postTimeFrom );
 
     $gHgStr .= qq(<ul>\n);
 
@@ -3675,25 +3678,28 @@ sub dumpSearchResult
     local( %dumpThread );
 
     local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail );
-    local( $SubjectFlag, $PersonFlag, $PostTimeFlag, $ArticleFlag );
-    local( $HitNum, $Line );
+    local( $subjectFlag, $authorFlag, $postTimeFlag, $articleFlag );
+    local( $hitNum, $line );
 
-    local( $FromUtc, $ToUtc );
+    local( $fromUtc, $toUtc );
     if ( $postTime )
     {
-	$FromUtc = $ToUtc = -1;
-	if ( $PostTimeFrom )
+	$fromUtc = $toUtc = -1;
+	if ( $postTimeFrom )
 	{
-	    $FromUtc = &getUtcFromYYYY_MM_DD( $PostTimeFrom );
-	    &fatal( 22, '' ) if ( $FromUtc < 0 );
+	    $fromUtc = &getUtcFromYYYY_MM_DD( $postTimeFrom );
+	    &fatal( 22, '' ) if ( $fromUtc < 0 );
 	}
-	if ( $PostTimeTo )
+	if ( $postTimeTo )
 	{
-	    $ToUtc = &getUtcFromYYYY_MM_DD( $PostTimeTo );
-	    &fatal( 22, '' ) if ( $ToUtc < 0 );
+	    $toUtc = &getUtcFromYYYY_MM_DD( $postTimeTo );
+	    &fatal( 22, '' ) if ( $toUtc < 0 );
 	}
-	$ToUtc += 86400 if ( $ToUtc >= 0 );
+	$toUtc += 86400 if ( $toUtc >= 0 );
     }
+
+    # 検索の期待値は，肯定...1，否定...0
+    local( $expect ) = 1 - $inverse;
 
     foreach ( $[ .. &getNofArt() )
     {
@@ -3702,56 +3708,70 @@ sub dumpSearchResult
 	( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail ) = &getArtInfo( $dId );
 
 	# 変数のリセット
-	$SubjectFlag = $PersonFlag = $PostTimeFlag = $ArticleFlag = 0;
-	$Line = '';
+	$subjectFlag = $authorFlag = $postTimeFlag = $articleFlag = 0;
+	$line = '';
 
 	# アイコンチェック
-	next if ( $IconType && !&searchArticleIcon( $dId, $IconType, *iconHash ));
+	if ( $iconType )
+	{
+	    next if ( &searchArticleIcon( $dId, $iconType, *iconHash ) != $expect );
+	}
 
 	# 投稿時刻を検索
-	next if ( $postTime && !&checkSearchTime( $dDate, $FromUtc, $ToUtc ));
+	if ( $postTime )
+	{
+	    next if ( &checkSearchTime( $dDate, $fromUtc, $toUtc ) != $expect );
+	}
 
-	if ( $Key ne '' )
+	if ( $key ne '' )
 	{
 	    # タイトルを検索
-	    if ( $Subject && ( $dTitle ne '' ))
+	    if ( $subject && ( $dTitle ne '' ))
 	    {
-		$SubjectFlag = 1;
-		foreach ( @KeyList )
+		$subjectFlag = 1;
+		foreach ( @keyList )
 		{
-		    $SubjectFlag = 0 if ( $dTitle !~ /$_/i );
+		    $subjectFlag = 0 if ( $dTitle !~ /$_/i );
 		}
 	    }
 
 	    # 投稿者名を検索
-	    if ( $Person && !$SubjectFlag && ( $dName ne '' ))
+	    if ( $author && !$subjectFlag && ( $dName ne '' ))
 	    {
-		$PersonFlag = 1;
-		foreach ( @KeyList )
+		$authorFlag = 1;
+		foreach ( @keyList )
 		{
 		    if (( $dName !~ /$_/i ) && ( $dEmail !~ /$_/i ))
 		    {
-			$PersonFlag = 0;
+			$authorFlag = 0;
 		    }
 		}
 	    }
 
 	    # 本文を検索
-	    if ( $Article && !$SubjectFlag && !$PersonFlag )
+	    if ( $article && !$subjectFlag && !$authorFlag )
 	    {
-		if ( $Line = &searchArticleKeyword( $dId, $BOARD, @KeyList ))
+		if ( $line = &searchArticleKeyword( $dId, $BOARD, @keyList ))
 		{
-		    $ArticleFlag = 1;
+		    $articleFlag = 1;
 		}
 	    }
 	}
 	else
 	{
 	    # 無条件で一致
-	    $SubjectFlag = 1;
+	    $subjectFlag = $expect;
 	}
 
-	next unless ( $SubjectFlag || $PersonFlag || $ArticleFlag );
+	# どれか一つでも合致していたら．．．期待値によって振り分け
+	if ( $subjectFlag || $authorFlag || $articleFlag )
+	{
+	    next unless $expect;
+	}
+	else
+	{
+	    next if $expect;
+	}
 
 	# スレッド表示の場合
 	if ( $type == 1 )
@@ -3765,17 +3785,17 @@ sub dumpSearchResult
 	}
 
 	# 合致件数のカウント
-	$HitNum++;
+	$hitNum++;
 
 	# 記事へのリンクを表示
 	$gHgStr .= '<li>';
 	&dumpArtSummary( $dId, $dAids, $dDate, $dTitle, $dIcon, $dName, 1 );
 
 	# 本文に合致した場合は本文も表示
-	if ( $ArticleFlag )
+	if ( $articleFlag )
 	{
-	    $Line =~ s/<[^>]*>//go;
-	    $gHgStr .= qq(<blockquote>$Line</blockquote>\n);
+	    $line =~ s/<[^>]*>//go;
+	    $gHgStr .= qq(<blockquote>$line</blockquote>\n);
 	}
 	$gHgStr .= qq(</li>\n);
     }
@@ -3791,10 +3811,10 @@ sub dumpSearchResult
 	$target = 'スレッド';
     }
 
-    if ( $HitNum )
+    if ( $hitNum > 0 )
     {
 	$gHgStr .= qq(</ul>\n<ul>\n);
-	$gHgStr .= qq(<li>$HitNum件の$targetが見つかりました．</li>\n);
+	$gHgStr .= qq(<li>$hitNum件の$targetが見つかりました．</li>\n);
     }
     else
     {
@@ -4420,7 +4440,7 @@ sub articleEncode
 	( $urlMatch = $url ) =~ s/([?+*^\\\[\]\|()])/\\$1/go;
 	next if ( grep( /^$urlMatch$/, @cache ));
 	push( @cache, $url );
-	$quoteStr = "[URL:$url]";
+	$quoteStr = "[url:$url]";
 
 	if ( $urlMatch =~ m/^kb:(.*)$/ )
 	{
@@ -4473,9 +4493,9 @@ sub articleEncode
 sub plainArticleToPreFormatted
 {
     local( *Article ) = @_;
-    $Article =~ s/\n*$//o;
+    $Article =~ s/\x0a*$//o;
     $Article = &htmlEncode( $Article );	# no tags are allowed.
-    $Article = qq(<pre>\n$Article</pre>);
+    $Article = qq(<pre>\x0a$Article</pre>\x0a);
 }
 
 
@@ -4496,10 +4516,10 @@ sub plainArticleToPreFormatted
 sub plainArticleToHtml
 {
     local( *Article ) = @_;
-    $Article =~ s/^\n*//o;
-    $Article =~ s/\n*$//o;
-    $Article =~ s/\n/$HTML_BR/go;
-    $Article =~ s/$HTML_BR($HTML_BR)+/<\/p>\n\n<p>/go;
+    $Article =~ s/^\x0a*//o;
+    $Article =~ s/\x0a*$//o;
+    $Article =~ s/\x0a/$HTML_BR/go;
+    $Article =~ s/$HTML_BR($HTML_BR)+/<\/p>\x0a\x0a<p>/go;
     $Article = qq(<p>$Article</p>);
 }
 
@@ -4543,7 +4563,7 @@ sub quoteOriginalArticle
 	$premsg =~ s/__TITLE__/$subject/;
 	$premsg =~ s/__DATE__/&getDateTimeFormatFromUtc( $date )/e;
 	$premsg =~ s/__NAME__/$name/;
-	$msg .= $premsg . "\n";
+	$msg .= $premsg . "\x0a";
     }
     local( $QMark, $line );
     foreach $line ( @ArticleBody )
@@ -4744,7 +4764,7 @@ sub tagArtImg
 
     if ( !$icon || $icon eq $H_NOICON )
     {
-	return "";
+	return '';
     }
     elsif ( $SYS_ICON )
     {
@@ -5296,7 +5316,7 @@ sub searchArticleKeyword
 #	記事検索の際，日付の期間判断を行なう．
 # 
 # - RETURN
-#	true if on time.
+#	1 if on time, 0 if not.
 #
 sub checkSearchTime
 {
@@ -5518,19 +5538,19 @@ sub arriveMail
 {
     local( $Name, $Email, $Date, $Subject, $Icon, $Id, @To ) = @_;
 
-    local( $StrSubject, $MailSubject, $StrFrom, $Message );
-    $StrSubject = ( !$SYS_ICON || ( $Icon eq $H_NOICON ))? $Subject : "($Icon) $Subject";
+    local( $StrSubject ) = ( !$SYS_ICON || ( $Icon eq $H_NOICON ))? $Subject : "($Icon) $Subject";
     $StrSubject =~ s/<[^>]*>//go;	# タグは要らない
     $StrSubject = &htmlDecode( $StrSubject );
-    $MailSubject = &getMailSubjectPrefix( $BOARDNAME, $Id ) . $StrSubject;
-    $StrFrom = $Email? "$Name <$Email>" : "$Name";
+    local( $MailSubject ) = &getMailSubjectPrefix( $BOARDNAME, $Id ) . $StrSubject;
+    local( $StrFrom ) = $Email? "$Name <$Email>" : "$Name";
+    local( $linkToMessage ) = &getURLOfSytem( "b=$BOARD&c=e&id=$Id" );
 
-    $Message = <<__EOF__;
+    local( $Message ) = <<__EOF__;
 $SYSTEM_NAMEからのお知らせです．
 $H_BOARD「$BOARDNAME」に対して書き込みがありました．
 
 新着$H_MESG:
-  → $SCRIPT_URL?b=$BOARD&c=e&id=$Id
+ $linkToMessage
 
 __EOF__
 
@@ -5571,20 +5591,19 @@ sub followMail
 {
     local( $Name, $Email, $Date, $Subject, $Icon, $Id, $Fname, $Femail, $Fdate, $Fsubject, $Ficon, $Fid, @To ) = @_;
     
-    local( $StrSubject, $FstrSubject, $MailSubject, $StrFrom, $Message );
-
-    $StrSubject = ( !$SYS_ICON || ( $Icon eq $H_NOICON ))? "$Subject" : "($Icon) $Subject";
+    local( $StrSubject ) = ( !$SYS_ICON || ( $Icon eq $H_NOICON ))? "$Subject" : "($Icon) $Subject";
     $StrSubject =~ s/<[^>]*>//go;	# タグは要らない
     $StrSubject = &htmlDecode( $StrSubject );
-    $FstrSubject = ( $Ficon eq $H_NOICON )? $Fsubject : "($Ficon) $Fsubject";
+    local( $FstrSubject ) = ( $Ficon eq $H_NOICON )? $Fsubject : "($Ficon) $Fsubject";
     $FstrSubject =~ s/<[^>]*>//go;	# タグは要らない
     $FstrSubject = &htmlDecode( $FstrSubject );
-    $MailSubject = &getMailSubjectPrefix( $BOARDNAME, $Fid ) . $FstrSubject;
-    $StrFrom = $Email? "$Name <$Email>" : "$Name";
+    local( $MailSubject ) = &getMailSubjectPrefix( $BOARDNAME, $Fid ) . $FstrSubject;
+    local( $StrFrom ) = $Email? "$Name <$Email>" : "$Name";
 
-    local( $topId ) = &getArtParentTop( $Id );
+    local( $linkToMessage ) = &getURLOfSytem( "b=$BOARD&c=e&id=$Fid" );
+    local( $linkToThread ) = &getURLOfSytem( "b=$BOARD&c=t&id=" . &getArtParentTop( $Id ));
 
-    $Message = <<__EOF__;
+    local( $Message ) = <<__EOF__;
 $SYSTEM_NAMEからのお知らせです．
 
 $H_BOARD「$BOARDNAME」に
@@ -5593,9 +5612,9 @@ $H_BOARD「$BOARDNAME」に
 $H_REPLYがありました．
 
 新着$H_MESG:
-  → $SCRIPT_URL?b=$BOARD&c=e&id=$Fid
-スレッドの先頭からまとめ読み:
-  → $SCRIPT_URL?b=$BOARD&c=t&id=$topId
+ $linkToMessage
+スレッド全体:
+ $linkToThread
 
 __EOF__
 
@@ -5629,11 +5648,11 @@ sub sendArticleMail
 
     local( $ExtHeader, @ArticleBody );
 
-    $ExtHeader = "X-MLServer: $PROGNAME\n";
-    $ExtHeader .= "X-Kb-System: $SYSTEM_NAME\n";
+    $ExtHeader = "X-MLServer: $PROGNAME\x0a";
+    $ExtHeader .= "X-Kb-System: $SYSTEM_NAME\x0a";
     if (( ! $SYS_MAILHEADBRACKET ) && $BOARDNAME && ($Id ne '' ))
     {
-	$ExtHeader .= "X-Kb-Board: $BOARDNAME\nX-Kb-Articleid: $Id\n";
+	$ExtHeader .= "X-Kb-Board: $BOARDNAME\x0aX-Kb-Articleid: $Id\x0a";
     }
 
     local( $stat, $errstr ) = &sendMail( $FromName, $FromAddr, $Subject, $ExtHeader, $Message, @To );
@@ -5675,8 +5694,7 @@ sub sendMail
     }
 
     local( $SenderFrom, $SenderAddr ) = (( $MAILFROM_LABEL || $MAINT_NAME ), $MAINT );
-    &cgi'sendMail( $FromName, $FromAddr, $SenderFrom, $SenderAddr, $Subject,
- 	$ExtHeader, $Message, $MAILTO_LABEL, @To );
+    &cgi'sendMail( $FromName, $FromAddr, $SenderFrom, $SenderAddr, $Subject, $ExtHeader, $Message, $MAILTO_LABEL, @To );
 }
 
 
@@ -5704,8 +5722,7 @@ sub getArticlePlainText
 {
     local( $id, $name, $mail, $subject, $icon, $date ) = @_;
 
-    local( $strSubject ) = ( !$SYS_ICON || ( $icon eq $H_NOICON ))? $subject :
-	"($icon) $subject";
+    local( $strSubject ) = ( !$SYS_ICON || ( $icon eq $H_NOICON ))? $subject : "($icon) $subject";
     $strSubject =~ s/<[^>]*>//go;	# タグは要らない
     $strSubject = &htmlDecode( $strSubject );
     local( $strFrom ) = $mail? "$name <$mail>" : $name;
@@ -5718,21 +5735,20 @@ sub getArticlePlainText
 $H_SUBJECT: $strSubject
 $H_FROM: $strFrom
 $H_DATE: $strDate
-
 --------------------
-
 __EOF__
 
     local( $str );
     foreach ( @body )
     {
 	s/<[^>]*>//go;
+	s/\[url:([^\]]+)\]/&getURLFromLinkStr( $1 )/egi;
 	$str .= &htmlDecode( $_ );
     }
 
     # 先頭と末尾の改行を切り飛ばす．
-    $str =~ s/^\n*//o;
-    $str =~ s/\n*$//o;
+    $str =~ s/^\x0a*//o;
+    $str =~ s/\x0a*$//o;
 
     $msg . $str;
 }
@@ -5974,7 +5990,7 @@ sub checkSubject
     local( *String ) = @_;
 
     &fatal( 2, $H_SUBJECT ) unless $String;
-    &fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
+    &fatal( 3, '' ) if ( $String =~ m/[\t\x0a]/o );
 
     if ( !$SYS_TAGINSUBJECT )
     {
@@ -6026,7 +6042,7 @@ sub checkName
     local( *String ) = @_;
 
     &fatal( 2, $H_FROM ) if ( !$String );
-    &fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
+    &fatal( 3, '' ) if ( $String =~ m/[\t\x0a]/o );
 
     # 数字だけじゃ駄目．
     &fatal( 5, $String ) if ( $String =~ /^\d+$/ );
@@ -6055,7 +6071,7 @@ sub checkPasswd
     local( *String ) = @_;
 
     &fatal( 2, $H_PASSWD ) if ( !$String );
-    &fatal( 3, $H_PASSWD ) if ( $String =~ /[\t\n]/o );
+    &fatal( 3, $H_PASSWD ) if ( $String =~ /[\t\x0a]/o );
 
     return 0;
 }
@@ -6088,7 +6104,7 @@ sub checkEmail
 	# `@'が入ってなきゃアウト
 	&fatal( 7, 'E-Mail' ) if ( $String !~ /@/ );
     }
-    &fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
+    &fatal( 3, '' ) if ( $String =~ m/[\t\x0a]/o );
 }
 
 
@@ -6114,7 +6130,7 @@ sub checkURL
     # http://だけの場合は空にしてしまう．
     $String = '' if ( $String =~ m!^http://$!oi );
     &fatal( 7, 'URL' ) if (( $String ne '' ) && ( !&isUrl( $String )));
-    &fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
+    &fatal( 3, '' ) if ( $String =~ m/[\t\x0a]/o );
 }
 
 
@@ -6358,7 +6374,7 @@ sub getMailSubjectPrefix
 {
     local( $board, $id ) = @_;
     return "[$board: $id] " if $SYS_MAILHEADBRACKET;
-    "";
+    '';
 }
 
 
@@ -6648,6 +6664,85 @@ sub getTitleOldIndex
     local( $id ) = @_;
     local( $old ) = &getNofArt() - int( $id + $DEF_TITLE_NUM/2 );
     ( $old >= 0 )? $old : 0;
+}
+
+
+###
+## getURLFromLinkStr - きのぼず用リンク文字列からURLを取得
+#
+# - SYNOPSIS
+#	&getURLFromLinkStr( $str );
+#
+# - ARGS
+#	$str	きのぼず用リンク文字列
+#
+# - DESCRIPTION
+#	きのぼず用リンク文字列をURLに変換する．
+#
+#	http://〜   → http://〜（そのまま）
+#	kb:BOARD/ID → 該当掲示板のメッセージへのリンクを生成
+#	kb:ID       → アクセス中の掲示板のメッセージへのリンクを生成
+#
+#	BOARDには/は入らないものとする．IDは任意．
+#
+# - RETURN
+#	URL
+#
+sub getURLFromLinkStr
+{
+    local( $str ) = @_;
+
+    local( $url );
+    if ( $str =~ m/^kb:(.*)$/ )
+    {
+	local( $artStr ) = $1;
+	if ( $artStr =~ m!^//.*$! )
+	{
+	    # not implemented now...
+	}
+	elsif ( $artStr =~ m!^([^/]+)/(.*)$! )
+	{
+	    local( $boardEsc ) = &uriEscape( $1 );
+	    $url = &getURLOfSytem( "b=$boardEsc&c=e&id=$2" );
+	}
+	else
+	{
+	    $url = &getURLOfSytem( "b=$BOARD_ESC&c=e&id=$artStr" );
+	}
+    }
+    elsif ( &isUrl( &htmlDecode( $str )))
+    {
+	$url = $str;
+    }
+    else
+    {
+	$url = undef;
+    }
+
+    $url;
+}
+
+
+###
+## getURLOfSytem - きのぼずのURLを取得
+#
+# - SYNOPSIS
+#	&getURLOfSytem( $comm );
+#
+# - ARGS
+#	$comm	きのぼずコマンド文字列
+#
+# - DESCRIPTION
+#	きのぼずのコマンド文字列から，
+#	きのぼずの機能を起動するためのURLを生成する．
+#
+# - RETURN
+#	URL
+#
+sub getURLOfSytem
+{
+    local( $comm ) = @_;
+    "$SCRIPT_URL?$comm";
 }
 
 
