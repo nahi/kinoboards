@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.8 1998-10-22 15:38:15 nakahiro Exp $
+# $Id: cgi.pl,v 2.9 1998-10-29 17:20:49 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -30,13 +30,11 @@ package cgi;
 
 
 $SMTP_SERVER = 'localhost';
-# $SMTP_SERVER = 'mailhost';
-# or
-# $SMTP_SERVER = 'mailhost.foo.bar.baz.jp';
-# or
-# $SMTP_SERVER = '123.123.123.123';
+#    $SMTP_SERVER = 'mailhost';
+# or $SMTP_SERVER = 'mailhost.foo.bar.baz.jp';
+# or $SMTP_SERVER = '123.123.123.123';
 
-$AF_INET = 2; $SOCK_STREAM = 1;
+$AF_INET = 2; $SOCK_STREAM = 1;	# depends type of OS.
 # AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, IRIX, Linux, FreeBSD,
 #					WinNT, Mac
 # AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*(Solaris 2.*)
@@ -44,10 +42,13 @@ $AF_INET = 2; $SOCK_STREAM = 1;
 $CRLF = "\xd\xa";		# cannot use \r\n
 				# because of MacPerl's !ox#*& behavior...
 
-@HTML_TAGS = (
+@TAG_ALLOWED = ();		# <>を指定することが許されるタグ
+
+@HTML_TAGS =
+(
      # タグ名, 閉じ必須か否か, 使用可能なfeature
-     'A',		1,	'HREF/NAME',
-     'ADDRESS',	1,	'',
+     'A',		1,	'HREF/NAME/TARGET',
+     'ADDRESS',		1,	'',
      'B',		1,	'',
      'BLOCKQUOTE',	1,	'',
      'BR',		0,	'',
@@ -70,13 +71,13 @@ $CRLF = "\xd\xa";		# cannot use \r\n
      'IMG',		0,	'SRC/ALT/ALIGN/WIDTH/HEIGHT/BORDER',
      'KBD',		1,	'',
      'LI',		0,	'TYPE/VALUE',
-     'LISTING',	1,	'',
+     'LISTING',		1,	'',
      'MENU',		1,	'',
      'OL',		1,	'START',
      'P',		0,	'ALIGN',
      'PRE',		1,	'',
      'SAMP',		1,	'',
-     'STRONG',	1,	'',
+     'STRONG',		1,	'',
      'TT',		1,	'',
      'UL',		1,	'',
      'VAR',		1,	'',
@@ -273,18 +274,17 @@ sub Decode
 	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack( "C", hex( $1 ))/ge;
 	$encode = &jcode'getcode( *value );
 
-	if ( !defined( $encode ))
-	{
-	    $TAGS{ $key } = $value;
-	}
-	else
-	{
-	    &jcode'convert( *value, 'euc', $encode, "z" );
-	    $TAGS{ $key } = $value;
-	}
+	&jcode'convert( *value, 'euc', $encode, "z" ) if ( defined( $encode ));
 
-	$TAGS{ $key } =~ s/\xd\xa/\xa/go;
-	$TAGS{ $key } =~ s/\xd/\xa/go;
+	if ( !grep( /^$key$/, @TAG_ALLOWED ))
+	{
+	    $value = 'Tags are not allowed here...' if ( $value =~ m/[<>]/o );
+	}
+	    
+	$value =~ s/\xd\xa/\xa/go;
+	$value =~ s/\xd/\xa/go;
+
+	$TAGS{ $key } = $value;
     }
 }
 
@@ -673,7 +673,7 @@ sub SecureHtml
 	    if ( &SecureFeature( $tag, $FEATURE{ $tag }, $feature ))
 	    {
 		if ( $srcString =~ m!</$tag>!i )
-		    {
+		{
 		    $srcString = $';
 		    $markuped = $`;
 		    $feature =~ s/&/__amp\376__/go;
@@ -689,7 +689,7 @@ sub SecureHtml
 		}
 		else
 		{
-		    $string .= "<$tag$feature>" . $srcString;
+		    $string .= "<$tag$feature>";
 		    last;
 		}
 	    }
