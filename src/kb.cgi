@@ -1,16 +1,16 @@
 #!/usr/local/bin/perl
 
-
 # このファイルの変更は2箇所です．
 #
 # 1. ↑の先頭行で，Perlのパスを指定します．「#!」に続けて指定してください．
 
-# 2. サーバがIISの場合，パッケージを展開・伸長してできた
-#    kbディレクトリのフルパスを指定してください．
-#    サーバがIISでなければ，この設定は不要です．
+# 2. kbディレクトリのフルパスを指定してください．
+#    !! KB/1.0R6.4以降，この設定は必須となりました !!
 #
-$IIS_TRANSLATED_PATH = '';
-# $IIS_TRANSLATED_PATH = 'd:\inetpub\wwwroot\kb';
+$KBDIR_PATH = '';
+# $KBDIR_PATH = '/home/nahi/public_html/kb';
+# $KBDIR_PATH = 'd:\inetpub\wwwroot\kb';	# WinNT/Win9xの場合
+# $KBDIR_PATH = 'foo:bar:kb';			# Macの場合?
 
 # 3. サーバが動いているマシンがWin95もしくはMacの場合，
 #    $PCを1に設定してください．そうでない場合，この設定は不要です．
@@ -25,10 +25,10 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.19 1998-12-25 06:47:11 nakahiro Exp $
+# $Id: kb.cgi,v 5.20 1999-02-17 19:03:52 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
-# Copyright (C) 1995-98 NAKAMURA Hiroshi.
+# Copyright (C) 1995-99 NAKAMURA Hiroshi.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -47,17 +47,19 @@ $PC = 0;	# for UNIX / WinNT
 # This file implements main functions of KINOBOARDS.
 
 # perlの設定
+push( @INC, '.' );
 $[ = 0;				# zero origined
 $| = 1;				# pipe flushed
 $COLSEP = "\376";
 # umaskは特に設定しない．混乱の元なので．．．
 # umask( umask() | 070 );	# ユーザとnobodyが別グループの場合
 # umask( umask() | 007 );	# ユーザとnobodyが同グループの場合
+umask( umask() & 0770 );
 
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.3';		# release
+$KB_RELEASE = '6.4';		# release
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
@@ -80,22 +82,28 @@ $LOGFILE = 'kb.klg';				# ログファイル
 $TMPFILE_SUFFIX = 'tmp';			# DBテンポラリファイルのSuffix
 $ICONDEF_POSTFIX = 'idef';			# アイコンDBファイルのSuffix
 
-# ヘッダファイルの読み込み
+# PATH_INFOで指定されたディレクトリにあるヘッダファイルの読み込み
 require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 
-# 追加ヘッダファイルの読み込み
-$PATH_TRANSLATED = $IIS_TRANSLATED_PATH || $ENV{'PATH_TRANSLATED'};
-if ( $PATH_TRANSLATED ne '' )
+# メインのヘッダファイルの読み込み
+if ( !$KBDIR_PATH )
 {
-    die( "cannot chdir to `$PATH_TRANSLATED'" )
-	if ( !chdir( $PATH_TRANSLATED ));
-    require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
-    # 上でrequire済みの場合は読まない（Perlの言語仕様）
+    print "Content-Type: text/plain; EUC-JP\n\n";
+    print "エラー．管理者様へ:\n";
+    print "kb.cgiの先頭部分に置かれている\$KBDIR_PATHが，\n";
+    print "正しく設定されていません\n";
+    print "（R6.4以降，この変数の設定が必須となりました）．\n";
+    print "設定してから再度試してみてください．";
+    exit 0;
 }
+chdir( $KBDIR_PATH ) || die( "cannot chdir to `$KBDIR_PATH'" );
+# chdir先のkb.phを読む．ただし上でrequire済みの場合は読まない（Perlの言語仕様）
+require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 
 # インクルードファイルの読み込み
 require( 'cgi.pl' );
 require( 'kinologue.pl' );
+$REMOTE_INFO = $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR || '(unknown)';
 $PROGNAME = $cgi'CGIPROG_NAME;
 $PROGRAM = $cgi'PROGRAM;
 $kinologue'SEV_THRESHOLD = $SYS_LOGLEVEL;
@@ -117,6 +125,11 @@ else
 $SCRIPT_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgi'SCRIPT_NAME$cgi'PATH_INFO";
 $BASE_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgi'SYSDIR_NAME";
 if ( $TIME_ZONE ) { $ENV{'TZ'} = $TIME_ZONE; }
+
+# 許可タグのベース
+$HTML_TAGS_COREATTRS = 'ID/CLASS/STYLE/TITLE';
+$HTML_TAGS_I18NATTRS = 'LANG/DIR';
+$HTML_TAGS_GENATTRS = "$HTML_TAGS_COREATTRS/$HTML_TAGS_I18NATTRS";
 
 # アイコンファイル相対URL
 $ICON_BLIST = "$ICON_DIR/blist.gif";		# 掲示板一覧へ
@@ -140,8 +153,8 @@ sub DoKill
     local( $sig ) = @_;
     if ( !$PC )
     {
-	&cgi'unlock( $LOCK_FILE );
-	&cgi'unlock( $LOCK_FILE_B ) if $LOCK_FILE_B;
+	&cgi'unlock_file( $LOCK_FILE );
+	&cgi'unlock_file( $LOCK_FILE_B ) if $LOCK_FILE_B;
     }
     &KbLog( $kinologue'SEV_WARN, "Caught a SIG$sig - shutting down..." );
     exit( 1 );
@@ -171,8 +184,6 @@ sub DoKill
 &KbLog( $kinologue'SEV_INFO, 'Exec started.' );
 MAIN:
 {
-    local( $boardConfFileP, $c, $com );
-
     &cgi'Decode();
 
     if ( $kinologue'SEV_THRESHOLD == $kinologue'SEV_DEBUG )
@@ -186,22 +197,44 @@ MAIN:
 	&KbLog( $kinologue'SEV_DEBUG, "Command executed with ... " . $msg );
     }
 
-    $c = $cgi'TAGS{'c'};
-    $com = $cgi'TAGS{'com'};
-    $BOARD = $cgi'TAGS{'b'};
-    if ( $c eq '' ) { $c = 'v'; $BOARD = 'test'; }
-    if ( $BOARD )
+    # HEADリクエストに対する特別処理
+    if ( $ENV{ 'REQUEST_METHOD' } eq 'HEAD' )
     {
-	( $BOARDNAME, $boardConfFileP ) = &GetBoardInfo( $BOARD );
-	$LOCK_FILE_B = $LOCK_FILE . ".$BOARD";
+	local( $modTime ) = 0;
+	$modTime = &GetModifiedTime( $DB_FILE_NAME, $cgi'TAGS{'b'} )
+	    if $cgi'TAGS{'b'};
+	&cgi'Header( 1, $modTime, 0, (), 0 );
+	last;
     }
 
-    # 掲示板固有セッティングを読み込む
-    if ( $boardConfFileP )
+    local( $c ) = $cgi'TAGS{'c'};
+    local( $com ) = $cgi'TAGS{'com'};
+    $BOARD = $cgi'TAGS{'b'};
+    if ( $#ARGV >= 0 )
     {
-	local( $boardConfFile ) = &GetPath( $BOARD, $CONF_FILE_NAME );
-	eval( "require( \"$boardConfFile\" );" ) || &Fatal( 1, $boardConfFile );
+	# from command line.
+	$BOARD = shift;
     }
+    elsif ( $c eq '' )
+    {
+	$c = 'v'; $BOARD = 'test';
+    }
+
+    if ( $BOARD )
+    {
+	local( $boardConfFileP );
+	( $BOARDNAME, $boardConfFileP ) = &GetBoardInfo( $BOARD );
+	$LOCK_FILE_B = $LOCK_FILE . ".$BOARD";
+
+	# 掲示板固有セッティングを読み込む
+	if ( $boardConfFileP )
+	{
+	    local( $boardConfFile ) = &GetPath( $BOARD, $CONF_FILE_NAME );
+	    eval( "require( \"$boardConfFile\" );" ) ||
+		&Fatal( 1, $boardConfFile );
+	}
+    }
+
     if ( $BOARDLIST_URL eq '-' ) { $BOARDLIST_URL = "$PROGRAM?c=bl"; }
     $SYS_F_MT = ( $SYS_F_D || $SYS_F_AM || $SYS_F_MV );
 
@@ -250,7 +283,7 @@ MAIN:
 	    require( &GetPath( $UI_DIR, 'Entry.pl' ));
 	    last;
 	}
-    elsif ( $SYS_F_D && ( $c eq 'f' ) && $cgi'TAGS{'s'} )
+	elsif ( $SYS_F_D && ( $c eq 'f' ) && $cgi'TAGS{'s'} )
 	{
 	    # 訂正
 	    $gVarEntryType = 3;
@@ -429,6 +462,32 @@ MAIN:
 	}
     }
 
+    # from command line?
+    if ( $#ARGV >= 0 )
+    {
+	$c = shift;		# Command.
+	local( $body, $code );
+	while ( <> )
+	{
+	    $body .= $_;
+	    last if ( $SYS_MAXARTSIZE &&
+	        ( length( $body ) > $SYS_MAXARTSIZE ));
+	}
+
+	$code = &jcode'getcode( *body );
+	&jcode'convert( *body, 'euc', $code, 'z' ) if ( defined( $code ));
+	$body =~ s/\xd\xa/\xa/go;
+	$body =~ s/\xd/\xa/go;
+
+	$SYS_F_N_STDIN = 1;		# temporary
+	if ( $SYS_F_N_STDIN && ( $c eq 'POST' ))
+	{
+	    *gVarBody = *body;
+	    require( &GetPath( $UI_DIR, 'Post.pl' ));
+	    last;
+	}
+    }
+
     # どのコマンドでもない．エラー．
     &Fatal( 99, $c );
 }
@@ -438,31 +497,134 @@ exit( 0 );
 
 ######################################################################
 # ユーザインタフェイスインプリメンテーション(個別)
+
+
+###
+## Fatal - エラー表示
 #
-# UIディレクトリに収められているUIの実装モジュールをrequireする．
-# 不要なプログラムをコンパイルしないようにするため．
-# 各関数のリファレンスは，UIディレクトリ内の各ファイルを参照のこと．
-
-
-### Fatal - エラー表示
+# - SYNOPSIS
+#	Fatal($errno, $errInfo);
+#
+# - ARGS
+#	$errno	エラー番号(詳しくは関数内部を参照のこと)
+#	$errInfo	エラー情報
+#
+# - DESCRIPTION
+#	エラーを表す画面をブラウザに送信する．
+#
+# - RETURN
+#	なし
+#
 sub Fatal
 {
     ( $gVarFatalNo, $gVarFatalInfo ) = @_;
     require( &GetPath( $UI_DIR, 'Fatal.pl' ));
 }
 
-### ArriveMail - 記事が到着したことをメイル
+
+###
+## ArriveMail - 記事が到着したことをメイル
+#
+# - SYNOPSIS
+#	ArriveMail( $Name, $Email, $Subject, $Icon, $Id, @To );
+#
+# - ARGS
+#	$Name		新規記事投稿者名
+#	$Email		新規記事投稿者メイルアドレス
+#	$Subject	新規記事Subject
+#	$Icon		新規記事アイコン
+#	$Id		新規記事ID
+#	@To		送信先E-Mail addrリスト
+#
+# - DESCRIPTION
+#	記事が到着したことをメイルする．
+#
+# - RETURN
+#	なし
+#
 sub ArriveMail
 {
-    ( $gName, $gEmail, $gSubject, $gIcon, $gId, @gTo ) = @_;
-    require( &GetPath($UI_DIR, 'ArriveMail.pl' ));
+    local( $Name, $Email, $Subject, $Icon, $Id, @To ) = @_;
+
+    local( $StrSubject ) = ( $Icon eq $H_NOICON )? $Subject : "($Icon) $Subject";
+    local( $MailSubject ) = $SYS_MAILHEADBRACKET? "[$BOARDNAME: $Id] " : '';
+    $MailSubject .= $StrSubject;
+
+    local( $StrFrom ) = $Email? "$Name <$Email>" : "$Name";
+
+    local( $Message ) = "$SYSTEM_NAMEからのお知らせです．
+
+「$BOARDNAME」に対して「$StrFrom」さんから，
+「$StrSubject」という題での書き込みがありました．
+
+お時間のある時に
+$SCRIPT_URL?b=$BOARD&c=e&id=$Id
+を御覧下さい．
+
+では失礼します．";
+
+    # メイル送信
+    &SendMail( $Name, $Email, $MailSubject, $Message, $Id, @To );
 }
 
-### FollowMail - 反応があったことをメイル
+
+###
+## FollowMail - 反応があったことをメイル
+#
+# - SYNOPSIS
+#	FollowMail( $Name, $Email, $Date, $Subject, $Icon, $Id, $Fname, $Femail, $Fsubject, $Ficon, $Fid, @To );
+#
+# - ARGS
+#	$Name		新規記事投稿者名
+#	$Email		新規記事投稿者メイルアドレス
+#	$Date		リプライされた記事の書き込み時間
+#	$Subject	新規記事Subject
+#	$Icon		新規記事アイコン
+#	$Id		新規記事ID
+#	$Fname		リプライされた記事の投稿者名
+#	$Femail		リプライされた記事の投稿者メイルアドレス
+#	$Fsubject	リプライされた記事のSubject
+#	$Ficon		リプライされた記事のアイコン
+#	$Fid		リプライされた記事ID
+#	@To		送信先E-Mail addrリスト
+#
+# - DESCRIPTION
+#	リプライがあったことをメイルする．
+#
+# - RETURN
+#	なし
+#
 sub FollowMail
 {
-    ( $gName, $gEmail, $gDate, $gSubject, $gIcon, $gId, $gFname, $gFemail, $gFsubject, $gFicon, $gFid, @gTo ) = @_;
-    require( &GetPath( $UI_DIR, 'FollowMail.pl' ));
+    local( $Name, $Email, $Date, $Subject, $Icon, $Id, $Fname, $Femail, $Fsubject, $Ficon, $Fid, @To ) = @_;
+    
+    local( $InputDate ) = &GetDateTimeFormatFromUtc( $Date );
+
+    local( $StrSubject ) = ( $Icon eq $H_NOICON )? "$Subject" : "($Icon) $Subject";
+    local( $FstrSubject ) = ( $Ficon eq $H_NOICON )? $Fsubject : "($Ficon) $Fsubject";
+    local( $MailSubject ) = $SYS_MAILHEADBRACKET? "[$BOARDNAME: $Fid] " : '';
+    $MailSubject .= $FstrSubject;
+
+    local( $StrFrom ) = $Email? "$Name <$Email>" : "$Name";
+    local( $FstrFrom ) = $Femail? "$Fname <$Femail>" : "$Fname";
+
+    local( $Message ) = "$SYSTEM_NAMEからのお知らせです．
+
+$InputDateに「$BOARDNAME」に対して「$StrFrom」さんが書いた，
+「$StrSubject」
+$SCRIPT_URL?b=$BOARD&c=e&id=$Id
+に対して，
+「$FstrFrom」さんから
+「$FstrSubject」という題での反応がありました．
+
+お時間のある時に
+$SCRIPT_URL?b=$BOARD&c=e&id=$Fid
+を御覧下さい．
+
+では失礼します．";
+
+    # メイル送信
+    &SendMail( $Name, $Email, $MailSubject, $Message, $Fid, @To );
 }
 
 
@@ -1204,8 +1366,8 @@ sub PrintButtonToTitleList
     }
     else
     {
-	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$board&c=v&num=$DEF_TITLE_NUM&old=$old\">$H_BACKTITLEREPLY</a></p>\n" );
-	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$board&c=r&num=$DEF_TITLE_NUM&old=$old\">$H_BACKTITLEDATE</a></p>\n" ) if ( $SYS_F_R );
+	&cgiprint'Cache( "<p>", &TagA( "$PROGRAM?b=$board&c=v&num=$DEF_TITLE_NUM&old=$old", $H_BACKTITLEREPLY ), "</p>\n" );
+	&cgiprint'Cache( "<p>", &TagA( "$PROGRAM?b=$board&c=r&num=$DEF_TITLE_NUM&old=$old", $H_BACKTITLEDATE ), "</p>\n" ) if ( $SYS_F_R );
     }
 }
 
@@ -1236,7 +1398,7 @@ sub PrintButtonToBoardList
     }
     else
     {
-	&cgiprint'Cache( "<p><a href=\"$BOARDLIST_URL\">$H_BACKBOARD</a></p>\n" );
+	&cgiprint'Cache( "<p>", &TagA( $BOARDLIST_URL, $H_BACKBOARD ), "</p>\n" );
     }
 }
 
@@ -1354,7 +1516,7 @@ __EOF__
 sub MsgFooter
 {
     # ↓これを変更するのも「自由」です．消しても全く問題ありません．
-    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.kinotrope.co.jp/~nakahiro/kb10.shtml", "KINOBOARDS/$KB_VERSION R$KB_RELEASE" ) . ": Copyright (C) 1995-98 " . &TagA( "http://www.kinotrope.co.jp/~nakahiro/", "NAKAMURA Hiroshi" ) . ".";
+    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb10.shtml", "KINOBOARDS/$KB_VERSION R$KB_RELEASE" ) . ": Copyright (C) 1995-99 " . &TagA( "http://www.jin.gr.jp/~nakahiro/", "NAKAMURA Hiroshi" ) . ".";
     # ただし，「俺が全部作ったんだ!」とか書くと，なひの権利を侵害して，
     # やっぱりGPL2に違反することになっちゃうので気をつけてね．(^_^;
 
@@ -1512,6 +1674,7 @@ sub TagMsgImg
 sub TagA
 {
     local( $href, $markUp ) = @_;
+    $href =~ s/&/&amp;/go;
     "<a href=\"$href\">$markUp</a>";
 }
 
@@ -1552,13 +1715,14 @@ sub TagForm
 ## SendMail - メイル送信
 #
 # - SYNOPSIS
-#	SendMail($Subject, $Message, $Id, @To);
-#
-# - ARGS
-#	$Subject	メイルのSubject文字列
-#	$Message	本文
-#	$Id		引用するなら記事ID; なければ引用はなし
-#	@To		宛先E-Mail addr.のリスト
+#	SendMail(
+#	    $FromName,	メイル送信者名
+#	    $FromAddr,	メイル送信者メイルアドレス
+#	    $Subject,	メイルのSubject文字列
+#	    $Message,	本文
+#	    $Id,	引用するなら記事ID; 空なら引用ナシ
+#	    @To		宛先E-Mail addr.のリスト
+#	)
 #
 # - DESCRIPTION
 #	メイルを送信する．
@@ -1568,7 +1732,7 @@ sub TagForm
 #
 sub SendMail
 {
-    local( $Subject, $Message, $Id, @To ) = @_;
+    local( $FromName, $FromAddr, $Subject, $Message, $Id, @To ) = @_;
 
     local( $ExtensionHeader, @ArticleBody );
 
@@ -1582,14 +1746,16 @@ sub SendMail
     if ( $Id ne '' ) {
 	$Message .= "\n--------------------\n";
 	&GetArticleBody($Id, $BOARD, *ArticleBody);
-	foreach(@ArticleBody)
+	foreach ( @ArticleBody )
 	{
 	    s/<[^>]*>//go;	# タグは要らない
 	    $Message .= &HTMLDecode( $_ ) if ( $_ ne '' );
 	}
     }
 
-    local( $stat, $errstr ) = &cgi'sendMail( $MAILFROM_LABEL || $MAINT_NAME, $MAINT, $Subject, $ExtensionHeader, $Message, $MAILTO_LABEL, @To );
+    local( $stat, $errstr ) = &cgi'sendMail( $FromName, $FromAddr,
+	( $MAILFROM_LABEL || $MAINT_NAME ), $MAINT, $Subject, $ExtensionHeader,
+	$Message, $MAILTO_LABEL, @To );
     &Fatal( 9, "$BOARDNAME/$Id/$errstr" ) if ( !$stat );
 }
 
@@ -1617,7 +1783,7 @@ sub KbLog
 
     if ( $SYS_LOG )
     {
-	$msg .= '(Remote host:' . $cgi'REMOTE_HOST . ')' if ( $SYS_LOGHOST );
+	$msg .= "(Remote host:$REMOTE_INFO)" if $SYS_LOGHOST;
 	&kinologue'KlgLog( $severity, $msg, $PROGNAME, $LOGFILE, $FF_LOG )
 	    || &Fatal( 1000, '' );
     }
@@ -1655,7 +1821,8 @@ sub KbLog
 #
 sub MakeNewArticle
 {
-    local( $Board, $Id, $artKey, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail ) = @_;
+    local( $Board, $Id, $artKey, $TextType, $Name, $Email, $Url, $Icon,
+	$Subject, $Article, $Fmail, $MailRelay ) = @_;
 
     local( $ArticleId );
 
@@ -1672,7 +1839,9 @@ sub MakeNewArticle
 
     # DBファイルに投稿された記事を追加
     # 通常の記事引用ならID
-    &AddDBFile( $ArticleId, $Board, $Id, $^T, $Subject, $Icon, ( $SYS_LOGHOST? $cgi'REMOTE_HOST : '' ), $Name, $Email, $Url, $Fmail );
+    &AddDBFile( $ArticleId, $Board, $Id, $^T, $Subject, $Icon,
+	( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail,
+	$MailRelay );
 
     $ArticleId;
 }
@@ -1813,10 +1982,6 @@ sub CheckArticle
 #	$subjectを安全な文字列に変換する．
 #	$articleを安全な文字列に変換する．
 #
-$HTML_TAGS_COREATTRS = 'ID/CLASS/STYLE/TITLE';
-$HTML_TAGS_I18NATTRS = 'LANG/DIR';
-$HTML_TAGS_GENATTRS = "$HTML_TAGS_COREATTRS/$HTML_TAGS_I18NATTRS";
-
 sub secureSubject
 {
     local( *subject ) = @_;
@@ -1910,6 +2075,10 @@ sub secureArticle
 	'TT',	1,	$HTML_TAGS_GENATTRS,
 	'UL',	1,	$HTML_TAGS_GENATTRS,
 	'VAR',	1,	$HTML_TAGS_GENATTRS,
+# 色やサイズはstyleで指定すべきなので，今後絶滅必至のFONTタグなわけですが，
+# それでもどーーしても使いたいというあなたは，
+# ↓の行の先頭の「#」を消してください．(^_^;
+#	'FONT',	1,	"$HTML_TAGS_GENATTRS/SIZE/COLOR",
     );
 	
     local( %aNeedVec, %aFeatureVec, $tag );
@@ -2123,6 +2292,7 @@ sub CheckURL
     # http://だけの場合は空にしてしまう．
     $String = '' if ( $String =~ m!^http://$!oi );
     &Fatal( 7, 'URL' ) if (( $String ne '' ) && ( !&IsUrl( $String )));
+    &Fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
 }
 
 
@@ -2197,10 +2367,7 @@ sub GetFollowIdTree
     local( @aidList ) = split( /,/, $DB_AIDS{$id} );
 
     push( @tree, '(', $id );
-    foreach ( @aidList )
-    {
-	&GetFollowIdTree( $_, *tree );
-    }
+    foreach ( @aidList ) { &GetFollowIdTree( $_, *tree ); }
     push( @tree, ')' );
 }
 
@@ -2282,11 +2449,46 @@ sub GetDateTimeFormatFromUtc
 {
     local( $utc ) = @_;
     local( $sec, $min, $hour, $mDay, $mon, $year ) = localtime( $utc );
-    sprintf( "%d/%d/%d(%02d:%02d)", $year, $mon+1, $mDay, $hour, $min );
+    sprintf( "%d/%d/%d(%02d:%02d)", $year+1900, $mon+1, $mDay, $hour, $min );
+}
 
-# for y2k problem...
-#    sprintf( "%d/%d/%d(%02d:%02d)", $year+1900, $mon+1, $mDay, $hour, $min );
 
+###
+## GetUtcFromYYYY_MM_DD - YYYY/MM/DDからUTCを取得
+#
+# - SYNOPSIS
+#	GetUtcFromYYYY_MM_DD
+#	(
+#	    $str	時刻を表す文字列
+#	);
+#
+# - DESCRIPTION
+#	YYYY/MM/DDの文字列を分解してUTCを計算．
+#
+# - RETURN
+#	UTC
+#
+sub GetUtcFromYYYY_MM_DD
+{
+    local( $str ) = shift;
+    return -1 if ( length( $str ) != 10 );
+
+    local( $year, $month, $mday ) = unpack( "a4 x a2 x a2", $str );
+    if (( $year < 1970 ) ||
+	( $year > 2037 ) ||
+	( $month < 1 ) ||
+	( $month > 12 ) ||
+	( $mday < 1 ) ||
+	( $mday > 31 ))
+    {
+	# can't exec timegm/timelocal...
+	return -1;
+    }
+
+    require( 'timelocal.pl' );
+    $year -= 1900;
+    $month--;
+    &timelocal( 0, 0, 0, $mday, $month, $year );
 }
 
 
@@ -2473,7 +2675,6 @@ sub ArticleEncode
 sub PlainArticleToPreFormatted
 {
     local( *Article ) = @_;
-
     $Article =~ s/\n*$//o;
     $Article =~ s/<URL:([^>][^>]*)>/__URL__$COLSEP$1$COLSEP/gi;
     $Article = &HTMLEncode( $Article );	# no tags are allowed.
@@ -2586,7 +2787,7 @@ sub SupersedeArticle
     &CheckArticle( $Board, *Name, *Email, *Url, *Subject, *Icon, *Article );
 
     # DBファイルを訂正
-    $SupersedeId = &SupersedeDbFile( $Board, $Id, $^T, $Subject, $Icon, ( $SYS_LOGHOST? $cgi'REMOTE_HOST : '' ), $Name, $Email, $Url, $Fmail );
+    $SupersedeId = &SupersedeDbFile( $Board, $Id, $^T, $Subject, $Icon, ( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail );
 
     # ex. 「100」→「100_5」
     $File = &GetArticleFileName( $Id, $Board );
@@ -2813,31 +3014,94 @@ sub GetTitleOldIndex
 #
 sub LockAll
 {
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = $PC ? 1 : &cgi'lock_file( $LOCK_FILE );
     &Fatal( 1001, '' ) if ( $lockResult == 2 );
     &Fatal( 999, '' ) if ( $lockResult != 1 );
 }
 
 sub UnlockAll
 {
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &cgi'unlock_file( $LOCK_FILE ) unless $PC;
 }
 
 sub LockBoard
 {
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
+    local( $lockResult ) = $PC ? 1 : &cgi'lock_file( $LOCK_FILE_B );
     &Fatal( 1001, '' ) if ( $lockResult == 2 );
     &Fatal( 999, '' ) if ( $lockResult != 1 );
 }
 
 sub UnlockBoard
 {
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
+    &cgi'unlock_file( $LOCK_FILE_B ) unless $PC;
 }
 
 
 ######################################################################
 # データインプリメンテーション
+
+
+###
+## GenTSV - タブ区切り文字列の作成
+#
+# - SYNOPSIS
+#	GenTSV( *line, @data );
+#
+# - ARGS
+#	$line	タブ区切りのデータを格納する文字列
+#	@data	データ
+#
+# - DESCRIPTION
+#	データをTSVフォーマットに整形する．
+#	データは改行を含んではならない．
+#
+sub GenTSV
+{
+    local( *line, @data ) = @_;
+    grep( s/\t/$COLSEP/go, @data );
+    $line = join( "\t", @data );
+}
+
+
+###
+## GenCSV - カンマ区切り文字列の作成
+#
+# - SYNOPSIS
+#	GenCSV( *line, @data );
+#
+# - ARGS
+#	$line	タブ区切りのデータを格納する文字列
+#	@data	データ
+#
+# - DESCRIPTION
+#	データをCSVフォーマットに整形する．
+#
+sub GenCSV
+{
+    local( *line, @data ) = @_;
+    grep((( s/\"/\"\"/go || m/,/o || m/\n/o ) && ( $_ = "\"$_\"" )), @data );
+    $line = join( ',', @data );
+}
+
+
+###
+## ParseTSV - タブ区切り文字列の解析
+#
+# - SYNOPSIS
+#	ParseTSV( *src, *dataArray );
+#
+# - ARGS
+#	$src		解析元データ
+#	@dataArray	解析したデータを格納するリスト
+#
+# - DESCRIPTION
+#	データをTSVフォーマットに整形する．
+#
+sub ParseTSV
+{
+    local( *src, *dataArray ) = @_;
+    @dataArray = split( /\t/, $src );
+}
 
 
 ###
@@ -2867,7 +3131,12 @@ sub DbCache
 
     @DB_ID = %DB_FID = %DB_AIDS = %DB_DATE = %DB_TITLE = %DB_ICON = %DB_REMOTEHOST = %DB_NAME = %DB_EMAIL = %DB_URL = %DB_FMAIL = %DB_NEW = ();
 
+    local( $newIconLimit );
+    $newIconLimit = $^T - $SYS_NEWICON_VALUE * 24 * 60 * 60
+	if ( $SYS_NEWICON == 2 );
+    
     local( $i ) = 0;
+    local( @data, $dId );
     local( $DBFile ) = &GetPath( $Board, $DB_FILE_NAME );
     open( DB, "<$DBFile" ) || &Fatal( 1, $DBFile );
     while ( <DB> )
@@ -2875,8 +3144,6 @@ sub DbCache
 	next if (/^\#/o || /^$/o);
 	chop;
 	( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_, 11 );
-	next unless $dId;
-
 	$DB_ID[$i++] = $dId;
 	$DB_FID{$dId} = $dFid;
 	$DB_AIDS{$dId} = $dAids;
@@ -2889,13 +3156,9 @@ sub DbCache
 	$DB_URL{$dId} = $dUrl;
 	$DB_FMAIL{$dId} = $dFmail;
 
-	if ( $SYS_NEWICON == 2 )
+	if (( $SYS_NEWICON == 2 ) && ( $newIconLimit < $DB_DATE{$dId} ))
 	{
-	    # 86400 = 24 * 60 * 60
-	    if (( $^T - $DB_DATE{$dId} ) < $SYS_NEWICON_VALUE * 86400 )
-	    {
-		$DB_NEW{$dId} = 1;
-	    }
+	    $DB_NEW{$dId} = 1
 	}
     }
     close DB;
@@ -2962,6 +3225,7 @@ sub GetArticlesInfo
 #	$Email		投稿者E-Mail addr.
 #	$Url		投稿者URL
 #	$Fmail		リプライ時にメイルを送るか否か(''/'on')
+#	$MailRelay	追加した記事をメイルとして流すかどうか
 #
 # - DESCRIPTION
 #	記事DBに記事を追加する．
@@ -2971,9 +3235,9 @@ sub GetArticlesInfo
 #
 sub AddDBFile
 {
-    local( $Id, $Board, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ) = @_;
+    local( $Id, $Board, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $MailRelay ) = @_;
 
-    local( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $FidList, $FFid, $File, $TmpFile, @FollowMailTo, @FFid, @ArriveMail );
+    local( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $FidList, $FFid, @FollowMailTo, @FFid, @ArriveMail );
 
     # リプライ元のリプライ元，を取ってくる
     if ( $Fid ne '' )
@@ -2984,8 +3248,9 @@ sub AddDBFile
 
     $FidList = $Fid;
 
-    $File = &GetPath( $Board, $DB_FILE_NAME );
-    $TmpFile = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
+    local( $File ) = &GetPath( $Board, $DB_FILE_NAME );
+    local( $TmpFile ) = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
+    local( $dbLine );
     open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
@@ -3020,7 +3285,7 @@ sub AddDBFile
 		$FidList = "$dId,$dFid";
 	    }
 
-	    if ( $SYS_MAIL & 2 )
+	    if ( $MailRelay && ( $SYS_MAIL & 2 ))
 	    {
 		# メイル送信のためにキャッシュ
 		$mdName = $dName;
@@ -3034,20 +3299,19 @@ sub AddDBFile
 	}
 
 	# DBに書き加える
-	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId,
-	    $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost,
-	    $dName, $dEmail, $dUrl, $dFmail ) || &Fatal( 13, $TmpFile );
+	&GenTSV( *dbLine, ( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ));
+	print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 
 	# リプライ元のリプライ元，かつメイル送信の必要があれば，宛先を保存
-	if (( $SYS_MAIL & 2 ) && @FFid && $dFmail && $dEmail && ( grep( /^$dId$/, @FFid )) && ( !grep( /^$dEmail$/, @FollowMailTo ))) {
+	if ( $MailRelay && ( $SYS_MAIL & 2 ) && @FFid && $dFmail && $dEmail && ( grep( /^$dId$/, @FFid )) && ( !grep( /^$dEmail$/, @FollowMailTo )))
+	{
 	    push( @FollowMailTo, $dEmail );
 	}
     }
 
     # 新しい記事のデータを書き加える．
-    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $Id,
-	$FidList, '', $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email,
-	$Url, $Fmail ) || &Fatal( 13, $TmpFile );
+    &GenTSV( *dbLine, ( $Id, $FidList, '', $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ));
+    print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 
     # close Files.
     close DB;
@@ -3057,14 +3321,14 @@ sub AddDBFile
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
 
     # 必要なら投稿があったことをメイルする
-    if ( $SYS_MAIL & 1 )
+    if ( $MailRelay && $SYS_MAIL & 1 )
     {
 	&GetArriveMailTo( 0, $Board, *ArriveMail );
 	&ArriveMail( $Name, $Email, $Subject, $Icon, $Id, @ArriveMail ) if @ArriveMail;
     }
 
     # 必要なら反応があったことをメイルする
-    if (( $SYS_MAIL & 2 ) && @FollowMailTo )
+    if ( $MailRelay && ( $SYS_MAIL & 2 ) && @FollowMailTo )
     {
 	&FollowMail( $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $Name, $Email, $Subject, $Icon, $Id, @FollowMailTo );
     }
@@ -3091,10 +3355,9 @@ sub UpdateArticleDb
 {
     local( $Board ) = @_;
 
-    local( $File, $TmpFile, $dId );
-
-    $File = &GetPath($Board, $DB_FILE_NAME);
-    $TmpFile = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
+    local( $dId, $dbLine );
+    local( $File ) = &GetPath($Board, $DB_FILE_NAME);
+    local( $TmpFile ) = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
     open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
@@ -3110,11 +3373,8 @@ sub UpdateArticleDb
 	( $dId = $_ ) =~ s/\t.*$//;
 
 	# DBに書き加える
-	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId,
-	    $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId},
-	    $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId},
-	    $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} )
-	    || &Fatal( 13, $TmpFile );
+	&GenTSV( *dbLine, ( $dId, $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId}, $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId}, $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} ));
+	print( DBTMP "*dbLine\n" ) || &Fatal( 13, $TmpFile );
     }
 
     # close Files.
@@ -3146,10 +3406,9 @@ sub DeleteArticleFromDbFile
 {
     local( $Board, *Target ) = @_;
 
-    local( $File, $TmpFile, $dId );
-
-    $File = &GetPath( $Board, $DB_FILE_NAME );
-    $TmpFile = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
+    local( $dId, $dbLine );
+    local( $File ) = &GetPath( $Board, $DB_FILE_NAME );
+    local( $TmpFile ) = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
     open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
@@ -3170,11 +3429,8 @@ sub DeleteArticleFromDbFile
 	    print( DBTMP "#" ) || &Fatal( 13, $TmpFile );
 	}
 
-	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId,
-	    $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId},
-	    $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId},
-	    $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} )
-	    || &Fatal( 13, $TmpFile );
+	&GenTSV( *dbLine, ( $dId, $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId}, $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId}, $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} ));
+	print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
     }
 
     # close Files.
@@ -3208,13 +3464,12 @@ sub ReOrderArticleDb
 {
     local( $Board, $Id, *Move ) = @_;
 
-    local( $File, $TmpFile, $dId, $TopFlag );
-
     # 先頭フラグ
-    $TopFlag = 1;
+    local( $TopFlag ) = 1;
 
-    $File = &GetPath( $Board, $DB_FILE_NAME );
-    $TmpFile = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
+    local( $dId, $dbLine );
+    local( $File ) = &GetPath( $Board, $DB_FILE_NAME );
+    local( $TmpFile ) = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
     open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
@@ -3238,11 +3493,8 @@ sub ReOrderArticleDb
 	    $TopFlag = 0;
 	    foreach ( @Move )
 	    {
-		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-		    $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_},
-		    $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_},
-		    $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} )
-		    || &Fatal( 13, $TmpFile );
+		&GenTSV( *dbLine, ( $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_}, $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} ));
+		print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 	    }
 	}
 
@@ -3251,31 +3503,22 @@ sub ReOrderArticleDb
 	{
 	    foreach ( @Move )
 	    {
-		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-		    $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_},
-		    $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_},
-		    $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} )
-		    || &Fatal( 13, $TmpFile );
+		&GenTSV( *dbLine, ( $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_}, $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} ));
+		print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 	    }
 	}
 
 	# DBに書き加える
-	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId,
-	    $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId},
-	    $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId},
-	    $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} )
-	    || &Fatal( 13, $TmpFile );
+	&GenTSV( *dbLine, ( $dId, $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId}, $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId}, $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} ));
+	print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 
 	# 移動先がきたら，続けて書き込む(新着が下，の場合)
 	if (( $SYS_BOTTOMTITLE == 1 ) && ( $dId eq $Id ))
 	{
 	    foreach ( @Move )
 	    {
-		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-		    $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_},
-		    $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_},
-		    $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} )
-		    || &Fatal( 13, $TmpFile );
+		&GenTSV( *dbLine, ( $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_}, $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} ));
+		print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 	    }
 	}
     }
@@ -3285,10 +3528,8 @@ sub ReOrderArticleDb
     {
 	foreach ( @Move )
 	{
-	    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $_,
-		$DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_},
-		$DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_},
-		$DB_URL{$_}, $DB_FMAIL{$_} ) || &Fatal( 13, $TmpFile );
+	    &GenTSV( *dbLine, ( $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_}, $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} ));
+	    print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 	}
     }
 
@@ -3601,18 +3842,18 @@ sub GetUserInfo
 sub WriteAliasData
 {
     local( $TmpFile ) = "$USER_ALIAS_FILE.$TMPFILE_SUFFIX$$";
-    local( $Alias );
 
     open( ALIAS, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
     printf( ALIAS "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE )
 	|| &Fatal( 13, $TmpFile );
+
+    local( $Alias, $dbLine );
     foreach $Alias ( sort keys( %Name ))
     {
 	if ( $Name{$Alias} )
 	{
-	    printf(ALIAS "%s\t%s\t%s\t%s\t%s\n", $Alias, $Name{$Alias},
-		$Email{$Alias}, $Host{$Alias}, $URL{$Alias})
-		|| &Fatal( 13, $TmpFile );
+	    &GenTSV( *dbLine, ( $Alias, $Name{$Alias}, $Email{$Alias}, $Host{$Alias}, $URL{$Alias} ));
+	    print( ALIAS "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 	}
     }
     close ALIAS;
@@ -3944,15 +4185,16 @@ sub SupersedeDbFile
 {
     local( $Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ) = @_;
 
-    local( $SupersedeId, $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $File, $TmpFile );
+    local( $SupersedeId, $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
     
     # initial versionは1で，1ずつ増えていく．1，2，…9，10，11，…
     # later versionはDB中で必ず，younger versionよりも下に出現する．
     # すなわち10_2，10，10_1は，10_1，10_2，10の順に並ぶものとする．
     $SupersedeId = 1;
 
-    $File = &GetPath( $Board, $DB_FILE_NAME );
-    $TmpFile = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
+    local( $dbLine );
+    local( $File ) = &GetPath( $Board, $DB_FILE_NAME );
+    local( $TmpFile ) = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
     open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
@@ -3977,15 +4219,12 @@ sub SupersedeDbFile
 	if ( $dId eq $Id )
 	{
 	    # agingしてしまう
-	    printf( DBTMP "#-%s_%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-		$dId, $SupersedeId, $dFid, $dAids, $dInputDate, $dSubject,
-		$dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail )
-		|| &Fatal( 13, $TmpFile );
+	    &GenTSV( *dbLine, ( sprintf( "-%s_%s", $dId, $SupersedeId ), $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ));
+	    print( DBTMP "#$dbLine\n" ) || &Fatal( 13, $TmpFile );
 
 	    # 続いて新しい記事を書き加える
-	    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $Id,
-		$dFid, $dAids, $InputDate, $Subject, $Icon, $RemoteHost, $Name,
-		$Email, $Url, $Fmail ) || &Fatal( 13, $TmpFile );
+	    &GenTSV( *dbLine, ( $Id, $dFid, $dAids, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ));
+	    print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 	}
 	else
 	{
