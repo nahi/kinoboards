@@ -16,7 +16,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.11 1998-06-19 07:30:37 nakahiro Exp $
+# $Id: kb.cgi,v 5.12 1998-09-14 19:47:15 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -46,7 +46,7 @@ $| = 1;				# pipe flushed
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
 $KB_RELEASE = '5.6';		# release
-$MACPERL = (( $] =~ /^5/o ) && ( $^O eq '' ));	# perl5なのに，OSが空……だとMacPerl(?)
+$MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
@@ -90,6 +90,7 @@ $kinologue'SEV_THRESHOLD = $kinologue'SEV_WARN;
 $cgi'SMTP_SERVER = $SMTP_SERVER;
 $cgi'AF_INET = $AF_INET;
 $cgi'SOCK_STREAM = $SOCK_STREAM;
+$cgi'CHARSET = $CHARSET;
 $FF_LOG = ( $SYS_LOG == 1 ) ? $kinologue'FF_HTML : $kinologue'FF_PLAIN;
 $SYS_F_MT = ($SYS_F_D || $SYS_F_AM || $SYS_F_MV);
 if (( $cgi'SERVER_PORT != 80 ) && ( $SYS_PORTNO == 1 )) {
@@ -605,8 +606,8 @@ sub QuoteOriginalArticle {
     foreach $line ( @ArticleBody ) {
 	&TAGEncode( *line );
 
-	# デフォルトの引用文字列は「名前」 + 「 ] 」
-	$QMark = "${Name}$DEFAULT_QMARK";
+	$QMark = $DEFAULT_QMARK;
+	$QMark = $Name . $QMark if $SYS_QUOTENAME;
 
 	# 元文のうち，引用部分には，新たに引用文字列を重ねない
 	# 空行にも要らない
@@ -806,9 +807,16 @@ __EOF__
 sub MsgHeader {
     local( $Title, $Message, $LastModified ) = @_;
     
-    # Last-Modifiedは空．Cookiesも空．
-    &cgi'Header( 0, 0, 0, 0 );
-#    &cgi'Header( 1, $LastModified, 0, 0 );
+    if (( $SYS_ALIAS == 3 ) && ( $cgi'TAGS{'cookies'} eq 'on' ))
+    {
+	local( @cookieStr ) = ( "kbname=" . $cgi'TAGS{ 'name' }, "kbemail=" . $cgi'TAGS{ 'mail' }, "kburl=" . $cgi'TAGS{ 'url' } );
+	&cgi'Header( 0, 0, 1, *cookieStr, 0 );
+    }
+    else
+    {
+	# Last-Modifiedは空．Cookiesも空．
+	&cgi'Header( 0, 0, 0, 0 );
+    }
 
     &cgiprint'Init();
     &cgiprint'Cache(<<__EOF__);
@@ -818,7 +826,6 @@ sub MsgHeader {
 <base href="$BASE_URL">
 <title>$Title - $BOARDNAME - $SYSTEM_NAME</title>
 <LINK REV=MADE HREF="mailto:$MAINT">
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-2022-JP">
 </head>
 __EOF__
 
@@ -1044,7 +1051,8 @@ sub SendMail {
 	}
     }
 
-    &cgi'sendMail( $MAILFROM_LABEL || $MAINT_NAME, $MAINT, $Subject, $ExtensionHeader, $Message, $MAILTO_LABEL, @To ) || &Fatal( 9, "$BOARDNAME/$Id" );
+    local( $stat, $errstr ) = &cgi'sendMail( $MAILFROM_LABEL || $MAINT_NAME, $MAINT, $Subject, $ExtensionHeader, $Message, $MAILTO_LABEL, @To );
+    &Fatal( 9, "$BOARDNAME/$Id/$errstr" ) if ( !$stat );
 }
 
 
@@ -1218,7 +1226,7 @@ sub CheckArticle {
     &CheckName( *name );
     &CheckEmail( *eMail );
     &CheckURL( *url );
-    &CheckSubject( *subject ) if ( ! $SYS_TAGINSUBJECT );
+    &CheckSubject( *subject );
 
     # 本文の空チェック．
     &Fatal( 2, '' ) if ( $article eq '' );
@@ -1313,7 +1321,7 @@ sub CheckSubject {
     local( *String ) = @_;
 
     &Fatal( 2, '' ) if ( !$String );
-    &Fatal( 4, '' ) if ( $String =~ m/[<>\t\n]/o );
+    &Fatal( 4, '' ) if ( !$SYS_TAGINSUBJECT && ( $String =~ m/[<>\t\n]/o ));
 }
 
 
