@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.45 2000-04-21 12:01:39 nakahiro Exp $
+# $Id: cgi.pl,v 2.46 2000-05-12 15:27:08 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -874,12 +874,12 @@ $COLSEP = "\377";
 #		&cgi'decode;
 #		&cgi'cookie;
 #		$cgiauth'AUTH_TYPE = 1;
-#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'CheckUser( $userdb );
+#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'checkUser( $userdb );
 #
 #	with Server Authentication
 #		require( 'cgi.pl' );
 #		$cgiauth'AUTH_TYPE = 2;
-#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'CheckUser( $userdb );
+#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'checkUser( $userdb );
 #
 #	with direct URL Authentication
 #		require( 'cgi.pl' );
@@ -888,7 +888,7 @@ $COLSEP = "\377";
 #		$cgi'TAGS{'kinoT'} = 0 ... plain passwd / 1 ... encrypted
 #		$cgi'TAGS{'kinoU'} = user's name
 #		$cgi'TAGS{'kinoP'} = user's passwd
-#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'CheckUser( $userdb );
+#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'checkUser( $userdb );
 #
 # - ARGS
 #	$userdb		user db.
