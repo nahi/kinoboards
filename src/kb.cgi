@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.24 1999-06-09 10:04:01 nakahiro Exp $
+# $Id: kb.cgi,v 5.25 1999-06-16 11:34:39 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -54,7 +54,7 @@ $COLSEP = "\376";
 # umaskは特に設定しない．混乱の元なので．．．
 # umask( umask() | 070 );	# ユーザとnobodyが別グループの場合
 # umask( umask() | 007 );	# ユーザとnobodyが同グループの場合
-umask( umask() & 0770 );
+# umask( umask() & 0770 );
 
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
@@ -65,6 +65,7 @@ $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
 $UI_DIR = 'UI';					# UIディレクトリ
+$LOG_DIR = 'log';				# ログディレクトリ
 
 # ファイル
 $BOARD_ALIAS_FILE = 'kinoboards';		# 掲示板DB
@@ -77,7 +78,8 @@ $USER_ALIAS_FILE = 'kinousers';			# ユーザエイリアス用DB
 $DEFAULT_ICONDEF = 'all.idef';			# アイコンDB
 $LOCK_FILE = 'kb.lock';				# ロックファイル
 $LOCK_FILE_B = '';				# 掲示板別ロックファイル
-$LOGFILE = 'kb.klg';				# ログファイル
+$ACCESS_LOG = 'access_log';			# アクセスログファイル
+$ERROR_LOG = 'error_log';			# エラーログファイル
 # Suffix
 $TMPFILE_SUFFIX = 'tmp';			# DBテンポラリファイルのSuffix
 $ICONDEF_POSTFIX = 'idef';			# アイコンDBファイルのSuffix
@@ -476,8 +478,8 @@ MAIN:
 
 	$code = &jcode'getcode( *body );
 	&jcode'convert( *body, 'euc', $code, 'z' ) if ( defined( $code ));
-	$body =~ s/\xd\xa/\xa/go;
-	$body =~ s/\xd/\xa/go;
+	$body =~ s/\x0d\x0a/\x0a/go;
+	$body =~ s/\x0d/\x0a/go;
 
 	$SYS_F_N_STDIN = 1;		# temporary
 	if ( $SYS_F_N_STDIN && ( $c eq 'POST' ))
@@ -1797,7 +1799,10 @@ sub KbLog
     if ( $SYS_LOG )
     {
 	$msg .= "(Remote host:$REMOTE_INFO)" if $SYS_LOGHOST;
-	&kinologue'KlgLog( $severity, $msg, $PROGNAME, $LOGFILE, $FF_LOG )
+	local( $logfile ) = ( $severity >= $kinologue'SEV_ERROR )?
+	    "$LOG_DIR/$ERROR_LOG" :
+	    "$LOG_DIR/$ACCESS_LOG";
+	&kinologue'KlgLog( $severity, $msg, $PROGNAME, $logfile, $FF_LOG )
 	    || &Fatal( 1000, '' );
     }
 }

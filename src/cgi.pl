@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.24 1999-03-04 16:55:39 nakahiro Exp $
+# $Id: cgi.pl,v 2.25 1999-06-16 11:34:38 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -39,7 +39,7 @@ $AF_INET = 2; $SOCK_STREAM = ( $^O eq 'solaris' )? 2 : 1;
 #					WinNT, Mac
 # AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*(Solaris 2.*)
 
-$CRLF = "\xd\xa";		# cannot use \r\n
+$CRLF = "\x0d\x0a";		# cannot use \r\n
 				# because of MacPerl's !ox#*& behavior...
 
 @TAG_ALLOWED = ();		# CGI variables which is allowed to use <>.
@@ -249,8 +249,8 @@ sub Decode
 	    $value = 'Tags are not allowed here...' if ( $value =~ m/[<>]/o );
 	}
 	    
-	$value =~ s/\xd\xa/\xa/go;
-	$value =~ s/\xd/\xa/go;
+	$value =~ s/\x0d\x0a/\x0a/go;
+	$value =~ s/\x0d/\x0a/go;
 
 	$TAGS{ $key } = $value;
     }
