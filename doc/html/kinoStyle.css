@@ -2,7 +2,7 @@
  * kinoStyle.css: CSS style definition file for `KINO documents'.
  */
 
-/* $Id: kinoStyle.css,v 1.2 1999-10-20 14:45:28 nakahiro Exp $ */
+/* $Id: kinoStyle.css,v 1.3 2000-05-07 11:42:02 nakahiro Exp $ */
 
 body
 {
@@ -54,3 +54,5 @@ div.footer address
     font-variant: normal;
     font-weight: normal;
 }
+
+span.underline { text-decoration: underline; }

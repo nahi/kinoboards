@@ -1,13 +1,18 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
-<html lang="ja">
+<?xml version="1.0" encoding="ISO-2022-JP"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
+    lang="ja" xml:lang="ja">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<link rel="INDEX" href="index.html">
-<link rev="MADE" href="mailto:nakahiro@sarion.co.jp">
-<link rel="KINOBOARDS Home Page" href="http://www.jin.gr.jp/~nahi/kb/">
-<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen">
-<title>Manifesto</title>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link rev="MADE" href="mailto:nakahiro@sarion.co.jp" />
+<link rel="INDEX" href="./" />
+<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen" />
+<title>Manifesto - KINOBOARDS/1.0R7</title>
 </head>
 <body>
 
@@ -17,110 +22,193 @@ Manifesto
 </h1>
 
 <p class="status">
-Last Update: June 26, 1999
+Last modified: May 7, 2000<br />
+Created: May 2, 2000
 </p>
 </div>
 
-<hr>
+<hr />
 
 <div class="main">
 <p>
-きのぼずパッケージに含まれているファイルの簡単な解説です．
+きのぼずパッケージに含まれているファイルの解説です．
+</p>
+
+<p>
+パッケージ中にはたくさんのファイルが含まれていますが，きのぼずを動かすためにウェブサーバに転送しなくてはいけないのは，kbおよびkbdataの2つのディレクトリだけです．
+その他のファイル，ディレクトリは，きのぼず稼働時には使われません．
 </p>
 
 <dl>
-<dt>COPYING
+<dt>kb/</dt>
+<dd>きのぼずが稼働するために必要なファイルのうち，<strong>ユーザのブラウザからアクセスするファイル</strong>を収めたディレクトリです．
+このディレクトリはウェブサーバ上の，ブラウザからアクセス可能なディレクトリとして置いて（転送して）ください．
+例えば「~/public_html/kb/」などです．
+
+<dl>
+<dt>index.cgi</dt>
+<dd>きのぼずのプログラム本体です．
+CGIプログラムとして実行するのは，このファイルだけです．</dd>
+
+<dt>icon/</dt>
+<dd>きのぼずが利用する各種アイコンファイルを収めたディレクトリです．
+このアイコンファイルは，きのぼずのコマンドを表すアイコンの表示や，メッセージに貼り付けるアイコンの表示に利用されます．</dd>
+
+<dt>img/</dt>
+<dd>きのぼずが利用する各種画像ファイルを収めたディレクトリです．
+この画像ファイルは，ヘルプファイルなどで利用されます．</dd>
+
+<dt>style/</dt>
+<dd>きのぼずが利用する各種スタイルファイルを収めたディレクトリです．
+この中に置かれているkbStyle.cssは，CSSの外部スタイルファイルとして参照されます．</dd>
+
+</dl></dd>
+
+<dt>kbdata/</dt>
+<dd>きのぼずが稼働するために必要なファイルのうち，<strong>ユーザのブラウザからアクセスできなくてもよいファイル</strong>を収めたディレクトリです．
+このディレクトリはウェブサーバ上の適当なディレクトリとして置いて（転送して）ください．
+例えば「/home/nahi/kbdata/」などです．<br />
+上では「アクセスできなくてもよいファイル」と書きましたが，セキュリティを考慮して，できれば「アクセスできないファイル」として置いてください．
+できる限り，ウェブサーバから参照できるディレクトリ（public_htmlディレクトリの下など）に置かないようにします．
+もしやむを得ずウェブサーバから参照できるディレクトリに置かなければならない場合は，.htaccessファイルなどを利用してアクセス制限をかけてください．
+
+<dl>
+<dt>kb.ph</dt>
+<dd>きのぼずの機能を設定するためのファイルです．
+表示項目や利用可能機能などの設定を行なえます．</dd>
+
+<dt>idef/</dt>
+<dd>メッセージに貼り付けるアイコンを定義する「アイコン定義ファイル」を収めるディレクトリです．
+アイコン定義ファイルは，アイコンの名前（「喜」「怒」「哀」「楽」など）と，アイコンファイルの名称（「org_ki.gif」「org_do.gif」「org_ai.gif」「org_raku.gif」など）を対応付けるために利用されます．
+きのぼずは，アイコン定義ファイルで対応付けられたアイコンファイルを，先に示したkb/img/ディレクトリの中から探して表示します．
+
+<dl>
+<dt>all.idef</dt>
+<dd>基本のアイコン定義ファイルです．
+ある掲示板について，下に示す「掲示板名」.idefというファイルが存在しない場合，このall.idefファイルが利用されます．
+具体的なファイルのフォーマットについては，ファイルの中身を参照してください．</dd>
+
+<dt>「掲示板名」.idef</dt>
+<dd>その掲示板専用のアイコン定義ファイルです．
+各掲示板で，アイコンの名前とアイコンファイルの対応を変える場合に使います．
+パッケージ中には含まれていませんので，必要な場合はall.idefをコピー後に変更するなどして作成してください．</dd>
+
+</dl></dd>
+
+<dt>UI/</dt>
+<dd>きのぼずの各画面を表示するためのひな形を収めたディレクトリです．
+各画面のひな形はXMLファイルとして用意されます．
+きのぼずはこのXMLファイルを読み込んで，各画面を生成しています．</dd>
+
+<dt>board/</dt>
+<dd>きのぼずの掲示板ディレクトリの，ひな形です．
+
+<dl>
+<dt>kb.aid</dt>
+<dd>その掲示板に関する個別情報を格納するファイルの，ひな形です．</dd>
+
+<dt>kb.board</dt>
+<dd>掲示板のヘッダ部分に表示するメッセージを格納するファイルの，ひな形です．</dd>
+
+<dt>kb.db</dt>
+<dd>掲示板に投稿されたメッセージのサマリを格納するファイルの，ひな形です．</dd>
+</dl></dd>
+
+<dt>test/</dt>
+<dd>配布時点でセットアップ済みである（利用可能になっている）テスト用掲示板のための，掲示板ディレクトリです．
+上記ひな形であるboardディレクトリと同じものが入っています．</dd>
+
+<dt>log/</dt>
+<dd>ログファイルが作成されるディレクトリです．</dd>
+
+<dt>kinoboards</dt>
+<dd>きのぼずで利用する掲示板についての情報を格納するファイルです．</dd>
+
+<dt>kb.user</dt>
+<dd>きのぼずに登録されたユーザ情報を格納するファイルです．</dd>
+
+<dt>cgi.pl</dt>
+<dd>CGIプログラム用の各種ユーティリティライブラリです．</dd>
+
+<dt>kinologue.pl</dt>
+<dd>ログファイル作成用のライブラリです．</dd>
+
+<dt>jcode.pl</dt>
+<dd>歌代さんによる，日本語文字encoding scheme変換ライブラリです．</dd>
+
+<dt>mimer.pl, mimew.pl</dt>
+<dd>生田さんによる，MIME base64 encoding/decodingライブラリです．</dd>
+
+</dl></dd>
+</dl>
+
+<hr />
+
+<p>
+以下のファイルは，きのぼず稼働時には使われないファイル群です．
+ウェブサーバに転送する必要はありません．
+</p>
+
+<dl>
+<dt>README</dt>
+<dd>ろくな情報ではありませんが，一応，最初に読んでください．</dd>
+
+<dt>COPYING</dt>
 <dd>GNU GENERAL PUBLIC LICENSEです（英語）．
 本パッケージの利用規定になります．
-日本語訳がredistディレクトリに含まれていますので，参考にしてください．
+日本語訳がredistディレクトリに含まれていますので，参考にしてください．</dd>
 
-<dt>README
-<dd>ろくな情報ではありませんが，一応，最初に読んでください．
-
-<dt>doc/
+<dt>doc/</dt>
 <dd>ドキュメントを収めたディレクトリです．
-中にhtmlというディレクトリがあり，
-その中にHTML形式のドキュメントが含まれています．
+今のところ（将来も? ^^;）HTML形式のドキュメントしかありません．
 
-<dt>kb/
-<dd>CGIプログラム用パッケージを収めたディレクトリです．
-このディレクトリをウェブサーバに置いて（転送して）ください．
-その他のファイルはウェブサーバに置かれていなくてもかまいません
-（稼働時には使われません）．
+<dl>
+<dt>html/</dt>
+<dd>HTML形式のドキュメントが含まれています．</dd>
+</dl></dd>
 
-<dt>kb/UI/
-<dd>きのぼずの各画面表示用プログラムを収めたディレクトリです．
-プログラム本体はkb.cgiの1つだけなんですが，きのぼずでは，
-kb.cgiからこのディレクトリ内のファイルを読み込むことによって，
-各表示画面を生成しています．
+<dt>tools/</dt>
+<dd>きのぼず本体からは利用されない，しかしきのぼずに関連するツール群を収めたディレクトリです．
 
-<dt>kb/board/
-<dd>きのぼずの掲示板ディレクトリの，雛型です．
-新規掲示板を作成する場合は，このディレクトリはそのまま残しておき，
-新規ディレクトリにコピーしてそちらを書き換えてください．
+<dl>
+<dt>kbNamespaceConv.rb</dt>
+<dd>きのぼずのR7β3未満のバージョンとR7β3以降のバージョンでは，UIディレクトリ下の各XMLファイルのスキーマが異なります．
+この移行をサポートするためのツールです．</dd>
 
-<dt>kb/cgi.pl
-<dd>CGIプログラム用の各種ユーティリティライブラリです．
+<dt>release.rb, getRevisions.rb</dt>
+<dd>なひのリリース作業用のRubyスクリプトです．</dd>
 
-<dt>kb/icons/
-<dd>きのぼずが利用する各種アイコンを収めたディレクトリです．
+<dt>idef.cgi</dt>
+<dd><a href="http://www.jin.gr.jp/~nahi/kb/idef/">http://www.jin.gr.jp/~nahi/kb/idef/</a>で動いている，きのぼずアイコン定義ファイル（*.idef）を自動生成するサービスで利用しているCGIプログラムです．</dd>
+</dl></dd>
 
-<dt>kb/index.html, kb/index.shtml
-<dd>掲示板一覧を表示するためのHTMLファイルです．
-きのぼずには掲示板一覧を表示する機能もあるんですが，
-デザインに凝りたい方は，こちらのHTMLファイルを利用してください．
-掲示板一覧の表示方法については，kb.phの中で説明されています．
+<dt>redist/</dt>
+<dd>他パッケージから再配布しているファイルを収めたディレクトリです．
+このディレクトリ以下のファイルの再配布については，各パッケージで規定されている条件に従ってください．
 
-<dt>kb/jcode.pl
-<dd>歌代さんによる，日本語文字encoding scheme変換ライブラリです．
+<dl>
+<dt>gpl_text.txt</dt>
+<dd>GNU GENERAL PUBLIC LICENSEの日本語訳です．</dd>
 
-<dt>kb/kb.cgi
-<dd>きのぼずのプログラム本体です．
-CGIとして実行するのは，このファイルだけです．
+<dt>jcode.pl</dt>
+<dd>歌代さんによる，日本語文字encoding scheme変換ライブラリです．</dd>
 
-<dt>kb/kb.ph
-<dd>きのぼずの各種設定ファイルです．
-表示項目や利用可能機能など，詳細な設定を行なえます．
-本ファイルを書き換えると，そのままきのぼず本体の挙動が変更されます．
-
-<dt>kb/kinoboards
-<dd>利用掲示板を設定するためのファイルです．
-配布時点では，テスト用掲示板のみが登録されています．
-新規掲示板の作成方法については，
-<a href="MAINT.html">MAINTENANCEドキュメント</a>
-を御覧ください．
-
-<dt>kb/kinologue.pl
-<dd>ログファイル作成用のライブラリです．
-
-<dt>kb/kinousers
-<dd>ユーザ情報を格納するためのファイルです．
-現在ではほとんど使われないんですが，一応残しておいてください．
-
-<dt>kb/log/
-<dd>ログディレクトリです．
-
-<dt>kb/mimer.pl, kb/mimew.pl
+<dt>mime_pls-2_00alpha_tar.gz, mimer.pl, mimew.pl</dt>
 <dd>生田さんによる，MIME base64 encoding/decodingライブラリです．
-mime_pls-2_00alpha_tar.gzがフルパッケージになります．
+mime_pls-2_00alpha_tar.gzがフルパッケージになります．</dd>
 
-<dt>kb/test/
-<dd>配布時点でセットアップ済みであるテスト用掲示板のための，
-掲示板ディレクトリです．
-
-<dt>redist/
-<dd>他の方の許可を得て再配布しているファイルを収めたディレクトリです．
-このディレクトリ以下のパッケージの再配布については，
-各パッケージで規定されている条件に従ってください．
+<dt>application.rb, deffile.rb</dt>
+<dd>なひ作のRubyライブラリです．きのぼず本体では使いません．</dd>
+</dl></dd>
 </dl>
 </div>
 
-<hr>
+<hr />
 
 <div class="footer">
 <address>
-<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br>
-Copyright (C) 1995-99
+<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br />
+Copyright &copy; 1995-2000
 <a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
 </div>

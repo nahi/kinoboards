@@ -1,29 +1,324 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
-<html lang="ja">
+<?xml version="1.0" encoding="ISO-2022-JP"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
+    lang="ja" xml:lang="ja">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<link rel="INDEX" href="index.html">
-<link rev="MADE" href="mailto:nakahiro@sarion.co.jp">
-<link rel="KINOBOARDS Home Page" href="http://www.jin.gr.jp/~nahi/kb/">
-<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen">
-<title>changes</title>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link rev="MADE" href="mailto:nakahiro@sarion.co.jp" />
+<link rel="INDEX" href="./" />
+<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen" />
+<title>Changes - KINOBOARDS/1.0R7</title>
 </head>
 <body>
 
 <div class="header">
 <h1>
-changes
+Changes
 </h1>
 
 <p class="status">
-Last Update: June 27, 1999
+Last modified: May 7, 2000<br />
+Created: May 2, 2000
 </p>
 </div>
 
-<hr>
+<hr />
 
 <div class="main">
+
+<dl>
+<dt>Release 7.0</dt>
+<dd>Released.</dd>
+
+<dt>revision 5.75 - date: 2000/05/07 11:32:10;  author: nakahiro;  state: Exp;  lines: +2 -2</dt>
+<dd><ul>
+<li>Changed a comment.</li>
+</ul></dd>
+
+<dt>revision 5.74 - date: 2000/05/05 15:19:18;  author: nakahiro;  state: Exp;  lines: +16 -12</dt>
+<dd><ul>
+<li>Do show 'Send me a notation mail when reply-ed' check-box always.  E-mail addr.
+  might be set by guest user...</li>
+</ul></dd>
+
+<dt>revision 5.73 - date: 2000/05/05 06:01:37;  author: nakahiro;  state: Exp;  lines: +8 -9</dt>
+<dd><ul>
+<li>Do not show 'Send me a notation mail when reply-ed' check-box when E-mail addr.  was not given.</li>
+<li>$SYS_REPLYQUOTE condition judgement reversed. Fixed.</li>
+</ul></dd>
+
+<dt>revision 5.72 - date: 2000/05/02 15:00:35;  author: nakahiro;  state: Exp;  lines: +2 -2</dt>
+<dd><ul>
+<li>Cleared $KBDIR_PATH for release.</li>
+</ul></dd>
+
+<dt>revision 5.71 - date: 2000/05/02 14:57:11;  author: nakahiro;  state: Exp;  lines: +106 -46</dt>
+<dd><ul>
+<li>Added $RESOURCE_IMG, &amp;hg_c_img, &amp;tagImg and &amp;getImgURL for Help using images.</li>
+<li>Message search did not work except Icon search.  Fixed.</li>
+</ul></dd>
+
+<dt>revision 5.70 - date: 2000/04/21 15:27:08;  author: nakahiro;  state: Exp;  lines: +3 -3</dt>
+<dd><ul>
+<li>Remove $KBDIR_PATH for release.</li>
+</ul></dd>
+
+<dt>revision 5.69 - date: 2000/04/21 15:25:02;  author: nakahiro;  state: Exp;  lines: +37 -38</dt>
+<dd><ul>
+<li>Add 'scalar' in front of &amp;cgi'tag for 'wantarray'.</li>
+<li>Illegally converted MIME'base64. 'mimE' -&gt; 'MIME'.</li>
+<li>In &amp;reLinkExec, FID did not changed collectly.</li>
+</ul></dd>
+
+<dt>revision 5.68 - date: 2000/04/21 13:19:37;  author: nakahiro;  state: Exp;  lines: +63 -44</dt>
+<dd><ul>
+<li>Add thread-base searching.</li>
+</ul></dd>
+
+<dt>revision 5.67 - date: 2000/04/21 12:01:36;  author: nakahiro;  state: Exp;  lines: +3376 -3361</dt>
+<dd><ul>
+<li>Global renaming. Many changes regarding function names.</li>
+</ul></dd>
+
+<dt>revision 5.66 - date: 2000/04/18 13:24:38;  author: nakahiro;  state: Exp;  lines: +226 -173</dt>
+<dd><ul>
+<li>Change xmlns URI. http://www.jin.gr.jp/namespaces/2000/kb -&gt; http://www.jin.gr.jp/xmlns/kb-html-embedding.</li>
+<li>Add c_icon element to the schema. HTML's img element to show message icons.</li>
+<li>Change HTTP Response Header. \n -&gt; CRLF (May be \r\n).</li>
+<li>'.' at the top of the SMTP message body was escaped illegally.</li>
+<li>Add new API &amp;&amp;getMsgParent and &amp;getMsgParentTop in Data implementation.</li>
+<li>Thread delete by Administrator did not work.</li>
+<li>Search plural icons at a time (experimental).</li>
+<li>Change Page Link appearance a little.</li>
+</ul></dd>
+
+<dt>revision 5.65 - date: 2000/03/12 10:46:01;  author: nakahiro;  state: Exp;  lines: +1099 -1009</dt>
+<dd><ul>
+<li>Cache BOARD DB at the beginning of execution.</li>
+<li>Global renaming and restructuring about Model Accessing Layer, about board,
+  messages and icons. Add many APIs such as &amp;cache*, &amp;get*, &amp;insert* and
+  &amp;update* in Data implementation.</li>
+<li>Admin's password could not be initialized. Illegal grant-checking in
+  &amp;UIAdminConfigExec. Fixed.</li>
+<li>Change items in Pulldown Select Menu in Board List View. Boardname are listed.
+  User jumps to Title List View from the menu.</li>
+<li>Avoid duplicated HTTP header send to users.</li>
+</ul></dd>
+
+<dt>revision 5.64 - date: 2000/03/03 14:28:23;  author: nakahiro;  state: Exp;  lines: +2 -2</dt>
+<dd><ul>
+<li>For R7b5.</li>
+<li>Remove the default value of $KBDIR_PATH.</li>
+</ul></dd>
+
+<dt>revision 5.63 - date: 2000/03/03 14:26:41;  author: nakahiro;  state: Exp;  lines: +151 -43</dt>
+<dd><ul>
+<li>Fixed illegal XHTML attributes. 'selected' -&gt; 'selected=&quot;selected&quot;'</li>
+<li>Add thread-base icon search. It is experimental. Not sofisticated yet...</li>
+</ul></dd>
+
+<dt>revision 5.62 - date: 2000/03/03 07:09:42;  author: nakahiro;  state: Exp;  lines: +29 -17</dt>
+<dd><ul>
+<li>Change the default value of $SYS_BOTTOMARTICLE from 1 to 0. The value should be
+  the same as the default value of $SYS_BOTTOMTITLE.</li>
+<li>Sort Title View did not work. Fixed. &amp;nofMsg -&gt; $nofMsg.</li>
+<li>The default value of 'num' box in Pulldown Select Menu did not set when 'num=0'.
+  Fixed.</li>
+<li>Reflect 'old', 'rev', and 'fold' in CGI variable into Pulldown Select Menu.</li>
+<li>Missing 'label' element in Entry View. Radio buttons to specify the Texttype
+  were not labeled.</li>
+</ul></dd>
+
+<dt>revision 5.61 - date: 2000/03/02 12:48:42;  author: nakahiro;  state: Exp;  lines: +565 -349</dt>
+<dd><ul>
+<li>Add new gray command icons. These icons are used when an user cannot use the
+  function assinged to the icon.</li>
+<li>Global renaming and restructuring about Message Model Accessing Layer. Variables
+  %DB_* are in Data Layer and are hidden from Logic Layer.</li>
+<li>Check lock and unlock scheme again. Add locking isolation level notation to all
+  &amp;UI* definitions such as CHAOS, READ UNCOMMITTED and SERIALIZABLE.<br />
+  Isolation level CHAOS means 'Users might see broken data( But, of course, the
+    system is safe because those CHAOS data does not reused in any forms. )<br />
+  Isolation level READ UNCOMMITTED means 'Users might read phantom data( known
+    as &quot;PHANTOM READ&quot; generally ).<br />
+  Isolation level SERIALIZABLE means 'Users transaction are protected from other
+    transactions from the beginning to the end'.</li>
+<li>XHTML un-compliant elements in Title Thread View when relinking and reordering.
+  Fixed.</li>
+<li>No message could be printed in Sort Article View. Fixed.</li>
+<li>Add ugly work around for Macintosh IE( MSIE 4.5 ). Dump dummy comment at the
+  head of XHTML.</li>
+<li>The error 'Must not reached' was occured using Macintosh IE( MSIE 4.5 ). Post
+  new message as Pre-formatted when Texttype are not set. XHTML does not allow
+  '&lt;option ... checked&gt;' and suggests to use '&lt;option ... checked=&quot;checked&quot;&gt;',
+  but MSIE 4.5 does not understand the latter form...</li>
+</ul></dd>
+
+<dt>revision 5.60 - date: 2000/02/29 13:40:53;  author: nakahiro;  state: Exp;  lines: +17 -245</dt>
+<dd><ul>
+<li>Correct 'jump to the oldest title view' in &amp;PageLink.</li>
+</ul></dd>
+
+<dt>revision 5.59 - date: 2000/02/29 13:10:35;  author: nakahiro;  state: Exp;  lines: +432 -302</dt>
+<dd><ul>
+<li>For R7b5.</li>
+<li>Add new config switch $SYS_TITLE_FORMAT for setting the type of Title List View
+  to use by default.</li>
+<li>Delete menu 'back to the Board List View' from Show Article View and Pulldownm
+  Select Menu. Users use 'TOP' link instead of these menu.</li>
+<li>Add the command icon 'up to the referenced message' to Show Article View.</li>
+<li>Priviledge user can set the posted date of the message when posting a new
+  message or superseding a message. Add &amp;CheckPostDate,
+  &amp;GetYYYY_MM_DD_HH_MM_SSFromUtc and &amp;GetUtcFromYYYY_MM_DD_HH_MM_SS.</li>
+<li>Priviledge user can set the name, e-mail and URL of the message when posting a
+  new message or superseding a message.</li>
+<li>Dump the list of referenced messages in Show Thread View and Show Article View.
+  Add &amp;DumpOriginalArticles.</li>
+<li>Add simple split bar in Pulldown Select Menu.</li>
+<li>Add &lt;kb:c_icon /&gt; and &lt;kb:c_icon_msg /&gt; for embedding KB icons in UI/*.xml.</li>
+</ul></dd>
+
+<dt>revision 5.58 - date: 2000/02/25 15:01:43;  author: nakahiro;  state: Exp;  lines: +33 -22</dt>
+<dd><ul>
+<li>Use UserConfig.xml as user information page.</li>
+<li>Add 'TOP', 'LOGIN' and 'INFO' link at the top of pages.</li>
+</ul></dd>
+
+<dt>revision 5.57 - date: 2000/02/25 13:40:26;  author: nakahiro;  state: Exp;  lines: +2 -2</dt>
+<dd><ul>
+<li>&amp;URIEscape did not work due to illegal regexp. Fixed.</li>
+</ul></dd>
+
+<dt>revision 5.56 - date: 2000/02/25 12:53:55;  author: nakahiro;  state: Exp;  lines: +174 -169</dt>
+<dd><ul>
+<li>For R7b4.</li>
+<li>Check radio button for 'Use HTTP-Cookies' by default in Login view.</li>
+<li>Escape boardname and username in URI.</li>
+<li>Use new HTML/4.0 elements fieldset and legend.</li>
+</ul></dd>
+
+<dt>revision 5.55 - date: 2000/02/25 06:19:41;  author: nakahiro;  state: Exp;  lines: +107 -88</dt>
+<dd><ul>
+<li>Use directories 'icon' and 'idef' instead of 'icons'. 'icon' for Web resource,
+  and 'idef' for icon definition files.</li>
+<li>Change UI resource filename. '*.html' -&gt; '*.xml'.</li>
+<li>Use $STYLE_FILE in kb.ph instead of $CSS_FILE in kb.cgi. Now, $STYLE_FILE is
+  configurable in kb.ph and kb.conf.</li>
+<li>Reference StyleSheet file using $KB_RESOURCE_URL.</li>
+</ul></dd>
+
+<dt>revision 5.54 - date: 2000/02/24 14:53:06;  author: nakahiro;  state: Exp;  lines: +588 -480</dt>
+<dd><ul>
+<li>XHTML awareness.</li>
+<li>Use specified $KB_RESOURCE_URL instead of given PATH_INFO from accessed URL.</li>
+<li>User SYS_DIR instead of AUTH_DIR.</li>
+<li>As the result of above two, the directory for system file( not accessible via
+  Web ) and the directory for resource( accessible from user via Web ) are
+  separated at last!.</li>
+<li>Check duplicated e-mail in the User DB.</li>
+<li>Changed lock mechanism. &amp;(Un)LockAll calls &amp;(Un)LockBoard automatically.</li>
+<li>Compressed title-thread format holizontally.</li>
+<li>Compress title-thread vertically when folded.</li>
+<li>Thread view for maintainer. ( Maintainer could not use thread format...)</li>
+<li>Removed 'newest message ID' from status field.</li>
+<li>Added &lt;kb:c_remote_info /&gt; and &lt;kb:c_anchor /&gt;.</li>
+<li>Parse kb.board same as UI/*.html.</li>
+<li>Default configurations of text-type and icon in message entry view.</li>
+<li>Changed text-type form in message entry view. Select -&gt; radio button.</li>
+<li>Maintainer could not click 'supersede' and 'delete' icons from message view. Fixed.</li>
+<li>Recursive &amp;htmlGen call... Fixed.</li>
+<li>Changed message body format of the e-mail.</li>
+<li>Changed SMTP-mail-from of the e-mail. Author's -&gt; Maintainer's.</li>
+<li>Escaped characters &amp;...; are over-escaped. Fixed.</li>
+<li>URL's 'old' in the title view were set illegal. Fixed.</li>
+</ul></dd>
+
+<dt>revision 5.53 - date: 1999/10/22 10:02:20;  author: nakahiro;  state: Exp;  lines: +28 -12</dt>
+<dd><ul>
+<li>Added some character icons' definition. Those are moved from kb.ph.</li>
+<li>Fixed some bugs.</li>
+</ul></dd>
+
+<dt>revision 5.52 - date: 1999/10/20 14:40:43;  author: nakahiro;  state: Exp;  lines: +267 -158</dt>
+<dd><ul>
+<li>Removed &amp;DQEncode/&amp;DQDecode. Use base64 encoding/decoding instead of those
+  functions. Thanks to ikumi@seg.co.jp.</li>
+<li>Fixed bugs around using no icons. Thanks to a patch from ikumi@seg.co.jp.</li>
+<li>Added URL encode/decoding in HTTP-Cookies. Thanks to ikumi@seg.co.jp.</li>
+<li>Added an icon to expand/fold reply-tree. Thanks to gotani@zdnetmail.ne.jp.</li>
+<li>Added an icon to jump to top/bottom page. Thanks to info@kojima.nu.</li>
+</ul></dd>
+
+<dt>revision 5.51 - date: 1999/09/22 14:24:03;  author: nakahiro;  state: Exp;  lines: +84 -37</dt>
+<dd><ul>
+<li>Modified authentication algorithm. User selectable URL-auth and Cookies-auth.</li>
+<li>Added feature to avoid posting Icon-less message.</li>
+</ul></dd>
+
+<dt>revision 5.50 - date: 1999/09/03 11:03:27;  author: nakahiro;  state: Exp;  lines: +1097 -669</dt>
+<dd><ul>
+<li>Use [URL:...] instead of &lt;URL:...&gt;. '&lt;URL:...&gt;' was parsed in posting articles,
+  '[URL:...]' is parsed in viewing articles.</li>
+<li>Added quoting message like 'In message ... on ..., ... wrote:'.</li>
+<li>Added 'target=...' attribute in anchor tags (optional).</li>
+</ul></dd>
+
+<dt>revision 5.49 - date: 1999/08/28 12:03:29;  author: nakahiro;  state: Exp;  lines: +42 -39</dt>
+<dd><ul>
+<li>System's path were printed. Fixed.</li>
+</ul></dd>
+
+<dt>revision 5.48 - date: 1999/08/28 09:02:52;  author: nakahiro;  state: Exp;  lines: +3 -2</dt>
+<dd><ul>
+<li>Changed default settings for a3 release.</li>
+</ul></dd>
+
+<dt>revision 5.47 - date: 1999/08/28 08:56:50;  author: nakahiro;  state: Exp;  lines: +530 -436</dt>
+<dd><ul>
+<li>Added stylesheet support. Many changes to HTML tags.</li>
+</ul></dd>
+
+<dt>revision 5.46 - date: 1999/08/26 10:44:55;  author: nakahiro;  state: Exp;  lines: +55 -52</dt>
+<dd><ul>
+<li>Use qq(&quot;) instead of &quot;\&quot;&quot;.</li>
+<li>Added accesskey to the link.</li>
+</ul></dd>
+
+<dt>revision 5.45 - date: 1999/08/26 09:05:34;  author: nakahiro;  state: Exp;  lines: +1988 -2014</dt>
+<dd><ul>
+<li>Version 1.0 Release 7.0 beta RC 1</li>
+<li>New feature
+<ul>
+  <li>User authentication by HTTP-Cookies and URI.</li>
+  <li>HTML/4.0 compriant(preparing now... not complete yet).
+    title, id, label, accesskey, class, and so on.</li>
+  <li>Easy customize UI by htmlGen technique.</li>
+</ul></li>
+<li>Deleted article are shown in title list. Fixed.</li>
+<li>The 'num' element in pull-down menu are reset by reloading. Fixed.</li>
+<li>Changed the message when 'article not found'.</li>
+<li>Left '&amp;amp;' in subject of notation mail. Fixed(decoding &amp;amp; -&gt; &amp; before sending).</li>
+<li>Use fragment link(#...) in the threaded title-with-article view.</li>
+<li>Accept attribute without ' and &quot; in HTML.</li>
+</ul></dd>
+
+<dt>revision 5.44 - date: 1999/08/23 20:17:18;  author: nakahiro;  state: Exp;  lines: +3898 -1395</dt>
+<dd><ul>
+<li>kb.user: KINOBOARDS user DB.</li>
+<li>kbStyle.css: style sheet for KB.</li>
+</ul></dd>
+
+</dl>
+
+<hr />
+
+<p>Changelogs before R7.</p>
+
 <dl>
 <dt>Release 6.5 - 1999/06/26 14:55:40 GMT
 <dd>Changed jump menu. Removed c=v in BoardList.
@@ -463,14 +758,15 @@ Changed Japanese K-Code conversion mechanism(cash strings to buffer for each `pr
 <dd>RCS Revision: 1.0, not released but internal use for my web pages.
 <dd>initial version.
 </dl>
+
 </div>
 
-<hr>
+<hr />
 
 <div class="footer">
 <address>
-<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br>
-Copyright (C) 1995-99
+<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br />
+Copyright &copy; 1995-2000
 <a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
 </div>
