@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.2 1998-09-14 16:24:26 nakahiro Exp $
+# $Id: cgi.pl,v 2.3 1998-09-14 16:43:29 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -84,6 +84,9 @@ $HTTP_COOKIES_NEVER_EXPIRED = 'Thu, 31-Dec-2029 23:59:59 GMT';
      'VAR',		1,	'',
      'XMP',		1,	'',
 );
+
+%CHARSET_MAP = ( 'euc', 'EUC-JP', 'jis', 'ISO-2022-JP', 'sjis', 'Shift_JIS' );
+$CHARSET = 'jis';
 
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
@@ -190,7 +193,8 @@ sub unlock_flock {
 sub Header {
     local( $utcFlag, $utcStr, $cookieFlag, $cookieStr, $cookieExpire ) = @_;
 
-    print( "Content-type: text/html; charset=ISO-2022-JP\n" );
+    print( "Content-type: text/html; charset=" . $CHARSET_MAP{ $CHARSET } . "\n" );
+    $cgiprint'CHARSET = $CHARSET;
 
     # Header for HTTP Cookies.
     if ( $cookieFlag ) {
