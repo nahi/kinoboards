@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.14 1999-01-20 03:19:55 nakahiro Exp $
+# $Id: cgi.pl,v 2.15 1999-02-07 17:15:58 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -24,7 +24,7 @@ require( 'mimew.pl' );
 
 
 ###
-## cgiデータ入出力パッケージ
+## Small CGI tool package.
 #
 package cgi;
 
@@ -42,16 +42,15 @@ $AF_INET = 2; $SOCK_STREAM = 1;	# depends type of OS.
 $CRLF = "\xd\xa";		# cannot use \r\n
 				# because of MacPerl's !ox#*& behavior...
 
-@TAG_ALLOWED = ();		# <>を指定することが許されるタグ
+@TAG_ALLOWED = ();		# CGI variables which is allowed to use <>.
 
-# SecureHtmlに「利用可能なタグ」が
-# 与えられなかった場合に適用される．
+# Default usable tags in &SecureHtml.
 $HTML_TAGS_COREATTRS = 'ID/CLASS/STYLE/TITLE';
 $HTML_TAGS_I18NATTRS = 'LANG/DIR';
 $HTML_TAGS_GENATTRS = "$HTML_TAGS_COREATTRS/$HTML_TAGS_I18NATTRS";
 @HTML_TAGS =
 (
-    # タグ名, 閉じ必須か否か, 使用可能なfeature
+    # Element, Neccesity of close element, Attribute
     'A',	1,	"$HTML_TAGS_GENATTRS/CHARSET/HREF/HREFLANG/NAME/REL/REV/TABINDEX/TARGET/TYPE",
     'ABBR',	1,	$HTML_TAGS_GENATTRS,
     'ADDRESS',	1,	$HTML_TAGS_GENATTRS,
@@ -107,16 +106,19 @@ $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $PATH_INFO = $ENV{'PATH_INFO'};
 $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 
+# IIS ...
+if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO ))
+{
+    $PATH_INFO = '';
+    $PATH_TRANSLATED = '';
+}
+
 ( $CGIDIR_NAME, $CGIPROG_NAME ) = $SCRIPT_NAME =~ m!^(..*)/([^/]*)$!o;
 $SYSDIR_NAME = ( $PATH_INFO ? "$PATH_INFO/" : "$CGIDIR_NAME/" );
 $PROGRAM = ( $PATH_INFO ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME" );
 
 
-###
-## ロック関係
-#
-
-# ロック
+# Locking
 sub lock_file
 {
     local( $lockFile ) = @_;
@@ -133,7 +135,7 @@ sub lock_file
     }
 }
 
-# アンロック
+# Unlocking
 sub unlock_file
 {
     if ( $] =~ /^5/o )
@@ -147,6 +149,10 @@ sub unlock_file
 	&unlock_file_link( @_ );
     }
 }
+
+# For backward compatibility...
+sub lock { &lock_file; }
+sub unlock { &unlock_file; }
 
 # lock with symlink
 sub lock_file_link
@@ -199,7 +205,7 @@ sub unlock_file_flock
 
 
 ###
-## HTMLヘッダの生成
+## Creating HTML header
 #
 # $ENV{'SERVER_PROTOCOL'} 200 OK
 # Server: $ENV{'SERVER_SOFTWARE'}
@@ -259,7 +265,7 @@ sub GetHttpDateTimeFromUtc
 
 
 ###
-## CGI変数のデコード
+## Decoding CGI variables
 ## CAUTION! functioon decode sets global variable, TAGS.
 #
 sub Decode
@@ -298,7 +304,7 @@ sub Decode
 
 
 ###
-## HTTP Cookiesのデコード
+## Decoding HTTP-Cookies
 #
 sub Cookie
 {
@@ -647,7 +653,7 @@ sub smtpMsg
 
 
 ###
-## secureなタグのみを残し，その他をencodeする．
+## Secure TAG filter
 #
 # known bugs:
 #  タグの入れ子を考慮していない(例: <i><b>foo</i></b>)
@@ -1128,22 +1134,26 @@ sub Header
     if ( $user eq '' )
     {
 	# no cookies
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0 );
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0, () );
     }
     elsif ( $user eq $F_COOKIE_RESET )
     {
 	# not numeric. reset.
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, "kinoauth=", $cookieExpire );
+	local( @cookieStr ) = ( 'kinoauth=' );
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, *cookieStr,
+	    $cookieExpire );
     }
     elsif ( $UID eq $cgi'COOKIES{'kinoauth'} )
     {
 	# no cookies
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0 );
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0, () );
     }
     else
     {
 	# set
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, "kinoauth=$UID", $cookieExpire );
+	local( @cookieStr ) = ( "kinoauth=$UID" );
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, *cookieStr,
+	    $cookieExpire );
     }
 }
 
@@ -1311,7 +1321,7 @@ sub CreateNewPasswd
 
 
 ###
-## 日本語の表示パッケージ
+## Japanese KANJI Characters output package
 #
 package cgiprint;
 
