@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.9 1998-10-29 17:20:49 nakahiro Exp $
+# $Id: cgi.pl,v 2.10 1998-11-05 18:26:32 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -44,7 +44,8 @@ $CRLF = "\xd\xa";		# cannot use \r\n
 
 @TAG_ALLOWED = ();		# <>を指定することが許されるタグ
 
-@HTML_TAGS =
+@HTML_TAGS =			# SecureHtmlに「利用可能なタグ」が
+				# 与えられなかった場合に適用される． 
 (
      # タグ名, 閉じ必須か否か, 使用可能なfeature
      'A',		1,	'HREF/NAME/TARGET',
@@ -633,28 +634,30 @@ sub smtpMsg
 #  タグの入れ子を考慮していない(例: <i><b>foo</i></b>)
 #  Featureの中の「>」を考慮していない(例: ALT=">")
 #
-$F_HTML_TAGS_PARSED = 0;
 %NEED = %FEATURE = ();
 
 sub SecureHtml
 {
     local( *string ) = @_;
+
+    local( %nVec, %fVec );
+    while( @HTML_TAGS )
+    {
+	$tag = shift( @HTML_TAGS );
+	$nVec{ $tag } = shift( @HTML_TAGS );
+	$fVec{ $tag } = shift( @HTML_TAGS );
+    }
+    &SecureHtmlEx( *string, *nVec, *fVec );
+}
+
+
+sub SecureHtmlEx
+{
+    local( *string, *nVec, *fVec ) = @_;
     local( $srcString, $tag, $need, $feature, $markuped );
 
-    # HTML_TAGSの解析（一度だけ実施）
-    if ( $F_HTML_TAGS_PARSED != 1 )
-    {
-	while( @HTML_TAGS )
-	{
-	    $tag = shift( @HTML_TAGS );
-	    $NEED{ $tag } = shift( @HTML_TAGS );
-	    $FEATURE{ $tag } = shift( @HTML_TAGS );
-	}
-	$F_HTML_TAGS_PARSED = 1;
-    }
-
     $string =~ s/\\>/__EscapedGt\376__/go;
-    while (( $tag, $need ) = each( %NEED ))
+    while (( $tag, $need ) = each( %nVec ))
     {
 	$srcString = $string;
 	$string = '';
@@ -670,7 +673,7 @@ sub SecureHtml
 	    {
 		$feature = '';
 	    }
-	    if ( &SecureFeature( $tag, $FEATURE{ $tag }, $feature ))
+	    if ( &SecureFeature( $tag, $fVec{ $tag }, $feature ))
 	    {
 		if ( $srcString =~ m!</$tag>!i )
 		{
@@ -706,7 +709,7 @@ sub SecureHtml
     $string =~ s/"/&quot;/g;
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;
-    while (( $tag, $need ) = each( %NEED ))
+    while (( $tag, $need ) = each( %nVec ))
     {
         $string =~ s!__$tag Open([^\376]*)\376__!<$tag$1>!g;
         $string =~ s!__$tag Close\376__!</$tag>!g;
