@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 1.1 1995-11-01 06:27:56 nakahiro Exp $
+# $Id: kb.cgi,v 1.2 1995-11-02 04:59:44 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.1  1995-11-01 06:27:56  nakahiro
+# Revision 1.2  1995-11-02 04:59:44  nakahiro
+# A bug in SortArticle was fixed.
+#
+# Revision 1.1  1995/11/01 06:27:56  nakahiro
 # many many changes and fixed bugs from ver 1.0.
 #
 # Revision 1.0  1995/10/22  08:59:03  nakahiro
@@ -68,12 +71,12 @@ $ARTICLE_PREFIX = "kb";
 #
 # メッセージの宣言
 #
-$ENTRY_MSG = "kinoBoardsへの書き込み";
+$ENTRY_MSG = "きのぼーずへの書き込み";
 $PREVIEW_MSG = "書き込みの内容を確認して下さい";
 $THANKS_MSG = "書き込みありがとうございました";
 $SORT_MSG = "日付順ソート";
 $NEWARTICLE_MSG = "最近の記事";
-$THREADARTICLE_MSG = "フォローまとめ読み";
+$THREADARTICLE_MSG = "反応まとめ読み";
 $ERROR_MSG   = "ERROR!";
 
 $ADDRESS = "Copyright 1995 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co.,Ltd.</a> &amp; <a href=\"http://www.ohara.info.waseda.ac.jp/person/nakahiro/nakahiro.html\">nakahiro</a> // 禁無断転載";
@@ -88,10 +91,10 @@ $H_REPLY = "元記事:";
 $H_FOLLOW = "▼反応";
 
 $H_TEXTTYPE = "入力形式:";
+$H_HTML = "HTML文書";
+$H_PRE = "整形済み文書";
 
-$H_AORI = "普通のテキストとして書き込んで下さい。ただし、&lt; &gt; &amp; &quot; は、そのままでは使えません。代わりにそれぞれ、 &amp;lt; &amp;gt; &amp;amp; &amp;quot; と書くと、正しく表示されます。HTMLのわかる方は、「入力形式」を「HTML整形を行なう」にして下さい。&lt;pre&gt;で囲まなくなり、普通のHTMLとして書けます。";
-$H_HTML = "HTML整形を行なう";
-$H_PRE = "整形は行なわない";
+$H_AORI = "普通に書き込んで下さい。自動的な折り返しは行なわず、書いたまま表示されます。ただし、&lt; &gt; &amp; &quot; は、そのままでは使えません。代わりにそれぞれ、 &amp;lt; &amp;gt; &amp;amp; &amp;quot; と書くと、正しく表示されます。<br>HTMLのわかる方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
 
 $DEFAULT_QMARK = " ] ";
 
@@ -170,9 +173,13 @@ MAIN: {
 	# REQUEST_METHODがPOSTならPreview画面へ、GETなら場合に応じて分岐する。
 	#
 	#	新規:			c=n
+	#
 	#	引用つきフォロー:	c=q&id=[1-9][0-9]*
 	#	引用なしフォロー:	c=f&id=[1-9][0-9]*
-	#	確認済み:		c=x&id=[1-9][0-9]*(引用でない場合はid=0)
+	#	ファイル引用フォロー:	c=q/f&id=filename
+	#
+	#	確認済み:		c=x&id=[1-9][0-9]*(引用でない時はid=0)
+	#
 	#	日付順ソート:		c=r
 	#	最新の記事n個:		c=l&num=[1-9][0-9]*
 	#	threadまとめ読み:	c=t&id=[1-9][0-9]*
@@ -223,7 +230,7 @@ sub Entry {
 	&MsgHeader($ENTRY_MSG);
 
 	# フォローの場合
-	if ($Id != 0) {
+	if ($Id ne '0') {
 		&ViewOriginalArticle($Id, $Board);
 		print("<hr>\n");
 		print("<h2>上の記事に反応する</h2>");
@@ -250,7 +257,7 @@ sub Entry {
 	print("$H_BOARD $BoardName<br>\n");
 
 	# Subject(フォローなら自動的に文字列を入れる)
-	if ($Id != 0) {
+	if ($Id ne '0') {
 		printf("$H_SUBJECT <input name=\"subject\" value=\"%s\" size=\"$SUBJECT_LENGTH\"><br>\n", &GetReplySubject($Id, $Board));
 	} else {
 		print("$H_SUBJECT <input name=\"subject\" value=\"\" size=\"$SUBJECT_LENGTH\"><br>\n");
@@ -259,7 +266,7 @@ sub Entry {
 	# 本文(引用ありなら元記事を挿入)
 	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">\n");
 	&QuoteOriginalArticle($Id, $Board)
-		if ($Id != 0 && $QuoteFlag == $QUOTE_ON);
+		if ($Id ne '0' && $QuoteFlag == $QUOTE_ON);
 	print("</textarea><br>\n");
 
 	# 名前とメールアドレス、URL。
@@ -373,13 +380,23 @@ sub SortArticle {
 	# 表示画面の作成
 	&MsgHeader($SORT_MSG);
 	print("<ol>\n");
-	foreach (reverse sort @lines) {
+	foreach (reverse sort MyArticleSort @lines) {
 		print $_;
 	}
 	print("</ol>\n");
 	&MsgFooter;
 }
 
+
+###
+## 新しい記事からn個を表示。
+#
+sub MyArticleSort {
+	local($MyA, $MyB) = ($a, $b);
+	$MyA =~ s/<li><strong>([0-9]*) .*$/$1/;
+	$MyB =~ s/<li><strong>([0-9]*) .*$/$1/;
+	return($MyA <=> $MyB);
+}
 
 ###
 ## 新しい記事からn個を表示。
@@ -885,7 +902,8 @@ sub ViewOriginalArticle {
 	local($Id, $Board) = @_;
 
 	# 引用するファイル
-	local($QuoteFile) = &GetArticleFileName($Id, $Board);
+	local($QuoteFile) =
+		($Id != 0) ? &GetArticleFileName($Id, $Board) : $Id;
 
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
@@ -894,7 +912,9 @@ sub ViewOriginalArticle {
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
+		$QuoteFlag = 0
+			if ((($Id != 0) && (/^<!-- Article End -->$/)) ||
+				(($Id == 0) && (/<body>/)));
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -903,8 +923,10 @@ sub ViewOriginalArticle {
 
 		# 引用開始の判定
 		$QuoteFlag = 1
-			if (/^<!-- Header Begin -->$/
-			 || /^<!-- Article Begin -->$/);
+			if ((($Id != 0) &&
+					((/^<!-- Header Begin -->$/) ||
+					(/^<!-- Article Begin -->$/))) ||
+				(($Id == 0) && (/<\/body>/)));
 
 	}
 	close TMP;
@@ -921,7 +943,8 @@ sub QuoteOriginalArticle {
 	local($Id, $Board) = @_;
 
 	# 引用するファイル
-	local($QuoteFile) = &GetArticleFileName($Id, $Board);
+	local($QuoteFile) =
+		($Id != 0) ? &GetArticleFileName($Id, $Board) : $Id;
 
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
@@ -930,7 +953,9 @@ sub QuoteOriginalArticle {
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
+		$QuoteFlag = 0
+			if ((($Id != 0) && (/^<!-- Article End -->$/)) ||
+				(($Id == 0) && (/<\/body>/)));
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -942,7 +967,9 @@ sub QuoteOriginalArticle {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^<!-- Article Begin -->$/);
+		$QuoteFlag = 1
+			if ((($Id != 0) && (/^<!-- Article Begin -->$/)) ||
+				(($Id == 0) && (/<body>/)));
 
 	}
 	close TMP;
