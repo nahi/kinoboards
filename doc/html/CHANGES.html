@@ -17,7 +17,7 @@ changes
 </h1>
 
 <p class="status">
-Last Update: June 26, 1999
+Last Update: June 27, 1999
 </p>
 </div>
 
@@ -25,6 +25,48 @@ Last Update: June 26, 1999
 
 <div class="main">
 <dl>
+<dt>Release 6.5 - 1999/06/26 14:55:40 GMT
+<dd>Changed jump menu. Removed c=v in BoardList.
+<dd>Added $ENV{'PATH_INFO'} configuration for CGIWRAP and suEXEC.
+<dd>Added $BASE_URL.
+<dd>Changed PROGNAME ( this string is for logfile. )
+<dd>Changed procedure of creating SCRIPT_URL for E-mail, BASE_URL for BASE tag,
+and PROGRAM for executing next CGI.
+<dd>Fixed illegal SELECT element in MsgHeader.
+<dd>Added checking new config switch.
+<dd>Added form-menu at the common head area of created pages.
+<dd>Changed DTD notation. 3.2 -&gt; 4.0.
+<dd>Changed NAME attribute for fragment anchor. NAME and ID tokens must begin
+with a letter. Reported: r_mit@ga2.so-net.ne.jp.
+<dd>Changed filename of logs. (access|error)_log -&gt; \1_log.(html|txt).
+<dd>Fixed parsing algorithm of mail header. Reported: hachi@cfp.canon.co.jp.
+<dd>Added 'POST_IF' command to force posting whether the mail contains
+'x-kb-command: POST' or not. 'POST' for force posting, 'POST_IF' for posting
+by selecting. Reported: mamiya@cfp.canon.co.jp.
+<dd>Added feature to remove 'x-kb-command: ...' from the mail body when 'POST_IF'.
+Reported: morrow@hf.rim.or.jp.
+<dd>Added anchor elements in 'Thread view' and 'Thread extension view'.
+  Reported: r_mit@ga2.so-net.ne.jp.
+<dd>Removed any HTML tags from subject of e-mail.
+<dd>Leave &amp; in TEXTAREA tag when quoting an article and superseding the article.
+<dd>Printed '[this article has no icon]' at which artiche has no icon.
+Reported: r_mit@ga2.so-net.ne.jp.
+<dd>When $SYS_ICON set to non 0, [new!] is used instead of Flag icon.
+Thanks to TBE00535@nifty.ne.jp.
+<dd>Added REMOTE_USER of BasicAuth to access log. Thanks to fumika@dyke.to.
+<dd>Illegal 'From' header in Follow-Mail. Thanks to hor@big.or.jp.
+<dd>Removed command 'vm'. Command 'v' behaves 'vm' when maintenance mode.
+<dd>Deleted article is shown in threaded view. Fixed.
+  This bug only happened when an article had been deleted manually.
+<dd>Old log file(kb.klg) were divided into 2 files.
+log/access_log for access log.
+log/error_log for error log.
+<dd>Cached icon's DB.
+<dd>Fixed charset declaration in HTML header.
+<dd>Changed TITLE. 'Title - BOARDNAME - SYSTEMNAME' -&gt; 'SYSTEMNAME - BOARDNAME - Title'.
+<dd>Changed string in H1 at page header. 'Title' -&gt; 'BOARDNAME'.
+<dd>NaHi's URL was illegal. jin.gr.jp/~nakahiro -&gt; jin.gr.jp/~nahi.
+
 <dt>Release 6.4 - 1999/02/17 19:03:52 GMT
 <dd>kb.cgi's RCS revision: 5.20
 <dd>kb.ph's RCS revision: 5.13
@@ -99,7 +141,7 @@ Changed to jump the page which the article was included.
 Line-splitted MIMEed subject terminated with \n. Changed to \r\n.
 <dd>Added to check return value of `print' functions.
 Avoid to delete files when the file system is full...
-<dd>Changed a link for back in kb.board. `index.html' -> `./'
+<dd>Changed a link for back in kb.board. `index.html' -&gt; `./'
 <dd>Added to log the given command when the error `command not found' occured.
 <dd>Changed an algorithm for trailing tree structure.
 <dd>Avoid posting from old form( The entry form must be created in 1 day ).
@@ -185,8 +227,8 @@ Links to replied articles were not shown. Fixed.
 <dd>Fixed lock-system bug in Win95.
 <dd>Deleted `Last-Modified' field from HTTP header. To avoid cache problem.
 <dd>Changed strings in TITLE tag of every pages. PageType - BoardName(if any) - SystemName.
-<dd>Changed time format of posted of articles. MM/DD -> YY/MM/DD.
-<dd>Fixed syntax errors for perl/4.036... local @foo; -> local( @foo );
+<dd>Changed time format of posted of articles. MM/DD -&gt; YY/MM/DD.
+<dd>Fixed syntax errors for perl/4.036... local @foo; -&gt; local( @foo );
 <dd>Fixed umask's bug. Files created by the system were group writable...
 
 <dt>Release 5.5 - 1998/04/03 17:55:27 GMT
@@ -194,15 +236,15 @@ Links to replied articles were not shown. Fixed.
 <dd>kb.ph's RCS revision: 5.6
 <dd>cgi.pl's RCS revision: 1.61
 <dd>kinologue.pl's RCS revision: 1.5
-<dd>cgi.pl was changed. Changed SendMail interface. sendMail is new, SendMail is old. Added &smtpHeader, &smtpBody, &smtpInit, and &smtpMsg. Took action against IIS's PATH_* problem. If it seems to be an IIS, and SCRIPT_NAME equals to PATH_INFO, then clear PATH_INFO and PATH_TRANSLATED.
-<dd>And, in kb.cgi, changed &cgi'SendMail -> &cgi'sendMail.
-<dd>Changed DB filenames. .articleid -> kb.aid, .db -> kb.db, .board -> kb.board, and .lock.kb -> kb.lock.
+<dd>cgi.pl was changed. Changed SendMail interface. sendMail is new, SendMail is old. Added &amp;smtpHeader, &amp;smtpBody, &amp;smtpInit, and &amp;smtpMsg. Took action against IIS's PATH_* problem. If it seems to be an IIS, and SCRIPT_NAME equals to PATH_INFO, then clear PATH_INFO and PATH_TRANSLATED.
+<dd>And, in kb.cgi, changed &amp;cgi'SendMail -&gt; &amp;cgi'sendMail.
+<dd>Changed DB filenames. .articleid -&gt; kb.aid, .db -&gt; kb.db, .board -&gt; kb.board, and .lock.kb -&gt; kb.lock.
 <dd>Set umask.
 <dd>Added TEXTTYPE value. Plain text( use PRE tag ), Plain html( not use any tags ), and HTML conversion( use P tag ).
 <dd>Added new customize option. We can specify any string to TO: header in Mail. For ML usage?
 <dd>Show title list of the `test' board when no command and board was given. Since R5.4, printed `huh? ...'.
 <dd>Removed version check routine... We'll never use it like this small small system...
-<dd>Fixed a bug when replying a message whose subject includes &quot; char. Added &TAGEncode.
+<dd>Fixed a bug when replying a message whose subject includes &quot; char. Added &amp;TAGEncode.
 <dd>Changed Mail sending order. At first, sends Reply-Mail, then sends Auto-Mail. Reply-Mail is less than Auto-Mail.
 
 <dt>Release 5.4 - 1998/03/18 20:49:56 GMT
@@ -232,7 +274,7 @@ Links to replied articles were not shown. Fixed.
 <dd>kinologue.pl's RCS revision: 1.2
 <dd>Removed DB files' version checking. DB files' structure will not changed little while...
 <dd>Changed locking timing. System is locked at suitable timing by each UI/*.pl.
-<dd>Changed filename of board dependent configuration file. .kbconf -> kb.conf.
+<dd>Changed filename of board dependent configuration file. .kbconf -&gt; kb.conf.
 <dd>Changed interface of function for UI. Called from MAIN block directly.
 <dd>Replaced SMTP handling function in cgi.pl. Do speak by itself with smtp server using SMTP. Does not use /usr/lib/sendmail now.
 <dd>Changed order of configuration block in kb.ph.
@@ -260,7 +302,7 @@ Links to replied articles were not shown. Fixed.
 <dd>Merged with KBPRIV.
 <dd>Separated UI implementations to GUI/.
 <dd>Some Environment variables refers a configuration switch before including configuration file. Fixed.
-<dd>variable AddFlag is global(ADDFLAG) in &ViewTitle.
+<dd>variable AddFlag is global(ADDFLAG) in &amp;ViewTitle.
 <dd>Quotaion Mark ( ] with the author's name) is not doubled.
 <dd>Configurable TIMEZONE.
 <dd>Added valid functions customize.
