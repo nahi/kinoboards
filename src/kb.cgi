@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
-#!/usr/local/bin/perl4.036
 #!/usr/local/bin/perl5.00503-debug -d:DProf
+#!/usr/local/bin/perl4.036
 
 
 # このファイルの変更は最低2箇所，最大4箇所です（環境次第です）．
@@ -34,7 +34,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.49 1999-08-28 12:03:29 nakahiro Exp $
+# $Id: kb.cgi,v 5.50 1999-09-03 11:03:27 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -65,7 +65,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7α3.1';		# release
+$KB_RELEASE = '7α4';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -140,7 +140,8 @@ if ( $cgi'PATH_INFO )
 }
 else
 {
-    local( $cgidir ) = substr( $cgi'SCRIPT_NAME, 0, rindex( $cgi'SCRIPT_NAME, '/' ));
+    local( $cgidir ) = substr( $cgi'SCRIPT_NAME, 0, rindex( $cgi'SCRIPT_NAME,
+	'/' ));
     $BASE_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgidir/";
 }
 
@@ -183,6 +184,16 @@ sub DoKill
     exit( 1 );
 }
 
+# 改行タグ，水平線タグ: XHTMLでは<br />や<hr />になります．
+$HTML_BR = "<br>\n";
+$HTML_HR = "<hr>\n";
+
+# ローカルカウンタ・フラグ
+$gLinkNum = 0;
+$gTabIndex = 0;
+$gBoardDbCached = 0;
+$gIconDbCached = '';
+
 
 ######################################################################
 
@@ -218,7 +229,10 @@ MAIN:
     if ( $ENV{ 'REQUEST_METHOD' } eq 'HEAD' )
     {
 	local( $modTime ) = 0;
-	$modTime = &GetModifiedTime( $DB_FILE_NAME, $cgi'TAGS{'b'} ) if $cgi'TAGS{'b'};
+	if ( $cgi'TAGS{'b'} ne '' )
+	{
+	    $modTime = &GetModifiedTime( $DB_FILE_NAME, $cgi'TAGS{'b'} );
+	}
 	&cgi'Header( 1, $modTime, 0, (), 0 );
 	last;
     }
@@ -283,7 +297,8 @@ MAIN:
 	&cgi'Cookie() if ( $SYS_AUTH == 1 );
 	    
 	local( $err, @userInfo );
-	( $err, $UNAME, $PASSWD, @userInfo ) = &cgiauth'CheckUser( $USER_AUTH_FILE );
+	( $err, $UNAME, $PASSWD, @userInfo ) = &cgiauth'CheckUser(
+	    $USER_AUTH_FILE );
 	    
 	if ( $err == 3 )
 	{
@@ -361,7 +376,7 @@ MAIN:
 	elsif ( $c eq 't' )
 	{
 	    # フォロー記事を全て表示．
-	    &UIThreadArticle();
+	    &UIShowThread();
 	    last;
 	}
 	elsif ( $c eq 'v' )
@@ -373,7 +388,7 @@ MAIN:
 	elsif ( $c eq 'vt' )
 	{
 	    # スレッド別タイトルおよび記事一覧
-	    &UIThreadExt();
+	    &UIThreadArticle();
 	    last;
 	}
 	elsif ( $c eq 'r' )
@@ -409,9 +424,9 @@ MAIN:
     }
 
     # 書き込み系
+    local( $varBack ) = 0;
     if ( $POLICY & 2 )
     {
-	local( $varBack ) = 0;
 	if (( $c eq 'x' ) && ( $com ne 'x' ))
 	{
 	    # previewからの戻りなので，コマンド書き換え．
@@ -637,8 +652,10 @@ sub hgLoginForm
     &Fatal( 18, "$_[0]/LoginForm" ) if ( $_[0] ne 'Login.html' );
 
     local( %tags, $msg );
-    $msg = &TagLabel( $H_FROM, 'kinoU', 'N' ) . qq(: <input id="kinoU" name="kinoU" type="text" value="" size="$NAME_LENGTH"><br>\n);
-    $msg .= &TagLabel( $H_PASSWD, 'kinoP', 'P' ) . qq(: <input id="kinoP" name="kinoP" type="password" value="" size="$PASSWD_LENGTH"><br>\n);
+    $msg = &TagLabel( $H_FROM, 'kinoU', 'N' ) . ': ' . &TagInputText( 'text',
+	'kinoU', '', $NAME_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_PASSWD, 'kinoP', 'P' ) . ': ' . &TagInputText(
+	'password', 'kinoP', '', $PASSWD_LENGTH ) . $HTML_BR;
     if ( $SYS_AUTH == 3 )
     {
 	%tags = ( 'c', 'bl', 'kinoT', 'plain' );
@@ -647,7 +664,7 @@ sub hgLoginForm
     {
 	%tags = ( 'c', 'bl' );
     }
-    &DumpForm( *tags, '実行', 'リセット', *msg );
+    &DumpForm( *tags, '実行', 'リセット', *msg, 1 );
 }
 
 
@@ -664,8 +681,11 @@ sub hgAdminConfigForm
     &Fatal( 18, "$_[0]/AdminConfigForm" ) if ( $_[0] ne 'AdminConfig.html' );
 
     local( %tags, $msg );
-    $msg = &TagLabel( $H_PASSWD, 'confP', 'P' ) . qq(: <input id="confP" name="confP" type="password" value="" size="$PASSWD_LENGTH"><br>\n);
-    $msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . qq(: <input id="confP2" name="confP2" type="password" value="" size="$PASSWD_LENGTH">（念のため，もう一度お願いします）<br>\n);
+    $msg = &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' . &TagInputText(
+	'password', 'confP', '', $PASSWD_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' . &TagInputText(
+	'password', 'confP2', '', $PASSWD_LENGTH ) .
+	'（念のため，もう一度お願いします）' . $HTML_BR;
     %tags = ( 'c', 'acx' );
     &DumpForm( *tags, '設定', 'リセット', *msg );
 }
@@ -719,14 +739,21 @@ sub hgUserEntryForm
     &Fatal( 18, "$_[0]/UserEntryForm" ) if ( $_[0] ne 'UserEntry.html' );
 
     local( %tags, $msg );
-    $msg = &TagLabel( $H_FROM, 'kinoU', 'N' ) . qq(: <input id="kinoU" name="kinoU" type="text" value="" size="$NAME_LENGTH"><br>\n);
-    $msg .= &TagLabel( $H_MAIL, 'mail', 'M' ) . qq(: <input id="mail" name="mail" type="text" value="" size="$MAIL_LENGTH"><br>\n);
-    $msg .= &TagLabel( $H_PASSWD, 'kinoP', 'P' ) . qq(: <input id="kinoP" name="kinoP" type="password" value="" size="$PASSWD_LENGTH"><br>\n);
-    $msg .= &TagLabel( $H_PASSWD, 'kinoP2', 'C' ) . qq(: <input id="kinoP2" name="kinoP2" type="password" value="" size="$PASSWD_LENGTH">（念のため，もう一度お願いします）<br>\n);
-    $msg .= &TagLabel( $H_URL, 'url', 'U' ) . qq(: <input id="url" name="url" type="text" value="http://" size="$URL_LENGTH">（省略してもかまいません）<br>\n);
+    $msg = &TagLabel( $H_FROM, 'kinoU', 'N' ) . ': ' . &TagInputText( 'text',
+	'kinoU', '', $NAME_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_MAIL, 'mail', 'M' ) . ': ' . &TagInputText( 'text',
+	'mail', '', $MAIL_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_PASSWD, 'kinoP', 'P' ) . ': ' . &TagInputText(
+	'password', 'kinoP', '', $PASSWD_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_PASSWD, 'kinoP2', 'C' ) . ': ' . &TagInputText(
+	'password', 'kinoP2', '', $PASSWD_LENGTH ) .
+	'（念のため，もう一度お願いします）' . $HTML_BR;
+    $msg .= &TagLabel( $H_URL, 'url', 'U' ) . ': ' . &TagInputText( 'text',
+	'url', 'http://', $URL_LENGTH ) . '（省略してもかまいません）' .
+	$HTML_BR;
 
     %tags = ( 'c', 'uex' );
-    &DumpForm( *tags, '登録', 'リセット', *msg );
+    &DumpForm( *tags, '登録', 'リセット', *msg, 1 );
 }
 
 
@@ -755,7 +782,8 @@ sub UIUserEntryExec
     &LockAll();
 
     # 新規登録する
-    local( $res ) = &cgiauth'AddUser( $USER_AUTH_FILE, $user, $p1, $mail, $url );
+    local( $res ) = &cgiauth'AddUser( $USER_AUTH_FILE, $user, $p1, $mail,
+	$url );
 
     # unlock system
     &UnlockAll();
@@ -792,11 +820,18 @@ sub hgUserConfigForm
     if ( $POLICY & 8 )
     {
 	local( %tags, $msg );
-	$msg = &TagLabel( "変更する$H_USERの$H_FROM", 'confUser', 'N' ) . qq(: <input id="confUser" name="confUser" type="text" value="" size="$NAME_LENGTH">（管理者は全$H_USERの設定を変更できます）<br><br>\n);
-	$msg .= &TagLabel( $H_MAIL, 'confMail', 'M' ) . qq(: <input id="confMail" name="confMail" type="text" value="" size="$MAIL_LENGTH"><br>\n);
-	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . qq(: <input id="confUrl" name="confUrl" type="text" value="http://" size="$URL_LENGTH"><br><br>\n);
-	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . qq(: <input id="confP" name="confP" type="password" value="" size="$PASSWD_LENGTH"><br>\n);
-	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . qq(: <input id="confP2" name="confP2" type="password" value="" size="$PASSWD_LENGTH">（念のため，もう一度お願いします）<br>\n);
+	$msg = &TagLabel( "変更する$H_USERの$H_FROM", 'confUser', 'N' ) .
+	    ': ' . &TagInputText( 'text', 'confUser', '', $NAME_LENGTH ) .
+	    "（管理者は全$H_USERの設定を変更できます）" . $HTML_BR . $HTML_BR;
+	$msg .= &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' . &TagInputText(
+	    'text', 'confMail', '', $MAIL_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . ': ' . &TagInputText(
+	    'text', 'confUrl', 'http://', $URL_LENGTH ) . $HTML_BR . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' . &TagInputText(
+	    'password', 'confP', '', $PASSWD_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' . &TagInputText(
+	    'password', 'confP2', '', $PASSWD_LENGTH ) .
+	    '（念のため，もう一度お願いします）' . $HTML_BR;
 	%tags = ( 'c', 'ucx' );
 	&DumpForm( *tags, '設定', 'リセット', *msg );
     }
@@ -805,10 +840,15 @@ sub hgUserConfigForm
 	$UURL = $UURL || 'http://';
 
 	local( %tags, $msg );
-	$msg = &TagLabel( $H_MAIL, 'confMail', 'M' ) . qq(: <input id="confMail" name="confMail" type="text" value="$UMAIL" size="$MAIL_LENGTH"><br>\n);
-	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . qq(: <input id="confUrl" name="confUrl" type="text" value="$UURL" size="$URL_LENGTH"><br><br>\n);
-	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . qq(: <input id="confP" name="confP" type="password" value="" size="$PASSWD_LENGTH"><br>\n);
-	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . qq(: <input id="confP2" name="confP2" type="password" value="" size="$PASSWD_LENGTH">（念のため，もう一度お願いします）<br>\n);
+	$msg = &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' . &TagInputText(
+	    'text', 'confMail', $UMAIL, $MAIL_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . ': ' . &TagInputText(
+	    'text', 'confUrl', $UURL, $URL_LENGTH ) . $HTML_BR . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' . &TagInputText(
+	    'password', 'confP', '', $PASSWD_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' . &TagInputText(
+	    'password', 'confP2', '', $PASSWD_LENGTH ) .
+	    '（念のため，もう一度お願いします）' . $HTML_BR;
 	%tags = ( 'c', 'ucx' );
 	&DumpForm( *tags, '設定', 'リセット', *msg );
     }
@@ -877,10 +917,15 @@ sub hgBoardEntryForm
     &Fatal( 18, "$_[0]/BoardEntryForm" ) if ( $_[0] ne 'BoardEntry.html' );
 
     local( %tags, $msg );
-    $msg = &TagLabel( "$H_BOARD略称", 'name', 'B' ) . qq(: <input id="name" name="name" type="text" value="" size="$BOARDNAME_LENGTH"><br>\n);
-    $msg .= &TagLabel( "$H_BOARD名称", 'intro', 'N' ) . qq(: <input id="intro" name="intro" type="text" value="" size="$BOARDNAME_LENGTH"><br><br>\n);
-    $msg .= &TagLabel( "$H_BOARDの自動メイル配信先", 'armail', 'M' ) . qq(<br>\n<textarea id="armail" name="armail" rows="$TEXT_ROWS" cols="$MAIL_LENGTH"></textarea><br><br>\n);
-    $msg .= &TagLabel( "$H_BOARDヘッダ部分", 'article', 'H' ) . qq(<br>\n<textarea id="article" name="article" rows="$TEXT_ROWS" cols="$TEXT_COLS"></textarea><br>\n);
+    $msg = &TagLabel( "$H_BOARD略称", 'name', 'B' ) . ': ' . &TagInputText(
+	'text', 'name', '', $BOARDNAME_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( "$H_BOARD名称", 'intro', 'N' ) . ': ' . &TagInputText(
+	'text', 'intro', '', $BOARDNAME_LENGTH ) . $HTML_BR . $HTML_BR;
+    $msg .= &TagLabel( "$H_BOARDの自動メイル配信先", 'armail', 'M' ) .
+	$HTML_BR . &TagTextarea( 'armail', '', $TEXT_ROWS, $MAIL_LENGTH ) .
+	$HTML_BR . $HTML_BR;
+    $msg .= &TagLabel( "$H_BOARDヘッダ部分", 'article', 'H' ) . $HTML_BR .
+	&TagTextarea( 'article', '', $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
     %tags = ( 'c', 'bex' );
     &DumpForm( *tags, '登録', 'リセット', *msg );
 }
@@ -937,12 +982,19 @@ sub hgBoardConfigForm
     &Fatal( 18, "$_[0]/BoardConfigForm" ) if ( $_[0] ne 'BoardConfig.html' );
 
     local( %tags, $msg );
-    $msg = &TagLabel( "「$BOARD」$H_BOARDを利用", 'valid', 'V' ) . qq(: <input id="valid" name="valid" type="checkbox" value="yes" checked><br><br>\n);
-    $msg .= &TagLabel( "「$BOARD」名称", 'intro', 'N' ) . qq(: <input id="intro" name="intro" type="text" value="$BOARDNAME" size="$BOARDNAME_LENGTH"><br><br>\n);
-    $msg .= &TagLabel( "「$BOARD」の自動メイル配信先", 'armail', 'M' ) . qq(<br>\n<textarea id="armail" name="armail" rows="$TEXT_ROWS" cols="$MAIL_LENGTH">\n);
-    foreach ( @gArriveMail ) { $msg .= $_ . "\n"; }
-    $msg .= qq(</textarea><br><br>\n);
-    $msg .= &TagLabel( "「$BOARD」の$H_BOARDヘッダ部分", 'article', 'H' ) . qq(<br>\n<textarea id="article" name="article" rows="$TEXT_ROWS" cols="$TEXT_COLS">$gHeader</textarea><br>\n);
+    $msg = &TagLabel( "「$BOARD」$H_BOARDを利用", 'valid', 'V' ) . ': ' .
+	&TagInputCheck( 'valid', 1 ) . $HTML_BR . $HTML_BR;
+    $msg .= &TagLabel( "「$BOARD」名称", 'intro', 'N' ) . ': ' .
+	&TagInputText( 'text', 'intro', $BOARDNAME, $BOARDNAME_LENGTH ) .
+	$HTML_BR . $HTML_BR;
+    local( $all );
+    foreach ( @gArriveMail ) { $all .= $_ . "\n"; }
+    $msg .= &TagLabel( "「$BOARD」の自動メイル配信先", 'armail', 'M' ) .
+	$HTML_BR . &TagTextarea( 'armail', $all, $TEXT_ROWS, $MAIL_LENGTH ) .
+	$HTML_BR . $HTML_BR;
+    $msg .= &TagLabel( "「$BOARD」の$H_BOARDヘッダ部分", 'article', 'H' ) .
+	$HTML_BR . &TagTextarea( 'article', $gHeader, $TEXT_ROWS,
+	$TEXT_COLS ) . $HTML_BR;
     %tags = ( 'c', 'bcx', 'b', $BOARD );
     &DumpForm( *tags, '変更', 'リセット', *msg );
 }
@@ -965,7 +1017,7 @@ sub UIBoardConfigExec
     local( @arriveMail ) = split( /\n/, $armail );
 
     &LockAll();
-    &UpdateBoardDb( $BOARD, ( $valid eq 'yes' ), $intro, 0, *arriveMail, *header );
+    &UpdateBoardDb( $BOARD, $valid, $intro, 0, *arriveMail, *header );
     &UnlockAll();
 
     &htmlGen( 'BoardList.html' );
@@ -980,24 +1032,18 @@ sub UIBoardList
     &htmlGen( 'BoardList.html' );
 }
 
+
 ###
 ## メッセージ新規登録のエントリ
 ## リプライメッセージ登録のエントリ
 ## メッセージ訂正のエントリ
 #
-# - SYNOPSIS
-#	Entry( $entryType, $back );
-#
-# - ARGS
-#	$entryType	0 ... 新着
-#			1 ... 引用なしのリプライ
-#			2 ... 引用ありのリプライ
-#			3 ... 投稿済み記事の訂正
-#	$back		プレビューからの戻りか否か．
-#
 sub UIPostNewEntry
 {
-    &Fatal( 99, $cgi'TAGS{'c'} ) if ( $SYS_NEWART_ADMINONLY && !( $POLICY & 8 ));
+    if ( $SYS_NEWART_ADMINONLY && !( $POLICY & 8 ))
+    {
+	&Fatal( 99, $cgi'TAGS{'c'} );
+    }
 
     local( $back ) = @_;
 
@@ -1018,9 +1064,9 @@ sub UIPostNewEntry
     }
     else
     {
-	$gDefUrl = $gDefUrl || 'http://';
     }
 
+    $gEntryType = 'normal';		# 新規
     &htmlGen( 'PostNewEntry.html' );
 }
 
@@ -1048,7 +1094,6 @@ sub UIPostReplyEntry
     }
     elsif ( $quoteFlag == 0 )
     {
-	$gDefUrl = $gDefUrl || 'http://';
 	if ( $DefSubject eq '' )
 	{
 	    local( $tmp );
@@ -1058,7 +1103,6 @@ sub UIPostReplyEntry
     }
     else
     {
-	$gDefUrl = $gDefUrl || 'http://';
 	if ( $gDefSubject eq '' )
 	{
 	    local( $tmp );
@@ -1070,14 +1114,18 @@ sub UIPostReplyEntry
 
     &UnlockBoard();
 
+    $gEntryType = 'reply';		# リプライ
     &htmlGen( 'PostReplyEntry.html' );
 }
 
 sub UISupersedeEntry
 {
-    &Fatal( 99, $cgi'TAGS{'c'} ) if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ));
+    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    {
+	&Fatal( 99, $cgi'TAGS{'c'} );
+    }
 
-    local( $back, $quoteFlag ) = @_;
+    local( $back ) = @_;
 
     &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
@@ -1100,35 +1148,35 @@ sub UISupersedeEntry
     else
     {
 	local( $tmp );
-	( $tmp, $tmp, $tmp, $gDefSubject, $gDefIcon , $tmp, $gDefName, $gDefEmail, $gDefUrl ) = &GetArticlesInfo( $gId );
+	( $tmp, $tmp, $tmp, $gDefSubject, $gDefIcon , $tmp, $gDefName,
+	    $gDefEmail, $gDefUrl ) = &GetArticlesInfo( $gId );
 	&QuoteOriginalArticleWithoutQMark( $gId, *gDefArticle );
     }
 
     &UnlockBoard();
 
+    $gEntryType = 'supersede';		# 修正
     &htmlGen( 'SupersedeEntry.html' );
 }
 
-sub hgPostEntryOrigArticle
+sub hgPostReplyEntryOrigArticle
 {
-    &Fatal( 18, "$_[0]/PostEntryOrigArticle" ) if (( $_[0] ne 'PostReplyEntry.html' ) && ( $_[0] ne 'SupersedeEntry.html' ));
+    if ( $_[0] ne 'PostReplyEntry.html' )
+    {
+	&Fatal( 18, "$_[0]/PostReplyEntryOrigArticle" );
+    }
 
-    &DumpArticle( $gId, 0, 1 );
+    &DumpArtBody( $gId, 0, 1 );
 }
 
-sub hgSupersedeEntryButton
+sub hgSupersedeEntryOrigArticle
 {
-    &Fatal( 18, "$_[0]/PostEntryFormClose" ) if ( $_[0] ne 'SupersedeEntry.html' );
+    if ( $_[0] ne 'SupersedeEntry.html' )
+    {
+	&Fatal( 18, "$_[0]/SupersedeEntryOrigArticle" );
+    }
 
-    $gHgStr .= "<p>\n";
-    $gHgStr .= qq(<input type="radio" id="com_p" name="com" value="p" checked>:\n) . &TagLabel( "試しに表示してみる(まだ投稿しません)", 'com_p', 'P' ) . "<br>\n";
-    $gHgStr .= qq(<input type="radio" id="com_x" name="com" value="x">:\n) . &TagLabel( "訂正する", 'com_x', 'X' ) . "<br>\n";
-    local( %tags );
-    local( $op ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
-    %tags = ( 'corig', $cgi'TAGS{'c'}, 'b', $BOARD, 'c', 'p', 'id', $gId,
-	's', 1, 'op', $op );
-    &DumpFormButton( *tags, '実行', '' );
-    $gHgStr .= "</p>\n";
+    &DumpArtBody( $gId, 0, 1 );
 }
 
 
@@ -1144,7 +1192,10 @@ sub UIPostPreview
 
 sub UISupersedePreview
 {
-    &Fatal( 99, $cgi'TAGS{'c'} ) if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ));
+    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    {
+	&Fatal( 99, $cgi'TAGS{'c'} );
+    }
 
     &UIPostPreviewMain( 'supersede' );
     &htmlGen( 'SupersedePreview.html' );
@@ -1194,7 +1245,8 @@ sub UIPostPreviewMain
     &secureArticle( *gArticle, $gTextType );
 
     # 入力された記事情報のチェック
-    &CheckArticle( $BOARD, *gName, *gEmail, *gUrl, *gSubject, *gIcon, *gArticle );
+    &CheckArticle( $BOARD, *gName, *gEmail, *gUrl, *gSubject, *gIcon,
+	*gArticle );
 
     &UnlockBoard();
     &UnlockAll();
@@ -1209,8 +1261,10 @@ sub hgPostPreviewForm
     local( $supersede ) = $_[1];
 
     local( %tags, $msg );
-    $msg = qq(<input type="radio" id="com_e" name="com" value="e">:\n) . &TagLabel( "戻ってやりなおす", 'com_e', 'P' ) . "<br>\n";
-    $msg .= qq(<input type="radio" id="com_x" name="com" value="x" checked>:\n) . &TagLabel( "登録する", 'com_x', 'X' ) . "<br>\n";
+    $msg = &TagInputRadio( 'com_e', 'com', 'e', 0 ) . ":\n" . &TagLabel(
+	'戻ってやりなおす', 'com_e', 'P' ) . $HTML_BR;
+    $msg .= &TagInputRadio( 'com_x', 'com', 'x', 1 ) . "\n" . &TagLabel(
+	'登録する', 'com_x', 'X' ) . $HTML_BR;
     %tags = ( 'corig', $cgi'TAGS{'corig'}, 'c', 'x', 'b', $BOARD,
 	     'id', $gOrigId, 'texttype', $gTextType, 'name', $gName,
 	     'mail', $gEmail, 'url', $gUrl, 'icon', $gIcon,
@@ -1223,7 +1277,10 @@ sub hgPostPreviewForm
 
 sub hgSupersedePreviewForm
 {
-    &Fatal( 18, "$_[0]/SupersedePreviewForm" ) if ( $_[0] ne 'SupersedePreview.html' );
+    if ( $_[0] ne 'SupersedePreview.html' )
+    {
+	&Fatal( 18, "$_[0]/SupersedePreviewForm" );
+    }
 
     &hgPostPreviewForm( 'PostPreview.html', 1 );
 }
@@ -1231,19 +1288,28 @@ sub hgSupersedePreviewForm
 sub hgPostPreviewBody
 {
     &Fatal( 18, "$_[0]/PostPreviewBody" ) if ( $_[0] ne 'PostPreview.html' );
-    &DumpArticle( '', 0, 1, $gOrigId, 0, $^T, $gSubject, $gIcon, 0, $gName, $gEmail, $gUrl, $gArticle );
+    &DumpArtBody( '', 0, 1, $gOrigId, 0, $^T, $gSubject, $gIcon, 0, $gName,
+	$gEmail, $gUrl, $gArticle );
 }
 
 sub hgSupersedePreviewBody
 {
-    &Fatal( 18, "$_[0]/SupersedePreviewBody" ) if ( $_[0] ne 'SupersedePreview.html' );
+    if ( $_[0] ne 'SupersedePreview.html' )
+    {
+	&Fatal( 18, "$_[0]/SupersedePreviewBody" );
+    }
+
     &hgPostPreviewBody( 'PostPreview.html' );
 }
 
 sub hgSupersedePreviewOrigArticle
 {
-    &Fatal( 18, "$_[0]/SupersedePreviewOrigArticle" ) if ( $_[0] ne 'SupersedePreview.html' );
-    &DumpArticle( $gOrigId, 0, 1 );
+    if ( $_[0] ne 'SupersedePreview.html' )
+    {
+	&Fatal( 18, "$_[0]/SupersedePreviewOrigArticle" );
+    }
+
+    &DumpArtBody( $gOrigId, 0, 1 );
 }
 
 
@@ -1260,7 +1326,10 @@ sub UIPostExec
 
 sub UISupersedeExec
 {
-    &Fatal( 99, $cgi'TAGS{'c'} ) if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ));
+    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    {
+	&Fatal( 99, $cgi'TAGS{'c'} );
+    }
 
     local( $previewFlag ) = @_;
     &UIPostExecMain( $previewFlag, 'supersede' );
@@ -1334,17 +1403,20 @@ sub UIPostExecMain
     if ( $type eq 'post' )
     {
 	# 記事の作成
-	$gNewArtId = &MakeNewArticle( $BOARD, $gOrigId, $op, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, 1 );
+	$gNewArtId = &MakeNewArticle( $BOARD, $gOrigId, $op, $TextType, $Name,
+	    $Email, $Url, $Icon, $Subject, $Article, $Fmail, 1 );
     }
     elsif ( $type eq 'supersede' )
     {
 	# 記事の訂正
 	local( $tmp, $aids, $name );
-	( $tmp, $aids, $tmp, $tmp, $tmp, $tmp, $name ) = &GetArticlesInfo( $gOrigId );
+	( $tmp, $aids, $tmp, $tmp, $tmp, $tmp, $name ) = &GetArticlesInfo(
+	    $gOrigId );
 	&Fatal( 44, '' ) if ( !&IsUser( $name ) && !( $POLICY & 8 ));
 	&Fatal( 19, '' ) if ( $aids && ( $SYS_OVERWRITE == 1 ));
 
-	$gNewArtId = &SupersedeArticle( $BOARD, $gOrigId, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail );
+	$gNewArtId = &SupersedeArticle( $BOARD, $gOrigId, $TextType, $Name,
+	    $Email, $Url, $Icon, $Subject, $Article, $Fmail );
     }
     else
     {
@@ -1357,21 +1429,30 @@ sub UIPostExecMain
 
 sub hgPostExecJumpToNewArticle
 {
-    &Fatal( 18, "$_[0]/PostExecJumpToNewArticle" ) if ( $_[0] ne 'PostExec.html' );
+    if ( $_[0] ne 'PostExec.html' )
+    {
+	&Fatal( 18, "$_[0]/PostExecJumpToNewArticle" );
+    }
 
     &DumpButtonToArticle( $BOARD, $gNewArtId, "書き込んだ$H_MESGへ" );
 }
 
 sub hgSupersedeExecJumpToNewArticle
 {
-    &Fatal( 18, "$_[0]/SupersedeExecJumpToNewArticle" ) if ( $_[0] ne 'SupersedeExec.html' );
+    if ( $_[0] ne 'SupersedeExec.html' )
+    {
+	&Fatal( 18, "$_[0]/SupersedeExecJumpToNewArticle" );
+    }
 
     &DumpButtonToArticle( $BOARD, $gNewArtId, "訂正した$H_MESGへ" );
 }
 
 sub hgPostExecJumpToOrigArticle
 {
-    &Fatal( 18, "$_[0]/PostExecJumpToOrigArticle" ) if ( $_[0] ne 'PostExec.html' );
+    if ( $_[0] ne 'PostExec.html' )
+    {
+	&Fatal( 18, "$_[0]/PostExecJumpToOrigArticle" );
+    }
 
     if ( $gOrigId ne '' )
     {
@@ -1383,7 +1464,7 @@ sub hgPostExecJumpToOrigArticle
 ###
 ## スレッド別タイトルおよび記事一覧
 #
-sub UIThreadExt
+sub UIThreadArticle
 {
     %gADDFLAG = ();
     @gIDLIST = ();
@@ -1421,14 +1502,17 @@ sub UIThreadExt
 	$gADDFLAG{$DB_ID[$IdNum]} = 2;
     }
 
-    &htmlGen( 'ThreadExt.html' );
+    &htmlGen( 'ThreadArticle.html' );
 }
 
-sub hgThreadExtTree
+sub hgThreadArticleTree
 {
-    &Fatal( 18, "$_[0]/ThreadExtTree" ) if ( $_[0] ne 'ThreadExt.html' );
+    if ( $_[0] ne 'ThreadArticle.html' )
+    {
+	&Fatal( 18, "$_[0]/ThreadArticleTree" );
+    }
 
-    $gHgStr .= "<ul>\n";
+    $gHgStr .= $HTML_HR . "<ul>\n";
     
     local( $AddNum ) = "&num=$gNum&old=$gOld&rev=$gRev";
 
@@ -1436,7 +1520,7 @@ sub hgThreadExtTree
     if ($gTo < $gFrom)
     {
 	# 空だった……
-	$gHgStr .= "<li>$H_NOARTICLE\n";
+	$gHgStr .= "<li>$H_NOARTICLE</li>\n";
     }
     elsif ( $gVRev )
     {
@@ -1446,7 +1530,8 @@ sub hgThreadExtTree
 	    $Id = $DB_ID[$IdNum];
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
 	    # 後方参照は後回し．
-	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $gADDFLAG{$Fid} == 2 ));
+	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) ||
+		( $gADDFLAG{$Fid} == 2 ));
 	    # ノードを表示
 	    if ( $SYS_THREAD_FORMAT == 1 )
 	    {
@@ -1469,7 +1554,8 @@ sub hgThreadExtTree
 	{
 	    $Id = $DB_ID[$IdNum];
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
-	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $gADDFLAG{$Fid} == 2 ));
+	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) ||
+		( $gADDFLAG{$Fid} == 2 ));
 
 	    if ( $SYS_THREAD_FORMAT == 1 )
 	    {
@@ -1489,18 +1575,21 @@ sub hgThreadExtTree
     $gHgStr .= "</ul>\n";
 }
 
-sub hgThreadExtBody
+sub hgThreadArticleBody
 {
-    &Fatal( 18, "$_[0]/ThreadExtBody" ) if ( $_[0] ne 'ThreadExt.html' );
+    if ( $_[0] ne 'ThreadArticle.html' )
+    {
+	&Fatal( 18, "$_[0]/ThreadArticleBody" );
+    }
 
     local( $id );
     if ( $#gIDLIST >= 0 )
     {
-	$gHgStr .= "$H_HR\n";
+	$gHgStr .= $HTML_HR;
 	while ( $id = shift( @gIDLIST ))
 	{
-	    &DumpArticle( $id, $SYS_COMMAND_EACH, 1 );
-	    $gHgStr .= "$H_HR\n";
+	    &DumpArtBody( $id, $SYS_COMMAND_EACH, 1 );
+	    $gHgStr .= $HTML_HR;
 	}
     }
 }
@@ -1523,7 +1612,8 @@ sub UIThreadTitle
     elsif ( $ComType == 2 )
     {
 	$vCom = 'ct';
-	$vStr = "&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'} . "&rtid=" . $cgi'TAGS{'rtid'};
+	$vStr = '&rtid=' . $cgi'TAGS{'roid'} . '&rfid=' . $cgi'TAGS{'rfid'} .
+	    '&rtid=' . $cgi'TAGS{'rtid'};
     }
     elsif ( $gComType == 3 )
     {
@@ -1533,7 +1623,8 @@ sub UIThreadTitle
     elsif ( $gComType == 4 )
     {
 	$vCom = 'mvt';
-	$vStr = "&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'} . "&rtid=" . $cgi'TAGS{'rtid'};
+	$vStr = '&rtid=' . $cgi'TAGS{'roid'} . '&rfid=' . $cgi'TAGS{'rfid'} .
+	    '&rtid=' . $cgi'TAGS{'rtid'};
     }
     elsif ( $gComType == 5 )
     {
@@ -1542,20 +1633,20 @@ sub UIThreadTitle
     }
 
     %gADDFLAG = ();
-    @gIDLIST = ();		# Not used here. It's for ThreadExt.
+    @gIDLIST = ();		# Not used here. It's for ThreadArticle.
 
     &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
 
-    if ($gComType == 3)
+    if ( $gComType == 3 )
     {
 	# リンクかけかえの実施
-	&ReLinkExec($cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD);
+	&ReLinkExec( $cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD );
     }
-    elsif ($gComType == 5)
+    elsif ( $gComType == 5 )
     {
 	# 移動の実施
-	&ReOrderExec($cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD);
+	&ReOrderExec( $cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD );
     }
 
     &UnlockBoard();
@@ -1594,7 +1685,10 @@ sub UIThreadTitle
 
 sub hgThreadTitleBoardHeader
 {
-    &Fatal( 18, "$_[0]/ThreadTitleBoardHeader" ) if ( $_[0] ne 'ThreadTitle.html' );
+    if ( $_[0] ne 'ThreadTitle.html' )
+    {
+	&Fatal( 18, "$_[0]/ThreadTitleBoardHeader" )
+	}
 
     if ( $gComType == 2 )
     {
@@ -1621,24 +1715,26 @@ sub hgThreadTitleBoardHeader
     {
 	if ( $gComType == 3 )
 	{
-	    $gHgStr .= "<ul>\n<li>" . &LinkP( "b=$BOARD&c=ce&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'}, "今の変更を元に戻す" ) . "\n</ul>\n";
+	    $gHgStr .= "<ul>\n<li>" . &LinkP( "b=$BOARD&c=ce&rtid=" .
+		$cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'},
+		'今の変更を元に戻す' ) . "</li>\n</ul>\n";
 	}
 
 	$gHgStr .= <<EOS;
 <p>各$H_ICONは，次のような意味を表しています．</p>
 <ul>
 <li>$H_RELINKFROM_MARK:
-この$H_MESGの$H_REPLY先を変更します．$H_REPLY先を指定する画面に飛びます．
+この$H_MESGの$H_REPLY先を変更します．$H_REPLY先を指定する画面に飛びます．</li>
 <li>$H_REORDERFROM_MARK:
-この$H_MESGの順序を変更します．移動先を指定する画面に飛びます．
+この$H_MESGの順序を変更します．移動先を指定する画面に飛びます．</li>
 <li>$H_DELETE_ICON:
-この$H_MESGを削除します．
+この$H_MESGを削除します．</li>
 <li>$H_SUPERSEDE_ICON:
-この$H_MESGを訂正します．
+この$H_MESGを訂正します．</li>
 <li>$H_RELINKTO_MARK:
-先に指定した$H_MESGの$H_REPLY先を，この$H_MESGにします．
+先に指定した$H_MESGの$H_REPLY先を，この$H_MESGにします．</li>
 <li>$H_REORDERTO_MARK:
-先に指定した$H_MESGを，この$H_MESGの下に移動します．
+先に指定した$H_MESGを，この$H_MESGの下に移動します．</li>
 </ul>
 EOS
     }
@@ -1656,18 +1752,24 @@ sub hgThreadTitleTree
     if ( $gTo < $gFrom )
     {
 	# 空だった……
-	$gHgStr .= "<li>$H_NOARTICLE\n";
+	$gHgStr .= "<li>$H_NOARTICLE</li>\n";
     }
     elsif ( $gVRev )
     {
 	# 古いのから処理
 	if (( $gComType == 2 ) && ( $DB_FID{$cgi'TAGS{'rfid'}} ne '' ))
 	{
-	    $gHgStr .= "<li>" . &LinkP( "b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[どの$H_MESGへの$H_REPLYでもなく，新着$H_MESGにする]" ) . "\n";
+	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD&c=ce&rtid=&rfid=" .
+		$cgi'TAGS{'rfid'} . '&roid=' . $cgi'TAGS{'roid'} . $AddNum,
+		"[どの$H_MESGへの$H_REPLYでもなく，新着$H_MESGにする]" ) .
+		"</li>\n";
 	}
 	elsif ( $gComType == 4 )
 	{
-	    $gHgStr .= "<li>" . &LinkP( "b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[全記事の先頭に移動する(このページの先頭，ではありません)]" ) . "\n";
+	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD&c=mve&rtid=&rfid=" .
+		$cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum,
+		"[全記事の先頭に移動する(このページの，ではありません)]" ) .
+		"</li>\n";
 	}
 
 	for( $IdNum = $gFrom; $IdNum <= $gTo; $IdNum++ )
@@ -1676,7 +1778,8 @@ sub hgThreadTitleTree
 	    $Id = $DB_ID[$IdNum];
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
 	    # 後方参照は後回し．
-	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $gADDFLAG{$Fid} == 2 ));
+	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) ||
+		( $gADDFLAG{$Fid} == 2 ));
 	    # ノードを表示
 	    if ( $POLICY & 8 )
 	    {
@@ -1705,11 +1808,17 @@ sub hgThreadTitleTree
 	# 新しいのから処理
 	if (( $gComType == 2 ) && ( $DB_FID{$cgi'TAGS{'rfid'}} ne '' ))
 	{
-	    $gHgStr .= "<li>" . &LinkP( "b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[どの$H_MESGへの$H_REPLYでもなく，新着$H_MESGにする]" ) . "\n";
+	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD&c=ce&rtid=&rfid=" .
+		$cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum,
+		"[どの$H_MESGへの$H_REPLYでもなく，新着$H_MESGにする]" ) .
+		"</li>\n";
 	}
 	elsif ( $gComType == 4 )
 	{
-	    $gHgStr .= "<li>" . &LinkP( "b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[全記事の先頭に移動する(このページの先頭，ではありません)]" ) . "\n";
+	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD&c=mve&rtid=&rfid=" .
+		$cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum,
+		"[全記事の先頭に移動する(このページの，ではありません)]" ) .
+		"</li>\n";
 	}
 
 	for( $IdNum = $gTo; $IdNum >= $gFrom; $IdNum-- )
@@ -1717,7 +1826,8 @@ sub hgThreadTitleTree
 	    # 後は同じ
 	    $Id = $DB_ID[$IdNum];
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
-	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $gADDFLAG{$Fid} == 2 ));
+	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) ||
+		( $gADDFLAG{$Fid} == 2 ));
 
 	    if ( $POLICY & 8 )
 	    {
@@ -1749,9 +1859,11 @@ sub ThreadTitleNodeNoThread
 {
     local( $Id, $flag ) = @_;
     $gHgStr .= '<li>';
-    &DumpFormattedTitle( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, $flag );
+    &DumpArtSummary( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id},
+	$DB_NAME{$Id}, $DB_DATE{$Id}, $flag );
     $flag &= 6; # 110
     push( @gIDLIST, $Id );
+    $gHgStr .= "</li>\n";
 }
 
 # ページ内スレッドのみ表示
@@ -1763,7 +1875,8 @@ sub ThreadTitleNodeThread
     return if ( $gADDFLAG{$Id} != 2 );
 
     $gHgStr .= '<li>';
-    &DumpFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, $flag );
+    &DumpArtSummary( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id},
+	$DB_NAME{$Id}, $DB_DATE{$Id}, $flag );
     $flag &= 6; # 110
 
     $gADDFLAG{$Id} = 1;		# 整形済み
@@ -1773,9 +1886,11 @@ sub ThreadTitleNodeThread
     if ( $DB_AIDS{$Id} )
     {
 	$gHgStr .= "<ul>\n";
-	grep( &ThreadTitleNodeThread( $_, $flag ), split( /,/, $DB_AIDS{$Id} ));
+	grep( &ThreadTitleNodeThread( $_, $flag ), split( /,/,
+	    $DB_AIDS{$Id} ));
 	$gHgStr .= "</ul>\n";
     }
+    $gHgStr .= "</li>\n";
 }
 
 # 全スレッドの表示
@@ -1787,7 +1902,8 @@ sub ThreadTitleNodeAllThread
     return if ( $gADDFLAG{$Id} == 1 );
 
     $gHgStr .= '<li>';
-    &DumpFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, $flag );
+    &DumpArtSummary( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id},
+	$DB_NAME{$Id}, $DB_DATE{$Id}, $flag );
     $flag &= 6; # 110
     $gADDFLAG{$Id} = 1;		# 整形済み
     push( @gIDLIST, $Id );
@@ -1800,6 +1916,7 @@ sub ThreadTitleNodeAllThread
 	     split( /,/, $DB_AIDS{$Id} ));
 	$gHgStr .= "</ul>\n";
     }
+    $gHgStr .= "</li>\n";
 }
 
 # 管理者用のスレッド表示
@@ -1812,16 +1929,19 @@ sub ThreadTitleNodeMaint
     local($FromId) = $cgi'TAGS{'rfid'};
 
     $gHgStr .= '<li>';
-    &DumpFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, $flag );
+    &DumpArtSummary( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id},
+	$DB_NAME{$Id}, $DB_DATE{$Id}, $flag );
     $flag &= 6; # 110
     $gHgStr .= " .......... \n";
 
     # リンク先変更コマンド(From)
     # 移動コマンド(From)
-    $gHgStr .= &LinkP( "b=$BOARD&c=ct&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum, $H_RELINKFROM_MARK, '', $H_RELINKFROM_MARK_L ) . "\n";
+    $gHgStr .= &LinkP( "b=$BOARD&c=ct&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum,
+	$H_RELINKFROM_MARK, '', $H_RELINKFROM_MARK_L ) . "\n";
     if ($DB_FID{$Id} eq '')
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=mvt&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum, $H_REORDERFROM_MARK, '', $H_REORDERFROM_MARK_L ) . "\n";
+	$gHgStr .= &LinkP( "b=$BOARD&c=mvt&rfid=$Id&roid=" . $DB_FID{$Id} .
+	    $AddNum, $H_REORDERFROM_MARK, '', $H_REORDERFROM_MARK_L ) . "\n";
     }
 
     # 削除コマンド
@@ -1831,15 +1951,22 @@ sub ThreadTitleNodeMaint
 	$H_SUPERSEDE_ICON_L ) . "\n";
 
     # 移動コマンド(To)
-    if (($ComType == 4) && ($FromId ne $Id) && ($DB_FID{$Id} eq '') && ($FromId ne $Id))
+    if (( $ComType == 4 ) && ( $FromId ne $Id ) && ( $DB_FID{$Id} eq '' ) &&
+	( $FromId ne $Id ))
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=mve&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . $AddNum, $H_REORDERTO_MARK, '', $H_REORDERTO_MARK_L ) . "\n";
+	$gHgStr .= &LinkP( "b=$BOARD&c=mve&rtid=$Id&rfid=$FromId&roid=" .
+	    $cgi'TAGS{'roid'} . $AddNum, $H_REORDERTO_MARK, '',
+	    $H_REORDERTO_MARK_L ) . "\n";
     }
 
     # リンク先変更コマンド(To)
-    if (($ComType == 2) && ($FromId ne $Id) && (! grep(/^$FromId$/, split(/,/, $DB_AIDS{$Id}))) && (! grep(/^$FromId$/, split(/,/, $DB_FID{$Id}))))
+    if (( $ComType == 2 ) && ( $FromId ne $Id ) && ( !grep( /^$FromId$/,
+	split( /,/, $DB_AIDS{$Id} ))) && ( !grep( /^$FromId$/, split( /,/,
+	$DB_FID{$Id} ))))
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=ce&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . $AddNum, $H_RELINKTO_MARK, '', $H_RELINKTO_MARK_L ) . "\n";
+	$gHgStr .= &LinkP( "b=$BOARD&c=ce&rtid=$Id&rfid=$FromId&roid=" .
+	    $cgi'TAGS{'roid'} . $AddNum, $H_RELINKTO_MARK, '',
+	    $H_RELINKTO_MARK_L ) . "\n";
     }
 
     $gADDFLAG{$Id} = 1;		# 整形済み
@@ -1852,6 +1979,8 @@ sub ThreadTitleNodeMaint
 	     split( /,/, $DB_AIDS{$Id} ));
 	$gHgStr .= "</ul>\n";
     }
+
+    $gHgStr .= "</li>\n";
 }
 
 
@@ -1898,7 +2027,7 @@ sub hgSortTitleTree
     if ( $#DB_ID == -1 )
     {
 	# 空だった……
-	$gHgStr .= "<li>$H_NOARTICLE\n";
+	$gHgStr .= "<li>$H_NOARTICLE</li>\n";
     }
     else
     {
@@ -1908,7 +2037,9 @@ sub hgSortTitleTree
 	    {
 		$Id = $DB_ID[$IdNum];
 		$gHgStr .= '<li>';
-		&DumpFormattedTitle( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, 1 );
+		&DumpArtSummary( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id},
+		    $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, 1 );
+		$gHgStr .= "</li>\n";
 	    }
 	}
 	else
@@ -1917,7 +2048,9 @@ sub hgSortTitleTree
 	    {
 		$Id = $DB_ID[$IdNum];
 		$gHgStr .= '<li>';
-		&DumpFormattedTitle( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, 1 );
+		&DumpArtSummary( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id},
+		    $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, 1 );
+		$gHgStr .= "</li>\n";
 	    }
 	}
     }
@@ -1928,7 +2061,7 @@ sub hgSortTitleTree
 ###
 ## スレッド別記事一覧
 #
-sub UIThreadArticle
+sub UIShowThread
 {
     &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
@@ -1941,35 +2074,44 @@ sub UIThreadArticle
     @gFollowIdTree = ();
     &GetFollowIdTree( $id, *gFollowIdTree );
 
-    &htmlGen( 'ThreadArticle.html' );
+    &htmlGen( 'ShowThread.html' );
 }
 
-sub hgThreadArticleTitle
+sub hgShowThreadTitle
 {
-    &Fatal( 18, "$_[0]/ThreadArticleTitle" ) if ( $_[0] ne 'ThreadArticle.html' );
+    &Fatal( 18, "$_[0]/ShowThreadTitle" ) if ( $_[0] ne 'ShowThread.html' );
 
     local( $tmp, $subject );
     ( $tmp, $tmp, $tmp, $subject ) = &GetTreeTopArticlesInfo( *gFollowIdTree );
     $gHgStr .= $subject;
 }
 
-sub hgThreadArticleTitleTree
+sub hgShowThreadTitleTree
 {
-    &Fatal( 18, "$_[0]/ThreadArticleTitleTree" ) if ( $_[0] ne 'ThreadArticle.html' );
+    if ( $_[0] ne 'ShowThread.html' )
+    {
+	&Fatal( 18, "$_[0]/ShowThreadTitleTree" );
+    }
 
-    &DumpThreadArticle( 7, @gFollowIdTree );
+    &DumpArtThread( 7, @gFollowIdTree );
 }
 
-sub hgThreadArticleMsgBody
+sub hgShowThreadMsgBody
 {
-    &Fatal( 18, "$_[0]/ThreadArticleMsgBody" ) if ( $_[0] ne 'ThreadArticle.html' );
+    if ( $_[0] ne 'ShowThread.html' )
+    {
+	&Fatal( 18, "$_[0]/ShowThreadMsgBody" );
+    }
 
-    &DumpThreadArticle( 2, @gFollowIdTree );
+    &DumpArtThread( 2, @gFollowIdTree );
 }
 
-sub hgThreadArticleBackToTitleButton
+sub hgShowThreadBackToTitleButton
 {
-    &Fatal( 18, "$_[0]/ThreadArticleBackToTitleButton" ) if ( $_[0] ne 'ThreadArticle.html' );
+    if ( $_[0] ne 'ShowThread.html' )
+    {
+	&Fatal( 18, "$_[0]/ShowThreadBackToTitleButton" );
+    }
 
     &DumpButtonToTitleList( $BOARD, $cgi'TAGS{'id'} );
 }
@@ -1999,7 +2141,10 @@ sub hgSortArticleBody
 
     local( $vRev ) = $gRev? 1-$SYS_BOTTOMARTICLE : $SYS_BOTTOMARTICLE;
     local( $To ) = $#DB_ID - $gOld;
-    local( $From ) = $To - $gNum + 1; $From = 0 if (( $From < 0 ) || ( $gNum == 0 ));
+    local( $From ) = $To - $gNum + 1; $From = 0 if (( $From < 0 ) ||
+	( $gNum == 0 ));
+
+    $gHgStr .= $HTML_HR;
 
     if (! $#DB_ID == -1)
     {
@@ -2011,20 +2156,20 @@ sub hgSortArticleBody
 	local( $IdNum, $Id );
 	if ( $vRev )
 	{
-	    for ($IdNum = $From; $IdNum <= $To; $IdNum++)
+	    for ( $IdNum = $From; $IdNum <= $To; $IdNum++ )
 	    {
 		$Id = $DB_ID[$IdNum];
-		&DumpArticle($Id, $SYS_COMMAND_EACH, 1);
-		$gHgStr .= "$H_HR\n";
+		&DumpArtBody( $Id, $SYS_COMMAND_EACH, 1 );
+		$gHgStr .= $HTML_HR;
 	    }
 	}
 	else
 	{
-	    for ($IdNum = $To; $IdNum >= $From; $IdNum--)
+	    for ( $IdNum = $To; $IdNum >= $From; $IdNum-- )
 	    {
 		$Id = $DB_ID[$IdNum];
-		&DumpArticle($Id, $SYS_COMMAND_EACH, 1);
-		$gHgStr .= "$H_HR\n";
+		&DumpArtBody( $Id, $SYS_COMMAND_EACH, 1 );
+		$gHgStr .= $HTML_HR;
 	    }
 	}
     }
@@ -2060,7 +2205,7 @@ sub hgShowArticleBody
 {
     &Fatal( 18, "$_[0]/ShowArticleBody" ) if ( $_[0] ne 'ShowArticle.html' );
 
-    &DumpArticle( $cgi'TAGS{'id'}, 1, 1 );
+    &DumpArtBody( $cgi'TAGS{'id'}, 1, 1 );
 }
 
 sub hgShowArticleReply
@@ -2081,7 +2226,10 @@ sub UISearchArticle
 
 sub hgSearchArticleResult
 {
-    &Fatal( 18, "$_[0]/SearchArticleResult" ) if ( $_[0] ne 'SearchArticle.html' );
+    if ( $_[0] ne 'SearchArticle.html' )
+    {
+	&Fatal( 18, "$_[0]/SearchArticleResult" );
+    }
 
     &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
@@ -2098,7 +2246,9 @@ sub hgSearchArticleResult
     local( $Icon ) = $cgi'TAGS{'icon'};
 
     # キーワードが空でなければ，そのキーワードを含む記事のリストを表示
-    if ( $SearchIcon || ( $SearchPostTime && ( $SearchPostTimeFrom || $SearchPostTimeTo )) || (( $Key ne '' ) && ( $SearchSubject || $SearchPerson || $SearchArticle )))
+    if ( $SearchIcon || ( $SearchPostTime && ( $SearchPostTimeFrom ||
+	$SearchPostTimeTo )) || (( $Key ne '' ) && ( $SearchSubject ||
+	$SearchPerson || $SearchArticle )))
     {
 	&DumpSearchResult( $Key, $SearchSubject, $SearchPerson,
 	    $SearchArticle, $SearchPostTime, $SearchPostTimeFrom,
@@ -2112,7 +2262,10 @@ sub hgSearchArticleResult
 #
 sub UIDeletePreview
 {
-    &Fatal( 99, $cgi'TAGS{'c'} ) if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ));
+    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    {
+	&Fatal( 99, $cgi'TAGS{'c'} );
+    }
 
     &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
@@ -2130,7 +2283,10 @@ sub UIDeletePreview
 
 sub hgDeletePreviewForm
 {
-    &Fatal( 18, "$_[0]/DeletePreviewForm" ) if ( $_[0] ne 'DeletePreview.html' );
+    if ( $_[0] ne 'DeletePreview.html' )
+    {
+	&Fatal( 18, "$_[0]/DeletePreviewForm" );
+    }
 
     local( %tags );
     %tags = ( 'c', 'de', 'b', $BOARD, 'id', $gId );
@@ -2145,13 +2301,21 @@ sub hgDeletePreviewForm
 
 sub hgDeletePreviewBody
 {
-    &Fatal( 18, "$_[0]/DeletePreviewBody" ) if ( $_[0] ne 'DeletePreview.html' );
-    &DumpArticle( $gId, 0, 1 );
+    if ( $_[0] ne 'DeletePreview.html' )
+    {
+	&Fatal( 18, "$_[0]/DeletePreviewBody" );
+    }
+
+    &DumpArtBody( $gId, 0, 1 );
 }
 
 sub hgDeletePreviewReply
 {
-    &Fatal( 18, "$_[0]/DeletePreviewReply" ) if ( $_[0] ne 'DeletePreview.html' );
+    if ( $_[0] ne 'DeletePreview.html' )
+    {
+	&Fatal( 18, "$_[0]/DeletePreviewReply" );
+    }
+
     &DumpReplyArticles( split( /,/, $gAids ));
 }
 
@@ -2161,7 +2325,10 @@ sub hgDeletePreviewReply
 #
 sub UIDeleteExec
 {
-    &Fatal( 99, $cgi'TAGS{'c'} ) if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ));
+    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    {
+	&Fatal( 99, $cgi'TAGS{'c'} );
+    }
 
     local( $threadFlag ) = @_;
 
@@ -2185,7 +2352,10 @@ sub UIDeleteExec
 
 sub hgDeleteExecBackToTitleButton
 {
-    &Fatal( 18, "$_[0]/DeleteExecBackToTitleButton" ) if ( $_[0] ne 'DeleteExec.html' );
+    if ( $_[0] ne 'DeleteExec.html' )
+    {
+	&Fatal( 18, "$_[0]/DeleteExecBackToTitleButton" );
+    }
 
     &DumpButtonToTitleList( $BOARD, $gId );
 }
@@ -2241,7 +2411,7 @@ EOS
 sub hgsAddress
 {
     $gHgStr .= "<address>\nMaintenance: " .
-	&TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>\n" .
+	&TagA( "mailto:$MAINT", $MAINT_NAME ) . $HTML_BR .
 	&TagA( "http://www.jin.gr.jp/~nahi/kb/", $PROGNAME ) .
 	": Copyright (C) 1995-99 " .
 	&TagA( "http://www.jin.gr.jp/~nahi/", "NAKAMURA, Hiroshi" ) .
@@ -2251,8 +2421,12 @@ sub hgsAddress
 sub hgcStatus
 {
     $gHgStr .= qq(<p class="kbStatus">[);
-    $gHgStr .= "$H_USER: $UNAME -- \n" if ( $UNAME && ( $UNAME ne $cgiauth'F_COOKIE_RESET ));
-    $gHgStr .= "$H_BOARD: $BOARDNAME -- \n" if ( $BOARD && $BOARDNAME );
+    if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne
+	$cgiauth'F_COOKIE_RESET ))
+    {
+	$gHgStr .= "$H_USER: $UNAME -- \n";
+    }
+    $gHgStr .= "$H_BOARD: $BOARDNAME -- \n" if ( $BOARDNAME ne '' );
     $gHgStr .= "最新${H_MESG}ID: " . $DB_ID[$#DB_ID] . " // \n" if @DB_ID;
     $gHgStr .= "時刻: " . &GetDateTimeFormatFromUtc( $^T );
     $gHgStr .= "]</p>\n";
@@ -2261,25 +2435,29 @@ sub hgcStatus
 sub hgcTopMenu
 {
     $gHgStr .= qq(<div class="kbTopMenu">\n);
-    local( $select );
-    $select .= &TagLabel( "表示画面", 'c', 'W' ) . qq(: \n<select id="c" name="c">\n);
-    $select .= sprintf( qq(<option%s value="lo">$H_LOGIN\n), ( $cgi'TAGS{'c'} eq 'lo' )? ' selected' : '' ) if $SYS_AUTH;
-    $select .= sprintf( qq(<option%s value="bl">$H_BOARD一覧\n), ( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
+    local( $select, $contents );
+    $select = &TagLabel( "表示画面", 'c', 'W' ) . ": \n";
+
+    $contents = sprintf( qq(<option%s value="lo">$H_LOGIN\n),
+	( $cgi'TAGS{'c'} eq 'lo' )? ' selected' : '' ) if $SYS_AUTH;
+    $contents .= sprintf( qq(<option%s value="bl">$H_BOARD一覧\n),
+	( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
 
     if ( $BOARD )
     {
-	$select .= sprintf( qq[<option%s value="v">$H_SUBJECT一覧(スレッド)\n], ( $cgi'TAGS{'c'} eq 'v' )? ' selected' : '' );
-	$select .= sprintf( qq[<option%s value="r">$H_SUBJECT一覧(日付順)\n], ( $cgi'TAGS{'c'} eq 'r' )? ' selected' : '' );
-	$select .= sprintf( qq[<option%s value="vt">$H_MESG一覧(スレッド)\n], ( $cgi'TAGS{'c'} eq 'vt' )? ' selected' : '' );
-	$select .= sprintf( qq[<option%s value="l">$H_MESG一覧(日付順)\n], ( $cgi'TAGS{'c'} eq 'l' )? ' selected' : '' );
-	$select .= sprintf( qq(<option%s value="s">$H_MESGの検索\n), ( $cgi'TAGS{'c'} eq 's' )? ' selected' : '' ) if $SYS_F_S;
-	$select .= sprintf( qq(<option%s value="n">$H_POSTNEWARTICLE\n), ( $cgi'TAGS{'c'} eq 'n' )? ' selected' : '' ) if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )));
-	$select .= sprintf( qq(<option%s value="i">使える$H_ICON一覧\n), ( $cgi'TAGS{'c'} eq 'i' )? ' selected' : '' );
+	$contents .= sprintf( qq[<option%s value="v">$H_SUBJECT一覧(スレッド)\n], ( $cgi'TAGS{'c'} eq 'v' )? ' selected' : '' );
+	$contents .= sprintf( qq[<option%s value="r">$H_SUBJECT一覧(日付順)\n], ( $cgi'TAGS{'c'} eq 'r' )? ' selected' : '' );
+	$contents .= sprintf( qq[<option%s value="vt">$H_MESG一覧(スレッド)\n], ( $cgi'TAGS{'c'} eq 'vt' )? ' selected' : '' );
+	$contents .= sprintf( qq[<option%s value="l">$H_MESG一覧(日付順)\n], ( $cgi'TAGS{'c'} eq 'l' )? ' selected' : '' );
+	$contents .= sprintf( qq(<option%s value="s">$H_MESGの検索\n), ( $cgi'TAGS{'c'} eq 's' )? ' selected' : '' ) if $SYS_F_S;
+	$contents .= sprintf( qq(<option%s value="n">$H_POSTNEWARTICLE\n), ( $cgi'TAGS{'c'} eq 'n' )? ' selected' : '' ) if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )));
+	$contents .= sprintf( qq(<option%s value="i">使える$H_ICON一覧\n), ( $cgi'TAGS{'c'} eq 'i' )? ' selected' : '' );
     }
 
-    $select .= "</select>\n // " . &TagLabel( "表示件数", 'num', 'Y' ) .
-	qq(: <input id="num" name="num" type="text" size="3" value=") .
-	( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . '"> ';
+    $select .= &TagSelect( 'c', $contents ) . "\n // " .
+	&TagLabel( "表示件数", 'num', 'Y' ) . ': ' .
+	&TagInputText( 'text', 'num', ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ),
+	3 );
     local( %tags ) = ( 'b', $BOARD );
     &DumpForm( *tags, '表示(V)', '', *select );
     $gHgStr .= "</div>\n";
@@ -2288,8 +2466,8 @@ sub hgcTopMenu
 sub hgcHelp
 {
     local( $var ) = $_[1];
-    $gHgStr .= &LinkP( "b=$BOARD&c=h#$var", &TagComImg( $ICON_HELP, 'ヘルプ' ),
-	'H' );
+    $gHgStr .= &LinkP( "b=$BOARD&c=h", &TagComImg( $ICON_HELP, 'ヘルプ' ), 'H',
+	'', '', $var );
 }
 
 sub hgcSiteName
@@ -2301,40 +2479,30 @@ sub hgcFuncLink
 {
     return unless $SYS_AUTH;
 
-    $gHgStr .=<<EOS;
-<dl>
-<dt>「新規に$H_USER登録する」
-<dd>→
-EOS
-    $gHgStr .= &LinkP( 'c=ue', "$H_USER登録" . &TagAccessKey( 'E' ), 'E' );
+    $gHgStr .= "<dl>\n";
+
+    $gHgStr .= "<dt>「新規に$H_USER登録する」</dt>\n";
+    $gHgStr .= '<dd>→' . &LinkP( 'c=ue', "$H_USER登録" . &TagAccessKey( 'E' ), 'E' ) .	"</dd>\n";
 
     if ( $UNAME )
     {
-	$gHgStr .=<<EOS;
-<dt>「$UNAMEとは別の$H_USERになる」
-<dd>→
-EOS
-    	$gHgStr .= &LinkP( 'c=lo', $H_LOGIN . &TagAccessKey( 'L' ), 'L' );
+	$gHgStr .= "<dt>「$UNAMEとは別の$H_USERになる」</dt>\n";
+	$gHgStr .= '<dd>→' . &LinkP( 'c=lo', $H_LOGIN . &TagAccessKey( 'L' ),
+	    'L' ) . "</dd>\n";
     }
 
     if ( $POLICY & 4 )
     {
-	$gHgStr .=<<EOS;
-<dt>「$UNAMEについて登録したデータを変更したい」
-<dd>→
-EOS
-	$gHgStr .= &LinkP( 'c=uc', "$H_USER情報の設定" . &TagAccessKey( 'C' ),
-	    'C' );
+	$gHgStr .= "<dt>「$UNAMEについて登録したデータを変更したい」</dt>\n";
+	$gHgStr .= '<dd>→' . &LinkP( 'c=uc', "$H_USER情報の変更" .
+	    &TagAccessKey( 'C' ), 'C' ) . "</dd>\n";
     }
 
     if ( $POLICY & 8 )
     {
-	$gHgStr .=<<EOS;
-<dt>「新規に$H_BOARDを作りたい」
-<dd>→
-EOS
-	$gHgStr .= &LinkP( 'c=be', "$H_BOARDの新規作成" . &TagAccessKey( 'A' ),
-	    'A' );
+	$gHgStr .= "<dt>「新規に$H_BOARDを作りたい」</dt>\n";
+	$gHgStr .= '<dd>→' . &LinkP( 'c=be', "$H_BOARDの新規作成" .
+	    &TagAccessKey( 'A' ), 'A' ) . "</dd>\n";
     }
 
     $gHgStr .= "</dl>\n";
@@ -2369,7 +2537,7 @@ sub hgcBoardLinkAll
 	}
 	&GetArticleId( $_, *nofArticle ) || 0;
 
-	$gHgStr .= "<li>" .
+	$gHgStr .= '<li>' .
 	    &LinkP( "b=$_&c=v&num=$DEF_TITLE_NUM", $boardName{$_} ) .
 	    "$newIcon\n[最新: $modTime, 記事数: $nofArticle]\n";
 	if ( $POLICY & 8 )
@@ -2377,15 +2545,41 @@ sub hgcBoardLinkAll
 	    $gHgStr .= &LinkP( "b=$_&c=bc", "←設定変更" ) . "\n";
 	}
 
-	$gHgStr .= "<br><br>\n";
+	$gHgStr .= $HTML_BR . $HTML_BR . "</li>\n";
     }
     $gHgStr .= "</ul>\n";
 }
 
 sub hgcBoardLink
 {
-    local( $board ) = $_[1];
+    local( $var ) = $_[1];
+    local( $com, $board ) = split( ':', $var );
+    local( $num );
     return unless $board;
+    if ( $com eq 'title-thread' )
+    {
+	$com = 'v';
+	$num = $DEF_TITLE_NUM;
+    }
+    elsif ( $com eq 'title-bydate' )
+    {
+	$com = 'r';
+	$num = $DEF_TITLE_NUM;
+    }
+    elsif ( $com eq 'message-thread' )
+    {
+	$com = 'vt';
+	$num = $DEF_ARTICLE_NUM;
+    }
+    elsif ( $com eq 'message-bydate' )
+    {
+	$com = 'l';
+	$num = $DEF_ARTICLE_NUM;
+    }
+    else
+    {
+	return;
+    }
 
     if ( !$gBoardInfoDbCached )
     {
@@ -2407,7 +2601,7 @@ sub hgcBoardLink
     }
     &GetArticleId( $board, *nofArticle ) || 0;
 
-    $gHgStr .= &LinkP( "b=$board&c=v&num=$DEF_TITLE_NUM", $gBoardName{$board} ) . "$newIcon\n[最新: $modTime, 記事数: $nofArticle]\n";
+    $gHgStr .= &LinkP( "b=$board&c=$com&num=$num", $gBoardName{$board} ) . "$newIcon\n[最新: $modTime, 記事数: $nofArticle]\n";
     if ( $POLICY & 8 )
     {
 	$gHgStr .= &LinkP( "b=$board&c=bc", "←設定変更" ) . "\n";
@@ -2424,6 +2618,12 @@ sub hgbBoardHeader
     &DumpBoardHeader() if $BOARD;
 }
 
+sub hgbPostEntryForm
+{
+    &DumpArtEntry( $gDefIcon, $gEntryType, $gId, $gDefSubject, $gDefTextType,
+	$gDefArticle, $gDefName, $gDefEmail, $gDefUrl, $gDefFmail );
+}
+
 sub hgbSearchArticleForm
 {
     local( $Key ) = $cgi'TAGS{'key'};
@@ -2437,11 +2637,11 @@ sub hgbSearchArticleForm
     local( $Icon ) = $cgi'TAGS{'icon'};
 
     local( $msg );
-    $msg .= sprintf( qq(<input id="searchsubject" name="searchsubject" type="checkbox" value="on"%s>: ), $SearchSubject? ' checked' : '' ) . &TagLabel( $H_SUBJECT, 'searchsubject', 'T' ) . "<br>\n";
+    $msg .= &TagInputCheck( 'searchsubject', $SearchSubject ) . ': ' . &TagLabel( $H_SUBJECT, 'searchsubject', 'T' ) . $HTML_BR;
 
-    $msg .= sprintf( qq(<input id="searchperson" name="searchperson" type="checkbox" value="on"%s>: ), $SearchPerson? ' checked' : '' ) . &TagLabel( "名前", 'searchperson', 'N' ) . "<br>\n";
+    $msg .= &TagInputCheck( 'searchperson', $SearchPerson ) . ': ' . &TagLabel( "名前", 'searchperson', 'N' ) . $HTML_BR;
 
-    $msg .= sprintf( qq(<input id="searcharticle" name="searcharticle" type="checkbox" value="on"%s>: ), $SearchArticle? ' checked' : '' ) . &TagLabel( $H_MESG, 'searcharticle', 'A' ) . "<br>\n";
+    $msg .= &TagInputCheck( 'searcharticle', $SearchArticle ) . ': ' . &TagLabel( $H_MESG, 'searcharticle', 'A' ) . $HTML_BR;
 
     local( $sec, $min, $hour, $mday, $mon, $year, $nowStr );
     if ( !$SearchPostTime )
@@ -2449,27 +2649,27 @@ sub hgbSearchArticleForm
 	( $sec, $min, $hour, $mday, $mon, $year, $nowStr ) = localtime( $^T );
 	$nowStr = sprintf( "%04d/%02d/%02d", $year+1900, $mon+1, $mday );
     }
-    $msg .= sprintf( qq(<input id="searchposttime" name="searchposttime" type="checkbox" value="on"%s>: ), $SearchPostTime? ' checked' : '' ) . &TagLabel( $H_DATE, 'searchposttime', 'D' ) . " // \n";
-    $msg .= sprintf( qq(<input id="searchposttimefrom" name="searchposttimefrom" type="text" size="11" value="%s"> ), $SearchPostTimeFrom || '' ) . &TagLabel( '〜', 'searchposttimefrom', 'S' ) . " \n";
-    $msg .= sprintf( qq(<input id="searchposttimeto" name="searchposttimeto" type="text" size="11" value="%s">), $SearchPostTimeTo || $nowStr ) . &TagLabel( 'の間', 'searchposttimeto', 'E' ) . "<br>\n";
-    $msg .= sprintf( qq(<input id="searchicon" name="searchicon" type="checkbox" value="on"%s>: ), $SearchIcon? ' checked' : '' ) . &TagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
+    $msg .= &TagInputCheck( 'searchposttime', $SearchPostTime ) . ': ' . &TagLabel( $H_DATE, 'searchposttime', 'D' ) . " // \n";
+    $msg .= &TagInputText( 'text', 'searchposttimefrom', ( $SearchPostTimeFrom || '' ), 11 ) . ' ' . &TagLabel( '〜', 'searchposttimefrom', 'S' ) . " \n";
+    $msg .= &TagInputText( 'text', 'searchposttimeto', ( $Searchposttimeto || '' ), 11 ) . &TagLabel( 'の間', 'searchposttimeto', 'E' ) . $HTML_BR;
+    $msg .= &TagInputCheck( 'searchicon', $SearchIcon ) . ': ' . &TagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
 
     # アイコンの選択
     &CacheIconDb( $BOARD );
-    $msg .= sprintf( qq(<select id="icon" name="icon">\n<option%s>$H_NOICON\n), ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' selected' );
 
-    local( $IconTitle );
+    local( $contents, $IconTitle );
+    $contents = sprintf( qq(<option%s>$H_NOICON\n), ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' selected' );
     foreach $IconTitle ( sort keys( %ICON_FILE ))
     {
-	$msg .= sprintf( "<option%s>$IconTitle\n", ( $Icon eq $IconTitle )? ' selected' : '' );
+	$contents .= sprintf( "<option%s>$IconTitle\n", ( $Icon eq $IconTitle )? ' selected' : '' );
     }
-    $msg .= "</select>\n";
+    $msg .= &TagSelect( 'icon', $contents ) . "\n";
 
     # アイコン一覧
     $msg .= '(' . &LinkP( "b=$BOARD&c=i", "使える$H_ICON一覧" .
-	&TagAccessKey( 'H' ), 'H' ) . ")\n<br><br>\n";
+	&TagAccessKey( 'H' ), 'H' ) . ')\n' . $HTML_BR . $HTML_BR;
 
-    $msg .= &TagLabel( 'キーワード', 'key', 'K' ) . qq(: <input id="key" name="key" type="text" size="$KEYWORD_LENGTH" value="$Key"><br>\n);
+    $msg .= &TagLabel( 'キーワード', 'key', 'K' ) . ': ' . &TagInputText( 'text', 'key', $Key, $KEYWORD_LENGTH ) . $HTML_BR;
     %tags = ( 'c', 's', 'b', $BOARD );
     &DumpForm( *tags, '検索', 'リセット', *msg );
 }
@@ -2481,153 +2681,10 @@ sub hgbAllIcon
     $gHgStr .= "<ul>\n";
     foreach ( @ICON_TITLE )
     {
-	$gHgStr .= '<li>' . &TagMsgImg( $_ ) . " : " . ( $ICON_HELP{$_} || $_ ) . "\n";
+	$gHgStr .= '<li>' . &TagMsgImg( $_ ) . " : [$_] " . ( $ICON_HELP{$_} ||
+	    $_ ) . "</li>\n";
     }
     $gHgStr .= "</ul>\n";
-}
-
-sub hgbEntryFormOpen
-{
-    &DumpFormOpen();
-}
-
-sub hgbEntryTextType
-{
-    local( $ttFlag ) = 0;
-    local( $ttBit ) = 0;
-    
-    foreach ( @H_TTLABEL )
-    {
-	if (( $SYS_TEXTTYPE & ( 2 ** $ttBit )) &&
-	    ( $SYS_TEXTTYPE ^ ( 2 ** $ttBit )))
-	{
-	    $ttFlag = 1;	# 後で使う．きたない．．．
-	}
-	$ttBit++;
-    }
-
-    # 書き込み形式
-    if ( $ttFlag )
-    {
-	$ttFlag = 0 if $gDefTextType;
-	$gHgStr .= &TagLabel( $H_TEXTTYPE, 'texttype', 'Z' ) . qq(:\n<select id="texttype" name="texttype">\n);
-	$ttBit = 0;
-	foreach ( @H_TTLABEL )
-	{
-	    if ( $SYS_TEXTTYPE & ( 2 ** $ttBit ))
-	    {
-		if ( $ttFlag )
-		{
-		    $ttFlag = 0;	# now, using for a flag for the first.
-		    $gHgStr .= "<option selected>" . $H_TTLABEL[$ttBit] . "\n";
-		}
-		else
-		{
-		    $gHgStr .= sprintf( "<option%s>" . $H_TTLABEL[$ttBit] . "\n", ( $H_TTLABEL[$ttBit] eq $gDefTextType )? ' selected' : '' );
-		}
-	    }
-	    $ttBit++;
-	}
-	$gHgStr .= "</select>\n\n";
-    }
-    else
-    {
-	$gHgStr .= sprintf( qq(<input name="texttype" type="hidden" value="%s">\n), $H_TTLABEL[(( log $SYS_TEXTTYPE ) / ( log 2 ))] );
-    }
-}
-
-sub hgbEntryIcon
-{
-    return unless $BOARD;
-
-    # アイコンの選択
-    if ( $SYS_ICON )
-    {
-	&CacheIconDb( $BOARD );
-	$gHgStr .= &TagLabel( $H_ICON, 'icon', 'I' ) . sprintf( qq(:\n<select id="icon" name="icon">\n<option%s>$H_NOICON\n), $gDefIcon? '' : ' selected' );
-	foreach ( @ICON_TITLE )
-	{
-	    $gHgStr .= sprintf( "<option%s>$_\n", ( $_ eq $gDefIcon )? ' selected' : '' );
-	}
-	$gHgStr .= "</select>\n";
-
-	$gHgStr .= "(" . &LinkP( "b=$BOARD&c=i", "使える$H_ICON一覧" .
-	    &TagAccessKey( 'H' ), 'H' ) . ")\n";
-    }
-}
-
-sub hgbEntryTitle
-{
-    $gHgStr .= &TagLabel( $H_SUBJECT, 'subject', 'T' ) . qq(: <input id="subject" name="subject" type="text" value="$gDefSubject" size="$SUBJECT_LENGTH">\n);
-}
-
-sub hgbEntryBody
-{
-    $gHgStr .= &TagLabel( $H_MESG, 'article', 'A' ) . qq(:<br>\n<textarea id="article" name="article" rows="$TEXT_ROWS" cols="$TEXT_COLS">$gDefArticle</textarea>\n);
-}
-
-sub hgbEntryName
-{
-    if ( $POLICY & 4 )
-    {
-	# 登録済みの場合，名前，メイル，URLの入力は，無し．
-    }
-    else
-    {
-	$gHgStr .= &TagLabel( $H_FROM, 'name', 'N' ) . qq(: <input id="name" name="name" type="text" value="$gDefName" size="$NAME_LENGTH"><br>\n);
-    }
-}
-
-sub hgbEntryEmail
-{
-    if ( $POLICY & 4 )
-    {
-	# 登録済みの場合，名前，メイル，URLの入力は，無し．
-    }
-    else
-    {
-	$gHgStr .= &TagLabel( $H_MAIL, 'mail', 'M' ) . qq(: <input id="mail" name="mail" type="text" value="$gDefEmail" size="$MAIL_LENGTH"><br>\n);
-    }
-}
-
-sub hgbEntryUrl
-{
-    if ( $POLICY & 4 )
-    {
-	# 登録済みの場合，名前，メイル，URLの入力は，無し．
-    }
-    else
-    {
-	$gHgStr .= &TagLabel( $H_URL, 'url', 'U' ) . qq(: <input id="url" name="url" type="text" value="$gDefUrl" size="$URL_LENGTH"><br>\n);
-    }
-}
-
-sub hgbEntryEmailNotation
-{
-    if ( $SYS_MAIL & 2 )
-    {
-	$gHgStr .= &TagLabel( 'リプライがあった時にメイルで連絡', 'fmail', 'F' ) . sprintf( qq(: <input id="fmail" name="fmail" type="checkbox" value="on"%s>\n), $gDefFmail? ' checked' : '' );
-    }
-}
-
-sub hgbEntryFormClose
-{
-    &DumpFormClose();
-}
-
-sub hgbEntryButton
-{
-    return unless $BOARD;
-
-    $gHgStr .= "<p>\n";
-    $gHgStr .= qq(<input type="radio" id="com_p" name="com" value="p" checked>:\n) . &TagLabel( '試しに表示してみる(まだ投稿しません)', 'com_p', 'P' ) . "<br>\n";
-    $gHgStr .= qq(<input type="radio" id="com_x" name="com" value="x">:\n) . &TagLabel( "$H_MESGを投稿する", 'com_x', 'X' ) . "<br>\n";
-    local( %tags );
-    local( $op ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
-    %tags = ( 'corig', $cgi'TAGS{'c'}, 'b', $BOARD, 'c', 'p', 'id', $gId,
-	's', 0, 'op', $op );
-    &DumpFormButton( *tags, '実行', '' );
-    $gHgStr .= $str . "</p>\n";
 }
 
 
@@ -2649,10 +2706,170 @@ sub DumpBoardHeader
 
 
 ###
-## DumpArticle - 記事の表示
+## DumpArtEntry - メッセージ入力フォームの表示
 #
 # - SYNOPSIS
-#	DumpArticle( $Id, $CommandFlag, $OriginalFlag, @articleInfo );
+#	DumpArtEntry( $icon, $type, $id, $title, $texttype, $article, $name, $eMail, $url, $fMail );
+#
+# - ARGS
+#	$icon		アイコン
+#	$type		メッセージタイプ( 'supersede', and so )
+#	$id		リプライ/修正元メッセージID
+#	$title		デフォルトタイトル（プレビューからの戻りなどで使う）
+#	$texttype	デフォルト書き込み形式
+#	$article	デフォルトメッセージ本文
+#	$name		デフォルトユーザ名
+#	$eMail		デフォルトメイルアドレス
+#	$url		デフォルトURL
+#	$fMail		デフォルトメイル配信チェック
+#
+sub DumpArtEntry
+{
+    local( $icon ) = @_;
+
+    &CacheIconDb( $BOARD );
+    if ( $ICON_TYPE{ $icon } eq 'cfv' )
+    {
+	# TBD
+    }
+    elsif ( $ICON_TYPE{ $icon } eq 'vote' )
+    {
+	# TBD
+    }
+    else
+    {
+	&DumpArtEntryNormal( @_ );
+    }
+}
+
+
+# 通常メッセージ
+sub DumpArtEntryNormal
+{
+    local( $icon, $type, $id, $title, $texttype, $article, $name, $eMail, $url, $fMail ) = @_;
+
+    local( $msg );
+
+    # アイコンの選択
+    if ( $SYS_ICON )
+    {
+	&CacheIconDb( $BOARD );
+	$msg .= &TagLabel( $H_ICON, 'icon', 'I' ) . " :\n";
+	local( $contents );
+	$contents = sprintf( "<option%s>$H_NOICON\n", (( $icon eq '' )?
+	    ' selected' : '' ));
+	foreach ( @ICON_TITLE )
+	{
+	    $contents .= sprintf( "<option%s>$_\n", ( $_ eq $icon )?
+		' selected' : '' );
+	}
+	$msg .= &TagSelect( 'icon', $contents ) . "\n";
+
+	$msg .= '(' . &LinkP( "b=$BOARD&c=i", "使える$H_ICON一覧" .
+	    &TagAccessKey( 'H' ), 'H' ) . ')' . $HTML_BR;
+    }
+
+    $msg .= &TagLabel( $H_SUBJECT, 'subject', 'T' ) . ': ' . &TagInputText(
+	'text', 'subject', $title, $SUBJECT_LENGTH ) . $HTML_BR;
+    
+    local( $ttFlag ) = 0;
+    local( $ttBit ) = 0;
+    
+    foreach ( @H_TTLABEL )
+    {
+	if (( $SYS_TEXTTYPE & ( 2 ** $ttBit )) &&
+	    ( $SYS_TEXTTYPE ^ ( 2 ** $ttBit )))
+	{
+	    $ttFlag = 1;	# 後で使う．きたない．．．
+	}
+	$ttBit++;
+    }
+
+    # 書き込み形式
+    if ( $ttFlag )
+    {
+	$ttFlag = 0 if $texttype;
+	$msg .= &TagLabel( $H_TEXTTYPE, 'texttype', 'Z' ) . ":\n";
+	local( $contents );
+	$ttBit = 0;
+	foreach ( @H_TTLABEL )
+	{
+	    if ( $SYS_TEXTTYPE & ( 2 ** $ttBit ))
+	    {
+		if ( $ttFlag )
+		{
+		    $ttFlag = 0;	# now, using for a flag for the first.
+		    $contents .= "<option selected>" . $H_TTLABEL[$ttBit] .
+			"\n";
+		}
+		else
+		{
+		    $contents .= sprintf( "<option%s>" . $H_TTLABEL[$ttBit] .
+			"\n", ( $H_TTLABEL[$ttBit] eq $texttype )?
+			' selected' : '' );
+		}
+	    }
+	    $ttBit++;
+	}
+	$msg .= &TagSelect( 'texttype', $contents ) . $HTML_BR;
+    }
+    else
+    {
+	$msg .= sprintf( qq(<input name="texttype" type="hidden" value="%s">),
+	    $H_TTLABEL[(( log $SYS_TEXTTYPE ) / ( log 2 ))] ) . $HTML_BR;
+    }
+
+    $msg .= &TagLabel( $H_MESG, 'article', 'A' ) . ':' . $HTML_BR .
+	&TagTextarea( 'article', $article, $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
+
+    if ( $POLICY & 4 )
+    {
+	# 登録済みの場合，名前，メイル，URLの入力は，無し．
+    }
+    else
+    {
+	$msg .= &TagLabel( $H_FROM, 'name', 'N' ) . ': ' . &TagInputText(
+	    'text', 'name', $name, $NAME_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_MAIL, 'mail', 'M' ) . ': ' . &TagInputText(
+	    'text', 'mail', $eMail, $MAIL_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_URL, 'url', 'U' ) . ': ' . &TagInputText( 'text',
+	    'url', ( $url || 'http://' ), $URL_LENGTH ) . $HTML_BR;
+    }
+
+    if ( $SYS_MAIL & 2 )
+    {
+	$msg .= &TagLabel( 'リプライがあった時にメイルで連絡', 'fmail', 'F' ) .
+	    ': ' . &TagInputCheck( 'fmail', $fMail ) . "\n";
+    }
+    $msg .= "</p>\n<p>\n";
+
+    $msg .= &TagInputRadio( 'com_p', 'com', 'p', 1 ) . ":\n" . &TagLabel(
+	'試しに表示してみる(まだ投稿しません)', 'com_p', 'P' ) . $HTML_BR;
+    local( $doLabel );
+    if ( $type eq 'supersede' )
+    {
+	$doLabel = '訂正する';
+    }
+    else
+    {
+	$doLabel = "$H_MESGを投稿する";
+    }
+    $msg .= &TagInputRadio( 'com_x', 'com', 'x', 0 ) . ":\n" . &TagLabel(
+	$doLabel, 'com_x', 'X' ) . $HTML_BR;
+
+    local( $op ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
+    local( %tags ) = ( 'corig', $cgi'TAGS{'c'}, 'b', $BOARD, 'c', 'p',
+	'id', $id, 's', ( $type eq 'supersede' ), 'op', $op );
+
+    &DumpForm( *tags, '実行', '', *msg );
+}
+
+
+###
+## DumpArtBody - メッセージ本体の表示
+#
+# - SYNOPSIS
+#	DumpArtBody( $Id, $CommandFlag, $OriginalFlag, @articleInfo );
 #
 # - ARGS
 #	$Id			メッセージID
@@ -2665,177 +2882,87 @@ sub DumpBoardHeader
 #	メッセージを表示する．$Idが''でなければ，メッセージDBから取得した
 #	情報を元に表示する．$Idが''の場合，かわりに@articleInfoを用いる．
 #
-sub DumpArticle
+sub DumpArtBody
 {
-    local( $Id, $CommandFlag, $OriginalFlag, @articleInfo ) = @_;
+    local( $id, $commandFlag, $origFlag, @articleInfo ) = @_;
 
-    local( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Body );
-    if ( $Id ne '' )
+    local( $fid, $aids, $date, $title, $icon, $host, $name, $eMail, $url );
+
+    local( $body ) = '';
+    if ( $id ne '' )
     {
-	( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url ) = &GetArticlesInfo( $Id );
-	local( @ArticleBody );
-	&GetArticleBody( $Id, $BOARD, *ArticleBody );
-	$Body = join( '', @ArticleBody );
+	( $fid, $aids, $date, $title, $icon, $host, $name, $eMail, $url ) = &GetArticlesInfo( $id );
+	local( @articleBody );
+	&GetArticleBody( $id, $BOARD, *articleBody );
+	$body = join( '', @articleBody );
     }
     else
     {
-	( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Body ) = @articleInfo;
+	( $fid, $aids, $date, $title, $icon, $host, $name, $eMail, $url, $body ) = @articleInfo;
     }
 
     # 未投稿記事は読めない
-    &Fatal( 8, '' ) if ( $Subject eq '' );
-
-    local( $Num );
-    foreach ( 0 .. $#DB_ID ) { $Num = $_, last if ( $DB_ID[$_] eq $Id ); }
-    local( $PrevId ) = $DB_ID[$Num - 1] if ( $Num > 0 );
-    local( $NextId ) = $DB_ID[$Num + 1];
+    &Fatal( 8, '' ) if ( $title eq '' );
 
     $gHgStr .= qq(<div class="kbArticle">\n);
 
-    if ( $CommandFlag && $SYS_COMMAND )
+    # タイトル
+    &DumpArtTitle( $id, $title, $icon );
+
+    if ( $commandFlag && $SYS_COMMAND )
     {
-	$gHgStr .= qq(<p class="command">\n);
-	# コマンド表示
-	if ( $SYS_COMICON == 1 )
-	{
-	    $DlmtS = "";
-	    $DlmtL = " // ";
-	}
-	elsif ( $SYS_COMICON == 2 )
-	{
-	    $DlmtS = " | ";
-	    $DlmtL = "";
-	}
-	else
-	{
-	    $DlmtS = " | ";
-	    $DlmtL = "";
-	}
-
-	local( $Old ) = &GetTitleOldIndex( $Id );
-
-	$gHgStr .= qq(<a name="a$Id">) . &LinkP( 'c=bl', &TagComImg(
-	    $ICON_BLIST, $H_BACKBOARD ), 'B' ) . "</a>\n";
-
-	$gHgStr .= $DlmtS . &LinkP( "b=$BOARD&c=v&num=$DEF_TITLE_NUM&old=$Old",
-	    &TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY ), 'T' ) . "\n";
-	
-	if ( $PrevId ne '' )
-	{
-	    $gHgStr .= $DlmtS . &LinkP( "b=$BOARD&c=e&id=$PrevId", &TagComImg(
-		$ICON_PREV, $H_PREVARTICLE ), 'P' ) . "\n";
-	}
-	else
-	{
-	    $gHgStr .= "$DlmtS" . &TagComImg( $ICON_PREV, $H_PREVARTICLE, ) .
-		"\n";
-	}
-	
-	if ( $NextId ne '' )
-	{
-	    $gHgStr .= $DlmtS . &LinkP( "b=$BOARD&c=e&id=$NextId", &TagComImg(
-		$ICON_NEXT, $H_NEXTARTICLE ), 'N' ) . "\n";
-	}
-	else
-	{
-	    $gHgStr .= "$DlmtS" . &TagComImg( $ICON_NEXT, $H_NEXTARTICLE, ) .
-		"\n";
-	}
-
-	if ( $Aids ne '' )
-	{
-	    $gHgStr .= $DlmtS . &LinkP( "b=$BOARD&c=t&id=$Id", &TagComImg(
-		$ICON_THREAD, $H_READREPLYALL ), 'M' ) . "\n";
-	}
-	else
-	{
-	    $gHgStr .= "$DlmtS" . &TagComImg( $ICON_THREAD, $H_READREPLYALL ) .
-		"\n";
-	}
-
-	if ( $POLICY & 2 )
-	{
-	    $gHgStr .= "$DlmtL\n" if $DlmtL;
-	    $gHgStr .= $DlmtS . &LinkP( "b=$BOARD&c=f&id=$Id", &TagComImg(
-		$ICON_FOLLOW, $H_REPLYTHISARTICLE ), 'R' ) . "\n" . $DlmtS .
-		&LinkP( "b=$BOARD&c=q&id=$Id", &TagComImg( $ICON_QUOTE,
-		$H_REPLYTHISARTICLEQUOTE ), 'Q' ) . "\n";
-	}
-
-	if (( $SYS_OVERWRITE == 2 ) || (( $SYS_OVERWRITE == 1 ) && ( $Aids eq '' ) && &IsUser( $Name )))
-	{
-	    $gHgStr .= "$DlmtL\n" if $DlmtL;
-	    $gHgStr .= $DlmtS . &LinkP( "b=$BOARD&c=f&s=on&id=$Id", &TagComImg(
-		$ICON_SUPERSEDE, $H_SUPERSEDE ), 'S' ) . "\n" . $DlmtS .
-		&LinkP( "b=$BOARD&c=dp&id=$Id", &TagComImg( $ICON_DELETE,
-		$H_DELETE ), 'D' ) . "\n";
-	}
-
-	if ( $SYS_COMICON == 1 )
-	{
-	    $gHgStr .= "$DlmtL\n" if $DlmtL;
-	    $gHgStr .= $DlmtS . &LinkP( "b=$BOARD&c=h#list", &TagComImg(
-		$ICON_HELP, 'ヘルプ' ), 'H' ) . "\n";
-	}
-	$gHgStr .= qq(</p>\n<p class="header">\n);
-
-	# 記事番号
-	$gHgStr .= "<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> ";
-    }
-    else
-    {
-	$gHgStr .= qq(<p class="header">\n);
-
-	# 記事番号
-	$gHgStr .= qq(<strong>$H_SUBJECT</strong>: <strong><a name="a$Id">$Id</a> .</strong> );
+	local( $num );
+	foreach ( 0 .. $#DB_ID ) { $num = $_, last if ( $DB_ID[$_] eq $id ); }
+	local( $prevId ) = $DB_ID[$num - 1] if ( $num > 0 );
+	local( $nextId ) = $DB_ID[$num + 1];
+	&DumpArtCommand( $id, $prevId, $nextId, ( $aids ne '' ), ( &IsUser(
+	    $name ) && (( $aids eq '' ) || ( $SYS_OVERWRITE == 2 ))));
     }
 
-    # 題
-    $gHgStr .= &TagMsgImg( $Icon ) . $Subject . "<br>\n";
-
-    # お名前
-    if ( $Url eq '' )
+    local( @origIdList );
+    if ( $origFlag && ( $fid ne '' ))
     {
-	$gHgStr .= "<strong>$H_FROM</strong>: $Name";
-    }
-    else
-    {
-	$gHgStr .= "<strong>$H_FROM</strong>: " . &TagA( $Url, $Name );
+	@origIdList = split( /,/, $fid );
     }
 
-    # メイル
-    if ( $SYS_SHOWMAIL && $Email )
-    {
-	$gHgStr .= ' ' . &TagA( "mailto:$Email" , "&lt;$Email&gt;" );
-    }
-    $gHgStr .= "<br>\n";
-
-    # マシン
-    $gHgStr .= "<strong>$H_HOST</strong>: $RemoteHost<br>\n" if $SYS_SHOWHOST;
-
-    # 投稿日
-    $gHgStr .= "<strong>$H_DATE</strong>: " . &GetDateTimeFormatFromUtc( $Date ) . "<br>\n";
-
-    # 反応元
-    if ( $OriginalFlag && ( $Fid ne '' ))
-    {
-	&DumpLinksToFollowedArticle( split( /,/, $Fid ));
-    }
+    # ヘッダ（ユーザ情報とリプライ元: タイトルは除く）
+    &DumpArtHeader( $name, $eMail, $url, $host, $date, @origIdList );
 
     # 切れ目
-    $gHgStr .= "</p>\n$H_LINE\n";
+    $gHgStr .= $H_LINE;
 
-    # 記事の中身
-    $gHgStr .= qq(<div class="body">$Body</div>\n</div>\n);
+    if ( $ICON_TYPE{ $icon } eq 'cfv' )
+    {
+	# TBD
+    }
+    elsif ( $ICON_TYPE{ $icon } eq 'vote' )
+    {
+	# TBD
+    }
+    else
+    {
+	&DumpArtBodyNormal( *body );
+    }
+
+    $gHgStr .= "</div>\n";
+
     &cgiprint'Cache( $gHgStr ); $gHgStr = '';
 }
 
 
+# 通常メッセージ
+sub DumpArtBodyNormal
+{
+    local( *body ) = @_;
+    $gHgStr .= qq(<div class="body">) . &ArticleEncode( *body ) . "</div>\n";
+}
+
+
 ###
-## DumpThreadArticle - フォロー記事を全て表示．
+## DumpArtThread - フォロー記事を全て表示．
 #
 # - SYNOPSIS
-#	DumpThreadArticle( $State, $Head, @Tail );
+#	DumpArtThread( $State, $Head, @Tail );
 #
 # - ARGS
 #	$State		表示制御フラグ
@@ -2852,7 +2979,7 @@ sub DumpArticle
 #	のようなリストである．
 #	詳細は&GetFollowIdTreeのインプリメント部分を参照のこと．
 #
-sub DumpThreadArticle
+sub DumpArtThread
 {
     local( $State, $Head, @Tail ) = @_;
 
@@ -2871,20 +2998,21 @@ sub DumpThreadArticle
 	{
 	    local( $dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName ) = &GetArticlesInfo( $Head );
 	    $gHgStr .= '<li>';
-	    &DumpFormattedTitle( $Head, $dAids, $dIcon, $dSubject, $dName, $dDate, $State&3 );
+	    &DumpArtSummary( $Head, $dAids, $dIcon, $dSubject, $dName, $dDate, $State&3 );
+	    $gHgStr .= "</li>\n";
 	    $State ^= 1 if ( $State&1 );
 	}
     }
     elsif (( $Head ne '(' ) && ( $Head ne ')' ))
     {
 	# 元記事の表示(コマンド付き, 元記事なし)
-	$gHgStr .= "$H_HR\n";
-	&DumpArticle( $Head, $SYS_COMMAND_EACH, 0 );
+	$gHgStr .= $HTML_HR;
+	&DumpArtBody( $Head, $SYS_COMMAND_EACH, 0 );
     }
 
     # &cgiprint'Cache( $gHgStr ); $gHgStr = '';
     # tail recuresive.
-    &DumpThreadArticle( $State, @Tail ) if @Tail;
+    &DumpArtThread( $State, @Tail ) if @Tail;
 }
 
 
@@ -2913,7 +3041,7 @@ sub DumpSearchResult
     local( $Key, $Subject, $Person, $Article, $PostTime, $PostTimeFrom,
 	$PostTimeTo, $Icon, $IconType ) = @_;
 
-    local( @KeyList ) = split(/ +/, $Key);
+    local( @KeyList ) = split(/\s+/, $Key);
 
     # リスト開く
     $gHgStr .= "<ul>\n";
@@ -2998,7 +3126,7 @@ sub DumpSearchResult
 
 	    # 記事へのリンクを表示
 	    $gHgStr .= '<li>';
-	    &DumpFormattedTitle( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate, 1 );
+	    &DumpArtSummary( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate, 1 );
 
 	    # 本文に合致した場合は本文も表示
 	    if ( $ArticleFlag )
@@ -3006,6 +3134,7 @@ sub DumpSearchResult
 		$Line =~ s/<[^>]*>//go;
 		$gHgStr .= "<blockquote>$Line</blockquote>\n";
 	    }
+	    $gHgStr .= "</li>\n";
 	}
     }
 
@@ -3013,11 +3142,11 @@ sub DumpSearchResult
     if ( $HitNum )
     {
 	$gHgStr .= "</ul>\n<ul>";
-	$gHgStr .= "<li>$HitNum件の$H_MESGが見つかりました．\n";
+	$gHgStr .= "<li>$HitNum件の$H_MESGが見つかりました．</li>\n";
     }
     else
     {
-	$gHgStr .= "<li>該当する$H_MESGは見つかりませんでした．\n";
+	$gHgStr .= "<li>該当する$H_MESGは見つかりませんでした．</li>\n";
     }
 
     # リスト閉じる
@@ -3053,13 +3182,13 @@ sub DumpReplyArticles
 	    &GetFollowIdTree( $id, *tree );
 	    
 	    # メイン関数の呼び出し(記事概要)
-	    &DumpThreadArticle( 4, @tree );
+	    &DumpArtThread( 4, @tree );
 	}
     }
     else
     {
 	# 反応記事無し
-	$gHgStr .= "<ul>\n<li>$H_REPLYはありません\n</ul>\n";
+	$gHgStr .= "<ul>\n<li>$H_REPLYはありません</li>\n</ul>\n";
     }
 
     $gHgStr .= "</p>\n";
@@ -3067,39 +3196,213 @@ sub DumpReplyArticles
 
 
 ###
-## DumpLinksToFollowedArticle - 元記事情報の表示
+## DumpArtTitle - 記事タイトルの表示
 #
 # - SYNOPSIS
-#	DumpLinksToFollowedArticle( @IdList );
+#	DumpArtTitle( $id, $title, $icon );
 #
 # - ARGS
-#	@IdList		リプライ記事IDのリスト(古いリプライほど末尾にくる)
+#	$id	記事ID
+#	$title	タイトル
+#	$icon	アイコン
 #
-# - DESCRIPTION
-#	元記事情報を生成する．
-#
-sub DumpLinksToFollowedArticle
+sub DumpArtTitle
 {
-    local( @IdList ) = @_;
+    local( $id, $title, $icon ) = @_;
+    $gHgStr .= '<h2>';
+    $gHgStr .= "$id. " if ( $id ne '' );
+    $gHgStr .= &TagMsgImg( $icon ) . "$title</h2>\n";
+}
 
-    local( $Id, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name );
 
-    # オリジナル記事
-    if ( $#IdList > 0 )
+###
+## DumpArtCommand - 記事コマンドの表示
+#
+# - SYNOPSIS
+#	DumpArtCommand( $id, $prevId, $nextId, $reply, $delete );
+#
+# - ARGS
+#	$id	記事ID
+#	$prevId	前記事ID
+#	$nextId	次記事ID
+#	$reply	リプライ記事があるか
+#	$delete	削除・訂正が可能か
+#
+sub DumpArtCommand
+{
+    local( $id, $prevId, $nextId, $reply, $delete ) = @_;
+
+    $gHgStr .= qq(<p class="command">\n);
+
+    local( $dlmtS, $dlmtL );
+    if ( $SYS_COMICON == 1 )
     {
-	$Id = $IdList[$#IdList];
-	( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name ) = &GetArticlesInfo( $Id );
-	$gHgStr .= "<strong>$H_ORIG_TOP:</strong> ";
-	&DumpFormattedTitle( $Id, $Aids, $Icon, $Subject, $Name, $Date, 0 );
-	$gHgStr .= "<br>\n";
+	$dlmtS = '';
+	$dlmtL = ' // ';
+    }
+    elsif ( $SYS_COMICON == 2 )
+    {
+	$dlmtS = ' | ';
+	$dlmtL = '';
+    }
+    else
+    {
+	$dlmtS = ' | ';
+	$dlmtL = '';
     }
 
-    # 元記事
-    $Id = $IdList[0];
-    ( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name ) = &GetArticlesInfo( $Id );
-    $gHgStr .= "<strong>$H_ORIG:</strong> ";
-    &DumpFormattedTitle( $Id, $Aids, $Icon, $Subject, $Name, $Date, 0 );
-    $gHgStr .= "<br>\n";
+    local( $old ) = &GetTitleOldIndex( $id );
+
+    $gHgStr .= &LinkP( 'c=bl', &TagComImg( $ICON_BLIST, $H_BACKBOARD ), 'B',
+	'', "a$id" ) . "\n";
+
+    $gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=v&num=$DEF_TITLE_NUM&old=$old",
+	&TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY ), 'T' ) . "\n";
+	
+    if ( $prevId ne '' )
+    {
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=e&id=$prevId", &TagComImg(
+	    $ICON_PREV, $H_PREVARTICLE ), 'P' ) . "\n";
+    }
+    else
+    {
+	$gHgStr .= $dlmtS . &TagComImg( $ICON_PREV, $H_PREVARTICLE, ) . "\n";
+    }
+	
+    if ( $nextId ne '' )
+    {
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=e&id=$nextId", &TagComImg(
+	    $ICON_NEXT, $H_NEXTARTICLE ), 'N' ) . "\n";
+    }
+    else
+    {
+	$gHgStr .= $dlmtS . &TagComImg( $ICON_NEXT, $H_NEXTARTICLE, ) . "\n";
+    }
+
+    if ( $reply )
+    {
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=t&id=$id", &TagComImg(
+	    $ICON_THREAD, $H_READREPLYALL ), 'M' ) . "\n";
+    }
+    else
+    {
+	$gHgStr .= $dlmtS . &TagComImg( $ICON_THREAD, $H_READREPLYALL ) . "\n";
+    }
+
+    $gHgStr .= $dlmtL;
+
+    if ( $POLICY & 2 )
+    {
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=f&id=$id", &TagComImg(
+	    $ICON_FOLLOW, $H_REPLYTHISARTICLE ), 'R' ) . "\n" . $dlmtS .
+	    &LinkP( "b=$BOARD&c=q&id=$id", &TagComImg( $ICON_QUOTE,
+	    $H_REPLYTHISARTICLEQUOTE ), 'Q' ) . "\n";
+    }
+    else
+    {
+	$gHgStr .= $dlmtS . &TagComImg( $ICON_FOLLOW, $H_REPLYTHISARTICLE ) .
+	    "\n" . $dlmtS . &TagComImg( $ICON_QUOTE,
+	    $H_REPLYTHISARTICLEQUOTE ) . "\n";
+    }
+
+    if ( $SYS_AUTH )
+    {
+	$gHgStr .= $dlmtL;
+
+	if ( $delete )
+	{
+	    $gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=f&s=on&id=$id", &TagComImg(
+		$ICON_SUPERSEDE, $H_SUPERSEDE ), 'S' ) . "\n" . $dlmtS .
+		&LinkP( "b=$BOARD&c=dp&id=$id", &TagComImg( $ICON_DELETE,
+	    	$H_DELETE ), 'D' ) . "\n";
+	}
+	else
+	{
+	    $gHgStr .= $dlmtS . &TagComImg( $ICON_SUPERSEDE, $H_SUPERSEDE ) .
+	    	"\n" . $dlmtS . &TagComImg( $ICON_DELETE, $H_DELETE ) . "\n";
+	}
+    }
+
+    if ( $SYS_COMICON == 1 )
+    {
+	$gHgStr .= $dlmtL;
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=h", &TagComImg( $ICON_HELP,
+	    'ヘルプ' ), 'H', '', '', 'list' ) . "\n";
+    }
+    $gHgStr .= qq(</p>\n);
+}
+
+
+###
+## DumpArtHeader - 記事ヘッダ（タイトル除く）の表示
+#
+# - SYNOPSIS
+#	DumpArtHeader( $name, $eMail, $url, $host, $date, @origIdList );
+#
+# - ARGS
+#	$name		ユーザ名
+#	$eMail		メイルアドレス
+#	$url		URL
+#	$host		Remote Host名
+#	$date		日付（UTC）
+#	@origIdList	リプライ元記事ID
+#
+sub DumpArtHeader
+{
+    local( $name, $eMail, $url, $host, $date, @origIdList ) = @_;
+
+    $gHgStr .= qq(<p class="header">\n);
+
+    # お名前
+    if ( $url eq '' )
+    {
+	$gHgStr .= "<strong>$H_FROM</strong>: $name";
+    }
+    else
+    {
+	$gHgStr .= "<strong>$H_FROM</strong>: " . &TagA( $url, $name );
+    }
+
+    # メイル
+    if ( $SYS_SHOWMAIL && $eMail )
+    {
+	$gHgStr .= ' ' . &TagA( "mailto:$eMail" , "&lt;$eMail&gt;" );
+    }
+    $gHgStr .= $HTML_BR;
+
+    # マシン
+    $gHgStr .= "<strong>$H_HOST</strong>: $host" . $HTML_BR if $SYS_SHOWHOST;
+
+    # 投稿日
+    $gHgStr .= "<strong>$H_DATE</strong>: " . &GetDateTimeFormatFromUtc( $date ) . $HTML_BR;
+
+    # リプライ元へのリンク
+    if ( @origIdList )
+    {
+	# オリジナル記事
+	local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName );
+	if ( $#origIdList > 0 )
+	{
+	    $dId = $origIdList[$#origIdList];
+	    ( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName ) =
+		&GetArticlesInfo( $dId );
+	    $gHgStr .= "<strong>$H_ORIG_TOP:</strong> ";
+	    &DumpArtSummary( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate,
+		0 );
+	    $gHgStr .= $HTML_BR;
+	}
+
+	# 元記事
+	$dId = $origIdList[0];
+	( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName ) =
+	    &GetArticlesInfo( $dId );
+	$gHgStr .= "<strong>$H_ORIG:</strong> ";
+	&DumpArtSummary( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate, 0 );
+	$gHgStr .= $HTML_BR;
+    }
+
+    # 切れ目
+    $gHgStr .= "</p>\n";
 }
 
 
@@ -3181,21 +3484,23 @@ sub DumpButtonToArticle
 #	*submit		submitボタン文字列
 #	*reset		resetボタン文字列
 #	*contents	</form>の前までに挿入する文字列
+#	$noAuth		認証用情報を入れないためのフラグ	
 #
 # - DESCRIPTION
 #	Formタグのフォーマット
 #
 sub DumpForm
 {
-    local( *tags, $submit, $reset, *contents ) = @_;
+    local( *tags, $submit, $reset, *contents, $noAuth ) = @_;
 
-    &DumpFormOpen();
+    $gHgStr .= qq(<form action="$PROGRAM" method="POST">\n);
+
     $gHgStr .= "<p>\n";
     foreach ( keys( %tags ))
     {
 	$gHgStr .= qq(<input name="$_" type="hidden" value="$tags{$_}">\n);
     }
-    if ( $SYS_AUTH == 3 )
+    if ( !$noAuth && ( $SYS_AUTH == 3 ))
     {
 	$gHgStr .= qq(<input name="kinoU" type="hidden" value="$UNAME">\n);
 	$gHgStr .= qq(<input name="kinoP" type="hidden" value="$PASSWD">\n);
@@ -3210,10 +3515,7 @@ sub DumpForm
 	$submit .= "(G)";
 	$accessKey = 'G';
     }
-    $gHgStr .=<<EOS;
-$contents
-<input type="submit" value="$submit" accesskey="$accessKey">
-EOS
+    $gHgStr .= "$contents\n" . &TagInputSubmit( 'submit', $submit, $accessKey );
     if ( $reset )
     {
 	if ( $reset =~ /\((\w)\)$/o )
@@ -3226,66 +3528,17 @@ EOS
 	    $accessKey = 'R';
 	}
 	$accessKey = 'R';
-	$gHgStr .= qq(<input type="reset" value="$reset" accesskey="$accessKey">\n) ;
+	$gHgStr .= ' ' . &TagInputSubmit( 'reset', $reset, $accessKey ) . "\n";
     }
-    $gHgStr .= "</p>\n";
-    &DumpFormClose();
-}
-
-sub DumpFormOpen
-{
-    $gHgStr .= qq(<form action="$PROGRAM" method="POST">\n);
-}
-
-sub DumpFormButton
-{
-    local( *tags, $submit, $reset ) = @_;
-    foreach ( keys( %tags ))
-    {
-	$gHgStr .= qq(<input name="$_" type="hidden" value="$tags{$_}">\n);
-    }
-    if ( $SYS_AUTH == 3 )
-    {
-	$gHgStr .= qq(<input name="kinoU" type="hidden" value="$UNAME">\n);
-	$gHgStr .= qq(<input name="kinoP" type="hidden" value="$PASSWD">\n);
-    }
-    local( $accessKey ) = 'G';
-    if ( $submit =~ /\((\w)\)$/o )
-    {
-	$accessKey = $1;
-    }
-    else
-    {
-	$submit .= "(G)";
-	$accessKey = 'G';
-    }
-    $gHgStr .= qq(<input type="submit" value="$submit" accesskey="$accessKey">\n);
-    if ( $reset )
-    {
-	if ( $reset =~ /\((\w)\)$/o )
-	{
-	    $accessKey = $1;
-	}
-	else
-	{
-	    $reset .= "(R)";
-	    $accessKey = 'R';
-	}
-	$gHgStr .= qq(<input type="reset" value="$reset" accesskey="$accessKey">\n);
-    }
-}
-
-sub DumpFormClose
-{
-    $gHgStr .= "</form>\n";
+    $gHgStr .= "</p>\n</form>\n";
 }
 
 
 ###
-## DumpFormattedTitle - タイトルリストのフォーマット
+## DumpArtSummary - タイトルリストのフォーマット
 #
 # - SYNOPSIS
-#	DumpFormattedTitle( $id, $aids, $icon, $title, $name, $origDate, $flag);
+#	DumpArtSummary( $id, $aids, $icon, $title, $name, $origDate, $flag);
 #
 # - ARGS
 #	$id		記事ID
@@ -3301,7 +3554,7 @@ sub DumpFormClose
 # - DESCRIPTION
 #	ある記事をタイトルリスト表示用にフォーマットする．
 #
-sub DumpFormattedTitle
+sub DumpArtSummary
 {
     local( $id, $aids, $icon, $title, $name, $origDate,	$flag ) = @_;
 
@@ -3333,7 +3586,7 @@ sub DumpFormattedTitle
     {
 	$gHgStr .= ' ' . &TagMsgImg( $H_NEWARTICLE );
     }
-    $gHgStr .= "</span>\n";
+    $gHgStr .= '</span>';
 }
 
 
@@ -3451,7 +3704,7 @@ $SCRIPT_URL?b=$BOARD&c=e&id=$Id
 では失礼します．";
 
     # メイル送信
-    &SendMail( $Name, $Email, $MailSubject, $Message, $Id, @To );
+    &SendArticleMail( $Name, $Email, $MailSubject, $Message, $Id, @To );
 }
 
 
@@ -3511,7 +3764,7 @@ $SCRIPT_URL?b=$BOARD&c=e&id=$Fid
 では失礼します．";
 
     # メイル送信
-    &SendMail( $Fname, $Femail, $MailSubject, $Message, $Fid, @To );
+    &SendArticleMail( $Fname, $Femail, $MailSubject, $Message, $Fid, @To );
 }
 
 
@@ -3994,8 +4247,8 @@ sub secureArticle
 	'UL',	1,	$HTML_TAGS_GENATTRS,
 	'VAR',	1,	$HTML_TAGS_GENATTRS,
 # 色やサイズはstyleで指定すべきなので，今後絶滅必至のFONTタグなわけですが，
-# それでもどーーしても使いたいというあなたは，
-# ↓の行の先頭の「#」を消してください．(^_^;
+# それでもどーしても使いたいというあなたは，
+# ↓の行の先頭の「#」を消してください．^^;
 #	'FONT',	1,	"$HTML_TAGS_GENATTRS/SIZE/COLOR",
     );
 	
@@ -4011,23 +4264,16 @@ sub secureArticle
     {
 	# pre-formatted
 	&PlainArticleToPreFormatted( *article );
-	# <URL:>の処理
-	$article = &ArticleEncode( $article );
-	$article =~ s/<URL:([^>][^>]*)>/$1/gi;
     }
     elsif ( $textType eq $H_TTLABEL[1] )
     {
 	# convert to html
 	&PlainArticleToHtml( *article );
-	# <URL:>の処理
-	$article = &ArticleEncode( $article );
 	# secrurity check
 	&cgi'SecureHtmlEx( *article, *aNeedVec, *aFeatureVec );
     }
     elsif ( $textType eq $H_TTLABEL[2] )
     {
-	# <URL:>の処理
-	$article = &ArticleEncode( $article );
 	# secrurity check
 	&cgi'SecureHtmlEx( *article, *aNeedVec, *aFeatureVec );
     }
@@ -4137,7 +4383,8 @@ sub CheckEmail
 {
     local( *String ) = @_;
 
-    if ( $SYS_POSTERMAIL ) {
+    if ( $SYS_POSTERMAIL )
+    {
 	&Fatal( 2, $H_MAIL ) if ( !$String );
 	# `@'が入ってなきゃアウト
 	&Fatal( 7, 'E-Mail' ) if ( $String !~ /@/ );
@@ -4566,32 +4813,32 @@ sub TAGEncode
 ## ArticleEncode - 記事のEncode
 #
 # - SYNOPSIS
-#	ArticleEncode($Article);
+#	ArticleEncode( *article );
 #
 # - ARGS
-#	$Article	Encodeする記事本文
+#	$article	Encodeする記事本文
 #
 # - DESCRIPTION
-#	記事中のURL(<URL:〜>)を，リンクに変換する．
+#	記事中のURL([URL:kb:〜])を，リンクに変換する．
 #
 # - RETURN
 #	Encodeされた文字列
 #
 sub ArticleEncode
 {
-    local( $article ) = @_;
+    local( *article ) = @_;
 
     local( $retArticle ) = $article;
 
     local( $url, $urlMatch, @cache );
     local( $tagStr, $quoteStr );
-    while ( $article =~ m/<URL:([^>][^>]*)>/gi )
+    while ( $article =~ m/\[url:([^\]]+)\]/gi )
     {
 	$url = $1;
 	( $urlMatch = $url ) =~ s/([?+*^\\\[\]\|()])/\\$1/go;
 	next if ( grep( /^$urlMatch$/, @cache ));
 	push( @cache, $url );
-	$quoteStr = "<URL:$url>";
+	$quoteStr = "[URL:$url]";
 
 	if ( $urlMatch =~ m/^kb:(.*)$/ )
 	{
@@ -4600,7 +4847,7 @@ sub ArticleEncode
 	    {
 		# not implemented now...
 	    }
-	    elsif ( $artStr =~ m!^([^/][^/]*)/(.*)$! )
+	    elsif ( $artStr =~ m!^([^/]+)/(.*)$! )
 	    {
 		local( $boardInfo ) = &GetBoardInfo( $1 );
 		$tagStr = &LinkP( "b=$1&c=e&id=$2", $quoteStr ) if $boardInfo;
@@ -4612,10 +4859,10 @@ sub ArticleEncode
 	}
 	elsif ( &IsUrl( $urlMatch ))
 	{
-	    $tagStr = &TagA( $url, $quoteStr );
+	    $tagStr = &TagA( $url, $quoteStr, '', '', '', $SYS_LINK_TARGET );
 	}
 
-	$retArticle =~ s/<URL:$urlMatch>/$tagStr/gi;
+	$retArticle =~ s/\[url:$urlMatch\]/$tagStr/gi;
     }
 
     $retArticle;
@@ -4641,9 +4888,7 @@ sub PlainArticleToPreFormatted
 {
     local( *Article ) = @_;
     $Article =~ s/\n*$//o;
-    $Article =~ s/<URL:([^>][^>]*)>/__URL__$COLSEP$1$COLSEP/gi;
     $Article = &HTMLEncode( $Article );	# no tags are allowed.
-    $Article =~ s/__URL__$COLSEP([^$COLSEP][^$COLSEP]*)$COLSEP/<URL:$1>/gi;
     $Article = "<pre>\n" . $Article . "</pre>";
 }
 
@@ -4667,8 +4912,8 @@ sub PlainArticleToHtml
     local( *Article ) = @_;
     $Article =~ s/^\n*//o;
     $Article =~ s/\n*$//o;
-    $Article =~ s/\n/<br>\n/go;
-    $Article =~ s/<br>\n<br>\n(<br>\n)*/<\/p>\n\n<p>/go;
+    $Article =~ s/\n/$HTML_BR/go;
+    $Article =~ s/$HTML_BR($HTML_BR)+/<\/p>\n\n<p>/go;
     $Article = "<p>$Article</p>";
 }
 
@@ -4689,26 +4934,40 @@ sub QuoteOriginalArticle
 {
     local( $Id, *msg ) = @_;
 
-    local( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $pFid, $pAids, $pDate, $pSubject, $pIcon, $pRemoteHost, $pName, $QMark, $line, @ArticleBody );
+    local( $t );
 
     # 元記事情報の取得
-    ( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name ) = &GetArticlesInfo( $Id );
+    local( $Fid, $Date, $Title, $Name );
+    ( $Fid, $t, $Date, $Title, $t, $t, $Name ) = &GetArticlesInfo( $Id );
 
     # 元記事のさらに元記事情報
+    local( $pName ) = '';
     if ( $Fid )
     {
 	$Fid =~ s/,.*$//o;
-	( $pFid, $pAids, $pDate, $pSubject, $pIcon, $pRemoteHost, $pName ) = &GetArticlesInfo( $Fid );
+	( $t, $t, $t, $t, $t, $t, $pName ) = &GetArticlesInfo( $Fid );
     }
 
     # 引用
+    local( @ArticleBody );
     &GetArticleBody( $Id, $BOARD, *ArticleBody );
+
+    if ( $SYS_QUOTEMSG )
+    {
+	local( $premsg ) = $SYS_QUOTEMSG;
+	$premsg =~ s/__LINK__/[url:kb:$Id]/i;
+	$premsg =~ s/__TITLE__/$Title/;
+	$premsg =~ s/__DATE__/&GetDateTimeFormatFromUtc( $Date )/e;
+	$premsg =~ s/__NAME__/$Name/;
+	$msg .= $premsg;
+    }
+    local( $QMark, $line );
     foreach $line ( @ArticleBody )
     {
 	&TAGEncode( *line );
 
 	$QMark = $DEFAULT_QMARK;
-	$QMark = $Name . $QMark if $SYS_QUOTENAME;
+	$QMark = $Name . ' ' . $QMark if $SYS_QUOTENAME;
 
 	# 元文のうち，引用部分には，新たに引用文字列を重ねない
 	# 空行にも要らない
@@ -4780,7 +5039,7 @@ sub PageLink
     local( $backOld ) = ( $old + $num );
 
     local( $str );
-    $str = '<p>';
+    $str = '<p class="kbPageLink">';
 
     if ( $old )
     {
@@ -5085,23 +5344,26 @@ sub TagMsgImg
 #	$markUp		マークアップ文字列
 #	$key		アクセスキー（省略可）
 #	$title		タイトル文字列（省略可）
+#	$name		アンカ名（省略可）
+#	$target		ターゲットフレーム（省略可）
 #
 # - DESCRIPTION
 #	リンクをリンクタグにフォーマットする．
 #
-$gLinkNum = 0;
 sub TagA
 {
-    local( $href, $markUp, $key, $title ) = @_;
+    local( $href, $markUp, $key, $title, $name, $target ) = @_;
 
     $href =~ s/&/&amp;/go;
-    if ( !$key )
+    if ( $key eq '' )
     {
 	$key = sprintf( "%d", $gLinkNum );
 	$gLinkNum = 0 if ( ++$gLinkNum > 9 );
     }
     local( $str ) = qq(<a href="$href" accesskey="$key");
-    $str .= qq( title="$title") if $title;
+    $str .= qq( title="$title") if ( $title ne '' );
+    $str .= qq( name="$name") if ( $name ne '' );
+    $str .= qq( target="$target") if ( $target ne '' );
     $str .= ">$markUp</a>";
     $str;
 }
@@ -5141,6 +5403,145 @@ sub TagLabel
 
 
 ###
+## TagInputSubmit - submit/resetボタンタグのフォーマット
+#
+# - SYNOPSIS
+#	TagInputSubmit( $type, $value, $key );
+#
+# - ARGS
+#	$type	submit/reset
+#	$value	ラベルに使われる
+#	$key	accesskeyに使われる
+#
+sub TagInputSubmit
+{
+    local( $type, $value, $key ) = @_;
+    $gTabIndex++;
+    if ( $type eq 'reset' )
+    {
+	qq(<input type="reset" value="$value" accesskey="$key" tabindex="$gTabIndex">);
+    }
+    else
+    {
+	qq(<input type="submit" value="$value" accesskey="$key" tabindex="$gTabIndex">);
+    }
+}
+
+
+###
+## TagInputText - 入力タグのフォーマット
+#
+# - SYNOPSIS
+#	TagInputText( $type, $id, $value, $size );
+#
+# - ARGS
+#	$type	text/password
+#	$id	idとnameに使われる
+#	$value	デフォルト値に使われる
+#	$size	sizeに使われる
+#
+sub TagInputText
+{
+    local( $type, $id, $value, $size ) = @_;
+    $gTabIndex++;
+    qq(<input type="$type" id="$id" name="$id" value="$value" size="$size" tabindex="$gTabIndex">);
+}
+
+
+###
+## TagInputCheck - チェックボックスタグのフォーマット
+#
+# - SYNOPSIS
+#	TagInputCheck( $id, $checked );
+#
+# - ARGS
+#	$id		idとnameに使われる
+#	$checked	trueならcheckedが付く
+#
+# - DESCRIPTION
+#	valueは"on"固定．
+#
+sub TagInputCheck
+{
+    local( $id, $checked ) = @_;
+    $gTabIndex++;
+    if ( $checked )
+    {
+	qq(<input type="checkbox" id="$id" name="$id" value="on" tabindex="$gTabIndex" checked>);
+    }
+    else
+    {
+	qq(<input type="checkbox" id="$id" name="$id" value="$value" tabindex="$gTabIndex">);
+    }
+}
+
+
+###
+## TagInputRadio - ラジオボタンタグのフォーマット
+#
+# - SYNOPSIS
+#	TagInputRadio( $id, $name, $value, $checked );
+#
+# - ARGS
+#	$id		idに使われる
+#	$name		nameに使われる
+#	$value		デフォルト値に使われる
+#	$checked	trueならcheckedが付く
+#
+sub TagInputRadio
+{
+    local( $id, $name, $value, $checked ) = @_;
+    $gTabIndex++;
+    if ( $checked )
+    {
+	qq(<input type="radio" id="$id" name="$name" value="$value" tabindex="$gTabIndex" checked>);
+    }
+    else
+    {
+	qq(<input type="radio" id="$id" name="$name" value="$value" tabindex="$gTabIndex">);
+    }
+}
+
+
+###
+## TagTextarea - textareaタグのフォーマット
+#
+# - SYNOPSIS
+#	TagTextarea( $id, $value, $rows, $cols );
+#
+# - ARGS
+#	$id	idとnameに使われる
+#	$value	デフォルト値に使われる
+#	$rows	rowsに使われる
+#	$cols	colsに使われる
+#
+sub TagTextarea
+{
+    local( $id, $value, $rows, $cols ) = @_;
+    $gTabIndex++;
+    qq(<textarea id="$id" name="$id" rows="$rows" cols="$cols" tabindex="$gTabIndex">$value</textarea>);
+}
+
+
+###
+## TagSelect - selectタグのフォーマット
+#
+# - SYNOPSIS
+#	TagSelect( $id, $contents );
+#
+# - ARGS
+#	$id		idとnameに使われる
+#	$contents	選択肢用コンテンツ
+#
+sub TagSelect
+{
+    local( $id, $contents ) = @_;
+    $gTabIndex++;
+    qq(<select id="$id" name="$id" tabindex="$gTabIndex">$contents</select>);
+}
+
+
+###
 ## LinkP - 自プログラム向けリンクの生成
 #
 # - SYNOPSIS
@@ -5151,15 +5552,18 @@ sub TagLabel
 #	$markUp		マークアップ文字列
 #	$key		アクセスキー（省略可）
 #	$title		タイトル文字列（省略可）
+#	$name		アンカ名（省略可）
+#	$fragment	#以降に使う（省略可）
 #
 # - DESCRIPTION
 #	自プログラムへのリンクを生成する
 #
 sub LinkP
 {
-    local( $comm, $markUp, $key, $title ) = @_;
+    local( $comm, $markUp, $key, $title, $name, $fragment ) = @_;
     $comm .= "&kinoU=$UNAME&kinoP=$PASSWD" if ( $SYS_AUTH == 3 );
-    &TagA( "$PROGRAM?$comm", $markUp, $key, $title );
+    $comm .= "#$fragment" if ( $fragment ne '' );
+    &TagA( "$PROGRAM?$comm", $markUp, $key, $title, $name );
 }
 
 
@@ -5299,15 +5703,15 @@ sub UnlockBoard
 sub IsUser
 {
     local( $name ) = @_;
-    ( $SYS_AUTH && (( $name eq $UNAME ) || (( $UNAME eq $ADMIN ) && ( $name eq $MAINT_NAME ))));
+    ( $SYS_AUTH && (( $UNAME eq $name ) || (( $UNAME eq $ADMIN ) && ( $name eq $MAINT_NAME ))));
 }
 
 
 ###
-## SendMail - メイル送信
+## SendArticleMail - メイル送信
 #
 # - SYNOPSIS
-#	SendMail(
+#	SendArticleMail(
 #	    $FromName,	メイル送信者名
 #	    $FromAddr,	メイル送信者メイルアドレス
 #	    $Subject,	メイルのSubject文字列
@@ -5319,16 +5723,16 @@ sub IsUser
 # - DESCRIPTION
 #	メイルを送信する．
 #
-sub SendMail
+sub SendArticleMail
 {
     local( $FromName, $FromAddr, $Subject, $Message, $Id, @To ) = @_;
 
-    local( $ExtensionHeader, @ArticleBody );
+    local( $ExtHeader, @ArticleBody );
 
-    $ExtensionHeader = "X-Kb-System: $SYSTEM_NAME\n";
+    $ExtHeader = "X-Kb-System: $SYSTEM_NAME\n";
     if (( ! $SYS_MAILHEADBRACKET ) && $BOARDNAME && ($Id ne '' ))
     {
-	$ExtensionHeader .= "X-Kb-Board: $BOARDNAME\nX-Kb-Articleid: $Id\n";
+	$ExtHeader .= "X-Kb-Board: $BOARDNAME\nX-Kb-Articleid: $Id\n";
     }
 
     # 引用記事
@@ -5342,6 +5746,36 @@ sub SendMail
 	}
     }
 
+    local( $stat, $errstr ) = &SendMail( $FromName, $FromAddr, $Subject, $ExtHeader, $Message, @To );
+    &Fatal( 9, "$BOARDNAME/$Id/$errstr" ) unless $stat;
+}
+
+
+###
+## SendMail - メイル送信
+#
+# - SYNOPSIS
+#	SendMail(
+#	    $FromName,	メイル送信者名
+#	    $FromAddr,	メイル送信者メイルアドレス
+#	    $Subject,	メイルのSubject文字列
+#	    $ExtHeader,	追加ヘッダ
+#	    $Message,	本文
+#	    @To		宛先E-Mail addr.のリスト
+#	)
+#
+# - DESCRIPTION
+#	メイルを送信する．
+#
+# - RETURN
+#	( $status, $errstr )
+#		$status		0 if succeeded, errCode if failed.
+#		$errstr		errstr if failed.
+#
+sub SendMail
+{
+    local( $FromName, $FromAddr, $Subject, $ExtHeader, $Message, @To ) = @_;
+
     if ( !$FromAddr )
     {
 	# メイルアドレス未入力につき，管理者名義で出す．
@@ -5351,10 +5785,8 @@ sub SendMail
 
     local( $SenderFrom, $SenderAddr ) = (( $MAILFROM_LABEL || $MAINT_NAME ),
 	$MAINT );
-    local( $stat, $errstr ) = &cgi'sendMail( $FromName, $FromAddr, $SenderFrom,
-	$SenderAddr, $Subject, $ExtensionHeader, $Message, $MAILTO_LABEL,
-	@To );
-    &Fatal( 9, "$BOARDNAME/$Id/$errstr" ) if ( !$stat );
+    &cgi'sendMail( $FromName, $FromAddr, $SenderFrom, $SenderAddr, $Subject,
+ 	$ExtHeader, $Message, $MAILTO_LABEL, @To );
 }
 
 
@@ -5453,7 +5885,7 @@ sub FatalStr
     if ( $errno == 1 )
     {
 	$severity = $kinologue'SEV_CAUTION;
-	$msg = "File: $errInfoが存在しない，あるいはpermissionの設定が間違っています．お手数ですが，" . &TagA( "mailto:$MAINT", $MAINT ) . "まで，上記ファイル名をお知らせ下さい．";
+	$msg = "File: $errInfoが存在しない，あるいはpermissionの設定が間違っています．";
     }
     elsif ( $errno == 2 )
     {
@@ -5469,11 +5901,6 @@ sub FatalStr
     {
 	$severity = $kinologue'SEV_INFO;
 	$msg = "題中にHTMLタグを入れることは禁じられています．戻って違う題に書き換えてください．";
-    }
-    elsif ( $errno == 5 )
-    {
-	$severity = $kinologue'SEV_ERROR;
-	$msg = "登録されているエイリアスのものと，マシン名が一致しません．お手数ですが，" . &TagA( "mailto:$MAINT", $MAINT ) . "まで御連絡ください．";
     }
     elsif ( $errno == 6)
     {
@@ -5493,13 +5920,13 @@ sub FatalStr
     elsif ( $errno == 9 )
     {
 	local( $board, $id, $info ) = split( /\//, $errInfo, 3 );
-	$severity = $kinologue'SEV_CAUTION;
+	$severity = $kinologue'SEV_ERROR;
 	$msg = "ホストマシンの過剰負荷，メイルアドレスの誤記等の理由により，$H_MESGのメイルでの配信が失敗しました（$H_BOARD: $board，ID: $id，原因: $info）．$H_MESGは正しく書き込まれましたので，再度書き込みの必要はありません．";
     }
     elsif ( $errno == 10 )
     {
 	$severity = $kinologue'SEV_CAUTION;
-	$msg = "kb.dbとkb.aidの整合性が取れていません．お手数ですが，このエラーメッセージと，エラーが生じた状況を，" . &TagA( "mailto:$MAINT", $MAINT ) . "までお知らせください．";
+	$msg = "kb.dbとkb.aidの整合性が取れていません．";
     }
     elsif ( $errno == 11 )
     {
@@ -5514,12 +5941,12 @@ sub FatalStr
     elsif ( $errno == 13 )
     {
 	$severity = $kinologue'SEV_FATAL;
-	$msg = "$errInfoへの書き込みに失敗しました．ファイルシステムに空き容量がない可能性があります．お手数ですが，" . &TagA( "mailto:$MAINT", $MAINT ) . "まで，上記メッセージをお知らせ下さい．";
+	$msg = "$errInfoへの書き込みに失敗しました．ファイルシステムに空き容量がない可能性があります．";
     }
     elsif ( $errno == 14 )
     {
 	$severity = $kinologue'SEV_FATAL;
-	$msg = "次のrenameに失敗しました（$errInfo）．ファイルパーミッションの設定等をチェックしてみてください．お手数ですが，" . &TagA( "mailto:$MAINT", $MAINT ) . "まで，上記メッセージをお知らせ下さい．";
+	$msg = "次のrenameに失敗しました（$errInfo）．ファイルパーミッションの設定ミスの可能性があります．";
     }
     elsif ( $errno == 15 )
     {
@@ -5550,7 +5977,7 @@ sub FatalStr
     elsif ( $errno == 20 )
     {
 	$severity = $kinologue'SEV_FATAL;
-	$msg = "次のcopyに失敗しました（$errInfo）．ファイルパーミッションの設定等をチェックしてみてください．お手数ですが，" . &TagA( "mailto:$MAINT", $MAINT ) . "まで，上記メッセージをお知らせ下さい．";
+	$msg = "次のcopyに失敗しました（$errInfo）．ファイルパーミッションの設定ミスの可能性があります．";
     }
     elsif ( $errno == 40 )
     {
@@ -5594,8 +6021,8 @@ sub FatalStr
     }
     elsif ( $errno == 998 )
     {
-	$severity = $kinologue'SEV_ERROR;
-	$msg = "不明なエラー（$errInfo）．お手数ですが，" . &TagA( "mailto:$MAINT", $MAINT ) . "まで，上記メッセージをお知らせ下さい．";
+	$severity = $kinologue'SEV_FATAL;
+	$msg = "不明なエラー（$errInfo）．";
     }
     elsif ( $errno == 999 )
     {
@@ -5616,6 +6043,11 @@ sub FatalStr
     {
 	$severity = $kinologue'SEV_ANY;
 	$msg = "エラー番号不定（$errInfo）";
+    }
+
+    if ( $severity >= $kinologue'SEV_CAUTION )
+    {
+	$msg .= "大変お手数ですが，このメッセージ全文のコピーと，エラーが生じた状況を，" . &TagA( "mailto:$MAINT", $MAINT ) . "までお知らせ頂けると助かります．";
     }
 
     return ( $severity, $msg );
@@ -5734,8 +6166,6 @@ sub ParseTSV
 # - DESCRIPTION
 #	主に起動時に呼び出され，記事DBの内容を大域変数にキャッシュする．
 #
-$gBoardDbCached = 0;
-
 sub DbCache
 {
     return if $gBoardDbCached;
@@ -6610,8 +7040,6 @@ sub GetBoardInfo
 #	アイコンDBを読み込んで連想配列に放り込む．
 #	大域変数，@ICON_TITLE，%ICON_FILE，%ICON_HELPを破壊する．
 #
-$gIconDbCached = '';
-
 sub CacheIconDb
 {
     local( $board ) = @_;
