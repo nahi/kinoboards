@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.25 1999-06-16 11:34:39 nakahiro Exp $
+# $Id: kb.cgi,v 5.26 1999-06-16 12:30:23 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -657,6 +657,9 @@ sub ViewOriginalArticle
     local( $Id, $CommandFlag, $OriginalFlag ) = @_;
 
     local( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url ) = &GetArticlesInfo( $Id );
+
+    # 未投稿記事は読めない
+    &Fatal( 8, '' ) if ( $Subject eq '' );
 
     local( $Num );
     foreach ( 0 .. $#DB_ID ) { $Num = $_, last if ( $DB_ID[$_] eq $Id ); }
@@ -2349,15 +2352,14 @@ sub IsUrl
 ## GetFollowIdTree - リプライ記事の木構造を取得
 #
 # - SYNOPSIS
-#	GetFollowIdTree($Id, *Time);
+#	GetFollowIdTree($id, *tree);
 #
 # - ARGS
-#	$Id	記事ID
-#	*Time	最終投稿時刻へのリファレンス
+#	$id	記事ID
+#	*tree	木構造を格納するリスト
 #
 # - DESCRIPTION
 #	指定された記事のリプライ記事を，そのIDの木構造フォーマットで取り出す．
-#	*Timeには，木構造中の，最新の記事の投稿時間が設定される．
 #
 #	例: * (←指定された記事)
 #	    +--a
@@ -2373,7 +2375,7 @@ sub IsUrl
 #	→ ( a ( b ( c d ) e ( f ) ) g ( h ) )
 #
 # - RETURN
-#	木構造を表すリスト
+#	なし
 #
 sub GetFollowIdTree
 {

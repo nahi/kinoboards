@@ -24,7 +24,7 @@ ShowArticle:
     local( $fId, $aids, $date, $subject ) = &GetArticlesInfo( $id );
 
     # 未投稿記事は読めない
-    if ( $subject eq '' ) { &Fatal( 8, '' ); }
+    &Fatal( 8, '' ) if ( $subject eq '' );
 
     # 表示画面の作成
     &MsgHeader( 'Message view', $subject );

@@ -160,6 +160,7 @@ Fatal:
 
     &MsgFooter();
 
+    &KbLog( $kinologue'SEV_INFO, 'Exec finished.' ) if ( $errno != 1000 );
     exit( 0 );
 }
 
