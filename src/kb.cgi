@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.29 1996-10-07 11:45:37 nakahiro Exp $
+# $Id: kb.cgi,v 4.30 1996-11-19 12:07:06 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -62,7 +62,7 @@ $[ = 0;
 # VersionとRelease番号
 #
 $KB_VERSION = '1.0';
-$KB_RELEASE = '2.4';
+$KB_RELEASE = '3.0';
 
 #
 # 著作権表示
@@ -264,7 +264,7 @@ sub Entry {
 	# 記事の表示(コマンド無し, 元記事あり)
 	&ViewOriginalArticle($Id, '', 'original');
 	print("<hr>\n");
-	print("<h2>$H_REPLYMSG</h2>");
+	&cgi'KPrint("<h2>$H_REPLYMSG</h2>");
     }
 
     # ヘッダ部分の表示
@@ -289,7 +289,7 @@ sub EntryHeader {
     local($Subject, $Id) = @_;
 
     # お約束
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <p>
 <form action="$PROGRAM" method="POST">
 <input name="c" type="hidden" value="p">
@@ -304,9 +304,11 @@ __EOF__
 
     # アイコンの選択
     if ($SYS_ICON) {
-	print("$H_ICON: \n");
-	print("<SELECT NAME=\"icon\">\n");
-	print("<OPTION SELECTED>$H_NOICON\n");
+	&cgi'KPrint(<<__EOF__);
+$H_ICON:
+<SELECT NAME="icon">
+<OPTION SELECTED>$H_NOICON
+__EOF__
 
 	# 一つ一つ表示
 	open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
@@ -325,20 +327,20 @@ __EOF__
 	    # 表示
 	    chop;
 	    ($FileName, $Title) = split(/\t/, $_, 3);
-	    print("<OPTION>$Title\n");
+	    &cgi'KPrint("<OPTION>$Title\n");
 
 	}
 	close(ICON);
 	print("</SELECT>\n");
-	print("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
+	&cgi'KPrint("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
     }
 
     # Subject(フォローなら自動的に文字列を入れる)
-    printf("%s: <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n", $H_SUBJECT, $Subject, $SUBJECT_LENGTH);
+    &cgi'KPrint(sprintf("%s: <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n", $H_SUBJECT, $Subject, $SUBJECT_LENGTH));
 
     # TextType
     if ($SYS_TEXTTYPE) {
-	print(<<__EOF__);
+	&cgi'KPrint(<<__EOF__);
 $H_TEXTTYPE:
 <SELECT NAME="texttype">
 <OPTION SELECTED>$H_PRE
@@ -357,16 +359,16 @@ __EOF__
 sub EntryFooter {
 
     # 名前とメールアドレス，URL．
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 $H_FROM: <input name="name" type="text" size="$NAME_LENGTH"><br>
 $H_MAIL: <input name="mail" type="text" size="$MAIL_LENGTH"><br>
 $H_URL: <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
 __EOF__
 
-    ($SYS_FOLLOWMAIL) && print("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
+    ($SYS_FOLLOWMAIL) && &cgi'KPrint("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
     
     if ($SYS_ALIAS) {
-	print(<<__EOF__);
+	&cgi'KPrint(<<__EOF__);
 <p>
 $H_ALIASINFO
 (<a href="$PROGRAM?c=as">$H_SEEALIAS</a> //
@@ -377,7 +379,7 @@ __EOF__
     }
 
     # ボタン
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <input type="radio" name="com" value="p" CHECKED>: $H_PREVIEW<br>
 <input type="radio" name="com" value="x">: $H_ENTRY<br>
 <input type="submit" value="$H_PUSHHERE_POST">
@@ -437,7 +439,7 @@ sub QuoteOriginalArticle {
 	s/<[^>]*>//go;
 
 	# 引用文字列の表示
-	printf("%s%s%s", $Name, $DEFAULT_QMARK, $_);
+	&cgi'KPrint(sprintf("%s%s%s", $Name, $DEFAULT_QMARK, $_));
 	
     }
 
@@ -469,7 +471,7 @@ sub Preview {
     &MsgHeader($PREVIEW_MSG);
 
     # お約束
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="c"        type="hidden" value="x">
 <input name="b"        type="hidden" value="$BOARD">
@@ -492,26 +494,26 @@ __EOF__
 
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
-        ? print("<strong>$H_SUBJECT</strong>: $Subject<br>\n")
-            : printf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+        ? &cgi'KPrint("<strong>$H_SUBJECT</strong>: $Subject<br>\n")
+            : &cgi'KPrint(sprintf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon)));
 
     # お名前
     if ($Url eq "http://" || $Url eq '') {
         # URLがない場合
-        print("<strong>$H_FROM</strong>: $Name<br>\n");
+        &cgi'KPrint("<strong>$H_FROM</strong>: $Name<br>\n");
     } else {
         # URLがある場合
-        print("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
+        &cgi'KPrint("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
     }
 
     # メール
-    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
+    &cgi'KPrint("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
 
     # 反応元(引用の場合)
     &ShowLinksToFollowedArticle($F_HEADITEM_REPLY, $Id, split(/,/, $rFid)) if (defined($rFid));
 
     # 切れ目
-    print("$H_LINE<br>\n");
+    &cgi'KPrint("$H_LINE<br>\n");
 
     # TextType用前処理
     print("<pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
@@ -519,7 +521,7 @@ __EOF__
     # 記事
     &DQDecode(*Article);
     &tag_secure'decode(*Article);
-    print("$Article\n");
+    &cgi'KPrint("$Article\n");
 
     # TextType用後処理
     print("</pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
@@ -576,7 +578,7 @@ sub Thanks {
     # 表示画面の作成
     &MsgHeader($THANKS_MSG);
 
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <p>
 $H_THANKSMSG
 </p>
@@ -800,7 +802,7 @@ sub ShowArticle {
 
     # お約束
     if ($SYS_COMMAND) {
-	print(<<__EOF__);
+	&cgi'KPrint(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="c" type="hidden" value="m">
 <input name="b" type="hidden" value="$BOARD">
@@ -811,45 +813,45 @@ sub ShowArticle {
 <a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 __EOF__
 	if ($Aids) {
-	    print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>");
+	    &cgi'KPrint("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>");
 	} else {
-	    print("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">");
+	    &cgi'KPrint("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">");
 	}
 
-	print("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n</form>\n");
+	&cgi'KPrint("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n</form>\n");
 
     }
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	print("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject<br>\n");
+	&cgi'KPrint("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+	&cgi'KPrint(sprintf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon)));
     }
 
     # お名前
     if ((! $Url) || ($Url eq 'http://')) {
         # URLがない場合
-        print("<strong>$H_FROM</strong>: $Name<br>\n");
+        &cgi'KPrint("<strong>$H_FROM</strong>: $Name<br>\n");
     } else {
         # URLがある場合
-        print("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
+        &cgi'KPrint("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
     }
 
     # メール
-    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
+    &cgi'KPrint("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
 
     # マシン
-    print("<strong>$H_HOST</strong>: $RemoteHost<br>\n") if $SYS_SHOWHOST;
+    &cgi'KPrint("<strong>$H_HOST</strong>: $RemoteHost<br>\n") if $SYS_SHOWHOST;
 
     # 投稿日
-    print("<strong>$H_DATE</strong>: $Date<br>\n");
+    &cgi'KPrint("<strong>$H_DATE</strong>: $Date<br>\n");
 
     # 反応元(引用の場合)
     &ShowLinksToFollowedArticle($F_HEADITEM_REPLY, split(/,/, $Fid)) if ($Fid);
 
     # 切れ目
-    print("$H_LINE<br>\n");
+    &cgi'KPrint("$H_LINE<br>\n");
 
     # 記事
     open(TMP, "<$File") || &Fatal($ERR_FILE, $File);
@@ -860,7 +862,7 @@ __EOF__
 	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
 
 	# 表示
-	print($_);
+	&cgi'KPrint($_);
 
     }
     close(TMP);
@@ -869,7 +871,7 @@ __EOF__
     print("<hr>\n");
 
     # 反応記事
-    print("$H_FOLLOW\n");
+    &cgi'KPrint("$H_FOLLOW\n");
 
     print("<ul>\n");
 
@@ -882,13 +884,13 @@ __EOF__
 	    ($aFid, $aAids, $aDate, $aSubject, $aIcon, $aRemoteHost, $aName) = &GetArticlesInfo($Aid);
 
 	    # 表示
-	    printf("<li>%s\n", &GetFormattedTitle($Aid, $aAids, $aIcon, $aSubject, $aName, $aDate));
+	    &cgi'KPrint(sprintf("<li>%s\n", &GetFormattedTitle($Aid, $aAids, $aIcon, $aSubject, $aName, $aDate)));
 	}
 
     } else {
 
 	# 反応記事無し
-	print("<li>$H_NOTHING\n");
+	&cgi'KPrint("<li>$H_NOTHING\n");
 
     }
 
@@ -1027,7 +1029,7 @@ sub PrintAbstract {
 
     # 記事情報を取り出す．
     local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName) = &GetArticlesInfo($Id);
-    printf("<li>" . &GetFormattedTitle($Id, $dAids, $dIcon, $dSubject, $dName, $dDate) . "\n");
+    &cgi'KPrint(sprintf("<li>" . &GetFormattedTitle($Id, $dAids, $dIcon, $dSubject, $dName, $dDate) . "\n"));
 }
 
 
@@ -1166,7 +1168,7 @@ sub ShowIcon {
 
     if ($Type eq 'article') {
 
-	print(<<__EOF__);
+	&cgi'KPrint(<<__EOF__);
 <p>
 $H_ICONINTRO_ARTICLE
 </p>
@@ -1182,7 +1184,7 @@ __EOF__
 
     } else {
 
-	print(<<__EOF__);
+	&cgi'KPrint(<<__EOF__);
 <p>
 $H_ICONINTRO_ARTICLE
 <p>
@@ -1214,7 +1216,7 @@ __EOF__
 	    ($FileName, $Title, $Help) = split(/\t/, $_, 3);
 
 	    # 表示
-	    printf("<li><img src=\"%s\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : %s\n", &GetIconURL($FileName), ($Help || $Title));
+	    &cgi'KPrint(sprintf("<li><img src=\"%s\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : %s\n", &GetIconURL($FileName), ($Help || $Title)));
 	}
 	close(ICON);
 
@@ -1252,9 +1254,9 @@ sub SortArticle {
     print("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
     } else {
-	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
 
     print("<ul>\n");
@@ -1263,7 +1265,7 @@ sub SortArticle {
     if (! @Lines) {
 
 	# 空だった……
-	print("<li>$H_NOARTICLE\n");
+	&cgi'KPrint("<li>$H_NOARTICLE\n");
 
     } else {
 
@@ -1273,16 +1275,16 @@ sub SortArticle {
 
 	    # 記事情報の取り出し
 	    ($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = split(/\t/, $_, 11);
-	    print("<li>" . &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date) . "\n");
+	    &cgi'KPrint("<li>" . &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date) . "\n");
 	}
     }
 
     print("</ul>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
     }
 
     &MsgFooter();
@@ -1389,9 +1391,9 @@ sub ViewTitle {
     print("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
     } else {
-	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
 
     print("<ul>\n");
@@ -1400,16 +1402,16 @@ sub ViewTitle {
     if (! @NewLines) {
 
 	# 空だった……
-	print("<li>$H_NOARTICLE\n");
+	&cgi'KPrint("<li>$H_NOARTICLE\n");
 
     } else {
 
 	foreach (@NewLines) {
 	    if (! /^${NULL_LINE}$/o) {
 		if ((m!^<ul>$!io) || (m!^</ul>$!io)) {
-		    print("$_\n");
+		    &cgi'KPrint("$_\n");
 		} else {
-		    print("<li>$_");
+		    &cgi'KPrint("<li>$_");
 		}
 	    }
 	}
@@ -1418,9 +1420,9 @@ sub ViewTitle {
     print("</ul>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
     }
 
     &MsgFooter();
@@ -1544,15 +1546,15 @@ sub NewArticle {
     &MsgHeader("$BOARDNAME: $NEWARTICLE_MSG");
 
     if ($SYS_BOTTOMARTICLE) {
-	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
     } else {
-	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
 
     if (! @Lines) {
 
 	# 空だった……
-	print("<p>$H_NOARTICLE</p>\n");
+	&cgi'KPrint("<p>$H_NOARTICLE</p>\n");
 
     } else {
 
@@ -1572,12 +1574,12 @@ sub NewArticle {
     }
 
     if ($SYS_BOTTOMARTICLE) {
-	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
     }
 
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="v">
@@ -1606,7 +1608,7 @@ sub SearchArticle {
     &MsgHeader("$BOARDNAME: $SEARCHARTICLE_MSG");
 
     # お約束
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <form action="$PROGRAM\" method="POST">
 <input name="c" type="hidden" value="s">
 <input name="b" type="hidden" value="$BOARD">
@@ -1622,16 +1624,15 @@ $H_INPUTKEYWORD
 <p>$H_SEARCHTARGET:
 __EOF__
 
-    printf("<li>$H_SEARCHTARGETSUBJECT: <input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchSubject) ? 'CHECKED' : ''));
-    printf("<li>$H_SEARCHTARGETPERSON: <input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchPerson) ? 'CHECKED' : ''));
-    printf("<li>$H_SEARCHTARGETARTICLE: <input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>", (($SearchArticle) ? 'CHECKED' : ''));
+    &cgi'KPrint(sprintf("<li>$H_SEARCHTARGETSUBJECT: <input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchSubject) ? 'CHECKED' : '')));
+    &cgi'KPrint(sprintf("<li>$H_SEARCHTARGETPERSON: <input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchPerson) ? 'CHECKED' : '')));
+    &cgi'KPrint(sprintf("<li>$H_SEARCHTARGETARTICLE: <input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>", (($SearchArticle) ? 'CHECKED' : '')));
 
-    printf("<li>$H_ICON: <input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s> // ", (($SearchIcon) ? 'CHECKED' : ''));
+    &cgi'KPrint(sprintf("<li>$H_ICON: <input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s> // ", (($SearchIcon) ? 'CHECKED' : '')));
 
     # アイコンの選択
     print("<SELECT NAME=\"icon\">\n");
-    printf("<OPTION%s>$H_NOICON\n",
-	   (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED'));
+    &cgi'KPrint(sprintf("<OPTION%s>$H_NOICON\n", (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED')));
 	
     # 一つ一つ表示
     open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
@@ -1650,14 +1651,13 @@ __EOF__
 	($FileName, $IconTitle) = split(/\t/, $_, 3);
 
 	# 表示
-	printf("<OPTION%s>$IconTitle\n",
-	       (($Icon eq $IconTitle) ? ' SELECTED' : ''));
+	&cgi'KPrint(sprintf("<OPTION%s>$IconTitle\n", (($Icon eq $IconTitle) ? ' SELECTED' : '')));
     }
     close(ICON);
     print("</SELECT>\n");
 
     # アイコン一覧
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 (<a href="$PROGRAM?b=$BOARD&c=i&type=entry">$H_SEEICON</a>)<BR>
 </p>
 </ul>
@@ -1738,8 +1738,10 @@ sub SearchArticleList {
 	    }
 
 	    # 本文を検索
-	    $ArticleFile = &GetArticleFileName($dId, $BOARD);
-	    $ArticleFlag = 1 if ($Article && ($Line = &SearchArticleKeyword($ArticleFile, @KeyList)));
+	    if ($Article) {
+		$ArticleFile = &GetArticleFileName($dId, $BOARD);
+		$ArticleFlag = 1 if ($Line = &SearchArticleKeyword($ArticleFile, @KeyList));
+	    }
 
 	} else {
 
@@ -1754,19 +1756,19 @@ sub SearchArticleList {
 	    $HitFlag = 1;
 
 	    # 記事へのリンクを表示
-	    print("<li>" . &GetFormattedTitle($dId, $dAids, $dIcon, $dTitle, $dName, $dDate));
+	    &cgi'KPrint("<li>" . &GetFormattedTitle($dId, $dAids, $dIcon, $dTitle, $dName, $dDate));
 
 	    # 本文に合致した場合は本文も表示
 	    if ($ArticleFlag) {
 		$Line =~ s/<[^>]*>//go;
-		print("<blockquote>$Line</blockquote>\n");
+		&cgi'KPrint("<blockquote>$Line</blockquote>\n");
 	    }
 	}
     }
     close(DB);
 
     # ヒットしなかったら
-    print("<li>$H_NOTFOUND\n") unless ($HitFlag == 1);
+    &cgi'KPrint("<li>$H_NOTFOUND\n") unless ($HitFlag == 1);
 
     # リスト閉じる
     print("</ul>\n");
@@ -1830,7 +1832,7 @@ sub AliasNew {
     &MsgHeader($ALIASNEW_MSG);
 
     # 新規登録/登録内容の変更
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <p>
 $H_ALIASTITLE
 </p>
@@ -1914,11 +1916,11 @@ sub AliasMod {
     
     # 表示画面の作成
     &MsgHeader($ALIASMOD_MSG);
-    print("<p>$H_ALIAS: <strong>$A</strong>:\n");
+    &cgi'KPrint("<p>$H_ALIAS: <strong>$A</strong>:\n");
     if ($HitFlag == 2) {
-	print("$H_ALIASCHANGED</p>\n");
+	&cgi'KPrint("$H_ALIASCHANGED</p>\n");
     } else {
-	print("$H_ALIASENTRIED</p>\n");
+	&cgi'KPrint("$H_ALIASENTRIED</p>\n");
     }
     &MsgFooter();
     
@@ -1979,7 +1981,7 @@ sub AliasDel {
     
     # 表示画面の作成
     &MsgHeader($ALIASDEL_MSG);
-    print("<p>$H_ALIAS: <strong>$A</strong>: $H_ALIASDELETED</p>\n");
+    &cgi'KPrint("<p>$H_ALIAS: <strong>$A</strong>: $H_ALIASDELETED</p>\n");
     &MsgFooter();
 
 }
@@ -1997,15 +1999,20 @@ sub AliasShow {
     # 表示画面の作成
     &MsgHeader($ALIASSHOW_MSG);
     # あおり文
-    print("<p>$H_AORI_ALIAS</p>\n");
-    print("<p><a href=\"$PROGRAM?c=an\">$H_ALIASTITLE</a></p>\n");
+    &cgi'KPrint(<<__EOF__);
+<p>
+$H_AORI_ALIAS
+</p><p>
+<a href="$PROGRAM?c=an">$H_ALIASTITLE</a>
+</p>
+__EOF__
     
     # リスト開く
     print("<dl>\n");
     
     # 1つずつ表示
     foreach $Alias (sort keys(%Name)) {
-	print(<<__EOF__);
+	&cgi'KPrint(<<__EOF__);
 <p>
 <dt><strong>$Alias</strong>
 <dd>$H_FROM: $Name{$Alias}
@@ -2104,7 +2111,7 @@ sub BoardHeader {
 	&VersionCheck('Header', $1), next
 	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
 	# 表示する
-	print("$_");
+	&cgi'KPrint("$_");
     }
     close(HEADER);
 
@@ -2234,11 +2241,11 @@ sub ShowLinksToFollowedArticle {
 
 	# トップから順に表示する
 	if ($HeadItem eq $F_HEADITEM_REPLY) {
-	    print("<strong>$H_ORIG</strong>: ");
+	    &cgi'KPrint("<strong>$H_ORIG</strong>: ");
 	} else {
 	    print("<li>");
 	}
-	print(&GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date) . "<br>\n");
+	&cgi'KPrint(&GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date) . "<br>\n");
     }
 }
 
@@ -2342,14 +2349,26 @@ sub MsgHeader {
     local($Message) = @_;
     
     &cgi'header;
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <html>
 <head>
-<!--陝 (0xF0A1): cool idea to euc decode error protection; thanks to faichan\@kt.rim.or.jp-->
 <title>$Message</title>
 <base href="http://$SERVER_NAME:$SERVER_PORT$SYSDIR_NAME">
 </head>
-<body bgcolor="$BG_COLOR" TEXT="$TEXT_COLOR" LINK="$LINK_COLOR" ALINK="$ALINK_COLOR" VLINK="$VLINK_COLOR">
+__EOF__
+
+    print("<body");
+    if ($SYS_NETSCAPE_EXTENSION) {
+	print(" background=\"$BG_IMG\"") if $BG_IMG;
+	print(" bgcolor=\"$BG_COLOR\"") if $BG_COLOR;
+	print(" TEXT=\"$TEXT_COLOR\"") if $TEXT_COLOR;
+	print(" LINK=\"$LINK_COLOR\"") if $LINK_COLOR;
+	print(" ALINK=\"$ALINK_COLOR\"") if $ALINK_COLOR;
+	print(" VLINK=\"$VLINK_COLOR\"") if $VLINK_COLOR;
+    }
+    print(">\n");
+
+    &cgi'KPrint(<<__EOF__);
 <h1>$Message</h1>
 <hr>
 __EOF__
@@ -2362,7 +2381,7 @@ __EOF__
 #
 sub MsgFooter {
 
-    print(<<__EOF__);
+    &cgi'KPrint(<<__EOF__);
 <hr>
 <address>
 $ADDRESS
@@ -2420,50 +2439,50 @@ sub ViewOriginalArticle {
     # コマンド表示?
     if ($CommandFlag && $SYS_COMMAND) {
 
-	print(<<__EOF__);
+	&cgi'KPrint(<<__EOF__);
 <p>
 <a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 <a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 __EOF__
 	if ($Aids) {
-	    print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>");
+	    &cgi'KPrint("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>");
 	} else {
-	    print("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">");
+	    &cgi'KPrint("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">");
 	}
-	print("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n");
+	&cgi'KPrint("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n");
 
     }
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	print("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject<br>\n");
+	&cgi'KPrint("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+	&cgi'KPrint(sprintf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon)));
     }
 
     # お名前
     if ((! $Url) || ($Url eq 'http://')) {
         # URLがない場合
-        print("<strong>$H_FROM</strong>: $Name<br>\n");
+        &cgi'KPrint("<strong>$H_FROM</strong>: $Name<br>\n");
     } else {
         # URLがある場合
-        print("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
+        &cgi'KPrint("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
     }
 
     # メール
-    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
+    &cgi'KPrint("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
 
     # マシン
-    print("<strong>$H_HOST</strong>: $RemoteHost<br>\n") if $SYS_SHOWHOST;
+    &cgi'KPrint("<strong>$H_HOST</strong>: $RemoteHost<br>\n") if $SYS_SHOWHOST;
 
     # 投稿日
-    print("<strong>$H_DATE</strong>: $Date<br>\n");
+    &cgi'KPrint("<strong>$H_DATE</strong>: $Date<br>\n");
 
     # 反応元(引用の場合)
     &ShowLinksToFollowedArticle($F_HEADITEM_REPLY, split(/,/, $Fid)) if ($OriginalFlag && $Fid);
 
     # 切れ目
-    print("$H_LINE<br>\n");
+    &cgi'KPrint("$H_LINE<br>\n");
 
     # 記事の中身
     open(TMP, "<$QuoteFile") || &Fatal($ERR_FILE, $QuoteFile);
@@ -2474,7 +2493,7 @@ __EOF__
 	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
 
 	# 表示
-	print("$_");
+	&cgi'KPrint("$_");
 
     }
     close(TMP);
@@ -2700,7 +2719,7 @@ sub Fatal {
 
     # 表示画面の作成
     &MsgHeader($ERROR_MSG);
-    print("<p>$ErrString</p>\n");
+    &cgi'KPrint("<p>$ErrString</p>\n");
     &MsgFooter;
 
     exit(0);
