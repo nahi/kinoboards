@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.14 1997-02-09 20:36:21 nakahiro Exp $
+# $Id: cgi.pl,v 1.15 1997-02-11 06:45:47 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -30,6 +30,7 @@ $ARCH = $main'ARCH;
 $MAIL2 = $main'MAIL2;
 $MAILHOST = $main'MAILHOST;
 $MAILTOUT = $main'MAILTOUT;
+$SCRIPT_KCODE = ($main'SCRIPT_KCODE || 'euc');
 $JPOUT_SCHEME = ($main'JPOUT_SCHEME || 'jis');
 $WAITPID_BLOCK = ($main'WAITPID_BLOCK || 0);
 
@@ -92,7 +93,7 @@ sub decode {
 	if ($Code eq 'undef') {
 	    $TAGS{$Tag} = $Value;
 	} else {
-	    &jcode'convert(*Value, 'euc', $Code, "z"); #'
+	    &jcode'convert(*Value, $SCRIPT_KCODE, $Code, "z"); #'
 	    $TAGS{$Tag} = $Value;
 	}
 
