@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.27 1998-02-08 03:31:17 nakahiro Exp $
+# $Id: cgi.pl,v 1.28 1998-02-21 17:21:14 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -263,15 +263,14 @@ sub unlock {
 
 # lock with symlink
 sub lock_link {
-
-    # locked for maintenance by admin.
-    return( 2 ) if (( -e $lockFile ) && ( ! -w $lockFile ));
-
     local( $lockFile ) = @_;
     local( $lockWait ) = 10;		# [sec]
     local( $lockFileTimeout ) = .004;	# 5.76 [min]
     local( $timeOut ) = 0;
     local( $lockFlag ) = 0;
+
+    # locked for maintenance by admin.
+    return( 2 ) if (( -e $lockFile ) && ( ! -w $lockFile ));
 
     if ( -M "$lockFile" > $lockFileTimeout ) { unlink( $lockFile ); }
     for( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
@@ -370,8 +369,8 @@ sub Decode {
 	    $TAGS{ $key } = $value;
 	}
 
-	$TAGS{ $key } =~ s/\xd\xa/\n/go;
-	$TAGS{ $key } =~ s/\xa/\n/go;
+	$TAGS{ $key } =~ s/\0x0d\0x0a/\0x0a/go;
+	$TAGS{ $key } =~ s/\0x0d/\0x0a/go;
     }
 }
 
