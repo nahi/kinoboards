@@ -110,7 +110,7 @@ dt.charInPageHelp {
 
 </dl></dd>
 
-<dt class="charInPageHelp">(F)</dt>
+<dt class="charInPageHelp" name="thread">(F)</dt>
 <dd>この掲示板に登録されているメッセージのタイトル一覧が表示されます．
 <kb:c_icon_msg var="new!" />アイコンは，そのメッセージが新着メッセージであることを示しています．<br /><br />
 <kb:c_img var="messages.png,タイトル一覧ページ（メッセージ部）,536,363" /><br /><br />
@@ -157,7 +157,7 @@ dt.charInPageHelp {
 <dt class="charInPageHelp">(D)</dt>
 <dd>表示しているメッセージがリプライメッセージの場合，リプライ元のメッセージが全て表示されます．
 一番上に表示されているのが，このスレッドのオリジナルメッセージです．
-「スレッド」「オリジナル」「リプライ」という用語については，<kb:c_help var="titles" />を参照してください．</dd>
+「スレッド」「オリジナル」「リプライ」という用語については，<kb:c_help var="thread" />を参照してください．</dd>
 
 <dt class="charInPageHelp">(E)</dt>
 <dd>表示しているメッセージにリプライメッセージがある場合，リプライメッセージが全て表示されます．
@@ -227,14 +227,14 @@ dt.charInPageHelp {
 <dt class="charInPageHelp">(D)</dt>
 <dd>メッセージ本文を入力します．
 メッセージ中に関連ウェブページへのリンクを張る場合は，
-<strong>[url:http://〜]</strong>
+<strong>[URL:http://〜]</strong>
 のように，URLを
-<strong>[url:</strong>
+<strong>[URL:</strong>
 と
 <strong>]</strong>
 で囲んで書き込んでください．自動的にリンクが張られます．<br />
 この掲示板中の既存のメッセージにリンクを張る場合は，
-<strong>[url:kb:71]</strong>
+<strong>[URL:kb:71]</strong>
 のように，
 <strong>kb:</strong>
 の後ろにメッセージIDを入れてください．</dd>
