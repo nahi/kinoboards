@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.30 1999-06-16 14:35:29 nakahiro Exp $
+# $Id: kb.cgi,v 5.31 1999-06-17 03:58:24 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -1623,7 +1623,11 @@ sub TagMsgImg
 {
     local( $icon ) = @_;
 
-    if ( $SYS_ICON && $icon && ( $icon ne $H_NOICON ))
+    if ( !$icon || $icon eq $H_NOICON )
+    {
+	return "";
+    }
+    elsif ( $SYS_ICON )
     {
 	local( $src ) = &GetIconUrlFromTitle( $icon, $BOARD );
 	return "<img src=\"$src\" alt=\"[$icon]\" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\" BORDER=\"0\">";
