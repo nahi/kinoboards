@@ -22,7 +22,7 @@ Changes
 </h1>
 
 <p class="status">
-Last modified: May 7, 2000<br />
+Last modified: June 23, 2000<br />
 Created: May 2, 2000
 </p>
 </div>
@@ -32,6 +32,47 @@ Created: May 2, 2000
 <div class="main">
 
 <dl>
+<dt>Release 7.1</dt>
+<dd>Released.</dd>
+
+<dt>revision 5.80 - date: 2000/06/23 10:53:08;  author: nakahiro;  state: Exp;  lines: +2 -2</dt>
+<dd><ul>
+<li>Changed Release id.</li>
+</ul></dd>
+
+<dt>revision 5.79 - date: 2000/06/23 10:15:37;  author: nakahiro;  state: Exp;  lines: +8 -10</dt>
+<dd><ul>
+<li>Changed commands in Search View.
+  'searchposttimefrom' -> 'tpf' means time/post/from.
+  'searchposttimeto' -> 'tpt' means time/post/to.</li>
+<li>Added 'tpi' command to Search View.  It means time/post/instant.</li>
+</ul></dd>
+
+<dt>revision 5.78 - date: 2000/06/22 13:22:08;  author: nakahiro;  state: Exp;  lines: +123 -252</dt>
+<dd><ul>
+<li>Changed lock policy.  Views which required transaction level: 1 ( Read comitted ) does not lock.</li>
+<li>Removed $SYS_THREAD_FORMAT == 1 ( Show all replies ).</li>
+</ul></dd>
+
+<dt>revision 5.77 - date: 2000/06/14 14:41:48;  author: nakahiro;  state: Exp;  lines: +137 -176</dt>
+<dd><ul>
+<li>Changing password requires one's current password.</li>
+<li>Check duplicated e-mail in User DB before not only opening new account but also changing the account.</li>
+<li>Added $SYS_KEYBOARD_SHORTCUT option not to show keyboard shortcuts.</li>
+<li>Optimization of &amp;chacheArt.</li>
+<li>Added $SYS_THREAD_ORDER option to control thread order.  A thread which is replied is treated as the newest thread and move up to the top in title listing pages.</li>
+</ul></dd>
+
+<dt>revision 5.76 - date: 2000/05/12 15:25:58;  author: nakahiro;  state: Exp;  lines: +70 -52</dt>
+<dd><ul>
+<li>Changed the example of $KBDIR_PATH for Win32. \ -> \\.</li>
+<li>For security reason, require the original password to change his/her password.</li>
+<li>Added a check box in Board Entry View and Board Config View to load/ignore kb.conf.</li>
+<li>Changed the access key of 'INFO'. C -> I.</li>
+<li>Fixed a bug in message search by date.  When FROM has been given, TO has been ignored...</li>
+</ul></dd>
+
+
 <dt>Release 7.0</dt>
 <dd>Released.</dd>
 
