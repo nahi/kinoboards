@@ -1,0 +1,108 @@
+<HTML>
+<head>
+<TITLE>MacPerl で、KINOBOARDS を動かそう</TITLE>
+</head>
+
+<body>
+<H2>Mac で、KINOBOARDS を動かそう</H2>
+
+<A HREF = "http://www.kinotrope.co.jp/~nakahiro/src/index.html">KINOBOARDS</A> とは、<A HREF = "http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</A> さんが、free software として公開されている、Perl でかかれた、CGI Script です。<BR>
+カスタマイズが簡単に出来る、非常に強力な掲示板システムです。<BR>
+最小限の変更で、Macintosh 上でも動作する事が分かりましたので、以下にその方法を記します。<BR>
+（R3.2以降では、マルチ・プラットフォーム対応になりました）<P>
+
+
+<HR><P>
+
+<H3>Mac で、CGI を動かす準備</H3>
+<BLOCKQUOTE>
+Mac で、CGIを使用可能な WWW Server を用意する。<BR>
+（<A HREF = "http://www.slaphappy.com/">Quid Pro Quo 1.0 で動作確認</A>）<P>
+
+MacPerlを、<A HREF = "ftp://ftp.lab.kdd.co.jp/lang/perl/CPAN/ports/mac/">ftp://ftp.lab.kdd.co.jp/lang/perl/CPAN/ports/mac/</A> などから入手する。<BR>
+（MacPerl5.1.1r2 で動作確認、現在、5.1.3r2 で稼働中）<P>
+
+MacPerl のヴァージョンが、<STRONG>5.1.1r2 以前の場合</STRONG>、<BR>
+<STRONG>CGI glue (PCGI)</STRONG>　を<BR>
+
+<STRONG><A HREF = "ftp://err.ethz.ch/pub/neeri/MacPerl/">ftp://err.ethz.ch/pub/neeri/MacPerl/</A></STRONG><BR>
+にいってとってくる。<BR>
+（PCGI_06Feb96 で動作確認）<BR>
+この中に入っている、　<BR>
+<STRONG>"MacHTTP CGI Script"</STRONG>　を、<BR>
+MacPerl の　
+<STRONG>MacPerl Extensions　folder</STRONG>　
+にほおりこむ。<BR>
+（MacPerl5.1.2r2 からは、デフォルトで付いてきます）<P>
+</BLOCKQUOTE>
+
+<h3>MacPerl で、メイル送信サービスを使う準備</h3>
+<BLOCKQUOTE>
+<STRONG>R3.3以降</STRONG>では、マックでも、メイル送信サービスが使えるようになりました。<BR>
+<A HREF = "ftp://mors.gsfc.nasa.gov/pub/MacPerl/Scripts/">ftp://mors.gsfc.nasa.gov/pub/MacPerl/Scripts/</A> にいって、<BR>
+<STRONG>libnet</STRONG> を取ってきてください。<BR>
+（libnet 1.04 で動作確認）<P>
+
+ファイルを解凍後、フォルダ− Net の中身を、<BR>
+<STRONG>MacPerl フォルダの中の、:lib:Net フォルダ−の中</STRONG>（lin フォルダーの中の、更に、Net フォルダーの中）に、総べて入れてください。<P>
+</BLOCKQUOTE>
+
+
+<h3>KINOBOARDS のインストール</h3>
+<BLOCKQUOTE>
+<A HREF = "http://www.kinotrope.co.jp/~nakahiro/src/index.html">KINOBOARDS ver.1.0 R3.2</A> 以降を取ってきて、解凍する。<BR>
+すべてのファイルの改行コードを、Unix の改行コード(LF)から、<BR>
+<STRONG>マックの改行コード(CR)に変換</STRONG>する。<BR>
+<STRONG>漢字コードは</STRONG>、EUC のままで、<STRONG>変換しない</STRONG>。<P>
+
+<a href="ftp://ftp.sra.co.jp/pub/lang/perl/sra-scripts/">SRAのftp site</a>　から、<BR>
+<STRONG>jcode.pl-2.0</STRONG> を取ってきて、<STRONG>改行コードをマック用に変換</STRONG>した後、<BR>
+<STRONG>jcode.pl</STRONG> という名前で、kb.cgi と同じフォルダ−に入れてください。<BR>
+jcode.plは(株)SRAの歌代さんが作られたフリーウェアで、<BR>
+これがなければ日本語のコード変換ができません。<P>
+
+<STRONG>kb.ph</STRONG>を書き換えて，きのぼーずをあなたのサイト用に設定し直してください、<BR>
+KINOBOARDS ver.1.0 R3.2 からは、マルチ・プラットフォーム対応になりました。<BR>
+<STRONG>kb.ph</STRONG>の中の、<BR>
+<ul>
+<li>管理者の名前　($MAINT_NAME)
+<li>管理者のメイルアドレス　($MAINT)
+<li>掲示板システムの名前　($SYSTEM_NAME)
+<li>サーバマシンのタイプ　($ARCH)
+<li>（メイル送信サービスを使用するならば）メールサーバーのホスト名　($MAIL2)
+</ul>
+を、それぞれ、自分の環境に合わせて書き換えてください。管理者の名前とメイルアドレスは，忘れずに変更してください。<BR>
+サーバーマシンのタイプとして、Mac を選ぶだけで、MacPerl で動くようになります。<BR>
+これだけでオーケー。<BR>
+う〜む、そごい。<P>
+</BLOCKQUOTE>
+
+<h3>CGI として機能させる</h3>
+<BLOCKQUOTE>
+<STRONG>kb.cgi</STRONG>　
+を、MacPerl にドロップし、<BR>
+<STRONG>Save as</STRONG> で、
+<STRONG>"(MacHTTP) CGI Script"</STRONG>
+を選択する。<P>
+メモリが足りないと怒られた時は、MacPerl 本体へのメモリの割り当てを増やしてみてください。<P>
+</BLOCKQUOTE>
+
+
+<H3>Document をよく読む　(^^;</h3>
+　これで、魔苦で動かすための準備は出来ました。<BR>
+　あなたのサイトの /kb/index.html から、KINOBOARDS にアクセスしてみましょう。<BR>
+　無事動きましたでしょうか？<BR>
+　あとは、ついてくる<A HREF = "./index.html">ドキュメント</A>を参考にしてください。<P>
+
+<HR>
+
+最後になりますが、このようなプログラムを公開されている、<A HREF = "http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</A> さんに、感謝いたします。<P>
+
+
+<HR><P>
+
+<A HREF = "http://bio206.chem.nagoya-u.ac.jp/okuwaki/OKUWAKI.html">To OKUWAKI's Home Page</A><BR>
+<a href="mailto:okuwaki@chem3.chem.nagoya-u.ac.jp">Mail to OKUWAKI</a><BR>
+<P>
+</body>
+</HTML>
