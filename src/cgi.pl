@@ -1,8 +1,8 @@
-# $Id: cgi.pl,v 1.17 1997-03-13 15:20:41 nakahiro Exp $
+# $Id: cgi.pl,v 1.18 1997-04-02 07:30:09 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
-# Copyright (C) 1995, 96 NAKAMURA Hiroshi.
+# Copyright (C) 1995, 96, 97 NAKAMURA Hiroshi.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,111 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
+# CAUTION
+#
+#	歌代さんによる日本語漢字コード変換ユーティリティ，jcode.plの
+#	v2.0以降が必要です．以下のURLから入手してください．
+#	<URL:ftp://ftp.sra.co.jp/pub/lang/perl/sra-scripts/>
+#
+#
+#
+# INTERFACE
+#
+#
+# &cgi'lock($file);
+#
+#	$fileで指定されたファイル名を使い，perl programを排他ロックします．
+#	$mail'ARCHの値に応じ，用いるロック手法が異なります．
+#		UNIX	シンボリックリンクによるロック
+#		WinNT	flockによるロック
+#		Win95	ロック必要がないのでなにもしません
+#		Mac	ロック必要がないのでなにもしません
+#	ロックが無事行えれば1を，なんらかの理由で行えなければ0を返します．
+#
+#
+# &cgi'unlock($file);
+#
+#	$fileで指定されたファイル名を使ってかけられた排他ロックを外します．
+#	返り値はありません．
+#
+#
+# &cgi'Header($utc);
+#
+#	標準出力に対し，CGIプログラムが送信すべきHTTPヘッダを出力します．
+#	$utcで指定されたUTC時間が，プログラムの最終更新時間になります．
+#	$utcが省略された場合は現在時です．
+#	返り値はありません．
+#
+#
+# &cgi'GetHttpDateTimeFromUtc($utc);
+#
+#	$utcで指定されたUTC時間から，HTTP Date/Timeフォーマットの時間文字列を
+#	作り出します．返り値はその文字列です．
+#
+#
+# &cgi'Decode;
+#
+#	ブラウザからCGIプログラムに送信されたフォームの入力内容，
+#	あるいはURLのサーチパート(「〜.cgi?foo=bar」の，「?」以降の部分)を
+#	解析し，%cgi'TAGSに格納します．
+#	例えば'name'というフォームへの入力内容は$cgi'TAGS{'name'}で，
+#	「〜.cgi?foo=bar」というURLのfooの値は$cgi'TAGS{'foo'}で，
+#	参照することができます．
+#	%cgi'TAGSを破壊します．返り値はありません．
+#
+#
+# &cgi'Cookie;
+#
+#	ブラウザからCGIプログラムに送信されたHTTP Cookiesを解析し，
+#	%cgi'COOKIESに格納します．
+#	例えばHTTP Cookiesが'foo=bar'という文字列であれば，
+#	$cgi'COOKIES{'foo'}に'bar'が格納されます．
+#	%cgi'COOKIESを破壊します．返り値はありません．
+#
+#
+# &cgi'SendMail($fromName, $fromEmail, $subject, $extension, $message, @to);
+#
+#	メイルを送信します．
+#		$fromName: 送り主の名前(日本語を入れないでください)
+#		$fromEmail: 送り主のE-Mail addr.
+#		$subject: メイルのsubject文字列(日本語を入れないでください)
+#		$extension: メイルのextension header文字列
+#		$message: 本文である文字列
+#		@to: 宛先のE-Mail addr.のリスト
+#	$main'ARCHの値に応じ，用いるメイル送信手法が異なります．
+#		UNIX	$main'MAIL2で指定したsendmailコマンド
+#			(例えば'/usr/lib/sendmail -oi -t')を使って送信します．
+#		WinNT	UNIX以外ではメイル送信はできません．$main'MAIL2で
+#		Win95	指定したファイルに書き出します．ただしMacでなら，
+#		Mac	perl5専用のcgi.pl.libnetを使えばメイル送信ができます．
+#	送信が無事行えれば1を，なんらかの理由で行えなければ0を返します．
+#
+#
+# &cgi'SecureHtml(*string);
+#
+#	*stringで指定された文字列のうち，指定した安全なタグのみを残し，
+#	あとはHTML encodeしてしまいます．
+#	使用を許可するタグおよびフィーチャは，@cgi'HTML_TAGSで指定します．
+#	返り値はありません．
+#
+#
+# &cgiprint'Init;
+# &cgiprint'Cache($string);
+# &cgiprint'Flush;
+#
+#	CGIプログラムからブラウザに送信する文字列の日本語漢字コードを変換し，
+#	標準出力に吐き出します．高速化のためにキャッシュ機能を持っており，
+#	Initはキャッシュのクリアを，
+#	Cacheは表示文字列のキャッシュを，
+#	Flushはキャッシュされている文字列の送信を行います．
+#	キャッシュが適当なサイズになったら自動的にFlushされるので，
+#	キャッシュした文字列の大きさを気にする必要はありません．
+#	'<html><title>...</title>'のキャッシュの前に一度&cgiprint'Initして，
+#	後はすべてのprintを&cgiprint'Cache($string)にし，
+#	'</html>'の後で&cgiprint'Flushするとよいでしょう．
+#	返り値はありません．
+
+
 require('jcode.pl');
 
 
@@ -30,6 +135,7 @@ package cgi;
 
 $ARCH = $main'ARCH;
 $MAIL2 = $main'MAIL2;
+$SERVER_NAME = $main'SERVER_NAME;
 $SCRIPT_KCODE = ($main'SCRIPT_KCODE || 'euc');
 $JPOUT_SCHEME = ($main'JPOUT_SCHEME || 'jis');
 $WAITPID_BLOCK = ($main'WAITPID_BLOCK || 0);
@@ -162,14 +268,14 @@ sub Header {
 
     local($Utc) = @_;
 
-#    local($LastModified) = &GetHttpDateTimeFromUtc($Utc || time);
+    local($LastModified) = &GetHttpDateTimeFromUtc($Utc || time);
 
 # $ENV{'SERVER_PROTOCOL'} 200 OK
 # Server: $ENV{'SERVER_SOFTWARE'}
-# Last-Modified: $LastModified
 
     print(<<__EOF__);
 Content-type: text/html
+Last-Modified: $LastModified
 
 __EOF__
 
@@ -225,15 +331,13 @@ sub Decode {
 
 
 ###
-## Cookie変数のデコード
+## HTTP Cookiesのデコード
 #
 sub Cookie {
-
-    local(@QUERY, $Tag, $Value);
-    @QUERY = split(";\s*", $ENV{'HTTP_COOKIE'});
-    foreach (@QUERY) {
-	($Tag, $Value) = split(/=/, $_, 2);
-	eval("\$$Tag = \"$Value\";");
+    local($Term, $Tag, $Value);
+    foreach $Term (split(";\s*", $ENV{'HTTP_COOKIE'})) {
+	($Tag, $Value) = split(/=/, $Term, 2);
+	$COOKIES{$Tag} = $Value;
     }
 }
 
