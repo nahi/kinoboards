@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.50 2000-06-23 10:12:26 nakahiro Exp $
+# $Id: cgi.pl,v 2.51 2000-07-01 13:11:26 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -886,12 +886,12 @@ $COLSEP = "\377";
 #		&cgi'decode;
 #		&cgi'cookie;
 #		$cgiauth'AUTH_TYPE = 1;
-#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'checkUser( $userdb );
+#		( $status, $uid, $sessKey, @userInfo ) = &cgiauth'checkUser( $userdb );
 #
 #	with Server Authentication
 #		require( 'cgi.pl' );
 #		$cgiauth'AUTH_TYPE = 2;
-#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'checkUser( $userdb );
+#		( $status, $uid, $sessKey, @userInfo ) = &cgiauth'checkUser( $userdb );
 #
 #	with direct URL Authentication
 #		require( 'cgi.pl' );
@@ -900,7 +900,7 @@ $COLSEP = "\377";
 #		$cgi'TAGS{'kinoT'} = 0 ... plain passwd / 1 ... encrypted
 #		$cgi'TAGS{'kinoU'} = user's name
 #		$cgi'TAGS{'kinoP'} = user's passwd
-#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'checkUser( $userdb );
+#		( $status, $uid, $sessKey, @userInfo ) = &cgiauth'checkUser( $userdb );
 #
 # - ARGS
 #	$userdb		user db.
@@ -909,8 +909,7 @@ $COLSEP = "\377";
 #	check user's name and password.
 #
 # - RETURN
-#	returns status, user entry, encrypted password,
-#	and listed user's info.
+#	returns status, user entry, session key, and listed user's info.
 #
 #	status:
 #		0 ... succeed authentication.
@@ -1075,7 +1074,7 @@ sub setUserPasswd
     local( $userdb, $user, $passwd ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
-    local( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo );
+    local( $dId, $dUser, $dSalt, $dSPhrase, $dTime, $dAddr, $dInfo );
 
     local( $salt ) = &newSalt();
     open( USERDBTMP, ">$tmpFile" ) || return 0;
@@ -1088,13 +1087,12 @@ sub setUserPasswd
 	    next;
 	}
 	chop;
-	( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo ) = split( /\t/, $_, 7 );
+	( $dId, $dUser, $dSalt, $dSPhrase, $dTime, $dAddr, $dInfo ) = split( /\t/, $_, 7 );
 
 	if ( $dUser eq $user )
 	{
-	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser,
-		$salt, substr( crypt( $passwd, $salt ), 2 ), $^T,
-		( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR ), $dInfo ) || return 0;
+	    $dSPhrase = substr( crypt( $passwd, $salt ), 2 ) . ':';
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $salt, $dSPhrase, $^T, ( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR ), $dInfo ) || return 0;
 	    $found = 1;
 	}
 	else
@@ -1134,7 +1132,7 @@ sub setUserInfo
     local( $userdb, $user, @userInfo ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
-    local( $dId, $dUser, $dSalt, $dPasswd );
+    local( $dId, $dUser, $dSalt, $dSPhrase );
 
     open( USERDBTMP, ">$tmpFile" ) || return 0;
     open( USERDB, "<$userdb" ) || return 0;
@@ -1146,14 +1144,11 @@ sub setUserInfo
 	    next;
 	}
 	chop;
-	( $dId, $dUser, $dSalt, $dPasswd ) = split( /\t/, $_, 5 );
+	( $dId, $dUser, $dSalt, $dSPhrase ) = split( /\t/, $_, 5 );
 
 	if ( $dUser eq $user )
 	{
-	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser,
-		$dSalt, $dPasswd, $^T,
-		( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR ),
-		join( "\t", @userInfo )) || return 0;
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dSalt, $dSPhrase, $^T, ( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR ), join( "\t", @userInfo )) || return 0;
 	    $found = 1;
 	}
 	else
@@ -1192,7 +1187,7 @@ sub searchUserInfo
 {
     local( $userdb, @userInfo ) = @_;
     local( @dInfo ) = ();
-    local( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo );
+    local( $dId, $dUser, $dSalt, $dSPhrase, $dTime, $dAddr, $dInfo );
 
     local( $matchFlag );
     open( USERDB, "<$userdb" ) || return 0;
@@ -1200,7 +1195,7 @@ sub searchUserInfo
     {
 	next if ( /^\#/o || /^$/o );
 	chop;
-	( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo ) = split( /\t/, $_, 7 );
+	( $dId, $dUser, $dSalt, $dSPhrase, $dTime, $dAddr, $dInfo ) = split( /\t/, $_, 7 );
 	@dInfo = split( /\t/, $dInfo );
 
 	$matchFlag = 1;
@@ -1295,8 +1290,7 @@ sub header
 #	check user's name and password.
 #
 # - RETURN
-#	returns status, user entry, encrypted password,
-#	and listed user's info.
+#	returns status, user entry, session key, and listed user's info.
 #
 #	status
 #		0 ... succeed authentication.
@@ -1315,22 +1309,23 @@ sub checkUserPasswd
 
     return ( &updateUserPasswd( $userdb, $user, $passwd )) if ( $checkType == 0 );
 
-    local( $retCode, $retUser, $retPasswd, $retRest );
+    local( $retCode, $retUser, $retKey, $retRest );
     $retCode = 3;		# Means `not found'.
 
-    local( $dId, $dUser, $dSalt, $dPasswd, $dRest );
+    local( $dId, $dUser, $dSalt, $dSPhrase, $dRest, $dPasswdDgst, $dSessionDgst );
     open( USERDB, "<$userdb" ) || return ( 2 );
     while ( <USERDB> )
     {
 	next if (( $retCode != 3 ) || /^\#/o || /^$/o );
 	chop;
-	( $dId, $dUser, $dSalt, $dPasswd, $dRest ) = split( /\t/, $_, 5 );
+	( $dId, $dUser, $dSalt, $dSPhrase, $dRest ) = split( /\t/, $_, 5 );
+	( $dPasswdDgst, $dSessionDgst ) = split( /:/, $dSPhrase, 2 );
 
-	if (( $dUser eq $ADMIN ) && ( $dPasswd eq '' ))
+	if (( $dUser eq $ADMIN ) && ( $dPasswdDgst eq '' ))
 	{
 	    $retCode = 9;
 	    $retUser = $dUser;
-	    $retPasswd = $dPasswd;
+	    $retKey = $dSessionDgst;
 	    $retRest = $dRest;
 	    last;
 	}
@@ -1339,19 +1334,16 @@ sub checkUserPasswd
 	    if (
 		# No check.
 		( $checkType == 2 ) ||
-		# Encrypted passwd.
-		(( $checkType == 1 ) && ( $passwd eq $dPasswd )) ||
-		# Plain passwd.
-		(( $checkType == 0 ) &&
-		 ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dPasswd ))
+		# Session check.
+		(( $checkType == 1 ) && ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dSessionDgst )) ||
+		# For backward compatibility to R7.1.1 or before.
+		(( $checkType == 1 ) && ( $dSessionDgst eq '' ) && ( $passwd eq $dPasswdDgst ))
 	    )
 	    {
 		# authentication succeeded!
-		$UID = $dUser;
-		$PASSWD = $dPasswd;
+		$UID = $retUser = $dUser;
+		$PASSWD = $retKey = $passwd;
 		$retCode = 0;
-		$retUser = $dUser;
-		$retPasswd = $dPasswd;
 		$retRest = $dRest;
 		last;
 	    }
@@ -1365,7 +1357,7 @@ sub checkUserPasswd
     }
     close USERDB;
 
-    return ( $retCode, $retUser, $retPasswd, split( /\t/, $retRest ));
+    return ( $retCode, $retUser, $retKey, split( /\t/, $retRest ));
 }
 
 
@@ -1384,7 +1376,8 @@ sub checkUserPasswd
 #	update user's salt.
 #
 # - RETURN
-#	update user's salt and returns status, user entry, encrypted password.
+#	update user's salt and returns status, user entry, encrypted password,
+#	and session key.
 #
 #	status
 #		0 ... succeed authentication.
@@ -1402,12 +1395,11 @@ sub updateUserPasswd
 
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
-    local( $dId, $dUser, $dSalt, $dPasswd );
 
-    local( $retCode, $retUser, $retPasswd, $retRest );
+    local( $retCode, $retUser, $retKey, $retRest );
     $retCode = 3;		# Means `not found'.
 
-    local( $dId, $dUser, $dSalt, $dPasswd, $dRest );
+    local( $dId, $dUser, $dSalt, $dSPhrase, $dRest, $dPasswdDgst, $dSessionDgst );
     open( USERDBTMP, ">$tmpFile" ) || return ( 2 );
     open( USERDB, "<$userdb" ) || return ( 2 );
     while ( <USERDB> )
@@ -1418,36 +1410,35 @@ sub updateUserPasswd
 	    next;
 	}
 	chop;
-	( $dId, $dUser, $dSalt, $dPasswd, $dRest ) = split( /\t/, $_, 5 );
+	( $dId, $dUser, $dSalt, $dSPhrase, $dRest ) = split( /\t/, $_, 5 );
+	( $dPasswdDgst, $dSessionDgst ) = split( /:/, $dSPhrase, 2 );
 
-	if (( $dUser eq $ADMIN ) && ( $dPasswd eq '' ))
+	if (( $dUser eq $ADMIN ) && ( $dPasswdDgst eq '' ))
 	{
 	    $retCode = 9;
 	    $retUser = $dUser;
-	    $retPasswd = $dPasswd;
+	    $retKey = $dSessionDgst;
 	    $retRest = $dRest;
 	    print( USERDBTMP $_, "\n" ) || return ( 2 );
 	}
 	elsif ( $dUser eq $user )
 	{
-	    if ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dPasswd )
+	    if ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dPasswdDgst )
 	    {
-		$dSalt = &newSalt();
-		$dPasswd = substr( crypt( $passwd, $dSalt ), 2 );
-		$UID = $dUser;
-		$PASSWD = $dPasswd;
+		$UID = $retUser = $dUser;
+		$PASSWD = $retKey = &createNewPasswd();
 		$retCode = 0;
-		$retUser = $dUser;
-		$retPasswd = $dPasswd;
 		$retRest = $dRest;
+		$dSalt = &newSalt();
+		$dPasswdDgst = substr( crypt( $passwd, $dSalt ), 2 );
+		$dSessionDgst = substr( crypt( $retKey, $dSalt ), 2 );
 	    }
 	    else
 	    {
 		# authentication failed.
 		$retCode = 4;
 	    }
-	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dSalt,
-		$dPasswd, $dRest ) || return ( 2 );
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dSalt, "$dPasswdDgst:$dSessionDgst", $dRest ) || return ( 2 );
 	    $found = 1;
 	}
 	else
@@ -1460,7 +1451,7 @@ sub updateUserPasswd
 
     rename( $tmpFile, $userdb ) || return ( 2 );
 
-    return ( $retCode, $retUser, $retPasswd, split( /\t/, $retRest ));
+    return ( $retCode, $retUser, $retKey, split( /\t/, $retRest ));
 }
 
 
