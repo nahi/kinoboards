@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="ISO-2022-JP"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link rev="MADE" href="mailto:nakahiro@sarion.co.jp" />
+<link rel="INDEX" href="./" />
+<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen" />
+<title>Customize - KINOBOARDS/1.0R7</title>
+</head>
+<body>
+
+<div class="header">
+<h1>
+Customize
+</h1>
+
+<p class="status">
+Last modified: August 10, 2000<br />
+Created: August 10, 2000
+</p>
+</div>
+
+<hr />
+
+<div class="main">
+<h2>0. このドキュメントの目的</h2>
+
+<p>
+このドキュメントは，きのぼずのカスタマイズ方法について説明するためのものです．
+</p>
+
+<p>
+本文書が対象としているKINOBOARDSのバージョンは，
+KINOBOARDS version 1.0 release 7（KINOBOARDS/1.0R7.3以降）
+です．
+</p>
+
+<p>
+以下のカスタマイズ方法毎に説明します．
+</p>
+
+<dl>
+<dt><a href="#function">1. 機能</a></dt>
+<dd>機能が多ければよい，というものではありません．
+必要な機能のみ使えるようにカスタマイズしましょう．</dd>
+
+<dt><a href="#landf">2. 見た目</a></dt>
+<dd>見た目をカスタマイズします．</dd>
+</dl>
+
+<h2 id="function">1. 機能</h2>
+
+<p>
+kb.phの該当部分を書き換えます．
+(To be written...)
+</p>
+
+<p>
+掲示板毎に変えたい場合は．．．
+</p>
+
+<h2 id="landf">2. 見た目</h2>
+
+<h3 id="stylesheet">スタイルシート</h3>
+
+<p>
+kb.phの$STYLE_SHEETを書き換えます．
+(To be written...)
+</p>
+
+<p>
+掲示板毎に変えたい場合は．．．
+</p>
+
+<h3 id="ui">UI定義ファイル</h3>
+
+<p>
+タグの配置を変えたい場合や画像を張り込みたい場合など，スタイルシートによる変更だけでは物足りないこともあるでしょう．
+</p>
+
+<p>
+きのぼずが表示する画面の見た目は，<a href="UIDefinition.html">UIディレクトリの中に収められているXMLファイル</a>（以後UI定義ファイルと呼ぶことにします）を変更することにより，カスタマイズすることができます．
+UI定義ファイルは基本的にXHTMLそのままなので，適宜書き換えてください．
+</p>
+
+<p>
+UI定義ファイルには，<a href="htmlEmbedding.html">きのぼず固有のタグ</a>がいくつか入れられています．
+きのぼずはこのタグを見て，ジャンプメニューやメッセージのスレッドなどを合成し，最終的な画面を生成しています．
+XHTMLのタグを書き換える以外に，きのぼずタグを書き換えるのも，見た目の変更に有効かもしれません．
+</p>
+
+<p>
+例えば．．．
+</p>
+
+</div>
+
+<hr />
+
+<div class="footer">
+<address>
+<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br />
+Copyright &copy; 1995-2000
+<a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
+</address>
+</div>
+</body>
+</html>
