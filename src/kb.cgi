@@ -1,6 +1,6 @@
-#!/usr/local/bin/GNU/perl
+#!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 5.0 1997-07-03 09:58:00 nakahiro Exp $
+# $Id: kb.cgi,v 5.1 1997-07-17 11:35:22 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -43,7 +43,27 @@ $SCRIPT_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$SCRIPT_NAME$PATH_INFO";
 $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME");
 $SERVER_PORT_STRING = '';
 $KB_VERSION = '1.0';
-$KB_RELEASE = '4.1pre';
+$KB_RELEASE = '5.0';
+
+# インクルードファイルの読み込み
+if ($PATH_INFO && (-s "$HEADER_FILE")) { require($HEADER_FILE); }
+if ($PATH_TRANSLATED ne '') { chdir($PATH_TRANSLATED); }
+if (-s "$HEADER_FILE") {
+    require($HEADER_FILE);
+} else {
+    die("cannot find configuration file: `$HEADER_FILE'");
+}
+require('cgi.pl');
+require('jcode.pl');
+
+# インクルードファイルの設定に応じた大域変数の設定
+$SYS_F_MT = ($SYS_F_D || $SYS_F_AM || $SYS_F_MV);
+if (($SERVER_PORT != 80) && ($SYS_PORTNO == 1)) {
+    $SERVER_PORT_STRING = ":$SERVER_PORT";
+}
+if ($TIME_ZONE) { $ENV{'TZ'} = $TIME_ZONE; }
+if ($BOARDLIST_URL eq '-') { $BOARDLIST_URL = "$PROGRAM?c=bl"; }
+$ADDRESS = sprintf("Maintenance: <a href=\"mailto:%s\">%s</a><br><a href=\"http://www.kinotrope.co.jp/~nakahiro/kb10.shtml\">KINOBOARDS/%s R%s</a>: Copyright (C) 1995, 96, 97 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.", $MAINT, $MAINT_NAME, $KB_VERSION, $KB_RELEASE);
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
@@ -73,26 +93,6 @@ $ICON_THREAD = "$ICON_DIR/thread.gif";		# まとめ読み
 $ICON_HELP = "$ICON_DIR/help.gif";		# ヘルプ
 $ICON_DELETE = "$ICON_DIR/delete.gif";		# 削除
 $ICON_SUPERSEDE = "$ICON_DIR/supersede.gif";	# 訂正
-
-# インクルードファイルの読み込み
-if ($PATH_INFO && (-s "$HEADER_FILE")) { require($HEADER_FILE); }
-if ($PATH_TRANSLATED ne '') { chdir($PATH_TRANSLATED); }
-if (-s "$HEADER_FILE") {
-    require($HEADER_FILE);
-} else {
-    die("cannot find configuration file: `$HEADER_FILE'");
-}
-require('cgi.pl');
-require('jcode.pl');
-
-# インクルードファイルの設定に応じた大域変数の設定
-$SYS_F_MT = ($SYS_F_D || $SYS_F_AM || $SYS_F_LI || $SYS_F_MV);
-if (($SERVER_PORT != 80) && ($SYS_PORTNO == 1)) {
-    $SERVER_PORT_STRING = ":$SERVER_PORT";
-}
-if ($TIME_ZONE) { $ENV{'TZ'} = $TIME_ZONE; }
-if ($BOARDLIST_URL eq '-') { $BOARDLIST_URL = "$PROGRAM?c=bl"; }
-$ADDRESS = sprintf("Maintenance: <a href=\"mailto:%s\">%s</a><br><a href=\"http://www.kinotrope.co.jp/~nakahiro/kb10.shtml\">KINOBOARDS/%s R%s</a>: Copyright (C) 1995, 96, 97 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.", $MAINT, $MAINT_NAME, $KB_VERSION, $KB_RELEASE);
 
 # シグナルハンドラ
 $SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
@@ -145,38 +145,38 @@ MAIN: {
     $Com = $cgi'TAGS{'com'};
 
     # コマンドタイプによる分岐
-    &ShowArticle,	last if ($SYS_F_E  && ($Command eq 'e'));
-    &ThreadArticle,	last if ($SYS_F_T  && ($Command eq 't'));
-    &Entry(0),		last if ($SYS_F_N  && ($Command eq 'n'));
-    &Entry(1),		last if ($SYS_F_FQ && ($Command eq 'f'));
-    &Entry(2),		last if ($SYS_F_FQ && ($Command eq 'q'));
-    &Preview,		last if (($SYS_F_N || $SYS_F_FQ) && ($Command eq 'p') && ($Com ne 'x'));
-    &Thanks,		last if (($SYS_F_N || $SYS_F_FQ) && ($Command eq 'x'));
-    &Thanks,		last if (($SYS_F_N || $SYS_F_FQ) && ($Command eq 'p') && ($Com eq 'x'));
-    &ViewTitle,		last if ($SYS_F_V  && ($Command eq 'v'));
-    &SortArticle,	last if ($SYS_F_R  && ($Command eq 'r'));
-    &NewArticle,	last if ($SYS_F_L  && ($Command eq 'l'));
-    &SearchArticle,	last if ($SYS_F_S  && ($Command eq 's'));
+    &ShowArticle,	last if ($Command eq 'e');
+    &ThreadArticle,	last if ($SYS_F_T && ($Command eq 't'));
+    &Entry(0),		last if ($SYS_F_N && ($Command eq 'n'));
+    &Entry(1),		last if ($SYS_F_N && ($Command eq 'f'));
+    &Entry(2),		last if ($SYS_F_N && ($Command eq 'q'));
+    &Preview,		last if ($SYS_F_N && ($Command eq 'p') && ($Com ne 'x'));
+    &Thanks,		last if ($SYS_F_N && ($Command eq 'x'));
+    &Thanks,		last if ($SYS_F_N && ($Command eq 'p') && ($Com eq 'x'));
+    &ViewTitle(0),	last if ($Command eq 'v');
+    &SortArticle,	last if ($SYS_F_R && ($Command eq 'r'));
+    &NewArticle,	last if ($SYS_F_L && ($Command eq 'l'));
+    &SearchArticle,	last if ($SYS_F_S && ($Command eq 's'));
     &ShowIcon,		last if ($Command eq 'i');
     &AliasNew,		last if ($SYS_ALIAS && ($Command eq 'an'));
     &AliasMod,		last if ($SYS_ALIAS && ($Command eq 'am'));
     &AliasDel,		last if ($SYS_ALIAS && ($Command eq 'ad'));
     &AliasShow,		last if ($SYS_ALIAS && ($Command eq 'as'));
+    &BoardList,		last if ($SYS_F_B && ($Command eq 'bl'));
 
     # 以下は管理用
-    &ViewTitle('maint'),	last if ($SYS_F_MT && ($Command eq 'vm'));
-    &DeletePreview,	last if ($SYS_F_D  && ($Command eq 'dp'));
-    &DeleteExec(0),	last if ($SYS_F_D  && ($Command eq 'de'));
-    &DeleteExec(1),	last if ($SYS_F_D  && ($Command eq 'det'));
+    &ViewTitle(1),	last if ($SYS_F_MT && ($Command eq 'vm'));
+    &DeletePreview,	last if ($SYS_F_D && ($Command eq 'dp'));
+    &DeleteExec(0),	last if ($SYS_F_D && ($Command eq 'de'));
+    &DeleteExec(1),	last if ($SYS_F_D && ($Command eq 'det'));
     &ArriveMailEntry,   last if ($SYS_F_AM && ($Command eq 'mp'));
     &ArriveMailExec,    last if ($SYS_F_AM && ($Command eq 'me'));
-    &ViewTitle('linkto'),	last if ($SYS_F_LI && ($Command eq 'ct'));
-    &ViewTitle('linkexec'),	last if ($SYS_F_LI && ($Command eq 'ce'));
-    &ViewTitle('moveto'),	last if ($SYS_F_MV && ($Command eq 'mvt'));
-    &ViewTitle('moveexec'),	last if ($SYS_F_MV && ($Command eq 'mve'));
+    &ViewTitle(2),	last if ($SYS_F_MV && ($Command eq 'ct'));
+    &ViewTitle(3),	last if ($SYS_F_MV && ($Command eq 'ce'));
+    &ViewTitle(4),	last if ($SYS_F_MV && ($Command eq 'mvt'));
+    &ViewTitle(5),	last if ($SYS_F_MV && ($Command eq 'mve'));
 
     # デフォルト
-    &BoardList,		last if ($SYS_F_B  && ($Command eq 'bl'));
 
     if ($Command ne '') {
 	&Fatal(99, '');
@@ -194,1889 +194,103 @@ exit(0);
 ######################################################################
 # ユーザインタフェイスインプリメンテーション(個別)
 #
-# 使わない機能に対応する関数は，取り払っても動く……はずです
-# (が，テストはしてません ^_^;)．
+# GUIディレクトリに収められているGUIの実装モジュールをrequireする．
+# 不要なプログラムをコンパイルしないようにするため．
+# 各関数のリファレンスは，GUIディレクトリ内の各ファイルを参照のこと．
 
+### BoardList - 掲示板一覧の表示
+sub BoardList { require(&GetPath('GUI', 'BoardList.pl')); }
 
-###
-## BoardList - 掲示板一覧の表示
-#
-# - SYNOPSIS
-#	BoardList;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	掲示板一覧を表示する．
-#
-# - RETURN
-#	なし
-#
-sub BoardList {
-
-    local(%BoardList, %BoardInfo, $Key, $Value, $ModTime, $NumOfArticle);
-
-    # 全掲示板の情報を取り出す
-    &getAllBoardInfo(*BoardList, *BoardInfo);
-
-    &MsgHeader("Board List", "$SYSTEM_NAME");
-
-    &cgiprint'Cache(<<__EOF__);
-<p>
-<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0</a>
-で運営されているシステムです．
-</p><p>
-$SYSTEM_NAMEでは，現在，以下の$H_BOARDが用意されています．
-</p>
-__EOF__
-
-    &cgiprint'Cache("<dl>\n");
-    while(($Key, $Value) = each(%BoardList)) {
-	$ModTime = &GetDateTimeFormatFromUtc(&GetModifiedTime($DB_FILE_NAME, $Key));
-	$NumOfArticle = &getArticleId($Key);
-	&cgiprint'Cache("<p>\n<dt><a href=\"$PROGRAM?b=$Key&c=v&num=$DEF_TITLE_NUM\">$Value</a>\n");
-	&cgiprint'Cache("[最新: $ModTime, 記事数: $NumOfArticle]\n");
-	&cgiprint'Cache("<dd>$BoardInfo{$Key}\n</p>\n");
-    }
-
-    &cgiprint'Cache("</dl>\n</p>\n");
-
-    &MsgFooter;
-
-}
-
-
-###
-## Entry - 書き込み画面の表示
-#
-# - SYNOPSIS
-#	Entry($QuoteFlag);
-#
-# - ARGS
-#	$QuoteFlag	0 ... 新着
-#			1 ... 引用なしのリプライ
-#			2 ... 引用ありのリプライ
-#
-# - DESCRIPTION
-#	書き込み画面を表示する
-#	大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
+### Entry - 書き込み画面の表示
 sub Entry {
-    local($QuoteFlag) = @_;
-    local($Id, $Supersede, $IconTitle, $Key, $Value, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $DefSubject, $DefName, $DefEmail, $DefUrl, $DefFmail);
-
-    $Id = $cgi'TAGS{'id'};
-    $Supersede = $cgi'TAGS{'s'}; # 訂正?
-    if ($QuoteFlag != 0) {
-	($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = &GetArticlesInfo($Id);
-    }
-    $Icon = $Icon || $H_NOICON;
-    $DefSubject = ($Supersede ? $Subject : (($QuoteFlag == 0) ? '' : &GetReplySubject($Id)));
-    $DefName = ($Supersede ? $Name : '');
-    $DefEmail = ($Supersede ? $Email : '');
-    $DefUrl = ($Supersede ? $Url : 'http://');
-    $DefFmail = ($Supersede ? $Fmail : '');
-
-    # 表示画面の作成
-    if ($Supersede && $SYS_F_SS) {
-	&MsgHeader('Supersede entry', "$BOARDNAME: $H_MESGの訂正");
-    } else {
-	&MsgHeader('Message entry', "$BOARDNAME: $H_MESGの書き込み");
-    }
-
-    # フォローの場合
-    if ($QuoteFlag != 0) {
-	# 記事の表示(コマンド無し, 元記事あり)
-	&ViewOriginalArticle($Id, 0, 1);
-	if ($Supersede && $SYS_F_SS) {
-	    &cgiprint'Cache("<hr>\n<h2>上の$H_MESGを訂正する</h2>");
-	} else {
-	    &cgiprint'Cache("<hr>\n<h2>上の$H_MESGへの$H_REPLYを書き込む</h2>");
-	}
-    }
-
-    # お約束
-    &cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="p">
-<input name="b" type="hidden" value="$BOARD">
-<input name="id" type="hidden" value="$Id">
-<input name="s" type="hidden" value="$Supersede">
-<p>
-__EOF__
-    if ($Supersede && $SYS_F_SS) {
-	&cgiprint'Cache(<<__EOF__);
-上の$H_MESGと入れ換える$H_MESGを書き込んでください．
-__EOF__
-    } else {
-	&cgiprint'Cache(<<__EOF__);
-$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにウェブページをお持ちの方は，
-ホームページの$H_URLを書き込んでください(もちろん，なくても構いません)．
-__EOF__
-    }
-
-    # HTMLでも書ける場合
-    if ($SYS_TEXTTYPE) {
-	&cgiprint'Cache(<<__EOF__);
-HTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，
-$H_MESGをHTMLとして書いて頂くと，表示の時にHTML整形を行ないます．
-__EOF__
-    }
-
-    &cgiprint'Cache(<<__EOF__);
-</p>
-<p>
-$H_BOARD: $BOARDNAME<br>
-__EOF__
-
-    # アイコンの選択
-    if ($SYS_ICON) {
-	&cashIconDB($BOARD);	# アイコンDBをキャッシュ
-	&cgiprint'Cache("$H_ICON:\n<SELECT NAME=\"icon\">\n<OPTION SELECTED>$H_NOICON\n");
-	foreach $IconTitle (sort keys(%ICON_FILE)) {
-	    &cgiprint'Cache("<OPTION>$IconTitle\n");
-	}
-	&cgiprint'Cache("</SELECT>\n");
-
-	&cgiprint'Cache("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">アイコンの説明</a>)<BR>\n");
-
-    }
-
-    # Subject(フォローなら自動的に文字列を入れる)
-    &cgiprint'Cache(sprintf("%s: <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n", $H_SUBJECT, $DefSubject, $SUBJECT_LENGTH));
-
-    # TextType
-    if ($SYS_TEXTTYPE) {
-	&cgiprint'Cache(<<__EOF__);
-$H_TEXTTYPE:
-<SELECT NAME="texttype">
-<OPTION SELECTED>$H_PRE
-<OPTION>$H_HTML
-</SELECT>
-</p>
-__EOF__
-
-    }
-
-    # 本文(引用ありなら元記事を挿入)
-    &cgiprint'Cache("<p><textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
-    if ($Supersede && $SYS_F_SS) {
-	&QuoteOriginalArticleWithoutQMark($Id);
-    } elsif ($QuoteFlag == 2) {
-	&QuoteOriginalArticle($Id);
-    }
-
-    &cgiprint'Cache("</textarea></p>\n");
-
-    # フッタ部分を表示
-    # 名前とメイルアドレス，URL．
-    &cgiprint'Cache(<<__EOF__);
-<p>
-$H_MESG中に関連ウェブページへのリンクを張る場合は，
-「&lt;URL:http://〜&gt;」のように，URLを「&lt;URL:」と「&gt;」で囲んで
-書き込んでください．自動的にリンクが張られます．
-</p>
-__EOF__
-
-    if ($SYS_ALIAS == 0) {
-
-	# エイリアスは使わない
-	&cgiprint'Cache(<<__EOF__);
-<p>
-$H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
-$H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
-$H_URL_S: <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
-</p>
-__EOF__
-
-    } elsif ($SYS_ALIAS == 1) {
-
-	# エイリアスを使う
-	&cgiprint'Cache(<<__EOF__);
-<p>
-$H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
-$H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
-$H_URL_S: <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH">
-</p>
-__EOF__
-
-	&cgiprint'Cache(<<__EOF__);
-<p>
-「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録なさっている方は，
-「$H_FROM」に「#...」という登録名を書いてください．
-自動的に$H_FROMと$H_MAIL，$H_URLが補われます．
-(<a href="$PROGRAM?c=as">$H_ALIASの一覧</a> //
- <a href="$PROGRAM?c=an">$H_ALIASを登録</a>)
-</p>
-__EOF__
-
-    } else {
-
-	# エイリアスを登録しなければ書き込みできない
-
-	# エイリアスの読み込み
-	&CashAliasData;
-
-	&cgiprint'Cache(<<__EOF__);
-<p>
-$H_USER:
-<SELECT NAME="name">
-<OPTION SELECTED>$H_FROMを登録した$H_ALIASを選んでください
-__EOF__
-
-	while (($Key, $Value) = each %Name) {
-	    &cgiprint'Cache("<OPTION>$Key\n");
-	}
-	&cgiprint'Cache(<<__EOF__);
-</SELECT>
-</p>
-__EOF__
-
-	&cgiprint'Cache(<<__EOF__);
-<p>
-予め「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録しないと書き込めません．
-登録した後，「#...」という登録名を指定してください．
-(<a href="$PROGRAM?c=as">$H_ALIASの一覧</a> //
- <a href="$PROGRAM?c=an">$H_ALIASを登録</a>)<br>
-登録した$H_ALIASが表示されない(選択できない)場合，
-このページを再読み込みしてください．
-</p>
-__EOF__
-
-    }
-
-    if ($SYS_MAIL) {
-	&cgiprint'Cache("<p>$H_REPLYがあった時にメイルで知らせますか? <input name=\"fmail\" type=\"checkbox\" value=\"on\"></p>\n");
-    }
-    
-    # ボタン
-    &cgiprint'Cache(<<__EOF__);
-<p>
-書き込んだ内容を，<br>
-<input type="radio" name="com" value="p" CHECKED>: 試しに表示してみる(まだ投稿しません)<br>
-__EOF__
-
-    if ($Supersede && $SYS_F_SS) {
-	&cgiprint'Cache("<input type=\"radio\" name=\"com\" value=\"x\">: 訂正します<br>\n");
-    } else {
-	&cgiprint'Cache("<input type=\"radio\" name=\"com\" value=\"x\">: $H_MESGを投稿する<br>\n");
-    }
-
-    &cgiprint'Cache(<<__EOF__);
-<input type="submit" value="実行">
-</p>
-</form>
-__EOF__
-
-    &MsgFooter;
-
+    ($gVarQuoteFlag) = @_;
+    require(&GetPath('GUI', 'Entry.pl'));
+    undef($gVarQuoteFlag);
 }
 
+### Preview - プレビュー画面の表示
+sub Preview { require(&GetPath('GUI', 'Preview.pl')); }
 
-###
-## Preview - プレビュー画面の表示
-#
-# - SYNOPSIS
-#	Preview;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	プレビュー画面を表示する．
-#	大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub Preview {
+### Thanks - 登録後画面の表示
+sub Thanks { require(&GetPath('GUI', 'Thanks.pl')); }
 
-    local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $rFid);
+### ShowArticle - 単一記事の表示
+sub ShowArticle { require(&GetPath('GUI', 'ShowArticle.pl')); }
 
-    # 入力された記事情報
-    $Supersede = $cgi'TAGS{'s'};
-    $Id = $cgi'TAGS{'id'};
-    $TextType = $cgi'TAGS{'texttype'};
-    $Name = $cgi'TAGS{'name'};
-    $Email = $cgi'TAGS{'mail'};
-    $Url = $cgi'TAGS{'url'};
-    $Icon = $cgi'TAGS{'icon'};
-    $Subject = $cgi'TAGS{'subject'};
-    $Article = $cgi'TAGS{'article'};
-    $Fmail = $cgi'TAGS{'fmail'};
-    if ($Id ne '') { $rFid = &GetArticlesInfo($Id); }
+### ThreadArticle - フォロー記事を全て表示．
+sub ThreadArticle { require(&GetPath('GUI', 'ThreadArticle.pl')); }
 
-    # 入力された記事情報のチェック
-    $Article = &CheckArticle($BOARD, $TextType, *Name, *Email, *Url, *Subject, *Icon, $Article);
+### ShowIcon - アイコン表示画面
+sub ShowIcon { require(&GetPath('GUI', 'ShowIcon.pl')); }
 
-    # 確認画面の作成
-    &MsgHeader('Message preview', "$BOARDNAME: 書き込みの内容を確認してください");
+### SortArticle - 日付順にソート
+sub SortArticle { require(&GetPath('GUI', 'SortArticle.pl')); }
 
-    # お約束
-    &cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="c"        type="hidden" value="x">
-<input name="b"        type="hidden" value="$BOARD">
-<input name="id"       type="hidden" value="$Id">
-<input name="texttype" type="hidden" value="$TextType">
-<input name="name"     type="hidden" value="$Name">
-<input name="mail"     type="hidden" value="$Email">
-<input name="url"      type="hidden" value="$Url">
-<input name="icon"     type="hidden" value="$Icon">
-<input name="subject"  type="hidden" value="$Subject">
-<input name="article"  type="hidden" value="$Article">
-<input name="fmail"    type="hidden" value="$Fmail">
-<input name="s"        type="hidden" value="$Supersede">
-
-__EOF__
-
-    if ($Supersede && $SYS_F_SS) {
-	&cgiprint'Cache(<<__EOF__);
-<p>
-上の$H_MESGの替わりに，下の$H_MESGを書き込みます．
-必要であれば，ブラウザのBACKボタンで戻って，書き込みを修正してください．
-よろしければボタンを押して訂正しましょう．
-<input type="submit" value="訂正します">
-</p>
-</form>
-__EOF__
-	&ViewOriginalArticle($Id, 0, 1);
-	&cgiprint'Cache("<hr>\n");
-    } else {
-	&cgiprint'Cache(<<__EOF__);
-<p>
-必要であれば，ブラウザのBACKボタンで戻って，書き込みを修正してください．
-よろしければボタンを押して書き込みましょう．
-<input type="submit" value="投稿する">
-</p>
-</form>
-__EOF__
-    }
-
-    &cgiprint'Cache("<p>\n");
-
-    # 題
-    (($Icon eq $H_NOICON) || (! $Icon))
-        ? &cgiprint'Cache("<strong>$H_SUBJECT</strong>: $Subject")
-            : &cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon, $BOARD)));
-
-    # お名前
-    if ($Url ne '') {
-        # URLがある場合
-        &cgiprint'Cache("<br>\n<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a>");
-    } else {
-        # URLがない場合
-        &cgiprint'Cache("<br>\n<strong>$H_FROM</strong>: $Name");
-    }
-
-    # メイル
-    if ($Email ne '') {
-	&cgiprint'Cache(" <a href=\"mailto:$Email\">&lt;$Email&gt;</a>");
-    }
-
-    # 反応元(引用の場合)
-    if (defined($rFid)) {
-	if ($rFid ne '') {
-	    &ShowLinksToFollowedArticle(($Id, split(/,/, $rFid)));
-	} else {
-	    &ShowLinksToFollowedArticle($Id);
-	}
-    }
-
-    # 切れ目
-    &cgiprint'Cache("</p>\n$H_LINE\n");
-
-    # TextType用前処理
-    if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE)) {
-	&cgiprint'Cache("<p><pre>");
-    }
-
-    # 記事
-    $Article = &DQDecode($Article);
-    $Article = &ArticleEncode($Article);
-    &cgiprint'Cache("$Article\n");
-
-    # TextType用後処理
-    if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE)) {
-	&cgiprint'Cache("</pre></p>\n");
-    }
-
-    &MsgFooter;
-}
-
-
-###
-## Thanks - 登録後画面の表示
-#
-# - SYNOPSIS
-#	Thanks;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	書き込み後の画面を表示する
-#	大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub Thanks {
-
-    local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $ArticleId);
-
-    # 入力された記事情報
-    $Supersede = $cgi'TAGS{'s'};
-    $Id = $cgi'TAGS{'id'};
-    $TextType = $cgi'TAGS{'texttype'};
-    $Name = $cgi'TAGS{'name'};
-    $Email = $cgi'TAGS{'mail'};
-    $Url = $cgi'TAGS{'url'};
-    $Icon = $cgi'TAGS{'icon'};
-    $Subject = $cgi'TAGS{'subject'};
-    $Article = $cgi'TAGS{'article'};
-    $Fmail = $cgi'TAGS{'fmail'};
-
-    if ($Supersede && $SYS_F_SS) {
-
-	# 訂正する 
-	&SupersedeArticle($BOARD, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
-
-	# 表示画面の作成
-	&MsgHeader('Message superseded', "$BOARDNAME: $H_MESGが訂正されました");
-
-    } else {
-
-	# 記事の作成
-	&MakeNewArticle($BOARD, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
-
-	# 表示画面の作成
-	&MsgHeader('Message entried', "$BOARDNAME: 書き込みありがとうございました");
-
-    }
-
-    if ($SYS_F_V) {
-	&cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="b" type="hidden" value="$BOARD">
-<input name="c" type="hidden" value="v">
-<input name="num" type="hidden" value="$DEF_TITLE_NUM">
-<input type="submit" value="$H_BACKTITLE">
-</form>
-__EOF__
-    }
-
-    if ($SYS_F_E && ($Id ne '')) {
-	&cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="b" type="hidden" value="$BOARD">
-<input name="c" type="hidden" value="e">
-<input name="id" type="hidden" value="$Id">
-<input type="submit" value="$H_ORIGの$H_MESGへ">
-</form>
-__EOF__
-    }
-
-    &MsgFooter;
-
-}
-
-
-###
-## ShowArticle - 単一記事の表示
-#
-# - SYNOPSIS
-#	ShowArticle;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	単一の記事を表示する．
-#       大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub ShowArticle {
-
-    local($Id, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $DateUtc, $Aid, @AidList, @FollowIdTree);
-
-    $Id = $cgi'TAGS{'id'};
-    ($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url) = &GetArticlesInfo($Id);
-    $DateUtc = &GetUtcFromOldDateTimeFormat($Date);
-    @AidList = split(/,/, $Aids);
-
-    # 未投稿記事は読めない
-    if ($Name eq '') { &Fatal(8, ''); }
-
-    # 表示画面の作成
-    &MsgHeader('Message view', "$BOARDNAME: $Subject", $DateUtc);
-    &ViewOriginalArticle($Id, 1, 1);
-
-    # article end
-    &cgiprint'Cache("$H_LINE\n<p>\n");
-
-    # 反応記事
-    &cgiprint'Cache("▼$H_REPLY\n");
-    if ($Aids ne '') {
-
-	# 反応記事があるなら…
-	foreach $Aid (@AidList) {
-
-	    # フォロー記事の木構造の取得
-	    # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
-	    @FollowIdTree = &GetFollowIdTree($Aid);
-
-	    # メイン関数の呼び出し(記事概要)
-	    &ThreadArticleMain('subject only', @FollowIdTree);
-
-	}
-
-    } else {
-
-	# 反応記事無し
-	&cgiprint'Cache("<ul>\n<li>$H_REPLYはありません\n</ul>\n");
-
-    }
-
-    &cgiprint'Cache("</p>\n");
-
-    # お約束
-    &MsgFooter;
-
-}
-
-
-###
-## ThreadArticle - フォロー記事を全て表示．
-#
-# - SYNOPSIS
-#	ThreadArticle;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	ある記事と，その記事へのリプライ記事をまとめて表示する．
-#       大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub ThreadArticle {
-
-    local($Id, @FollowIdTree);
-
-    $Id = $cgi'TAGS{'id'};
-
-    # フォロー記事の木構造の取得
-    # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
-    @FollowIdTree = &GetFollowIdTree($Id);
-
-    # 表示画面の作成
-    &MsgHeader('Message view (threaded)', "$BOARDNAME: $H_REPLYをまとめ読み");
-
-    # メイン関数の呼び出し(記事概要)
-    &ThreadArticleMain('subject only', @FollowIdTree);
-
-    # メイン関数の呼び出し(記事)
-    &ThreadArticleMain('', @FollowIdTree);
-
-    &MsgFooter;
-
-}
-
-sub ThreadArticleMain {
-    local($SubjectOnly, $Head, @Tail) = @_;
-
-    # 記事概要か，記事そのものか．
-    if ($SubjectOnly) {
-
-	if ($Head eq '(') {
-	    &cgiprint'Cache("<ul>\n");
-	} elsif ($Head eq ')') {
-	    &cgiprint'Cache("</ul>\n");
-	} else {
-	    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName) = &GetArticlesInfo($Head);
-	    &cgiprint'Cache("<li>" . &GetFormattedTitle($Head, $BOARD, $dAids, $dIcon, $dSubject, $dName, $dDate) . "\n");
-	}
-
-    } else {
-
-	if (($Head ne '(') && ($Head ne ')')) {
-	    # 元記事の表示(コマンド付き, 元記事なし)
-	    &cgiprint'Cache("<hr>\n");
-	    &ViewOriginalArticle($Head, 1, 0);
-	}
-
-    }
-
-    # 再帰
-    if (@Tail) {
-	&ThreadArticleMain($SubjectOnly, @Tail);
-    }
-
-}
-
-
-###
-## ShowIcon - アイコン表示画面
-#
-# - SYNOPSIS
-#	ShowIcon;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	アイコン表示画面を表示する．
-#	大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub ShowIcon {
-
-    local($IconTitle, $Type);
-
-    # タイプを拾う
-    $Type = $cgi'TAGS{'type'};
-
-    # 表示画面の作成
-    &MsgHeader('Icon show', "$BOARDNAME: アイコンの説明");
-
-    if ($Type eq 'article') {
-
-	&cgiprint'Cache(<<__EOF__);
-<p>
-各アイコンは次の機能を表しています．
-</p>
-<ul>
-<p>
-<li><img src="$ICON_BLIST" alt="$H_BACKBOARD" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_BACKBOARD
-<li><img src="$ICON_TLIST" alt="$H_BACKTITLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_BACKTITLE
-<li><img src="$ICON_PREV" alt="$H_PREVARTICLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_PREVARTICLE
-<li><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_NEXTARTICLE
-<li><img src="$ICON_THREAD" alt="$H_READREPLYALL" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_READREPLYALL
-</p><p>
-<li><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_POSTNEWARTICLE
-<li><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_REPLYTHISARTICLE
-<li><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_REPLYTHISARTICLEQUOTE
-</p>
-</ul>
-__EOF__
-
-    } else {
-
-	&cashIconDB($BOARD);	# アイコンDBのキャッシュ
-
-	&cgiprint'Cache(<<__EOF__);
-<p>
-各アイコンは次の機能を表しています．
-<p>
-<ul>
-<li>$H_THREAD : その$H_MESGの$H_REPLYをまとめて読む
-</ul>
-</p>
-<p>
-$H_BOARD「$BOARDNAME」では，次のアイコンを使うことができます．
-</p>
-<p>
-<ul>
-__EOF__
-	foreach $IconTitle (sort keys(%ICON_FILE)) {
-	    &cgiprint'Cache(sprintf("<li><img src=\"%s\" alt=\"$IconTitle\" height=\"$MSGICON_HEIGHT\" width=\"$MSGICON_WIDTH\"> : %s\n", &GetIconURLFromTitle($IconTitle, $BOARD), ($ICON_HELP{$IconTitle} || $IconTitle)));
-	}
-	&cgiprint'Cache("</ul>\n</p>\n");
-
-    }
-
-    &MsgFooter;
-
-}
-
-
-###
-## SortArticle - 日付順にソート
-#
-# - SYNOPSIS
-#	SortArticle;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	タイトル一覧を日付順にソートして表示する．
-#	大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub SortArticle {
-
-    local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id);
-
-    # 表示する個数を取得
-    $Num = $cgi'TAGS{'num'};
-    $Old = $cgi'TAGS{'old'};
-    $NextOld = ($Old > $Num) ? ($Old - $Num) : 0;
-    $BackOld = ($Old + $Num);
-    $To = $#DB_ID - $Old;
-    $From = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
-
-    # 表示画面の作成
-    &MsgHeader('Title view (sorted)', "$BOARDNAME: $H_SUBJECT一覧(日付順)");
-
-    &BoardHeader('normal');
-
-    &cgiprint'Cache("<hr>\n");
-
-    if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
-    } else {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
-    }
-
-    &cgiprint'Cache("<p><ul>\n");
-
-    # 記事の表示
-    if ($#DB_ID == -1) {
-
-	# 空だった……
-	&cgiprint'Cache("<li>$H_NOARTICLE\n");
-
-    } else {
-
-	if ($SYS_BOTTOMTITLE) {
-	    for ($IdNum = $From; $IdNum <= $To; $IdNum++) {
-		$Id = $DB_ID[$IdNum];
-		&cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
-	    }
-	} else {
-	    for ($IdNum = $To; $IdNum >= $From; $IdNum--) {
-		$Id = $DB_ID[$IdNum];
-		&cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
-	    }
-	}
-    }
-
-    &cgiprint'Cache("</ul></p>\n");
-
-    if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
-    } else {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
-    }
-
-    &MsgFooter;
-
-}
-
-
-###
-## ViewTitle - スレッド別表示
-#
-# - SYNOPSIS
-#	ViewTitle($ComType);
-#
-# - ARGS
-#	$ComType	表示画面のタイプ
-#				指定なし ... 記事参照画面
-#				maint ...... 記事管理画面
-#				linkto ..... リンクかけかえ先指定画面
-#				linkexec ... リンクかけかえ実施
-#				moveto ..... 移動先指定画面
-#				moveexec ... 移動実施
-#
-# - DESCRIPTION
-#	新しい記事のタイトルをスレッド別にソートして表示．
-#	大域変数である，CGI変数を参照する．
-#	大域変数ADDFLAG(既に表示してしまったか否かを表わすフラグ)を破壊する．
-#
-# - RETURN
-#	なし
-#
+### ViewTitle - スレッド別表示
 sub ViewTitle {
-    local($ComType) = @_;
-    local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id, $Fid, $IdNum, $Id, $NextCommand, $FirstFlag, $Key, $Value, $AddNum);
-    %ADDFLAG = ();		# it's static.
-
-    if ($ComType eq 'linkexec') {
-	# リンクかけかえの実施
-	&ReLinkExec($cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD);
-    } elsif ($ComType eq 'moveexec') {
-	# 移動の実施
-	&ReOrderExec($cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD);
-    }
-
-    # 表示する個数を取得
-    $Num = $cgi'TAGS{'num'};
-    $Old = $cgi'TAGS{'old'};
-    $NextOld = ($Old > $Num) ? ($Old - $Num) : 0;
-    $BackOld = ($Old + $Num);
-    $To = $#DB_ID - $Old;
-    $From = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
-
-    # 整形済みフラグ
-    # 0 ... 整形対象外
-    # 1 ... 整形済み
-    # 2 ... 未整形
-    for($IdNum = $From; $IdNum <= $To; $IdNum++) { $ADDFLAG{$DB_ID[$IdNum]} = 2; }
-
-    # 前/後ろコマンド
-    $FirstFlag = 1;
-    $NextCommand = '?';
-    while (($Key, $Value) = each %cgi'TAGS) {
-	# 数関連はカット
-	next if (($Key eq 'num') || ($Key eq 'old'));
-	if ($FirstFlag) { $FirstFlag = 0; } else { $NextCommand .= "&"; }
-	$NextCommand .= "$Key=$Value";
-    }
-
-    # ページング用文字列
-    $AddNum = "&num=" . $cgi'TAGS{'num'} . "&old=" . $cgi'TAGS{'old'};
-
-    # 表示画面の作成
-    if ($ComType eq 'linkto') {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: 新たなリプライ先の指定");
-    } elsif ($ComType eq 'linkexec') {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: 指定された$H_MESGのリプライ先を変更しました");
-    } elsif ($ComType eq 'moveto') {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: 移動先の指定");
-    } elsif ($ComType eq 'moveexec') {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: 指定された$H_MESGを移動しました");
-    } else {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: $H_SUBJECT一覧($H_REPLY順)");
-    }
-
-    if ($ComType) {
-	&BoardHeader('maint');
-    } else {
-	&BoardHeader('normal');
-    }
-
-    &cgiprint'Cache("<p>\n<ul>\n<li><a href=\"$PROGRAM?b=$BOARD&c=ce&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'} . "\">今の変更を元に戻す</a>\n</ul>\n</p>") if ($ComType eq 'linkexec');
-
-    if ($ComType) {
-	&cgiprint'Cache(<<__EOF__);
-<p>各アイコンは，次のような意味を表しています．
-<dl compact>
-<dt>$H_RELINKFROM_MARK
-<dd>この$H_MESGの$H_REPLY先を変更します．$H_REPLY先を指定する画面に飛びます．
-<dt>$H_REORDERFROM_MARK
-<dd>この$H_MESGの順序を変更します．移動先を指定する画面に飛びます．
-<dt>$H_DELETE_ICON
-<dd>この$H_MESGを削除します．
-<dt>$H_SUPERSEDE_ICON
-<dd>この$H_MESGを訂正します．
-<dt>$H_RELINKTO_MARK
-<dd>先に指定した$H_MESGの$H_REPLY先を，この$H_MESGにします．
-<dt>$H_REORDERTO_MARK
-<dd>先に指定した$H_MESGを，この$H_MESGの下に移動します．
-</dl></p>
-__EOF__
-    }
-
-    if ($ComType eq 'linkto') {
-	&cgiprint'Cache("<p>" . $cgi'TAGS{'rfid'} . "を，どの$H_MESGへのリプライにしますか? リプライ先の$H_MESGの$H_RELINKTO_MARKをクリックしてください．</p>\n");
-    } elsif ($ComType eq 'moveto') {
-	&cgiprint'Cache("<p>" . $cgi'TAGS{'rfid'} . "を，どの$H_MESGの下に移動しますか? $H_MESGの$H_REORDERTO_MARKをクリックしてください．</p>\n");
-    }
-
-    &cgiprint'Cache("<hr>\n");
-
-    if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
-    } else {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
-    }
-
-    &cgiprint'Cache("<p><ul>\n");
-
-    if ($To < $From) {
-
-	# 空だった……
-	&cgiprint'Cache("<li>$H_NOARTICLE\n");
-
-    } elsif ($SYS_BOTTOMTITLE) {
-
-	# 古いのから処理
-	&cgiprint'Cache("<li><a href=\"$PROGRAM?b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">[どの$H_MESGへのリプライでもなく，新着$H_MESGにする]</a>\n") if (($ComType eq 'linkto') && ($DB_FID{$cgi'TAGS{'rfid'}} ne ''));
-	&cgiprint'Cache("<li><a href=\"$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">[全記事の先頭に移動する(このページの先頭，ではありません)]</a>\n") if ($ComType eq 'moveto');
-
-	for($IdNum = $From; $IdNum <= $To; $IdNum++) {
-
-	    # 該当記事のIDを取り出す
-	    $Id = $DB_ID[$IdNum];
-	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
-	    # 後方参照は後回し．
-	    next if (($Fid ne '') && ($ADDFLAG{$Fid} == 2));
-	    # ノードを表示
-	    if ($ComType) {
-		&ViewTitleNodeMaint($Id, $ComType, $AddNum);
-	    } else {
-		&ViewTitleNode($Id);
-	    }
-	}
-    } else {
-
-	# 新しいのから処理
-	&cgiprint'Cache("<li><a href=\"$PROGRAM?b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">[どの$H_MESGへのリプライでもなく，新着$H_MESGにする]</a>\n") if (($ComType eq 'linkto') && ($DB_FID{$cgi'TAGS{'rfid'}} ne ''));
-	&cgiprint'Cache("<li><a href=\"$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">[全記事の先頭に移動する(このページの先頭，ではありません)]</a>\n") if ($ComType eq 'moveto');
-
-	for($IdNum = $To; $IdNum >= $From; $IdNum--) {
-	    # 後は同じ
-	    $Id = $DB_ID[$IdNum];
-	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
-	    next if (($Fid ne '') && ($ADDFLAG{$Fid} == 2));
-	    if ($ComType) {
-		&ViewTitleNodeMaint($Id, $ComType, $AddNum);
-	    } else {
-		&ViewTitleNode($Id);
-	    }
-	}
-    }
-
-    &cgiprint'Cache("</ul></p>\n");
-
-    if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
-    } else {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
-    }
-
-    &MsgFooter;
-
-    undef(%ADDFLAG);
-
+    ($gVarComType) = @_;
+    require(&GetPath('GUI', 'ViewTitle.pl'));
+    undef($gVarComType);
 }
 
-sub ViewTitleNode {
-    local($Id) = @_;
+### NewArticle - 新しい記事をまとめて表示
+sub NewArticle { require(&GetPath('GUI', 'NewArticle.pl')); }
 
-    if ($ADDFLAG{$Id} != 2) { return; }
+### SearchArticle - 記事の検索(表示画面の作成)
+sub SearchArticle { require(&GetPath('GUI', 'SearchArticle.pl')); }
 
-    &cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
-    $ADDFLAG{$Id} = 1;		# 整形済み
+### AliasNew - エイリアスの登録と変更画面の表示
+sub AliasNew { require(&GetPath('GUI', 'AliasNew.pl')); }
 
-    # 娘が居れば……
-    if ($DB_AIDS{$Id}) {
-	&cgiprint'Cache("<ul>\n");
-	foreach (split(/,/, $DB_AIDS{$Id})) { &ViewTitleNode($_); }
-	&cgiprint'Cache("</ul>\n");
-    }
-}
+### AliasMod - ユーザエイリアスの登録/変更
+sub AliasMod { require(&GetPath('GUI', 'AliasMod.pl')); }
 
-sub ViewTitleNodeMaint {
+### AliasDel - ユーザエイリアスの削除
+sub AliasDel { require(&GetPath('GUI', 'AliasDel.pl')); }
 
-    local($Id, $ComType, $AddNum) = @_;
+### AliasShow - ユーザエイリアス参照画面の表示
+sub AliasShow { require(&GetPath('GUI', 'AliasShow.pl')); }
 
-    return if ($ADDFLAG{$Id} != 2);
+### DeletePreview - 削除記事の確認
+sub DeletePreview { require(&GetPath('GUI', 'DeletePreview.pl')); }
 
-    local($FromId) = $cgi'TAGS{'rfid'};
-
-    &cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id})); #'
-
-    &cgiprint'Cache(" .......... \n");
-
-    # リンク先変更コマンド(From)
-    if ($SYS_F_LI) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=ct&rfid=$Id&roid=" . $DB_FID{$Id} . "$AddNum\">$H_RELINKFROM_MARK</a>\n");
-    }
-
-    # 移動コマンド(From)
-    if ($SYS_F_MV) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=mvt&rfid=$Id&roid=" . $DB_FID{$Id} . "$AddNum\">$H_REORDERFROM_MARK</a>\n") if ($DB_FID{$Id} eq '');
-    }
-
-    # 削除コマンド
-    if ($SYS_F_D) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=dp&id=$Id\">$H_DELETE_ICON</a>\n");
-    }
-
-    # 訂正コマンド
-    if ($SYS_F_SS) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=f&s=on&id=$Id\">$H_SUPERSEDE_ICON</a>\n");
-    }
-
-    # 移動コマンド(To)
-    if ($SYS_F_MV && ($ComType eq 'moveto') && ($FromId ne $Id) && ($DB_FID{$Id} eq '') && ($FromId ne $Id)) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=mve&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">$H_REORDERTO_MARK</a>\n");
-    }
-
-    # リンク先変更コマンド(To)
-    if ($SYS_F_LI && ($ComType eq 'linkto') && ($FromId ne $Id) && (! grep(/^$FromId$/, split(/,/, $DB_AIDS{$Id}))) && (! grep(/^$FromId$/, split(/,/, $DB_FID{$Id})))) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=ce&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">$H_RELINKTO_MARK</a>\n");
-    }
-
-    $ADDFLAG{$Id} = 1;		# 整形済み
-
-    # 娘が居れば……
-    if ($DB_AIDS{$Id}) {
-	&cgiprint'Cache("<ul>\n");
-	foreach (split(/,/, $DB_AIDS{$Id})) { &ViewTitleNodeMaint($_, $ComType, $AddNum); }
-	&cgiprint'Cache("</ul>\n");
-    }
-}
-
-
-###
-## NewArticle - 新しい記事をまとめて表示
-#
-# - SYNOPSIS
-#	NewArticle;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	新しい記事をまとめて表示．
-#	大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub NewArticle {
-
-    local($Num, $Old, $NextOld, $BackOld, $To, $From, $Id);
-
-    # 表示する個数を取得
-    $Num = $cgi'TAGS{'num'};
-    $Old = $cgi'TAGS{'old'};
-    $NextOld = ($Old > $Num) ? ($Old - $Num) : 0;
-    $BackOld = ($Old + $Num);
-    $To = $#DB_ID - $Old;
-    $From = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
-
-    # 表示画面の作成
-    &MsgHeader('Message view (sorted)', "$BOARDNAME: 最近の$H_MESGをまとめ読み");
-
-    if ($SYS_BOTTOMARTICLE) {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
-    } else {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
-    }
-
-    if (! $#DB_ID == -1) {
-
-	# 空だった……
-	&cgiprint'Cache("<p>$H_NOARTICLE</p>\n");
-
-    } else {
-
-	if ($SYS_BOTTOMARTICLE) {
-	    for ($IdNum = $From; $IdNum <= $To; $IdNum++) {
-		$Id = $DB_ID[$IdNum];
-		&ViewOriginalArticle($Id, 1, 1);
-		&cgiprint'Cache("<hr>\n");
-	    }
-	} else {
-	    for ($IdNum = $To; $IdNum >= $From; $IdNum--) {
-		$Id = $DB_ID[$IdNum];
-		&ViewOriginalArticle($Id, 1, 1);
-		&cgiprint'Cache("<hr>\n");
-	    }
-	}
-
-    }
-
-    if ($SYS_BOTTOMARTICLE) {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
-    } else {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
-    }
-
-    if ($SYS_F_V) {
-	&cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="b" type="hidden" value="$BOARD">
-<input name="c" type="hidden" value="v">
-<input name="num" type="hidden" value="$DEF_TITLE_NUM">
-<input type="submit" value="$H_BACKTITLE">
-</form>
-__EOF__
-    }
-
-    &MsgFooter;
-
-}
-
-
-###
-## SearchArticle - 記事の検索(表示画面の作成)
-#
-# - SYNOPSIS
-#	SearchArticle;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	記事を検索する(うち，表示画面の作成部分)．
-#	大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub SearchArticle {
-
-    local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon, $IconTitle);
-
-    $Key = $cgi'TAGS{'key'};
-    $SearchSubject = $cgi'TAGS{'searchsubject'};
-    $SearchPerson = $cgi'TAGS{'searchperson'};
-    $SearchArticle = $cgi'TAGS{'searcharticle'};
-    $SearchIcon = $cgi'TAGS{'searchicon'};
-    $Icon = $cgi'TAGS{'icon'};
-
-    # 表示画面の作成
-    &MsgHeader('Message search', "$BOARDNAME: $H_MESGの検索");
-
-    # お約束
-    &cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM\" method="POST">
-<input name="c" type="hidden" value="s">
-<input name="b" type="hidden" value="$BOARD">
- 
-<p>
-<ul>
-<li>「$H_SUBJECT」，「名前」，「$H_MESG」の中から，検索する範囲をチェックしてください．
-指定された範囲で，キーワードを含む$H_MESGを一覧表示します．
-<li>キーワードには，大文字小文字の区別はありません．
-<li>キーワードを半角スペースで区切って，複数のキーワードを指定すると，
-それら全てを含む$H_MESGのみを検索することができます．
-<li>アイコンで検索する場合は，
-「アイコン」をチェックした後，探したい$H_MESGのアイコンを選んでください．
-</ul>
-</p>
-<input type="submit" value="検索する">
-<input type="reset" value="リセットする">
-
-<p>キーワード:
-<input name="key" type="text" size="$KEYWORD_LENGTH" value="$Key">
-</p>
-
-<p>検索範囲:
-<ul>
-__EOF__
-
-    &cgiprint'Cache(sprintf("<li><input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SUBJECT\n", (($SearchSubject) ? 'CHECKED' : '')));
-    &cgiprint'Cache(sprintf("<li><input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: 名前\n", (($SearchPerson) ? 'CHECKED' : '')));
-    &cgiprint'Cache(sprintf("<li><input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: $H_MESG", (($SearchArticle) ? 'CHECKED' : '')));
-
-    &cgiprint'Cache(sprintf("<li><input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // ", (($SearchIcon) ? 'CHECKED' : '')));
-
-    # アイコンの選択
-    &cashIconDB($BOARD);	# アイコンDBのキャッシュ
-    &cgiprint'Cache(sprintf("<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED')));
-    foreach $IconTitle (sort keys(%ICON_FILE)) {
-	&cgiprint'Cache(sprintf("<OPTION%s>$IconTitle\n", (($Icon eq $IconTitle) ? ' SELECTED' : '')));
-    }
-    &cgiprint'Cache("</SELECT>\n");
-
-    # アイコン一覧
-    &cgiprint'Cache(<<__EOF__);
-(<a href="$PROGRAM?b=$BOARD&c=i&type=entry">アイコンの説明</a>)<BR>
-</ul>
-</p>
-</form>
-<hr>
-__EOF__
-
-    # キーワードが空でなければ，そのキーワードを含む記事のリストを表示
-    if (($SearchIcon ne '') || (($Key ne '') && ($SearchSubject || ($SearchPerson || $SearchArticle)))) {
-	&SearchArticleList($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon);
-    }
-
-    &MsgFooter;
-
-}
-
-sub SearchArticleList {
-    local($Key, $Subject, $Person, $Article, $Icon, $IconType) = @_;
-    local($dId, $dAids, $dDate, $dTitle, $dIcon, $dName, $dEmail, $HitNum, $Line, $SubjectFlag, $PersonFlag, $ArticleFlag, @KeyList);
-
-    @KeyList = split(/ +/, $Key);
-
-    # リスト開く
-    &cgiprint'Cache("<p><ul>\n");
-
-    foreach ($[ .. $#DB_ID) {
-
-	# 記事情報
-	$dId = $DB_ID[$_];
-	$dIcon = $DB_ICON{$dId};
-	$dTitle = $DB_TITLE{$dId};
-	$dName = $DB_NAME{$dId};
-	$dEmail = $DB_EMAIL{$dId};
-	$dAids = $DB_AIDS{$dId};
-	$dDate = $DB_DATE{$dId};
-
-	# 変数のリセット
-	$SubjectFlag = $PersonFlag = $ArticleFlag = 0;
-	$Line = '';
-
-	# URLチェック
-	next if (&IsUrl($dId));
-
-	# アイコンチェック
-	next if (($Icon ne '') && ($dIcon ne $IconType));
-
-	if ($Key ne '') {
-
-	    # タイトルを検索
-	    if (($Subject ne '') && ($dTitle ne '')) {
-		$SubjectFlag = 1;
-		foreach (@KeyList) {
-		    if ($dTitle !~ /$_/i) {
-			$SubjectFlag = 0;
-		    }
-		}
-	    }
-
-	    # 投稿者名を検索
-	    if (($Person ne '') && ($dName ne '')) {
-		$PersonFlag = 1;
-		foreach (@KeyList) {
-		    if (($dName !~ /$_/i) && ($dEmail !~ /$_/i)) {
-			$PersonFlag = 0;
-		    }
-		}
-	    }
-
-	    # 本文を検索
-	    if (($Article ne '') && ($Line = &SearchArticleKeyword($dId, $BOARD, @KeyList))) {
-		$ArticleFlag = 1;
-	    }
-
-	} else {
-
-	    # 無条件で一致
-	    $SubjectFlag = 1;
-
-	}
-
-	if ($SubjectFlag || $PersonFlag || $ArticleFlag) {
-
-	    # 最低1つは合致した
-	    $HitNum++;
-
-	    # 記事へのリンクを表示
-	    &cgiprint'Cache("<li>" . &GetFormattedTitle($dId, $BOARD, $dAids, $dIcon, $dTitle, $dName, $dDate) . "\n");
-
-	    # 本文に合致した場合は本文も表示
-	    if ($ArticleFlag) {
-		$Line =~ s/<[^>]*>//go;
-		&cgiprint'Cache("<blockquote>$Line</blockquote>\n");
-	    }
-	}
-    }
-
-    # ヒットしなかったら
-    if ($HitNum) {
-	&cgiprint'Cache("</ul>\n</p><p>\n<ul>");
-	&cgiprint'Cache("<li>$HitNum件の$H_MESGが見つかりました．\n");
-    } else {
-	&cgiprint'Cache("<li>該当する$H_MESGは見つかりませんでした．\n");
-    }
-
-    # リスト閉じる
-    &cgiprint'Cache("</ul></p>\n");
-}
-
-
-###
-## AliasNew - エイリアスの登録と変更画面の表示
-#
-# - SYNOPSIS
-#	AliasNew;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	エイリアスの登録と変更画面を表示する(表示するだけ)．
-#
-# - RETURN
-#	なし
-#
-sub AliasNew {
-
-    # 表示画面の作成
-    &MsgHeader('Alias entry/edit', "$H_ALIASの登録/変更/削除");
-
-    # 新規登録/登録内容の変更
-    &cgiprint'Cache(<<__EOF__);
-<p>
-新規登録/登録内容の変更
-</p>
-<p>
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="am">
-$H_ALIAS: <input name="alias" type="text" value="#" size="$NAME_LENGTH"><br>
-$H_FROM: <input name="name" type="text" size="$NAME_LENGTH"><br>
-$H_MAIL: <input name="email" type="text" size="$MAIL_LENGTH"><br>
-$H_URL_S: <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
-$H_ALIASの新規登録/登録内容の変更を行ないます．
-エイリアスは(あなた以外の!)誰にでも書き換えることができます．
-登録内容が変更されていないかどうか，
-書き込む時の「試しに表示する」画面を注意してチェックしてください．
-また，間違って同じエイリアスを登録されてしまわないように，
-あまりに簡単な「エイリアス」は避けてくださいね．<br>
-<input type="submit" value="登録/変更する">
-</form>
-</p>
-<hr>
-<p>
-削除
-</p>
-<p>
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="ad">
-$H_ALIAS: <input name="alias" type="text" size="$NAME_LENGTH"><br>
-上記$H_ALIASを削除します．<br>
-<input type="submit" value="削除する">
-</form>
-</p>
-<hr>
-<p>
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="as">
-<input type="submit" value="$H_ALIAS一覧を参照する">
-</form>
-</p>
-__EOF__
-    
-    # お約束
-    &MsgFooter;
-
-}
-
-
-###
-## AliasMod - ユーザエイリアスの登録/変更
-#
-# - SYNOPSIS
-#	AliasMod;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	ユーザエイリアスを登録/変更し，その結果を知らせる画面を表示する．
-#	大域変数である，CGI変数を参照する．
-#	アプリケーションモデルとも，GUIとも取れる……分離できてない．
-#
-# - RETURN
-#	なし
-#
-sub AliasMod {
-
-    local($A, $N, $E, $U, $HitFlag, $Alias);
-
-    $A = $cgi'TAGS{'alias'};
-    $N = $cgi'TAGS{'name'};
-    $E = $cgi'TAGS{'email'};
-    $U = $cgi'TAGS{'url'};
-    
-    # マシンがマッチしたか
-    #	0 ... エイリアスがマッチしない
-    #	2 ... マッチしてデータを変更した
-    $HitFlag = 0;
-
-    # 文字列チェック
-    &AliasCheck($A, $N, $E, $U);
-    
-    # エイリアスの読み込み
-    &CashAliasData;
-    
-    # 1行ずつチェック
-    foreach $Alias (sort keys(%Name)) {
-	next if ($A ne $Alias);
-	$HitFlag = 2;		# 合ったら2を設定．マシン名は無視．
-    }
-    
-    # 新規登録
-    if ($HitFlag == 0) {
-	$Alias = $A;
-    }
-    
-    # データの登録
-    $Name{$Alias} = $N;
-    $Email{$Alias} = $E;
-    $Host{$Alias} = $REMOTE_HOST;
-    $URL{$Alias} = $U;
-    
-    # エイリアスファイルに書き出し
-    &WriteAliasData;
-
-    # 表示画面の作成
-    &MsgHeader('Alias modified', "$H_ALIASが設定されました");
-    &cgiprint'Cache("<p>$H_ALIAS: <strong>$A</strong>:\n");
-    if ($HitFlag == 2) {
-	&cgiprint'Cache("設定しました．</p>\n");
-    } else {
-	&cgiprint'Cache("登録しました．</p>\n");
-    }
-    &MsgFooter;
-    
-}
-
-
-###
-## AliasDel - ユーザエイリアスの削除
-#
-# - SYNOPSIS
-#	AliasDel;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	ユーザエイリアスを削除する．登録ホストと同一でなければ不可．
-#	その後，その結果を知らせる画面を表示する．
-#	大域変数である，CGI変数を参照する．
-#	アプリケーションモデルとも，GUIとも取れる．分離できてない．
-#
-# - RETURN
-#	なし
-#
-sub AliasDel {
-
-    local($A, $HitFlag, $Alias);
-
-    # エイリアス
-    $A = $cgi'TAGS{'alias'};
-
-    # マシンがマッチしたか
-    #	0 ... エイリアスがマッチしない
-    #	2 ... マッチしてデータを変更した
-    $HitFlag = 0;
-
-    # エイリアスの読み込み
-    &CashAliasData;
-    
-    # 1行ずつチェック
-    foreach $Alias (sort keys(%Name)) {
-	next if ($A ne $Alias);
-	$HitFlag = 2;		# ヒットしたら2を設定．マシン名は無視．
-    }
-    
-    # エイリアスがない!
-    if ($HitFlag == 0) { &Fatal(6, $A); }
-    
-    # 名前を消す
-    $Name{$A} = '';
-    
-    # エイリアスファイルに書き出し
-    &WriteAliasData;
-    
-    # 表示画面の作成
-    &MsgHeader('Alias deleted', "$H_ALIASが削除されました");
-    &cgiprint'Cache("<p>$H_ALIAS: <strong>$A</strong>: 消去しました．</p>\n");
-    &MsgFooter;
-
-}
-
-
-###
-## AliasShow - ユーザエイリアス参照画面の表示
-#
-# - SYNOPSIS
-#	AliasShow;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	ユーザエイリアスの一覧を表示する画面を作成する．
-#
-# - RETURN
-#	なし
-#
-sub AliasShow {
-
-    local($Alias);
-
-    # エイリアスの読み込み
-    &CashAliasData;
-    
-    # 表示画面の作成
-    &MsgHeader('Alias view', "$H_ALIASの参照");
-
-    # あおり文
-    if ($SYS_ALIAS == 1) {
-	&cgiprint'Cache(<<__EOF__);
-<p>
-投稿の際，「$H_FROM」の部分に以下の登録名(「#....」)を入力すると，
-登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．
-</p><p>
-<a href="$PROGRAM?c=an">新規登録/登録内容の変更</a>
-</p>
-__EOF__
-
-    } elsif ($SYS_ALIAS == 2) {
-					  
-	&cgiprint'Cache(<<__EOF__);
-<p>
-投稿の際，「$H_USER」で以下の登録名(「#....」)を指定すると，
-登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．
-</p><p>
-<a href="$PROGRAM?c=an">新規登録/登録内容の変更</a>
-</p>
-__EOF__
-
-    } else {
-	# ありえない，はず
-	&Fatal(9999, '');
-    }
-
-    # リスト開く
-    &cgiprint'Cache("<dl>\n");
-    
-    # 1つずつ表示
-    foreach $Alias (sort keys(%Name)) {
-	&cgiprint'Cache(<<__EOF__);
-<p>
-<dt><strong>$Alias</strong>
-<dd>$H_FROM: $Name{$Alias}
-<dd>$H_MAIL: $Email{$Alias}
-<dd>$H_URL: $URL{$Alias}
-</p>
-__EOF__
-
-    }
-
-    # リスト閉じる
-    &cgiprint'Cache("</dl>\n");
-    
-    &MsgFooter;
-
-}
-
-
-###
-## DeletePreview - 削除記事の確認
-#
-# - SYNOPSIS
-#	DeletePreview;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	削除記事の確認画面を表示する
-#       大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub DeletePreview {
-
-    local($Id);
-
-    $Id = $cgi'TAGS{'id'};
-
-    # 表示画面の作成
-    &MsgHeader("Delete Article", "$BOARDNAME: $H_MESGの削除");
-
-    &cgiprint'Cache(<<__EOF__);
-<p>
-本当にこの$H_MESGを削除するのですね? よろしければボタンを押してください．
-</p>
-__EOF__
-
-    # お約束
-    &cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="de">
-<input name="b" type="hidden" value="$BOARD">
-<input name="id" type="hidden" value="$Id">
-<input type="submit" value="この記事を削除します">
-</form>
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="det">
-<input name="b" type="hidden" value="$BOARD">
-<input name="id" type="hidden" value="$Id">
-<input type="submit" value="リプライ記事もまとめて削除します">
-</form>
-</p>
-<hr>
-__EOF__
-
-    # 削除ファイルの表示
-    &ViewOriginalArticle($Id, 0, 1);
-
-    # お約束
-    &MsgFooter;
-
-}
-
-
-###
-## DeleteExec - 記事の削除
-#
-# - SYNOPSIS
-#	DeleteExec($ThreadFlag);
-#
-# - ARGS
-#	$ThreadFlag	リプライも消すか否か
-#
-# - DESCRIPTION
-#	記事の削除を実行し，削除後の画面を表示する．
-#       大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
+### DeleteExec - 記事の削除
 sub DeleteExec {
-    local($ThreadFlag) = @_;
-    local($Id);
-
-    $Id = $cgi'TAGS{'id'};
-
-    # 削除実行
-    &DeleteArticle($Id, $ThreadFlag);
-
-    # 表示画面の作成
-    &MsgHeader('Message deleted', "$BOARDNAME: $H_MESGが削除されました");
-
-    &cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="b" type="hidden" value="$BOARD">
-<input name="c" type="hidden" value="v">
-<input name="num" type="hidden" value="$DEF_TITLE_NUM">
-<input type="submit" value="$H_BACKTITLE">
-</form>
-__EOF__
-
-    # お約束
-    &MsgFooter;
-
+    ($gVarThreadFlag) = @_;
+    require(&GetPath('GUI', 'DeleteExec.pl'));
+    undef($gVarThreadFlag);
 }
 
+### ArriveMailEntry - メイル自動配信先の指定
+sub ArriveMailEntry { require(&GetPath('GUI', 'ArriveMailEntry.pl')); }
 
-###
-## ArriveMailEntry - メイル自動配信先の指定
-#
-# - SYNOPSIS
-#	ArriveMailEntry;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	メイル自動配信先の指定画面を表示する．
-#
-# - RETURN
-#	なし
-#
-sub ArriveMailEntry {
+### ArriveMailExec - メイル自動配信先の設定
+sub ArriveMailExec { require(&GetPath('GUI', 'ArriveMailExec.pl')); }
 
-    local(@ArriveMail);
-
-    &getArriveMailTo(1, $BOARD, *ArriveMail); # 宛先とコメントを取り出す
-
-    &MsgHeader("ArriveMail Entry", "$BOARDNAME: 自動メイル配信先の設定");
-
-    &cgiprint'Cache(<<__EOF__);
-<p>
-この$H_BOARDに$H_MESGが書き込まれた時に，
-自動でメイルを配信する宛先のメイルアドレスを設定します．
-1行に1メイルアドレスずつ書き込んでください．
-行頭に「#」をつけるとその行は無視されるので，
-#に続けてコメントを書き込むこともできます．
-</p><p>
-特に実害はありませんが，無意味な空行が入りすぎないように注意しましょう．
-</p><p>
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="me">
-<input name="b" type="hidden" value="$BOARD">
-<textarea name="armail" rows="$TEXT_ROWS" cols="$MAIL_LENGTH">
-__EOF__
-
-    foreach(@ArriveMail) { &cgiprint'Cache($_); }
-
-    &cgiprint'Cache(<<__EOF__);
-</textarea><br>
-<input type="submit" value="設定します">
-<input type="reset" value="リセットする">
-</form>
-</p>
-__EOF__
-
-    &MsgFooter;
-
+### Fatal - エラー表示
+sub Fatal {
+    ($gVarFatalNo, $gVarFatalInfo) = @_;
+    require(&GetPath('GUI', 'Fatal.pl'));
+    undef($gVarFatalNo, $gVarFatalInfo);
 }
 
+### ArriveMail - 記事が到着したことをメイル
+sub ArriveMail {
+    ($gName, $gSubject, $gId, @gTo) = @_;
+    require(&GetPath('GUI', 'ArriveMail.pl'));
+    undef($gName, $gSubject, $gId, @gTo);
+}
 
-
-###
-## ArriveMailExec - メイル自動配信先の設定
-#
-# - SYNOPSIS
-#	ArriveMailExec;
-#
-# - ARGS
-#	なし
-#
-# - DESCRIPTION
-#	メイル自動配信先を設定する．
-#	大域変数である，CGI変数を参照する．
-#
-# - RETURN
-#	なし
-#
-sub ArriveMailExec {
-
-    local(@ArriveMail);
-
-    @ArriveMail = split(/\n/, $cgi'TAGS{'armail'}); # 宛先リストを取り出す
-    &updateArriveMailDb($BOARD, *ArriveMail); # DBを更新する
-
-    &MsgHeader("ArriveMail Changed", "$BOARDNAME: 自動メイル配信先を設定しました");
-
-    &cgiprint'Cache(<<__EOF__);
-<p>
-この$H_BOARDに$H_MESGが書き込まれた時に，自動でメイルを配信する宛先を，
-以下のように設定しました．
-</p><p>
-<pre>
---------------------
-__EOF__
-
-    foreach(@ArriveMail) { &cgiprint'Cache("$_\n"); }
-
-    &cgiprint'Cache(<<__EOF__);
---------------------
-</pre></p>
-<form action="$PROGRAM" method="POST">
-<input name="b" type="hidden" value="$BOARD">
-<input name="c" type="hidden" value="v">
-<input name="num" type="hidden" value="$DEF_TITLE_NUM">
-<input type="submit" value="$H_BACKTITLE">
-</form>
-__EOF__
-
-    &MsgFooter;
-
+### FollowMail - 反応があったことをメイル
+sub FollowMail {
+    ($gName, $gDate, $gSubject, $gId, $gFname, $gFsubject, $gFid, @gTo) = @_;
+    require(&GetPath('GUI', 'FollowMail.pl'));
+    undef($gName, $gDate, $gSubject, $gId, $gFname, $gFsubject, $gFid, @gTo);
 }
 
 
 ######################################################################
 # ユーザインタフェイスインプリメンテーション(共通部)
-
-
-###
-## Fatal - エラー表示
-#
-# - SYNOPSIS
-#	Fatal($FatalNo, $FatalInfo);
-#
-# - ARGS
-#	$FatalNo	エラー番号(詳しくは関数内部を参照のこと)
-#	$FatalInfo	エラー情報
-#
-# - DESCRIPTION
-#	エラーを表す画面をブラウザに送信する．
-#
-# - RETURN
-#	なし
-#
-sub Fatal {
-    local($FatalNo, $FatalInfo) = @_;
-    local($ErrString);
-
-    if ($FatalNo == 1) {
-
-	$ErrString = "File: $FatalInfoが存在しない，あるいはpermissionの設定が間違っています．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで，上記ファイル名をお知らせ下さい．";
-
-    } elsif ($FatalNo == 2) {
-
-	$ErrString = "入力されていない項目があります．戻ってもう一度やり直してみてください．";
-
-    } elsif ($FatalNo == 3) {
-
-	$ErrString = "題や名前，メイルアドレスに，タブ文字か改行が入ってしまっています．戻ってもう一度やり直してみてください．";
-
-    } elsif ($FatalNo == 4) {
-
-	$ErrString = "題中にHTMLタグ，タブ文字，改行文字を入れることは禁じられています．戻って違う題に書き換えてください．";
-
-    } elsif ($FatalNo == 5) {
-
-	$ErrString = "登録されているエイリアスのものと，マシン名が一致しません．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
-
-    } elsif ($FatalNo == 6) {
-
-	$ErrString = "「$FatalInfo」というエイリアスは，登録されていません．";
-
-    } elsif ($FatalNo == 7) {
-
-	$ErrString = "$FatalInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．";
-
-    } elsif ($FatalNo == 8) {
-
-	$ErrString = "次の記事はまだ投稿されていません．";
-
-    } elsif ($FatalNo == 9) {
-
-	$ErrString = "メイルが送信できませんでした．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
-
-    } elsif ($FatalNo == 10) {
-
-	$ErrString = ".dbと.articleidの整合性が取れていません．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
-
-    } elsif ($FatalNo == 11) {
-
-	$ErrString = "$FatalInfoというIDに対応する$H_BOARDは，存在しません．";
-
-    } elsif ($FatalNo == 50) {
-
-	$ErrString = "リプライ関係が循環してしまいます．どうしてもリプライ先を変更したい場合，リプライ先を一度新着扱いにしてから，リプライをかけかえてください．";
-
-    } elsif ($FatalNo == 99) {
-
-	$ErrString ="この$H_BOARDでは，このコマンドは実行できません．";
-
-    } elsif ($FatalNo == 999) {
-
-	$ErrString ="システムのロックに失敗しました．混み合っているようですので，数分待ってからもう一度アクセスしてください．何度アクセスしてもロックされている場合，メンテナンス中である可能性もあります．";
-
-    } else {
-
-	$ErrString = "エラー番号不定: $FatalInfo<br>お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$mEmail\">$mEmail</a>までお知らせください．";
-
-    }
-
-    # 異常終了の可能性があるので，とりあえずlockを外す
-    # (ロックの失敗の時以外)
-    if ($FatalNo != 999) { &cgi'unlock($LOCK_FILE); }
-
-    # 表示画面の作成
-    &MsgHeader('Error!', "$SYSTEM_NAME: ERROR!");
-
-    &cgiprint'Cache("<p>$ErrString</p>\n");
-
-    if ($SYS_F_V && ($BOARD ne '')) {
-	&cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="b" type="hidden" value="$BOARD">
-<input name="c" type="hidden" value="v">
-<input name="num" type="hidden" value="$DEF_TITLE_NUM">
-<input type="submit" value="$H_BACKTITLE">
-</form>
-__EOF__
-    }
-
-    &MsgFooter;
-    exit(0);
-}
 
 
 ###
@@ -2118,16 +332,12 @@ sub ViewOriginalArticle {
 		&cgiprint'Cache("<a href=\"$BOARDLIST_URL\"><img src=\"$ICON_BLIST\" alt=\"$H_BACKBOARD\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_BACKBOARD</a>\n");
 	    }
 
-	    if ($SYS_F_V) {
-		&cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\"><img src=\"$ICON_TLIST\" alt=\"$H_BACKTITLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_BACKTITLE</a>\n");
-	    }
+	    &cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\"><img src=\"$ICON_TLIST\" alt=\"$H_BACKTITLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_BACKTITLE</a>\n");
 
-	    if ($SYS_F_E) {
-		if ($PrevId ne '') {
-		    &cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\"><img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_PREVARTICLE</a>\n");
-		} else {
-		    &cgiprint'Cache(" | <img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_PREVARTICLE\n");
-		}
+	    if ($PrevId ne '') {
+		&cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\"><img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_PREVARTICLE</a>\n");
+	    } else {
+		&cgiprint'Cache(" | <img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_PREVARTICLE\n");
 
 		if ($NextId ne '') {
 		    &cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\"><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_NEXTARTICLE</a>\n");
@@ -2145,11 +355,8 @@ sub ViewOriginalArticle {
 	    }
 
 	    if ($SYS_F_N) {
-		&cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=n\"><img src=\"$ICON_WRITENEW\" alt=\"$H_POSTNEWARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$H_POSTNEWARTICLE</a>\n");
-	    }    
-
-	    if ($SYS_F_FQ) {
 		&cgiprint'Cache(<<__EOF__);
+ | <a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0">$H_POSTNEWARTICLE</a>
  | <a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0">$H_REPLYTHISARTICLE</a>
  | <a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0">$H_REPLYTHISARTICLEQUOTE</a>
 __EOF__
@@ -2163,22 +370,18 @@ __EOF__
 		&cgiprint'Cache("<a href=\"$BOARDLIST_URL\"><img src=\"$ICON_BLIST\" alt=\"$H_BACKBOARD\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
 	    }
 
-	    if ($SYS_F_V) {
-		&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\"><img src=\"$ICON_TLIST\" alt=\"$H_BACKTITLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
+	    &cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\"><img src=\"$ICON_TLIST\" alt=\"$H_BACKTITLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
+
+	    if ($PrevId ne '') {
+		&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\"><img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
+	    } else {
+		&cgiprint'Cache("<img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">\n");
 	    }
 
-	    if ($SYS_F_E) {
-		if ($PrevId ne '') {
-		    &cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\"><img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
-		} else {
-		    &cgiprint'Cache("<img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">\n");
-		}
-
-		if ($NextId ne '') {
-		    &cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\"><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
-		} else {
-		    &cgiprint'Cache("<img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">\n");
-		}
+	    if ($NextId ne '') {
+		&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\"><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
+	    } else {
+		&cgiprint'Cache("<img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">\n");
 	    }
 
 	    if ($SYS_F_T) {
@@ -2194,11 +397,6 @@ __EOF__
 	    if ($SYS_F_N) {
 		&cgiprint'Cache(<<__EOF__);
 <a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0"></a>
-__EOF__
-	    }    
-
-	    if ($SYS_F_FQ) {
-		&cgiprint'Cache(<<__EOF__);
 <a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0"></a>
 <a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0"></a>
 __EOF__
@@ -2214,22 +412,18 @@ __EOF__
 		&cgiprint'Cache("<a href=\"$BOARDLIST_URL\">$H_BACKBOARD</a>\n");
 	    }
 
-	    if ($SYS_F_V) {
-		&cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\">$H_BACKTITLE</a>\n");
+	    &cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\">$H_BACKTITLE</a>\n");
+
+	    if ($PrevId ne '') {
+		&cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\">$H_PREVARTICLE</a>\n");
+	    } else {
+		&cgiprint'Cache(" | $H_PREVARTICLE\n");
 	    }
 
-	    if ($SYS_F_E) {
-		if ($PrevId ne '') {
-		    &cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\">$H_PREVARTICLE</a>\n");
-		} else {
-		    &cgiprint'Cache(" | $H_PREVARTICLE\n");
-		}
-
-		if ($NextId ne '') {
-		    &cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\">$H_NEXTARTICLE</a>\n");
-		} else {
-		    &cgiprint'Cache(" | $H_NEXTARTICLE\n");
-		}
+	    if ($NextId ne '') {
+		&cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\">$H_NEXTARTICLE</a>\n");
+	    } else {
+		&cgiprint'Cache(" | $H_NEXTARTICLE\n");
 	    }
 
 	    if ($SYS_F_T) {
@@ -2241,11 +435,8 @@ __EOF__
 	    }
 
 	    if ($SYS_F_N) {
-		&cgiprint'Cache(" | <a href=\"$PROGRAM?b=$BOARD&c=n\">$H_POSTNEWARTICLE</a>\n");
-	    }
-
-	    if ($SYS_F_FQ) {
 		&cgiprint'Cache(<<__EOF__);
+ | <a href="$PROGRAM?b=$BOARD&c=n">$H_POSTNEWARTICLE</a>
  | <a href="$PROGRAM?b=$BOARD&c=f&id=$Id">$H_REPLYTHISARTICLE</a>
  | <a href="$PROGRAM?b=$BOARD&c=q&id=$Id">$H_REPLYTHISARTICLEQUOTE</a>
 __EOF__
@@ -2263,7 +454,7 @@ __EOF__
     if (($Icon eq $H_NOICON) || ($Icon eq '')) {
 	&cgiprint'Cache("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject");
     } else {
-	&cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon, $BOARD)));
+	&cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Subject", &GetIconUrlFromTitle($Icon, $BOARD)));
     }
 
     # お名前
@@ -2299,8 +490,63 @@ __EOF__
     &cgiprint'Cache("</p>\n$H_LINE\n");
 
     # 記事の中身
-    &getArticleBody($Id, $BOARD, *ArticleBody);
+    &GetArticleBody($Id, $BOARD, *ArticleBody);
     foreach(@ArticleBody) { &cgiprint'Cache($_); }
+
+}
+
+
+###
+## ThreadArticleMain - フォロー記事を全て表示．
+#
+# - SYNOPSIS
+#	ThreadArticle($SubjectOnly, $Head, @Tail);
+#
+# - ARGS
+#	$SubjectOnly	タイトルのみを表示するのか，
+#			あるいは記事本文も表示するのか．
+#	$Head		木構造のヘッドノード
+#	@Tail		木構造の娘ノード群
+#
+# - DESCRIPTION
+#	ある記事と，その記事へのリプライ記事をまとめて表示する．
+#	元の木構造は，
+#		( a ( b ( c d ) ) ( e ) ( f ( g ) ) )
+#	のようなリストである．
+#	詳細は&GetFollowIdTreeのインプリメント部分を参照のこと．
+#
+# - RETURN
+#	なし
+#
+sub ThreadArticleMain {
+    local($SubjectOnly, $Head, @Tail) = @_;
+
+    # 記事概要か，記事そのものか．
+    if ($SubjectOnly) {
+
+	if ($Head eq '(') {
+	    &cgiprint'Cache("<ul>\n");
+	} elsif ($Head eq ')') {
+	    &cgiprint'Cache("</ul>\n");
+	} else {
+	    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName) = &GetArticlesInfo($Head);
+	    &cgiprint'Cache("<li>" . &GetFormattedTitle($Head, $BOARD, $dAids, $dIcon, $dSubject, $dName, $dDate) . "\n");
+	}
+
+    } else {
+
+	if (($Head ne '(') && ($Head ne ')')) {
+	    # 元記事の表示(コマンド付き, 元記事なし)
+	    &cgiprint'Cache("<hr>\n");
+	    &ViewOriginalArticle($Head, 1, 0);
+	}
+
+    }
+
+    # 再帰
+    if (@Tail) {
+	&ThreadArticleMain($SubjectOnly, @Tail);
+    }
 
 }
 
@@ -2334,7 +580,7 @@ sub QuoteOriginalArticle {
     }
 
     # 引用
-    &getArticleBody($Id, $BOARD, *ArticleBody);
+    &GetArticleBody($Id, $BOARD, *ArticleBody);
     foreach(@ArticleBody) {
 	s/[\&\"]//go;		# 引用のための変換
 	s/<[^>]*>//go;		# 引用のための変換
@@ -2371,7 +617,7 @@ sub QuoteOriginalArticleWithoutQMark {
     local($Id) = @_;
     local(@ArticleBody);
 
-    &getArticleBody($Id, $BOARD, *ArticleBody);
+    &GetArticleBody($Id, $BOARD, *ArticleBody);
     foreach(@ArticleBody) {
 	s/[\&\"]//go;		# 引用のための変換
 	s/<[^>]*>//go;		# 引用のための変換
@@ -2401,7 +647,7 @@ sub BoardHeader {
     local($Type) = @_;
     local(@BoardHeader);
 
-    &getBoardHeader($BOARD, *BoardHeader);
+    &GetBoardHeader($BOARD, *BoardHeader);
     foreach(@BoardHeader) { &cgiprint'Cache($_); }
 
     if ($SYS_F_MT && ($Type eq 'normal')) {
@@ -2453,6 +699,60 @@ sub ShowLinksToFollowedArticle {
     ($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
     &cgiprint'Cache("<br>\n<strong>$H_ORIG:</strong> " . &GetFormattedTitle($Id, $BOARD, $Aids, $Icon, $Subject, $Name, $Date));
 
+}
+
+
+###
+## PrintButtonToTitleList - タイトル一覧へ戻るボタンの表示
+#
+# - SYNOPSIS
+#	PrintButtonToTitleList($Board);
+#
+# - ARGS
+#	$Board		掲示板ID
+#
+# - DESCRIPTION
+#	タイトル一覧に戻るためのボタンを表示する
+#
+# - RETURN
+#	なし
+#
+sub PrintButtonToTitleList {
+    local($Board) = @_;
+
+    &cgiprint'Cache(<<__EOF__);
+<form action="$PROGRAM" method="POST">
+<input name="b" type="hidden" value="$Board">
+<input name="c" type="hidden" value="v">
+<input name="num" type="hidden" value="$DEF_TITLE_NUM">
+<input type="submit" value="$H_BACKTITLE">
+</form>
+__EOF__
+}
+
+
+###
+## PrintButtonToBoardList - 掲示板一覧へ戻るボタンの表示
+#
+# - SYNOPSIS
+#	PrintButtonToBoardList;
+#
+# - ARGS
+#	なし
+#
+# - DESCRIPTION
+#	掲示板一覧に戻るためのボタンを表示する
+#
+# - RETURN
+#	なし
+#
+sub PrintButtonToBoardList {
+
+    &cgiprint'Cache(<<__EOF__);
+<form action="$BOARDLIST_URL" method="GET">
+<input type="submit" value="$H_BACKBOARD">
+</form>
+__EOF__
 }
 
 
@@ -2540,116 +840,6 @@ __EOF__
 
 
 ###
-## ArriveMail - 記事が到着したことをメイル
-#
-# - SYNOPSIS
-#	ArriveMail($Name, $Subject, $Id, @To);
-#
-# - ARGS
-#	$Name		新規記事投稿者名
-#	$Subject	新規記事Subject
-#	$Id		新規記事ID
-#	@To		送信先E-Mail addrリスト
-#
-# - DESCRIPTION
-#	記事が到着したことをメイルする．
-#
-# - RETURN
-#	なし
-#
-sub ArriveMail {
-    local($Name, $Subject, $Id, @To) = @_;
-    local($MailSubject, $Message);
-
-    $MailSubject = "An article was arrived.";
-
-    $Message = "$SYSTEM_NAMEからのお知らせです．
-
-「$BOARDNAME」に対して「$Name」さんから，
-「$Subject」という題での書き込みがありました．
-
-";
-
-    if ($SYS_F_E) {
-	$Message .= "お時間のある時に
-$SCRIPT_URL?b=$BOARD&c=e&id=$Id
-を御覧下さい．
-
-";
-    }
-
-    $Message .= "では失礼します．";
-
-    # メイル送信
-    &SendMail($MailSubject, $Message, $Id, @To);
-
-}
-
-
-###
-## FollowMail - 反応があったことをメイル
-#
-# - SYNOPSIS
-#	FollowMail($Name, $Date, $Subject, $Id, $Fname, $Fsubject, $Fid, @To);
-#
-# - ARGS
-#	$Name		新規記事投稿者名
-#	$Date		リプライされた記事の書き込み時間
-#	$Subject	新規記事Subject
-#	$Id		新規記事ID
-#	$Fname		リプライされた記事の投稿者名
-#	$Fsubject	リプライされた記事のSubject
-#	$Fid		リプライされた記事ID
-#	@To		送信先E-Mail addrリスト
-#
-# - DESCRIPTION
-#	リプライがあったことをメイルする．
-#
-# - RETURN
-#	なし
-#
-sub FollowMail {
-    local($Name, $Date, $Subject, $Id, $Fname, $Fsubject, $Fid, @To) = @_;
-    local($MailSubject, $InputDate, $Message);
-    
-    $MailSubject = "The article was followed.";
-
-    $InputDate = &GetDateTimeFormatFromUtc($Date);
-
-    $Message = "$SYSTEM_NAMEからのお知らせです．
-
-$InputDateに「$BOARDNAME」に対して「$Name」さんが書いた，
-「$Subject」
-";
-
-    if ($SYS_F_E) {
-	$Message .= "$SCRIPT_URL?b=$BOARD&c=e&id=$Id
-";
-    }
-
-    $Message .= "に対して，
-「$Fname」さんから
-「$Fsubject」という題での反応がありました．
-
-";
-
-    if ($SYS_F_E) {
-	$Message .= "お時間のある時に
-$SCRIPT_URL?b=$BOARD&c=e&id=$Fid
-を御覧下さい．
-
-";
-    }
-
-    $Message .= "では失礼します．";
-
-    # メイル送信
-    &SendMail($MailSubject, $Message, $Fid, @To);
-
-}
-
-
-###
 ## SendMail - メイル送信
 #
 # - SYNOPSIS
@@ -2684,7 +874,7 @@ sub SendMail {
 	$Message .= "\n--------------------\n";
 
 	# 引用
-	&getArticleBody($Id, $BOARD, *ArticleBody);
+	&GetArticleBody($Id, $BOARD, *ArticleBody);
 	foreach(@ArticleBody) {
 	    s/<[^>]*>//go;	# タグは要らない
 	    if ($_ ne '') { $Message .= &HTMLDecode($_); }
@@ -2771,7 +961,7 @@ sub SearchArticleKeyword {
 
     $ConvFlag = ($Id !~ /^\d+$/);
 
-    &getArticleBody($Id, $Board, *ArticleBody);
+    &GetArticleBody($Id, $Board, *ArticleBody);
     foreach(@ArticleBody) {
 	$Line = $_;
 
@@ -2876,7 +1066,7 @@ sub CheckArticle {
     if ($Article eq '') { &Fatal(2, ''); }
 
     # アイコンのチェック; おかしけりゃ「無し」に設定．
-    if (&GetIconURLFromTitle($Icon, $Board)) { $Icon = $H_NOICON; }
+    if (! &GetIconUrlFromTitle($Icon, $Board)) { $Icon = $H_NOICON; }
 
     # 記事中の"をエンコード
     $Article = &DQEncode($Article);
@@ -3224,19 +1414,13 @@ sub GetFormattedTitle {
 
     # 通常記事
     $IdStr = "<strong>$Id.</strong> ";
-
-    if ($SYS_F_E) {
-	$Link = "<a href=\"$PROGRAM?b=$Board&c=e&id=$Id\">$Title</a>";
-    } else {
-	$Link = "$Title";
-    }
-
+    $Link = "<a href=\"$PROGRAM?b=$Board&c=e&id=$Id\">$Title</a>";
     $Thread = (($SYS_F_T && $Aids) ? " <a href=\"$PROGRAM?b=$Board&c=t&id=$Id\">$H_THREAD</a>" : '');
 
     if (($Icon eq $H_NOICON) || ($Icon eq '')) {
 	$String = sprintf("$IdStr$Link$Thread [%s] $InputDate", ($Name || $MAINT_NAME));
     } else {
-	$String = sprintf("$IdStr<img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Link$Thread [%s] $InputDate", &GetIconURLFromTitle($Icon, $Board), ($Name || $MAINT_NAME));
+	$String = sprintf("$IdStr<img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Link$Thread [%s] $InputDate", &GetIconUrlFromTitle($Icon, $Board), ($Name || $MAINT_NAME));
     }
 
     return($String);
@@ -3486,7 +1670,7 @@ sub DeleteArticle {
     }
 
     # DBを更新する．
-    &deleteArticleFromDbFile($Board, *Target);
+    &DeleteArticleFromDbFile($Board, *Target);
 }
 
 
@@ -3513,7 +1697,7 @@ sub SupersedeArticle {
     $Article = &CheckArticle($Board, $TextType, *Name, *Email, *Url, *Subject, *Icon, $Article);
 
     # DBファイルを訂正
-    $SupersedeId = &SupersedeDBFile($Board, $Id, $TIME, $Subject, $Icon, $REMOTE_HOST, $Name, $Email, $Url, $Fmail);
+    $SupersedeId = &SupersedeDbFile($Board, $Id, $TIME, $Subject, $Icon, $REMOTE_HOST, $Name, $Email, $Url, $Fmail);
 
     # ex. 「100」→「100_5」
     $File = &GetArticleFileName($Id, $Board);
@@ -3585,7 +1769,7 @@ sub ReLinkExec {
     $DB_AIDS{$ToId} = ($DB_AIDS{$ToId} ne '') ? "$DB_AIDS{$ToId},$FromId" : "$FromId";
 
     # 記事DBを更新する
-    &updateArticleDb($Board);
+    &UpdateArticleDb($Board);
 }
 
 
@@ -3614,7 +1798,7 @@ sub ReOrderExec {
     @Move = ($FromId, &CollectDaughters($FromId));
 
     # 移動させる
-    &reOrderArticleDb($Board, $ToId, *Move);
+    &ReOrderArticleDb($Board, $ToId, *Move);
 
     # DB書き換えたので，キャッシュし直す
     &DbCash($Board);
@@ -3666,7 +1850,7 @@ sub CollectDaughters {
 sub GetNewArticleId {
     local($Board) = @_;
 
-    &getArticleId($Board) + 1;
+    &GetArticleId($Board) + 1;
 }
 
 
@@ -3865,7 +2049,7 @@ sub AddDBFile {
     rename($TmpFile, $File);
 
     # 必要なら投稿があったことをメイルする
-    &getArriveMailTo(0, $Board, *ArriveMail);
+    &GetArriveMailTo(0, $Board, *ArriveMail);
     if (@ArriveMail) {
 	&ArriveMail($Name, $Subject, $Id, @ArriveMail);
     }
@@ -3879,10 +2063,10 @@ sub AddDBFile {
 
 
 ###
-## updateArticleDb - 記事DBの全更新
+## UpdateArticleDb - 記事DBの全更新
 #
 # - SYNOPSIS
-#	updateArticleDb($Board);
+#	UpdateArticleDb($Board);
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -3894,7 +2078,7 @@ sub AddDBFile {
 # - RETURN
 #	なし
 #
-sub updateArticleDb {
+sub UpdateArticleDb {
     local($Board) = @_;
     local($File, $TmpFile, $dId);
 
@@ -3927,10 +2111,10 @@ sub updateArticleDb {
 
 
 ###
-## deleteArticleFromDbFile - 記事DBの更新
+## DeleteArticleFromDbFile - 記事DBの更新
 #
 # - SYNOPSIS
-#	deleteArticleFromDbFile($Board, *Target);
+#	DeleteArticleFromDbFile($Board, *Target);
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -3942,7 +2126,7 @@ sub updateArticleDb {
 # - RETURN
 #	なし
 #
-sub deleteArticleFromDbFile {
+sub DeleteArticleFromDbFile {
     local($Board, *Target) = @_;
     local($File, $TmpFile, $dId);
 
@@ -3977,10 +2161,10 @@ sub deleteArticleFromDbFile {
 
 
 ###
-## reOrderArticleDb - 記事DBの順序変更
+## ReOrderArticleDb - 記事DBの順序変更
 #
 # - SYNOPSIS
-#	reOrderArticleDb($Board, $Id, *Move);
+#	ReOrderArticleDb($Board, $Id, *Move);
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -3994,7 +2178,7 @@ sub deleteArticleFromDbFile {
 # - RETURN
 #	なし
 #
-sub reOrderArticleDb {
+sub ReOrderArticleDb {
     local($Board, $Id, *Move) = @_;
     local($File, $TmpFile, $dId, $TopFlag);
 
@@ -4114,10 +2298,10 @@ sub MakeArticleFile {
 
 
 ###
-## getArticleBody - 記事本文DBの読み込み
+## GetArticleBody - 記事本文DBの読み込み
 #
 # - SYNOPSIS
-#	getArticleBody($Id, $Board, *ArticleBody);
+#	GetArticleBody($Id, $Board, *ArticleBody);
 #
 # - ARGS
 #	$Id		記事ID
@@ -4131,7 +2315,7 @@ sub MakeArticleFile {
 # - RETURN
 #	なし
 #
-sub getArticleBody {
+sub GetArticleBody {
     local($Id, $Board, *ArticleBody) = @_;
     local($QuoteFile);
 
@@ -4147,10 +2331,10 @@ sub getArticleBody {
 
 
 ###
-## getArticleId - 記事番号DBの読み込み
+## GetArticleId - 記事番号DBの読み込み
 #
 # - SYNOPSIS
-#	getArticleId($Board);
+#	GetArticleId($Board);
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -4161,7 +2345,7 @@ sub getArticleBody {
 # - RETURN
 #	最新記事のID
 #
-sub getArticleId {
+sub GetArticleId {
     local($Board) = @_;
     local($ArticleNumFile, $ArticleId);
 
@@ -4212,10 +2396,10 @@ sub WriteArticleId {
 
 
 ###
-## getArriveMailTo - 掲示板別新規メイル送信先DBの全読み込み
+## GetArriveMailTo - 掲示板別新規メイル送信先DBの全読み込み
 #
 # - SYNOPSIS
-#	getArriveMailTo($CommentFlag, $Board, *ArriveMail);
+#	GetArriveMailTo($CommentFlag, $Board, *ArriveMail);
 #
 # - ARGS
 #	$CommentFlag	コメント行を含むか否か(0: 含まない, 1: 含む)
@@ -4229,7 +2413,7 @@ sub WriteArticleId {
 # - RETURN
 #	なし
 #
-sub getArriveMailTo {
+sub GetArriveMailTo {
     local($CommentFlag, $Board, *ArriveMail) = @_;
     local($ArriveMailFile);
 
@@ -4248,10 +2432,10 @@ sub getArriveMailTo {
 
 
 ###
-## updateArriveMailDb - 掲示板別新規メイル送信先DBの全更新
+## UpdateArriveMailDb - 掲示板別新規メイル送信先DBの全更新
 #
 # - SYNOPSIS
-#	updateArriveMailDb($Board, *ArriveMail);
+#	UpdateArriveMailDb($Board, *ArriveMail);
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -4265,7 +2449,7 @@ sub getArriveMailTo {
 # - RETURN
 #	なし
 #
-sub updateArriveMailDb {
+sub UpdateArriveMailDb {
     local($Board, *ArriveMail) = @_;
     local($File, $TmpFile);
 
@@ -4409,10 +2593,10 @@ sub WriteAliasData {
 
 
 ###
-## getAllBoardInfo - 掲示板DBの全読み込み
+## GetAllBoardInfo - 掲示板DBの全読み込み
 #
 # - SYNOPSIS
-#	getAllBoardInfo(*BoardList, *BoardInfo);
+#	GetAllBoardInfo(*BoardList, *BoardInfo);
 #
 # - ARGS
 #	*BoardList	掲示板ID-掲示板名の連想配列のリファレンス
@@ -4424,7 +2608,7 @@ sub WriteAliasData {
 # - RETURN
 #	なし
 #
-sub getAllBoardInfo {
+sub GetAllBoardInfo {
     local(*BoardList, *BoardInfo) = @_;
     local($BoardId, $BName, $BInfo);
 
@@ -4480,10 +2664,10 @@ sub GetBoardInfo {
 
 
 ###
-## cashIconDB - アイコンDBの全読み込み
+## CashIconDb - アイコンDBの全読み込み
 #
 # - SYNOPSIS
-#	cashIconDB($Board);
+#	CashIconDb($Board);
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -4497,7 +2681,7 @@ sub GetBoardInfo {
 #
 $ICON_DB_CASH = 0;
 
-sub cashIconDB {
+sub CashIconDb {
     return if $ICON_DB_CASH;
 
     local($Board) = @_;
@@ -4530,10 +2714,10 @@ sub cashIconDB {
 
 
 ###
-## getBoardHeader - 掲示板ヘッダDBの読み込み
+## GetBoardHeader - 掲示板ヘッダDBの読み込み
 #
 # - SYNOPSIS
-#	getBoardHeader($Board, *BoardHeader);
+#	GetBoardHeader($Board, *BoardHeader);
 #
 # - ARGS
 #	$BoardId	掲示板ID
@@ -4545,7 +2729,7 @@ sub cashIconDB {
 # - RETURN
 #	なし
 #
-sub getBoardHeader {
+sub GetBoardHeader {
     local($Board, *BoardHeader) = @_;
     local($File);
 
@@ -4595,27 +2779,27 @@ sub GetArticleFileName {
 ## GetPath - DBファイルのパス名の取得
 #
 # - SYNOPSIS
-#	GetPath($Board, $File);
+#	GetPath($DbDir, $File);
 #
 # - ARGS
-#	$Board		掲示板ID
+#	$DbDir		DBディレクトリ(掲示板ID, etc.)
 #	$File		ファイル名
 #
 # - DESCRIPTION
-#	掲示板IDとファイル名から，その掲示板用のDBファイルのパス名を作り出す．
+#	DBディレクトリ名とファイル名から，DBファイルのパス名を作り出す．
 #	大域変数$ARCHを参照し，Mac/Win/UNIXに対応．
 #
 # - RETURN
 #	パスを表す文字列
 #
 sub GetPath {
-    local($Board, $File) = @_;
+    local($DbDir, $File) = @_;
 
     # 返す
-    return("$Board/$File") if ($ARCH eq 'UNIX');
-    return("$Board/$File") if ($ARCH eq 'WinNT');
-    return("$Board/$File") if ($ARCH eq 'Win95');
-    return(":$Board:$File") if ($ARCH eq 'Mac');
+    return("$DbDir/$File") if ($ARCH eq 'UNIX');
+    return("$DbDir/$File") if ($ARCH eq 'WinNT');
+    return("$DbDir/$File") if ($ARCH eq 'Win95');
+    return(":$DbDir:$File") if ($ARCH eq 'Mac');
 
 }
 
@@ -4649,10 +2833,10 @@ sub GetIconPath {
 
 
 ###
-## GetIconURLFromTitle - アイコンgifのURLの取得
+## GetIconUrlFromTitle - アイコンgifのURLの取得
 #
 # - SYNOPSIS
-#	GetIconURLFromTitle($Icon, $Board);
+#	GetIconUrlFromTitle($Icon, $Board);
 #
 # - ARGS
 #	$Icon		アイコンID
@@ -4664,7 +2848,7 @@ sub GetIconPath {
 # - RETURN
 #	URLを表す文字列
 #
-sub GetIconURLFromTitle {
+sub GetIconUrlFromTitle {
     local($Icon, $Board) = @_;
     local($FileName, $Title, $TargetFile);
 
@@ -4683,16 +2867,16 @@ sub GetIconURLFromTitle {
     }
     close(ICON);
 
-    return(($TargetFile) ? "$ICON_DIR/$TargetFile" : '');
+    return($TargetFile ? "$ICON_DIR/$TargetFile" : '');
 
 }
 
 
 ###
-## SupersedeDBFile - 訂正記事の記事DBへの書き込み
+## SupersedeDbFile - 訂正記事の記事DBへの書き込み
 #
 # - SYNOPSIS
-#	SupersedeDBFile($Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
+#	SupersedeDbFile($Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
 #
 # - ARGS
 #	$Board		訂正する記事が含まれる掲示板のID
@@ -4712,7 +2896,7 @@ sub GetIconURLFromTitle {
 # - RETURN
 #	agingした記事のID．
 #
-sub SupersedeDBFile {
+sub SupersedeDbFile {
     local($Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = @_;
     local($SupersedeId, $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $File, $TmpFile);
     
