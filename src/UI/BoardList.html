@@ -19,7 +19,16 @@
 
 <KB:cBoardLinkAll>
 
-<!-- ＜KB:cBoardLink var="test"＞とすれば「test」掲示板のみを表示できます -->
+<!-- ＜KB:cBoardLink var="xxx:yyy"＞というタグも使えます． -->
+<!-- yyyは掲示板名です．例えば「test」「board」など． -->
+<!-- xxxは以下のうちのいずれかを指定してください． -->
+<!--   title-thread ... タイトル一覧（スレッド） -->
+<!--   title-bydate ... タイトル一覧（日付順） -->
+<!--   message-thread ... メッセージ一覧（スレッド） -->
+<!--   message-bydate ... メッセージ一覧（日付順） -->
+
+<!-- 例: ＜KB:cBoardLink var="message-thread:test"＞ -->
+<!--     ↑test掲示板のメッセージ一覧（スレッド）へのリンクを生成 -->
 
 <hr>
 
