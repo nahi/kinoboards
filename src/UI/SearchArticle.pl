@@ -141,7 +141,25 @@ sub SearchArticleList
 
     local( $dId, $dAids, $dDate, $dTitle, $dIcon, $dName, $dEmail );
     local( $SubjectFlag, $PersonFlag, $PostTimeFlag, $ArticleFlag );
-    local( $HitNum, $Line, $FromUtc, $ToUtc );
+    local( $HitNum, $Line );
+
+    local( $FromUtc, $ToUtc );
+    if ( $PostTime )
+    {
+	$FromUtc = $ToUtc = -1;
+	if ( $PostTimeFrom )
+	{
+	    $FromUtc = &GetUtcFromYYYY_MM_DD( $PostTimeFrom );
+	    &Fatal( 22, '' ) if ( $FromUtc < 0 );
+	}
+	if ( $PostTimeTo )
+	{
+	    $ToUtc = &GetUtcFromYYYY_MM_DD( $PostTimeTo );
+	    &Fatal( 22, '' ) if ( $ToUtc < 0 );
+	}
+	$ToUtc += 86400 if ( $ToUtc >= 0 );
+    }
+
     foreach ($[ .. $#DB_ID)
     {
 	# 記事情報
@@ -161,17 +179,8 @@ sub SearchArticleList
 	next if ( $Icon && ( $dIcon ne $IconType ));
 
 	# 投稿時刻を検索
-	if ( $PostTime )
-	{
-	    $FromUtc = $ToUtc = -1;
-	    $FromUtc = &GetUtcFromYYYY_MM_DD( $PostTimeFrom )
-		if $PostTimeFrom;
-	    $ToUtc = &GetUtcFromYYYY_MM_DD( $PostTimeTo )
-		if $PostTimeTo;
-	    $ToUtc += 86400 if ( $ToUtc >= 0 );
-	    next if !&SearchTime( $dDate, $FromUtc, $ToUtc );
-	}
-
+	next if ( $PostTime && !&SearchTime( $dDate, $FromUtc, $ToUtc ));
+	
 	if ( $Key ne '' )
 	{
 	    # タイトルを検索

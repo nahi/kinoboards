@@ -105,6 +105,11 @@ Fatal:
 	$severity = $kinologue'SEV_ERROR;
 	$msg = "現在，$H_ICONが使える設定になっていません．$H_ICONを使える設定に変更してから再度やり直してください．";
     }
+    elsif ( $errno == 22 )
+    {
+	$severity = $kinologue'SEV_INFO;
+	$msg = "日付のフォーマットが'yyyy/mm/dd'ではありません．戻ってもう一度やり直してみてください．";
+    }
     elsif ( $errno == 50 )
     {
 	$severity = $kinologue'SEV_INFO;
