@@ -3,21 +3,21 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.keynauts.com/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
-<title>ユーザ情報の変更 - <kb:c_site_name /></title>
+<title>ユーザ情報 - <kb:c_site_name /></title>
 </head>
 <body>
 
-<h1>ユーザ情報の変更 - <kb:c_site_name /></h1>
+<h1>ユーザ情報 - <kb:c_site_name /></h1>
 
 <hr />
 
 <p>
-サーバが記憶しているユーザ情報を変更します．
-必要であれば変更して，「設定する」ボタンを押してください．
+サーバが記憶しているユーザ情報は以下の通りです．
+必要であれば変更して，「設定」ボタンを押してください．
 </p>
 
 <p>
