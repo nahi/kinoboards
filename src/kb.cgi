@@ -34,7 +34,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.48 1999-08-28 09:02:52 nakahiro Exp $
+# $Id: kb.cgi,v 5.49 1999-08-28 12:03:29 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -65,7 +65,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7α3';		# release
+$KB_RELEASE = '7α3.1';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -628,7 +628,7 @@ exit( 0 );
 sub UILogin
 {
     # ユーザ情報をクリア
-    $UNAME = $cgiauth'F_COOKIE_RESET if $SYS_AUTH;
+    $UNAME = $cgiauth'F_COOKIE_RESET if ( $SYS_AUTH == 1 );
     &htmlGen( 'Login.html' );
 }
 
@@ -699,7 +699,7 @@ sub UIAdminConfigExec
     &UnlockAll();
 
     # ユーザ情報をクリア
-    $UNAME = $cgiauth'F_COOKIE_RESET if $SYS_AUTH;
+    $UNAME = $cgiauth'F_COOKIE_RESET if ( $SYS_AUTH == 1 );
     &htmlGen( 'Login.html' );
 }
 
@@ -710,7 +710,7 @@ sub UIAdminConfigExec
 sub UIUserEntry
 {
     # ユーザ情報をクリア
-    $UNAME = $cgiauth'F_COOKIE_RESET if $SYS_AUTH;
+    $UNAME = $cgiauth'F_COOKIE_RESET if ( $SYS_AUTH == 1 );
     &htmlGen( 'UserEntry.html' );
 }
 
@@ -1127,7 +1127,7 @@ sub hgSupersedeEntryButton
     local( $op ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
     %tags = ( 'corig', $cgi'TAGS{'c'}, 'b', $BOARD, 'c', 'p', 'id', $gId,
 	's', 1, 'op', $op );
-    &DumpFormButton( *tags, '実行', 0 );
+    &DumpFormButton( *tags, '実行', '' );
     $gHgStr .= "</p>\n";
 }
 
@@ -1218,7 +1218,7 @@ sub hgPostPreviewForm
 	     'fmail', $cgi'TAGS{'fmail'}, 's', $supersede,
 	     'op', $cgi'TAGS{'op'} );
 
-    &DumpForm( *tags, '実行', 0, *msg );
+    &DumpForm( *tags, '実行', '', *msg );
 }
 
 sub hgSupersedePreviewForm
@@ -1818,28 +1818,28 @@ sub ThreadTitleNodeMaint
 
     # リンク先変更コマンド(From)
     # 移動コマンド(From)
-    $gHgStr .= &LinkP( "b=$BOARD&c=ct&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum, $H_RELINKFROM_MARK, 0, $H_RELINKFROM_MARK_L ) . "\n";
+    $gHgStr .= &LinkP( "b=$BOARD&c=ct&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum, $H_RELINKFROM_MARK, '', $H_RELINKFROM_MARK_L ) . "\n";
     if ($DB_FID{$Id} eq '')
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=mvt&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum, $H_REORDERFROM_MARK, 0, $H_REORDERFROM_MARK_L ) . "\n";
+	$gHgStr .= &LinkP( "b=$BOARD&c=mvt&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum, $H_REORDERFROM_MARK, '', $H_REORDERFROM_MARK_L ) . "\n";
     }
 
     # 削除コマンド
-    $gHgStr .= &LinkP( "b=$BOARD&c=dp&id=$Id", $H_DELETE_ICON, 0,
+    $gHgStr .= &LinkP( "b=$BOARD&c=dp&id=$Id", $H_DELETE_ICON, '',
 	$H_DELETE_ICON_L ) . "\n";
-    $gHgStr .= &LinkP( "b=$BOARD&c=f&s=on&id=$Id", $H_SUPERSEDE_ICON, 0,
+    $gHgStr .= &LinkP( "b=$BOARD&c=f&s=on&id=$Id", $H_SUPERSEDE_ICON, '',
 	$H_SUPERSEDE_ICON_L ) . "\n";
 
     # 移動コマンド(To)
     if (($ComType == 4) && ($FromId ne $Id) && ($DB_FID{$Id} eq '') && ($FromId ne $Id))
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=mve&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . $AddNum, $H_REORDERTO_MARK, 0, $H_REORDERTO_MARK_L ) . "\n";
+	$gHgStr .= &LinkP( "b=$BOARD&c=mve&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . $AddNum, $H_REORDERTO_MARK, '', $H_REORDERTO_MARK_L ) . "\n";
     }
 
     # リンク先変更コマンド(To)
     if (($ComType == 2) && ($FromId ne $Id) && (! grep(/^$FromId$/, split(/,/, $DB_AIDS{$Id}))) && (! grep(/^$FromId$/, split(/,/, $DB_FID{$Id}))))
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=ce&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . $AddNum, $H_RELINKTO_MARK, 0, $H_RELINKTO_MARK_L ) . "\n";
+	$gHgStr .= &LinkP( "b=$BOARD&c=ce&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . $AddNum, $H_RELINKTO_MARK, '', $H_RELINKTO_MARK_L ) . "\n";
     }
 
     $gADDFLAG{$Id} = 1;		# 整形済み
@@ -2134,12 +2134,12 @@ sub hgDeletePreviewForm
 
     local( %tags );
     %tags = ( 'c', 'de', 'b', $BOARD, 'id', $gId );
-    &DumpForm( *tags, 'このメッセージを削除します', 0, 0 );
+    &DumpForm( *tags, 'このメッセージを削除します', '', '' );
 
     if ( $gAids )
     {
 	%tags = ( 'c', 'det', 'b', $BOARD, 'id', $gId );
-	&DumpForm( *tags, "$H_REPLYメッセージもまとめて削除します", 0, 0 );
+	&DumpForm( *tags, "$H_REPLYメッセージもまとめて削除します", '', '' );
     }
 }
 
@@ -2281,7 +2281,7 @@ sub hgcTopMenu
 	qq(: <input id="num" name="num" type="text" size="3" value=") .
 	( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . '"> ';
     local( %tags ) = ( 'b', $BOARD );
-    &DumpForm( *tags, '表示(V)', 0, *select );
+    &DumpForm( *tags, '表示(V)', '', *select );
     $gHgStr .= "</div>\n";
 }
 
@@ -2455,7 +2455,7 @@ sub hgbSearchArticleForm
     $msg .= sprintf( qq(<input id="searchicon" name="searchicon" type="checkbox" value="on"%s>: ), $SearchIcon? ' checked' : '' ) . &TagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
 
     # アイコンの選択
-    &CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
+    &CacheIconDb( $BOARD );
     $msg .= sprintf( qq(<select id="icon" name="icon">\n<option%s>$H_NOICON\n), ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' selected' );
 
     local( $IconTitle );
@@ -2477,7 +2477,7 @@ sub hgbSearchArticleForm
 sub hgbAllIcon
 {
     return unless $BOARD;
-    &CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
+    &CacheIconDb( $BOARD );
     $gHgStr .= "<ul>\n";
     foreach ( @ICON_TITLE )
     {
@@ -2543,7 +2543,7 @@ sub hgbEntryIcon
     # アイコンの選択
     if ( $SYS_ICON )
     {
-	&CacheIconDb( $BOARD );	# アイコンDBをキャッシュ
+	&CacheIconDb( $BOARD );
 	$gHgStr .= &TagLabel( $H_ICON, 'icon', 'I' ) . sprintf( qq(:\n<select id="icon" name="icon">\n<option%s>$H_NOICON\n), $gDefIcon? '' : ' selected' );
 	foreach ( @ICON_TITLE )
 	{
@@ -2626,7 +2626,7 @@ sub hgbEntryButton
     local( $op ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
     %tags = ( 'corig', $cgi'TAGS{'c'}, 'b', $BOARD, 'c', 'p', 'id', $gId,
 	's', 0, 'op', $op );
-    &DumpFormButton( *tags, '実行', 0 );
+    &DumpFormButton( *tags, '実行', '' );
     $gHgStr .= $str . "</p>\n";
 }
 
@@ -2649,19 +2649,21 @@ sub DumpBoardHeader
 
 
 ###
-## DumpArticle - 元記事の表示
+## DumpArticle - 記事の表示
 #
 # - SYNOPSIS
-#	DumpArticle( $Id, $CommandFlag, $OriginalFlag );
+#	DumpArticle( $Id, $CommandFlag, $OriginalFlag, @articleInfo );
 #
 # - ARGS
-#	$Id			記事ID
+#	$Id			メッセージID
 #	$CommandFlag		コマンドを表示するか否か(表示する=1)
 #	$OriginalFlag		その記事中に，(あれば)元記事へのリンクを
 #				表示するか否か(表示する=1)
+#	@articleInfo		$Idが''だった時に使われるメッセージ情報
 #
 # - DESCRIPTION
-#	元記事を表示する．
+#	メッセージを表示する．$Idが''でなければ，メッセージDBから取得した
+#	情報を元に表示する．$Idが''の場合，かわりに@articleInfoを用いる．
 #
 sub DumpArticle
 {
@@ -3122,10 +3124,10 @@ sub DumpButtonToTitleList
     {
 	local( %tags ) = ( 'b', $board, 'c', 'v', 'num', $DEF_TITLE_NUM, 'old',
 	    $old );
-	&DumpForm( *tags, "$H_BACKTITLEREPLY(B)", 0, 0 );
+	&DumpForm( *tags, "$H_BACKTITLEREPLY(B)", '', '' );
 
 	%tags = ( 'b', $board, 'c', 'r', 'num', $DEF_TITLE_NUM, 'old', $old );
-	&DumpForm( *tags, $H_BACKTITLEDATE, 0, 0 );
+	&DumpForm( *tags, $H_BACKTITLEDATE, '', '' );
     }
     else
     {
@@ -3158,7 +3160,7 @@ sub DumpButtonToArticle
     if  ( $SYS_COMMAND_BUTTON )
     {
 	local( %tags ) = ( 'b', $board, 'c', 'e', 'id', $id );
-	&DumpForm( *tags, "$msg(N)", 0, 0 );
+	&DumpForm( *tags, "$msg(N)", '', '' );
     }
     else
     {
@@ -3309,7 +3311,7 @@ sub DumpFormattedTitle
     {
 	local( $fId ) = $DB_FID{$id};
 	$fId =~ s/^.*,//o;
-	$gHgStr .= ' ' . &LinkP( "b=$BOARD&c=t&id=$fId", $H_THREAD_ALL, 0,
+	$gHgStr .= ' ' . &LinkP( "b=$BOARD&c=t&id=$fId", $H_THREAD_ALL, '',
 	    $H_THREAD_ALL_L );
     }
 
@@ -3319,7 +3321,7 @@ sub DumpFormattedTitle
 
     if ( $aids )
     {
-	$gHgStr .= ' ' . &LinkP( "b=$BOARD&c=t&id=$id", $H_THREAD, 0,
+	$gHgStr .= ' ' . &LinkP( "b=$BOARD&c=t&id=$id", $H_THREAD, '',
 	    $H_THREAD_L );
     }
 
@@ -6608,16 +6610,16 @@ sub GetBoardInfo
 #	アイコンDBを読み込んで連想配列に放り込む．
 #	大域変数，@ICON_TITLE，%ICON_FILE，%ICON_HELPを破壊する．
 #
-$ICON_DB_CACHE = '';
+$gIconDbCached = '';
 
 sub CacheIconDb
 {
     local( $board ) = @_;
-    return if ( $ICON_DB_CACHE eq $board );
+    return if ( $gIconDbCached eq $board );
 
-    local( $FileName, $IconTitle, $IconHelp );
+    local( $fileName, $title, $help, $type );
 
-    @ICON_TITLE = %ICON_FILE = %ICON_HELP = ();
+    @ICON_TITLE = %ICON_FILE = %ICON_HELP = %ICON_TYPE = ();
     open( ICON, &GetIconPath( "$board.$ICONDEF_POSTFIX" ))
 	|| ( open( ICON, &GetIconPath( "$DEFAULT_ICONDEF" ))
 	    || &Fatal( 1, &GetIconPath( "$DEFAULT_ICONDEF" )));
@@ -6625,15 +6627,16 @@ sub CacheIconDb
     {
 	next if ( /^\#/o || /^$/o );
 	chop;
-	( $FileName, $IconTitle, $IconHelp ) = split( /\t/, $_, 3 );
+	( $fileName, $title, $help, $type ) = split( /\t/, $_, 4 );
 
-	push( @ICON_TITLE, $IconTitle );
-	$ICON_FILE{$IconTitle} = $FileName;
-	$ICON_HELP{$IconTitle} = $IconHelp;
+	push( @ICON_TITLE, $title );
+	$ICON_FILE{$title} = $fileName;
+	$ICON_HELP{$title} = $help;
+	$ICON_TYPE{$title} = $type || 'article';
     }
     close ICON;
 
-    $ICON_DB_CACHE = $board;		# cached
+    $gIconDbCached = $board;		# cached
 }
 
 
@@ -6788,7 +6791,7 @@ sub GetIconUrlFromTitle
     return $ICON_NEW if ( $icon eq $H_NEWARTICLE );
 
     # prepare
-    &CacheIconDb( $board ) if ( $ICON_DB_CACHE ne $board );
+    &CacheIconDb( $board );
 
     # check
     return '' unless $ICON_FILE{ $icon };
