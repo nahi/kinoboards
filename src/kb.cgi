@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.77 2000-06-14 14:41:48 nakahiro Exp $
+# $Id: kb.cgi,v 5.78 2000-06-22 13:22:08 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -1133,7 +1133,7 @@ sub htmlGen
 #
 sub uiLogin
 {
-    # Isolation level: CHAOS.
+    # Isolation level: 1 ( Read comitted )
 
     # ユーザ情報をクリア
     if ( $SYS_AUTH == 1 )
@@ -1174,7 +1174,7 @@ sub hg_login_form
 #
 sub uiAdminConfig
 {
-    # Isolation level: CHAOS.
+    # Isolation level: 1 ( Read comitted )
     &htmlGen( 'AdminConfig.xml' );
 }
 
@@ -1198,7 +1198,7 @@ sub hg_admin_config_form
 #
 sub uiAdminConfigExec
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
 
     local( $p1 ) = &cgi'tag( 'confP' );
@@ -1229,7 +1229,7 @@ sub uiAdminConfigExec
 #
 sub uiUserEntry
 {
-    # Isolation level: CHAOS.
+    # Isolation level: 1 ( Read comitted )
 
     # ユーザ情報をクリア
     $UNAME = $cgiauth'F_COOKIE_RESET if ( $SYS_AUTH == 1 );
@@ -1264,7 +1264,7 @@ sub hg_user_entry_form
 #
 sub uiUserEntryExec
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
 
     local( $user ) = &cgi'tag( 'kinoU' );
@@ -1313,8 +1313,7 @@ sub uiUserEntryExec
 #
 sub uiUserConfig
 {
-    # Isolation level: CHAOS.
-
+    # Isolation level: 1 ( Read comitted )
     &htmlGen( 'UserConfig.xml' );
 }
 
@@ -1373,7 +1372,7 @@ sub hg_user_config_form
 #
 sub uiUserConfigExec
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
 
     local( $passwd ) = &cgi'tag( 'kinoP' );
@@ -1429,8 +1428,7 @@ sub uiUserConfigExec
 #
 sub uiBoardEntry
 {
-    # Isolation level: CHAOS.
-
+    # Isolation level: 1 ( Read comitted )
     &htmlGen( 'BoardEntry.xml' );
 }
 
@@ -1454,7 +1452,7 @@ sub hg_board_entry_form
 #
 sub uiBoardEntryExec
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
 
     local( $name ) = &cgi'tag( 'name' );
@@ -1484,7 +1482,7 @@ sub uiBoardEntryExec
 #
 sub uiBoardConfig
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
 
     # 全掲示板の情報を取り出す
@@ -1522,7 +1520,7 @@ sub hg_board_config_form
 #
 sub uiBoardConfigExec
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
 
     local( $valid ) = &cgi'tag( 'valid' );
@@ -1551,8 +1549,7 @@ sub uiBoardConfigExec
 #
 sub uiBoardList
 {
-    # Isolation level: CHAOS.
-
+    # Isolation level: 1 ( Read comitted )
     &htmlGen( 'BoardList.xml' );
 }
 
@@ -1564,7 +1561,7 @@ sub uiBoardList
 #
 sub uiPostNewEntry
 {
-    # Isolation level: CHAOS.
+    # Isolation level: 1 ( Read comitted )
 
     if ( $SYS_NEWART_ADMINONLY && !( $POLICY & 8 ))
     {
@@ -1600,7 +1597,7 @@ sub uiPostNewEntry
 
 sub uiPostReplyEntry
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockBoard();
     &cacheArt( $BOARD );
 
@@ -1651,7 +1648,7 @@ sub uiPostReplyEntry
 
 sub uiSupersedeEntry
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockBoard();
     &cacheArt( $BOARD );
 
@@ -1712,7 +1709,7 @@ sub hg_supersede_entry_orig_article
 #
 sub uiPostPreview
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
     &cacheArt( $BOARD );
 
@@ -1724,10 +1721,8 @@ sub uiPostPreview
 
 sub uiSupersedePreview
 {
-    # Isolation level: READ UNCOMITTED.
-    &lockAll();
+    # Isolation level: 1 ( Read comitted )
     &cacheArt( $BOARD );
-    &unlockAll();
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
@@ -1853,7 +1848,7 @@ sub hg_supersede_preview_orig_article
 #
 sub uiPostExec
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
     &cacheArt( $BOARD );
 
@@ -1867,7 +1862,7 @@ sub uiPostExec
 
 sub uiSupersedeExec
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockAll();
     &cacheArt( $BOARD );
 
@@ -1997,10 +1992,8 @@ sub hg_post_exec_jump_to_orig_article
 #
 sub uiThreadArticle
 {
-    # Isolation level: READ UNCOMITTED.
-    &lockBoard();
+    # Isolation level: 1 ( Read comitted )
     &cacheArt( $BOARD );
-    &unlockBoard();
 
     %gADDFLAG = ();
     @gIDLIST = ();
@@ -2056,52 +2049,7 @@ sub hg_thread_article_tree
     }
     else
     {
-	local( $start, $until, $step );
-	if ( $gVRev )
-	{
-	    $step = +1;
-	    $start = $gFrom;
-	    $until = $gTo + $step;
-	}
-	else
-	{
-	    $step = -1;
-	    $start = $gTo;
-	    $until = $gFrom + $step;
-	}
-
-	$gHgStr .= "<ul>\n" if $gFold;
-
-	for( $IdNum = $start; $IdNum != $until; $IdNum += $step )
-	{
-	    # 該当記事のIDを取り出す
-	    $Id = &getArtId( $IdNum );
-	    $Fid = &getArtParent( $Id );
-	    # 後方参照は後回し．
-	    next if (( $Fid ne '' ) && (( $gADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
-
-	    # ノードを表示
-	    $gHgStr .= "<ul>\n" unless $gFold;
-	    if ( $gFold )
-	    {
-		&threadTitleNodeNoThread( $Id, 3 );
-	    }
-	    elsif ( $SYS_THREAD_FORMAT == 0 )
-	    {
-		&threadTitleNodeThread( $Id, 3 );
-	    }
-	    elsif ( $SYS_THREAD_FORMAT == 1 )
-	    {
-		&threadTitleNodeAllThread( $Id, 3 );
-	    }
-	    else
-	    {
-		&threadTitleNodeNoThread( $Id, 3 );
-	    }
-	    $gHgStr .= "</ul>\n" unless $gFold;
-	    &cgiprint'cache( $gHgStr ); $gHgStr = '';
-	}
-	$gHgStr .= "</ul>\n" if $gFold;
+	&threadTree( $gFrom, $gTo, 3, $gRev, $gFold );
     }
 }
 
@@ -2127,7 +2075,7 @@ sub hg_thread_article_body
 #
 sub uiThreadTitle
 {
-    # Isolation level: READ UNCOMITTED.
+    # Isolation level: 3 ( Serializable )
     &lockBoard();
     &cacheArt( $BOARD );
 
@@ -2298,75 +2246,89 @@ sub hg_thread_title_tree
     }
     else
     {
-	local( $start, $until, $step );
-	if ( $gVRev )
-	{
-	    $step = +1;
-	    $start = $gFrom;
-	    $until = $gTo + $step;
-	}
-	else
-	{
-	    $step = -1;
-	    $start = $gTo;
-	    $until = $gFrom + $step;
-	}
+	&threadTree( $gFrom, $gTo, 1, $gRev, $gFold, $AddNum, ( $POLICY & 8 ));
+    }
+}
 
-	$gHgStr .= "<ul>\n" if $gFold;
+sub threadTree
+{
+    local( $from, $to, $flag, $rev, $fold, $addNum, $maint ) = @_;
 
-	for( $IdNum = $start; $IdNum != $until; $IdNum += $step )
+    local( $start, $until, $step );
+    if ( $rev )
+    {
+	$step = +1;
+	$start = $from;
+	$until = $to + $step;
+    }
+    else
+    {
+	$step = -1;
+	$start = $to;
+	$until = $from + $step;
+    }
+
+    $gHgStr .= "<ul>\n" if $fold;
+
+    for( $IdNum = $start; $IdNum != $until; $IdNum += $step )
+    {
+	# 該当メッセージ情報
+	$Id = &getArtId( $IdNum );
+	$Fid = &getArtParent( $Id );
+
+	next if ( $gADDFLAG{ $Id } != 2 );
+
+	# オリジナルではない場合の処理
+	if ( $Fid ne '' )
 	{
-	    # 該当メッセージ情報
-	    $Id = &getArtId( $IdNum );
-	    $Fid = &getArtParent( $Id );
-
-	    # オリジナルではない場合の処理
-	    if ( $Fid ne '' )
+	    if ( $SYS_THREAD_ORDER == 0 )
 	    {
+		# オリジナルメッセージの投稿時間順の場合
+
+		# リプライを表示しないモードならskip
+		next if ( $fold || ( $SYS_THREAD_FORMAT == 2 ));
+
+		# 後方参照の場合はskip
+		next if ( $gADDFLAG{ $Fid } == 2 );
+	    }
+	    elsif ( $SYS_THREAD_ORDER == 1 )
+	    {
+		# 最新リプライメッセージの投稿時間順の場合
+
 		# リプライを表示しないモードならskip
 		next if ( $SYS_THREAD_FORMAT == 2 );
 
-		if ( $SYS_THREAD_ORDER == 0 )
+		# トップまで遡る
+		while ( $gADDFLAG{ $Fid } == 2 )
 		{
-		    # オリジナルメッセージの投稿時間順の場合
-		    # 後方参照の場合はskip
-		    next if ( $gADDFLAG{$Fid} == 2 );
+		    $gADDFLAG{ $Id } = 1 if $fold;
+		    $Id = $Fid;
+		    $Fid = &getArtParent( $Id );
 		}
-		elsif ( $SYS_THREAD_ORDER == 1 )
-		{
-		    # 最新リプライメッセージの投稿時間順の場合
-		    # トップまで遡る
-		    while ( $gADDFLAG{$Fid} == 2 )
-		    {
-			$Id = $Fid;
-			$Fid = &getArtParent( $Id );
-		    }
-		}
+
+		# 表示済みスレッドならskip
+		next if ( $gADDFLAG{ $Fid } == 1 );
 	    }
-				
-	    # ノードを表示
-	    $gHgStr .= "<ul>\n" unless $gFold;
-	    if ( $gFold )
-	    {
-		&threadTitleNodeNoThread( $Id, 1, $AddNum, ( $POLICY & 8 ));
-	    }
-	    elsif ( $SYS_THREAD_FORMAT == 0 )
-	    {
-		&threadTitleNodeThread( $Id, 1, $AddNum, ( $POLICY & 8 ));
-	    }
-	    elsif ( $SYS_THREAD_FORMAT == 1 )
-	    {
-		&threadTitleNodeAllThread( $Id, 1, $AddNum, ( $POLICY & 8 ));
-	    }
-	    else
-	    {
-		&threadTitleNodeNoThread( $Id, 1, $AddNum, ( $POLICY & 8 ));
-	    }
-	    $gHgStr .= "</ul>\n" unless $gFold;
-	    &cgiprint'cache( $gHgStr ); $gHgStr = '';
 	}
-	$gHgStr .= "</ul>\n" if $gFold;
+
+	# ノードを表示
+	$gHgStr .= "<ul>\n" unless $fold;
+	if ( $fold )
+	{
+	    &threadTitleNodeNoThread( $Id, $flag, $addNum, $maint );
+	}
+	elsif ( $SYS_THREAD_FORMAT == 0 )
+	{
+	    &threadTitleNodeThread( $Id, $flag, $addNum, $maint );
+	}
+	else
+	{
+	    &threadTitleNodeNoThread( $Id, $flag, $addNum, $maint );
+	}
+	$gHgStr .= "</ul>\n" unless $fold;
+	&cgiprint'cache( $gHgStr ); $gHgStr = '';
     }
+    $gHgStr .= "</ul>\n" if $fold;
 }
 
 # 新着ノードのみ表示
@@ -2377,7 +2339,8 @@ sub threadTitleNodeNoThread
     local( $fid, $aids, $date, $title, $icon, $host, $name ) = &getArtInfo( $id );
     &dumpArtSummaryItem( $id, $aids, $date, $title, $icon, $name, $flag );
 
-    $flag &= 6; # 110
+    $flag &= 14; # 1110
+    $gADDFLAG{ $id } = 1;		# 整形済み
     push( @gIDLIST, $id );
 
     &threadTitleMaintIcon( $id, $addNum ) if $maint;
@@ -2390,13 +2353,10 @@ sub threadTitleNodeThread
 {
     local( $id, $flag, $addNum, $maint ) = @_;
 
-    # ページ外ならおしまい．
-    return if ( $gADDFLAG{ $id } != 2 );
-
     local( $fid, $aids, $date, $title, $icon, $host, $name ) = &getArtInfo( $id );
     &dumpArtSummaryItem( $id, $aids, (( !$SYS_COMPACTTHREAD || $flag&1 )? $date : 0 ), $title, $icon, $name, $flag );
 
-    $flag &= 6; # 110
+    $flag &= 14; # 1110
     $gADDFLAG{ $id } = 1;		# 整形済み
     push( @gIDLIST, $id );
 
@@ -2408,37 +2368,7 @@ sub threadTitleNodeThread
 	$gHgStr .= "<ul>\n";
 	foreach ( split( /,/, $aids ))
 	{
-	    &threadTitleNodeThread( $_, $flag, $addNum, $maint );
-	}
-	$gHgStr .= "</ul>\n";
-    }
-    $gHgStr .= "</li>\n";
-}
-
-# 全スレッドの表示
-sub threadTitleNodeAllThread
-{
-    local( $id, $flag, $addNum, $maint ) = @_;
-
-    # 表示済みならおしまい．
-    return if ( $gADDFLAG{ $id } == 1 );
-
-    local( $fid, $aids, $date, $title, $icon, $host, $name ) = &getArtInfo( $id );
-    &dumpArtSummaryItem( $id, $aids, (( !$SYS_COMPACTTHREAD || $flag&1 )? $date : 0 ), $title, $icon, $name, $flag );
-
-    $flag &= 6; # 110
-    $gADDFLAG{ $id } = 1;		# 整形済み
-    push( @gIDLIST, $id );
-
-    &threadTitleMaintIcon( $id, $addNum ) if $maint;
-
-    # 娘が居れば……
-    if ( $aids )
-    {
-	$gHgStr .= "<ul>\n";
-	foreach ( split( /,/, $aids ))
-	{
-	    &threadTitleNodeAllThread( $_, $flag, $addNum, $maint );
+	    &threadTitleNodeThread( $_, $flag, $addNum, $maint ) if ( $gADDFLAG{ $_ } == 2 );
 	}
 	$gHgStr .= "</ul>\n";
     }
@@ -2458,21 +2388,17 @@ sub threadTitleMaintIcon
     local( $parents ) = &getArtParents( $id );
 
     # リンク先変更コマンド(From)
-    $gHgStr .= &linkP( "b=$BOARD_ESC&c=ct&rfid=$id&roid=" . $parents . $addNum,
-	$H_RELINKFROM_MARK, '', $H_RELINKFROM_MARK_L ) . "\n";
+    $gHgStr .= &linkP( "b=$BOARD_ESC&c=ct&rfid=$id&roid=" . $parents . $addNum, $H_RELINKFROM_MARK, '', $H_RELINKFROM_MARK_L ) . "\n";
 
     if ( $parents eq '' )
     {
 	# 移動コマンド(From)
-	$gHgStr .= &linkP( "b=$BOARD_ESC&c=mvt&rfid=$id&roid=" . $parents .
-	    $addNum, $H_REORDERFROM_MARK, '', $H_REORDERFROM_MARK_L ) . "\n";
+	$gHgStr .= &linkP( "b=$BOARD_ESC&c=mvt&rfid=$id&roid=" . $parents . $addNum, $H_REORDERFROM_MARK, '', $H_REORDERFROM_MARK_L ) . "\n";
     }
 
     # 削除・訂正コマンド
-    $gHgStr .= &linkP( "b=$BOARD_ESC&c=f&s=on&id=$id", $H_SUPERSEDE_ICON, '',
-	$H_SUPERSEDE_ICON_L ) . "\n";
-    $gHgStr .= &linkP( "b=$BOARD_ESC&c=dp&id=$id", $H_DELETE_ICON, '',
-	$H_DELETE_ICON_L ) . "\n";
+    $gHgStr .= &linkP( "b=$BOARD_ESC&c=f&s=on&id=$id", $H_SUPERSEDE_ICON, '', $H_SUPERSEDE_ICON_L ) . "\n";
+    $gHgStr .= &linkP( "b=$BOARD_ESC&c=dp&id=$id", $H_DELETE_ICON, '', $H_DELETE_ICON_L ) . "\n";
 
     # 移動コマンド(To)
     if (( $gComType == 4 ) && ( $fromId ne $id ) && ( $parents eq '' ) && ( $fromId ne $id ))
@@ -2495,10 +2421,8 @@ sub threadTitleMaintIcon
 #
 sub uiSortTitle
 {
-    # Isolation level: READ UNCOMITTED.
-    &lockBoard();
+    # Isolation level: 1 ( Read comitted )
     &cacheArt( $BOARD );
-    &unlockBoard();
 
     local( $nofMsg ) = &getNofArt();
 
@@ -2574,10 +2498,8 @@ sub hg_sort_title_tree
 #
 sub uiShowThread
 {
-    # Isolation level: READ UNCOMITTED.
-    &lockBoard();
+    # Isolation level: 1 ( Read comitted )
     &cacheArt( $BOARD );
-    &unlockBoard();
 
     $gId = &cgi'tag( 'id' );
 
@@ -2623,10 +2545,8 @@ sub hg_show_thread_back_to_title_button
 #
 sub uiSortArticle
 {
-    # Isolation level: READ UNCOMITTED.
-    &lockBoard();
+    # Isolation level: 1 ( Read comitted )
     &cacheArt( $BOARD );
-    &unlockBoard();
 
     $gNum = &cgi'tag( 'num' );
     $gOld = &cgi'tag( 'old' );
@@ -2684,10 +2604,8 @@ sub hg_sort_article_body
 #
 sub uiShowArticle
 {
-    # Isolation level: READ UNCOMITTED.
-    &lockBoard();
+    # Isolation level: 1 ( Read comitted )
     &cacheArt( $BOARD );
-    &unlockBoard();
 
     $gId = &cgi'tag( 'id' );
 
@@ -2734,10 +2652,8 @@ sub hg_show_article_reply
 #
 sub uiSearchArticle
 {
-    # Isolation level: READ UNCOMITTED.
-    &lockBoard();
+    # Isolation level: 1 ( Read comitted )
     &cacheArt( $BOARD );
-    &unlockBoard();
 
     &htmlGen( 'SearchArticle.xml' );
 }
@@ -2780,10 +2696,9 @@ sub hg_search_article_result
 #
 sub uiDeletePreview
 {
-    # Isolation level: READ UNCOMITTED.
+    # Isolation level: 3 ( Serializable )
     &lockBoard();
     &cacheArt( $BOARD );
-    &unlockBoard();
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
@@ -2797,6 +2712,8 @@ sub uiDeletePreview
     &fatal( 8, '' ) if ( &getArtSubject( $gId ) eq '' );
 
     &htmlGen( 'DeletePreview.xml' );
+
+    &unlockBoard();
 }
 
 sub hg_delete_preview_form
@@ -2834,7 +2751,7 @@ sub hg_delete_preview_reply
 #
 sub uiDeleteExec
 {
-    # Isolation level: SERIALIZABLE.
+    # Isolation level: 3 ( Serializable )
     &lockBoard();
     &cacheArt( $BOARD );
 
@@ -2871,8 +2788,7 @@ sub hg_delete_exec_back_to_title_button
 #
 sub uiShowIcon
 {
-    # Isolation level: CHAOS.
-
+    # Isolation level: 1 ( Read comitted )
     &htmlGen( 'ShowIcon.xml' );
 }
 
@@ -2882,8 +2798,7 @@ sub uiShowIcon
 #
 sub uiHelp
 {
-    # Isolation level: CHAOS.
-
+    # Isolation level: 1 ( Read comitted )
     &htmlGen( 'Help.xml' );
 }
 
@@ -2893,7 +2808,7 @@ sub uiHelp
 #
 sub uiFatal
 {
-    # Isolation level: CHAOS.
+    # Isolation level: 1 ( Read comitted )
 
     ( $gMsg ) = @_;
     &htmlGen( 'Fatal.xml' );
@@ -4248,6 +4163,7 @@ sub dumpForm
 #	$flag		表示カスタマイズフラグ
 #	    2^0 ... スレッドの先頭であるか（▲が付く）
 #	    2^1 ... 同一ページfragmentリンクを利用するか（#記事番号でリンク）
+#	    2^2 ... スレッドの末端であるか（▼が付く）
 #
 # - DESCRIPTION
 #	ある記事をタイトルリスト表示用にフォーマットする．
@@ -4272,7 +4188,7 @@ sub dumpArtSummary
 	(( $flag&2 )? &tagA( $subject, "$cgi'REQUEST_URI#a$id" ) :
 	&linkP( "b=$BOARD_ESC&c=e&id=$id", $subject ));
 
-    if ( $aids )
+    if ( $aids && ( $flag&1 || $flag&4 ))
     {
 	$gHgStr .= ' ' . &linkP( "b=$BOARD_ESC&c=t&id=$id", $H_THREAD, '', $H_THREAD_L );
     }
@@ -6665,24 +6581,21 @@ sub getTitleOldIndex
 ###
 ## getNofBoard - 掲示板数の取得
 ## getBoardId - 掲示板IDの取得
-## getBoardNum - 掲示板番号の取得
 #
 # - SYNOPSIS
 #	&getNofBoard();
 #	&getBoardId( $num );
-#	&getBoardNum( $id );
 #
 # - ARGS
 #	$num	掲示板番号
-#	$id	掲示板ID
 #
 # - DESCRIPTION
 #	掲示板数を取得する．
-#	掲示板番号/掲示板IDから，ID/番号を取得する．
+#	掲示板番号から，IDを取得する．
 #
 # - RETURN
 #	掲示板数
-#	掲示板ID/掲示板番号
+#	掲示板ID
 #
 sub getNofBoard
 {
@@ -6692,15 +6605,6 @@ sub getBoardId
 {
     return '' if ( $_[0] < 0 );
     $BOARD_ID[ $_[0] ];
-}
-sub getBoardNum
-{
-    local( $id ) = $_[0];
-    foreach ( 0 .. &getNofBoard() )
-    {
-	return $_ if ( &getBoardId( $_ ) eq $id );
-    }
-    return -1;
 }
 
 
@@ -6742,24 +6646,21 @@ sub getBoardKey
 ###
 ## getNofBoardIcon - アイコン数の取得
 ## getBoardIconId - アイコンIDの取得
-## getBoardIconNum - アイコン番号の取得
 #
 # - SYNOPSIS
 #	&getNofBoardIcon();
 #	&getBoardIconId( $num );
-#	&getBoardIconNum( $id );
 #
 # - ARGS
 #	$num	アイコン番号
-#	$id	アイコンID
 #
 # - DESCRIPTION
 #	アイコン数を取得する．
-#	アイコン番号/アイコンIDから，ID/番号を取得する．
+#	アイコン番号から，IDを取得する．
 #
 # - RETURN
 #	アイコン数
-#	アイコンID/アイコン番号
+#	アイコンID
 #
 sub getNofBoardIcon
 {
@@ -6769,15 +6670,6 @@ sub getBoardIconId
 {
     return '' if ( $_[0] < 0 );
     $ICON_ID[ $_[0] ];
-}
-sub getBoardIconNum
-{
-    local( $id ) = $_[0];
-    foreach ( 0 .. &getNofBoardIcon() )
-    {
-	return $_ if ( &getBoardIconId( $_ ) eq $id );
-    }
-    return -1;
 }
 
 
@@ -7426,36 +7318,15 @@ sub getArtBody
 
     local( $file ) = &getArtFileName( $id, $board );
     open( TMP, "<$file" ) || &fatal( 1, $file );
+
+    $_ = <TMP>;
+    push( @articleBody, $_ ) unless /^<!-- Kb-System-Id:/o;
+
     while ( <TMP> )
     {
 	push( @articleBody, $_ );
     }
     close TMP;
-}
-
-
-###
-## getArtModifiedTime - ある記事の最終更新時刻(UTC)を取得
-#
-# - SYNOPSIS
-#	&getArtModifiedTime($Id, $Board);
-#
-# - ARGS
-#	$Id		記事ID
-#	$Board		掲示板ID
-#
-# - DESCRIPTION
-#	あるIDの記事から，最終更新UTCを取ってくる．
-#
-# - RETURN
-#	その記事ファイルの最終更新時刻(UTC)
-#
-sub getArtModifiedTime
-{
-    local( $Id, $Board ) = @_;
-
-    # 86400 = 24 * 60 * 60
-    $^T - ( -M &getArtFileName( $Id, $Board )) * 86400;
 }
 
 
