@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.28.2.4 1999-10-20 11:05:12 nakahiro Exp $
+# $Id: cgi.pl,v 2.28.2.5 2000-02-14 18:22:26 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -396,8 +396,7 @@ sub sendMail
     # helo!
     &smtpMsg( "S", "helo $SERVER_NAME$CRLF" ) || return ( 0, $SMTP_ERRSTR );
     # from
-    &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) ||
-	return ( 0, $SMTP_ERRSTR );
+    &smtpMsg( "S", "mail from: <$senderEmail>$CRLF" ) || return ( 0, $SMTP_ERRSTR );
     # rcpt to
     foreach ( @to )
     {
@@ -665,10 +664,10 @@ sub SecureHtmlEx
     local( $srcString, $tag, $need, $feature, $markuped );
 
     $string =~ s/\\>/__EscapedGt\377__/go;
-    $string =~ s/&amp;?/&/g;
-    $string =~ s/&quot;?/"/g;
-    $string =~ s/&lt;?/</g;
-    $string =~ s/&gt;?/>/g;
+    $string =~ s/&amp;?/__HtmlAmp\377__/go;
+    $string =~ s/&quot;?/__HtmlQuote\377__/go;
+    $string =~ s/&lt;?/__HtmlLt\377__/go;
+    $string =~ s/&gt;?/__HtmlGt\377__/go;
     TAGS: while (( $tag, $need ) = each( %nVec ))
     {
 	$srcString = $string;
@@ -722,10 +721,14 @@ sub SecureHtmlEx
     $string =~ s/"/&quot;/g;
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;
+    $string =~ s/__HtmlAmp\377__/&amp;/go;
+    $string =~ s/__HtmlQuote\377__/&quot;/go;
+    $string =~ s/__HtmlLt\377__/&lt;/go;
+    $string =~ s/__HtmlGt\377__/&gt;/go;
     while (( $tag, $need ) = each( %nVec ))
     {
-        $string =~ s!__$tag Open([^\377]*)\377__!<$tag$1>!g;
-        $string =~ s!__$tag Close\377__!</$tag>!g;
+	$string =~ s!__$tag Open([^\377]*)\377__!<$tag$1>!g;
+	$string =~ s!__$tag Close\377__!</$tag>!g;
 	$string =~ s!__amp\377__!&!go;
 	$string =~ s!__quot\377__!"!go;
     }
