@@ -414,7 +414,7 @@ $H_MAIL = "メイル";
 $H_HOST = "マシン";
 $H_USER = "ユーザ";
 $H_URL = "URL";
-$H_URL_S = "ホームページのURL(お名前からリンクを張ります; 省略しても構いません)";
+$H_URL_S = "ホームページの$H_URL(お名前からリンクを張ります; 省略しても構いません)";
 $H_DATE = "投稿日";
 $H_REPLY = "リプライ";
 $H_ORIG = "$H_REPLY元";
@@ -461,7 +461,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.21.2.3 2000-04-05 06:04:44 nakahiro Exp $
+# $Id: kb.ph,v 5.21.2.4 2000-05-13 11:56:39 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System

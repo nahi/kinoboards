@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.6 2000-04-05 14:44:22 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.7 2000-05-13 11:56:31 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -543,7 +543,7 @@ sub Fatal
 ## ArriveMail - 記事が到着したことをメイル
 #
 # - SYNOPSIS
-#	ArriveMail( $Name, $Email, $Subject, $Icon, $Id, @To );
+#	ArriveMail( $Name, $Email, $Date, $Subject, $Icon, $Id, @To );
 #
 # - ARGS
 #	$Name		新規記事投稿者名
@@ -1111,187 +1111,6 @@ sub PageLink
 
     $str;
 }
-
-sub ShowPageLinkEachPage	# not used.
-{
-    local( $com, $num, $old, $rev, $vRev ) = @_;
-
-    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
-    local( $backOld ) = ( $old + $num );
-
-    local( $str );
-    $str = '<p>';
-
-    $MAX_PAGELINK = 5;
-
-    if ( $SYS_REVERSE )
-    {
-	$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE ) . ' ';
-    }
-
-    if ( $vRev )
-    {
-	if ( $num && ( $#DB_ID - $old - $num > 0 ))
-	{
-	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", $H_TOP );
-	}
-	else
-	{
-	    $str .= $H_TOP;
-	}
-
-	local( $i );
-	for ( $i = -$MAX_PAGELINK; $i <= +$MAX_PAGELINK; $i++ )
-	{
-	    $str .= ' ';
-	    if ( $old - $i * $num <= $#DB_ID )
-	    {
-		$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=" . ( $i*$num ) . "&rev=$rev", $i );
-	    }
-	    else
-	    {
-		$str .= $i;
-	    }
-	}
-	$str .= ' ';
-
-	if ( $old )
-	{
-	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", $H_BOTTOM );
-	}
-	else
-	{
-	    $str .= $H_BOTTOM;
-	}
-    }
-    else
-    {
-	if ( $old )
-	{
-	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", $H_TOP );
-	}
-	else
-	{
-	    $str .= $H_TOP;
-	}
-
-	local( $i );
-	$MAX_PAGELINK = 5;
-	for ( $i = $MAX_PAGELINK; $i >= -$MAX_PAGELINK; $i-- )
-	{
-	    $str .= ' ';
-	    if ( $old - $i * $num <= $#DB_ID )
-	    {
-		$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=" . ( $i*$num ) . "&rev=$rev", $i );
-	    }
-	    else
-	    {
-		$str .= $i;
-	    }
-	}
-	$str .= ' ';
-
-	if ( $num && ( $#DB_ID - $old - $num > 0 ))
-	{
-	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", $H_BOTTOM );
-	}
-	else
-	{
-	    $str .= $H_BOTTOM;
-	}
-    }
-
-    $str .= "</p>\n";
-
-    $str;
-}
-
-sub ShowPageLinkTop		# not used
-{
-    local( $com, $num, $old, $rev, $vRev ) = @_;
-
-    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
-    local( $backOld ) = ( $old + $num );
-
-    local( $str );
-    $str = '<p>';
-
-    if ( $vRev )
-    {
-	if ( $num && ( $#DB_ID - $old - $num > 0 ))
-	{
-	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", "$H_TOP$H_BACKART" );
-	}
-	else
-	{
-	    $str .= $H_NOBACKART;
-	}
-    }
-    else
-    {
-	if ( $old )
-	{
-	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", "$H_TOP$H_NEXTART" );
-	}
-	else
-	{
-	    $str .= $H_NONEXTART;
-	}
-    }
-
-    if ( $SYS_REVERSE )
-    {
-	$str .= ' // ' . &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE );
-    }
-
-    $str .= "</p>\n";
-
-    &cgiprint'Cache( $str );
-}
-
-sub ShowPageLinkBottom		# not used.
-{
-    local( $com, $num, $old, $rev, $vRev ) = @_;
-
-    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
-    local( $backOld ) = ( $old + $num );
-
-    local( $str );
-    $str = '<p>';
-
-    if ( $SYS_REVERSE )
-    {
-	$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE ) . ' // ';
-    }
-
-    if ( $vRev )
-    {
-	if ( $old )
-	{
-	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", "$H_NEXTART$H_BOTTOM" );
-	}
-	else
-	{
-	    $str .= $H_NONEXTART;
-	}
-    }
-    else
-    {
-	if ( $num && ( $#DB_ID - $old - $num > 0 ))
-	{
-	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", "$H_BACKART$H_BOTTOM" );
-	}
-	else
-	{
-	    $str .= $H_NOBACKART;
-	}
-    }
-
-    $str .= "</p>\n";
-
-    &cgiprint'Cache( $str );
-}
-
 
 
 ###
@@ -2954,8 +2773,8 @@ sub ReLinkExec
 	$DB_AIDS{$dId} = join( ',', grep(( !/^$FromId$/o ), split( /,/, $DB_AIDS{$dId} )));
     }
 
-    # 必要なら娘をとりだしておく
-    @Daughters = split( /,/, $DB_AIDS{$FromId} ) if $DB_FID{$FromId};
+    # 後で娘たちの書き換えも必要になる．
+    @Daughters = split( /,/, $DB_AIDS{$FromId} );
 
     # 該当記事のリプライ先を変更する
     if ( $ToId eq '' )
