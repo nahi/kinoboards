@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.19 1996-08-05 18:41:44 nakahiro Exp $
+# $Id: kb.cgi,v 4.20 1996-08-16 17:11:43 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -61,7 +61,7 @@ $[ = 0;
 #
 # 著作権表示
 #
-$ADDRESS = "KINOBOARDS/1.0 R2.0: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
+$ADDRESS = "KINOBOARDS/1.0 R2.2: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
 
 #
 # ファイル
@@ -100,13 +100,13 @@ $LOCK_WAIT = 10;
 $ICON_DIR = "icons";
 
 # アイコンファイル
-$ICON_TLIST = &GetIconPath('tlist.gif');
-$ICON_NEXT = &GetIconPath('next.gif');
-$ICON_WRITENEW = &GetIconPath('writenew.gif');
-$ICON_FOLLOW = &GetIconPath('follow.gif');
-$ICON_QUOTE = &GetIconPath('quote.gif');
-$ICON_THREAD = &GetIconPath('thread.gif');
-$ICON_HELP = &GetIconPath('q.gif');
+$ICON_TLIST = &GetIconURL('tlist.gif');
+$ICON_NEXT = &GetIconURL('next.gif');
+$ICON_WRITENEW = &GetIconURL('writenew.gif');
+$ICON_FOLLOW = &GetIconURL('follow.gif');
+$ICON_QUOTE = &GetIconURL('quote.gif');
+$ICON_THREAD = &GetIconURL('thread.gif');
+$ICON_HELP = &GetIconURL('q.gif');
 
 #
 # アイコン定義ファイルのポストフィクス
@@ -132,7 +132,7 @@ $AND_MARK = '__amp__';
 
 
 # トラップ
-$SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = $SIG{'STOP'} = 'DoKill';
+$SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = 'DoKill';
 sub DoKill {
     &unlock();			# unlock
     exit(1);			# error exit.
@@ -295,8 +295,11 @@ __EOF__
 	    || (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 		|| &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
 	while(<ICON>) {
+	    # コメント文はキャンセル
+	    next if (/^\#/o);
+	    next if (/^$/o);
 	    chop;
-	    ($FileName, $Title) = split(/\t/, $_, 2);
+	    ($FileName, $Title) = split(/\t/, $_, 3);
 	    print("<OPTION>$Title\n");
 	}
 	close(ICON);
@@ -481,7 +484,7 @@ __EOF__
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
         ? print("<strong>$H_SUBJECT</strong> $Subject<br>\n")
-            : printf("<strong>$H_SUBJECT</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"> $Subject<br>\n", &GetIconURL($Icon));
+            : printf("<strong>$H_SUBJECT</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"> $Subject<br>\n", &GetIconURLFromTitle($Icon));
 
     # お名前
     if ($Url eq "http://" || $Url eq '') {
@@ -543,7 +546,7 @@ sub CheckArticle {
     &CheckSubject($Subject);
 
     # アイコンのチェック; おかしけりゃ「無し」に設定．
-    $Icon = $H_NOICON unless (&GetIconURL($Icon));
+    $Icon = $H_NOICON unless (&GetIconURLFromTitle($Icon));
 
     # 記事中の"をエンコード
     $Article = &DQEncode($Article);
@@ -588,8 +591,7 @@ sub MakeNewArticle {
     # 日付を取り出す．
     local($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
 	= localtime(time);
-    local($InputDate) = sprintf("%d/%d(%02d:%02d)",
-				$mon + 1, $mday, $hour, $min);
+    local($InputDate) = sprintf("%d/%d(%02d:%02d)", $mon + 1, $mday, $hour, $min);
 
     # 入力された記事情報
     local($Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article,
@@ -795,13 +797,11 @@ sub ShowArticle {
 <input name="b" type="hidden" value="$BOARD">
 <input name="id" type="hidden" value="$Id">
 <p>
-<a href="$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM"><img src="$ICON_TLIST" alt="$H_TITLELIST" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=en&id=$Id"><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="" width="$ICON_WIDTH" height="$ICON_HEIGHT">$H_SEEICON</a>
+<a href="$PROGRAM?b=$BOARD&c=en&id=$Id"><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+<a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+<a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+<a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="?" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 </p>
 </form>
 __EOF__
@@ -811,7 +811,7 @@ __EOF__
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	print("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURL($Icon));
+	printf("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
     }
 
     # お名前
@@ -861,7 +861,7 @@ __EOF__
 	     $aEmail, $aUrl, $aFmail) = &GetArticlesInfo($Aid);
 
 	    # 表示
-	    printf("%s\n", &GetFormattedTitle($Aid, $aAids, $aIcon, $aSubject, $aName, $aDate));
+	    printf("<li>%s\n", &GetFormattedTitle($Aid, $aAids, $aIcon, $aSubject, $aName, $aDate));
 	}
 
 	print("</ul>\n");
@@ -1111,7 +1111,7 @@ sub HTMLDecode {
 #
 sub ShowIcon {
 
-    local($FileName, $Title);
+    local($FileName, $Title, $Help);
 
     # タイプを拾う
     local($Type) = $cgi'TAGS{'type'};
@@ -1126,14 +1126,12 @@ sub ShowIcon {
 $H_ICONINTRO_ARTICLE
 </p>
 <p>
-<dl>
-<dt><img src="$ICON_TLIST" alt="$H_TITLELIST" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_TITLELIST
-<dt><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_NEXTARTICLE
-<dt><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_POSTNEWARTICLE
-<dt><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_REPLYTHISARTICLE
-<dt><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_REPLYTHISARTICLEQUOTE
-<dt><img src="$ICON_THREAD" alt="$H_READREPLYALL" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_READREPLYALL
-</dl>
+<ul>
+<li><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_NEXTARTICLE
+<li><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_REPLYTHISARTICLE
+<li><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_REPLYTHISARTICLEQUOTE
+<li><img src="$ICON_THREAD" alt="$H_READREPLYALL" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_READREPLYALL
+</ul>
 </p>
 __EOF__
 
@@ -1141,11 +1139,17 @@ __EOF__
 
 	print(<<__EOF__);
 <p>
+$H_ICONINTRO_ARTICLE
+<p>
+<ul>
+<li>$H_THREAD : $THREADARTICLE_MSG
+</ul>
+</p>
+<p>
 "$BOARDNAME"$H_ICONINTRO_ENTRY
 </p>
 <p>
-<dl>
-<dt>$H_THREAD : $THREADARTICLE_MSG
+<ul>
 __EOF__
 
 	# 一つ一つ表示
@@ -1153,13 +1157,16 @@ __EOF__
 	    || (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 		|| &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
 	while(<ICON>) {
+	    # コメント文はキャンセル
+	    next if (/^\#/o);
+	    next if (/^$/o);
 	    chop;
-	    ($FileName, $Title) = split(/\t/, $_, 2);
-	    print("<dt><img src=\"" . &GetIconPath($FileName) . "\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $Title\n");
+	    ($FileName, $Title, $Help) = split(/\t/, $_, 3);
+	    printf("<li><img src=\"%s\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : %s\n", &GetIconURL($FileName), ($Help || $Title));
 	}
 	close(ICON);
 
-	print("</dl>\n</p>\n");
+	print("</ul>\n</p>\n");
 
     }
 
@@ -1179,7 +1186,8 @@ sub SortArticle {
     local($BackOld) = ($Old + $Num);
 
     # 表示する分だけ取り出す
-    local(@Lines) = &GetTitle($Num, $ReadList, $MarkList, $Old);
+    local(@Lines) = ();
+    &GetTitle($Num, $Old, *Lines);
 
     # 記事情報
     local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
@@ -1236,13 +1244,10 @@ sub SortArticle {
 sub GetTitle {
 
     # 記事数
-    local($Num, $Old) = @_;
+    local($Num, $Old, *Lines) = @_;
 
     # DBファイル
     local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
-
-    # フォーマットしたタイトルを放り込むリスト
-    local(@Lines) = ();
 
     # 記事情報
     local($Id, $Fid) = (0, '');
@@ -1281,10 +1286,6 @@ sub GetTitle {
     if ($Num && (($#Lines + 1) > $Num)) {
 	@Lines = splice(@Lines, -$Num);
     }
-
-    # 返す
-    return(@Lines);
-
 }
 
 
@@ -1308,7 +1309,8 @@ sub ViewTitle {
     local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
 
     # 表示する分だけ取り出す
-    local(@Lines) = &GetTitle($Num, $Old);
+    local(@Lines) = ();
+    &GetTitle($Num, $Old, *Lines);
 
     # 応答をインデントする．
     foreach (@Lines) {
@@ -1479,7 +1481,8 @@ sub NewArticle {
     local($BackOld) = ($Old + $Num);
 
     # 表示する分だけタイトルを取得
-    local(@Lines) = &GetTitle($Num, $ReadList, $MarkList, $Old);
+    local(@Lines) = ();
+    &GetTitle($Num, $Old, *Lines);
 
     # 記事情報
     local($Id) = (0);
@@ -1582,8 +1585,11 @@ __EOF__
 	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
+	# コメント文はキャンセル
+	next if (/^\#/o);
+	next if (/^$/o);
 	chop;
-	($FileName, $IconTitle) = split(/\t/, $_, 2);
+	($FileName, $IconTitle) = split(/\t/, $_, 3);
 	printf("<OPTION%s>$IconTitle\n",
 	       (($Icon eq $IconTitle) ? ' SELECTED' : ''));
     }
@@ -1684,7 +1690,7 @@ sub SearchArticleList {
 	    $HitFlag = 1;
 
 	    # 記事へのリンクを表示
-	    print(&GetFormattedTitle($dId, $dAids, $dIcon, $dTitle, $dName, $dDate));
+	    print("<li>" . &GetFormattedTitle($dId, $dAids, $dIcon, $dTitle, $dName, $dDate));
 
 	    # 本文に合致した場合は本文も表示
 	    if ($ArticleFlag) {
@@ -2113,9 +2119,9 @@ sub GetFormattedTitle {
     local($Thread) = (($Aids) ? " <a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_THREAD</a>" : '');
 
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	$String = sprintf("<li><strong>$Id .</strong> $Link$Thread [$Name] $Date");
+	$String = sprintf("<strong>$Id .</strong> $Link$Thread [$Name] $Date");
     } else {
-	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Link$Thread [$Name] $Date", &GetIconURL($Icon));
+	$String = sprintf("<strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Link$Thread [$Name] $Date", &GetIconURLFromTitle($Icon));
     }
 
     return($String);
@@ -2132,9 +2138,9 @@ sub GetFormattedAbstract {
     local($String) = '';
 
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	$String = sprintf("<li><strong>$Id .</strong> $Title [$Name] $Date", &GetIconURL($Icon));
+	$String = sprintf("<li><strong>$Id .</strong> $Title [$Name] $Date", &GetIconURLFromTitle($Icon));
     } else {
-	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Title [$Name] $Date", &GetIconURL($Icon));
+	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Title [$Name] $Date", &GetIconURLFromTitle($Icon));
     }
 
     return($String);
@@ -2155,7 +2161,7 @@ sub ShowFormattedLinkToFollowedArticle {
 	if (($Icon eq $H_NOICON) || (! $Icon)) {
 	    print("<strong>$H_REPLY</strong> [$BOARDNAME: $Src] <a href=\"$Link\">$Subject</a><br>\n");
 	} else {
-	    printf("<strong>$H_REPLY</strong> [$BOARDNAME: $Src] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURL($Icon));
+	    printf("<strong>$H_REPLY</strong> [$BOARDNAME: $Src] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURLFromTitle($Icon));
 	}
     } elsif ($Src =~ /^http:/) {
 	print("<strong>$H_REPLY</strong> <a href=\"$Link\">$Link</a><br>\n");
@@ -2346,11 +2352,10 @@ sub ViewOriginalArticle {
 
 	print(<<__EOF__);
 <p>
-<a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
-<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="" width="$ICON_WIDTH" height="$ICON_HEIGHT">$H_SEEICON</a>
+<a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+<a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+<a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="?" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 </p>
 __EOF__
 
@@ -2360,7 +2365,7 @@ __EOF__
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	print("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURL($Icon));
+	printf("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
     }
 
     # お名前
@@ -2405,6 +2410,7 @@ sub GetArticleFileName {
 
     # Boardが空ならBoardディレクトリ内から相対，
     # 空でなければシステムから相対
+    # (MacPerlでは「:$Borad:$Id」とすべきらしい)
     return(($Board) ? "$Board/$Id" : "$Id");
 
 }
@@ -2418,7 +2424,7 @@ sub GetPath {
     # BoardとFile
     local($Board, $File) = @_;
 
-    # 返す
+    # 返す(MacPerlでは「:$Board:$File」とすべきらしい)
     return("$Board/$File");
 
 }
@@ -2432,6 +2438,20 @@ sub GetIconPath {
     # BoardとFile
     local($File) = @_;
 
+    # 返す(MacPerlでは「:$ICON_DIR:$File」とすべきらしい)
+    return("$ICON_DIR/$File");
+
+}
+
+
+###
+## アイコンファイル名から，そのファイルのURL名を作り出す．
+#
+sub GetIconURL {
+
+    # BoardとFile
+    local($File) = @_;
+
     # 返す
     return("$ICON_DIR/$File");
 
@@ -2441,7 +2461,7 @@ sub GetIconPath {
 ###
 ## アイコン名から，アイコンのURLを取得
 #
-sub GetIconURL {
+sub GetIconURLFromTitle {
 
     # アイコン名
     local($Icon) = @_;
@@ -2453,13 +2473,16 @@ sub GetIconURL {
 	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
+	# コメント文はキャンセル
+	next if (/^\#/o);
+	next if (/^$/o);
 	chop;
-	($FileName, $Title) = split(/\t/, $_);
+	($FileName, $Title) = split(/\t/, $_, 3);
 	$TargetFile = $FileName if ($Title eq $Icon);
     }
     close(ICON);
 
-    return(($TargetFile) ? &GetIconPath($TargetFile) : '');
+    return(($TargetFile) ? &GetIconURL($TargetFile) : '');
 
 }
 

@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.7 1996-08-05 18:41:44 nakahiro Exp $
+# $Id: kb.ph,v 4.8 1996-08-16 17:11:43 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -77,7 +77,7 @@ $SYS_SHOWHOST = 1;
 $SYS_COMMAND = 1;
 
 # タイトルリストに新規投稿記事のみを表示するか否か
-#   0: 反応も含めてすべて
+#   0: リプライも含めてすべて
 #   1: 新規投稿記事のみ
 $SYS_NEWARTICLEONLY = 0;
 
@@ -130,10 +130,10 @@ $ENTRY_MSG = "記事の書き込み";
 $SHOWICON_MSG = "アイコンの説明";
 $PREVIEW_MSG = "書き込みの内容を確認して下さい";
 $THANKS_MSG = "書き込みありがとうございました";
-$VIEW_MSG = "タイトル一覧(応答順)";
+$VIEW_MSG = "タイトル一覧(リプライ順)";
 $SORT_MSG = "タイトル一覧(日付順)";
 $NEWARTICLE_MSG = "記事をまとめて読む";
-$THREADARTICLE_MSG = "反応をまとめて読む";
+$THREADARTICLE_MSG = "リプライをまとめて読む";
 $SEARCHARTICLE_MSG = "記事の検索";
 $ALIASNEW_MSG = "エイリアスの登録/変更/削除";
 $ALIASMOD_MSG = "エイリアスが変更されました";
@@ -157,8 +157,8 @@ $H_URL = "URL(省略可):";
 $H_DATE = "投稿日:";
 $H_REPLY = "元記事:";
 $H_ID = "記事番号:";
-$H_FOLLOW = "▼反応";
-$H_FMAIL = "反応がついた時にメールで知らせる:";
+$H_FOLLOW = "▼リプライ";
+$H_FMAIL = "リプライがあった時にメールで知らせる:";
 
 $H_TEXTTYPE = "表示形式:";
 $H_HTML = "HTMLとして表示する";
@@ -167,7 +167,7 @@ $H_PRE = "そのまま表示する";
 $H_NOICON = "なし";
 
 # あおり文
-$H_REPLYMSG = "上の記事に反応する";
+$H_REPLYMSG = "上の記事にリプライする";
 $H_AORI = "題，記事，お名前，メールアドレス，さらにホームページをお持ちの方はURL(省略可)を書き込んでください．<strong>記事はそのまま，メールと同じように書いてくださればOKです</strong>．<br>ただし，HTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと，HTML整形を行ないます．";
 $H_SEEICON = "アイコンの説明";
 $H_SEEALIAS = "エイリアスを見る";
@@ -187,9 +187,9 @@ $H_COMMAND = "実行";
 $H_TITLELIST = "記事一覧へ";
 $H_NEXTARTICLE = "次の記事へ";
 $H_POSTNEWARTICLE = "新規に投稿する";
-$H_REPLYTHISARTICLE = "この記事に反応する";
-$H_REPLYTHISARTICLEQUOTE = "引用して反応する";
-$H_READREPLYALL = "これまでの反応を見る";
+$H_REPLYTHISARTICLE = "リプライを書き込む";
+$H_REPLYTHISARTICLEQUOTE = "引用してリプライする";
+$H_READREPLYALL = "リプライをまとめて見る";
 $H_ARTICLES = "記事数";
 $H_JUMPID = "↑の数字をクリックすると，そのIDの記事に飛びます．新しい記事ほど上の方にあります．";
 $H_KEYWORD = "キーワード";
