@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.21 1999-02-18 02:03:51 nakahiro Exp $
+# $Id: kb.cgi,v 5.22 1999-02-19 04:23:01 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -3381,7 +3381,7 @@ sub UpdateArticleDb
 
 	# DBに書き加える
 	&GenTSV( *dbLine, ( $dId, $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId}, $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId}, $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} ));
-	print( DBTMP "*dbLine\n" ) || &Fatal( 13, $TmpFile );
+	print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
     }
 
     # close Files.
