@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.21 1999-02-21 14:45:41 nakahiro Exp $
+# $Id: cgi.pl,v 2.22 1999-02-22 07:53:07 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -124,7 +124,7 @@ sub lock_file_link
     for ( $timeOut = 0; $timeOut < $lockWait; $timeOut++ )
     {
 	open( LOCKORG, ">$lockFile.org" ) || return 0;
-	close( LOCKORG );
+	close LOCKORG;
 	$lockFlag = 1, last if ( link( "$lockFile.org", $lockFile ));
 	unlink( "$lockFile.org" );
 	sleep 1;
@@ -150,7 +150,7 @@ sub lock_file_flock
 }
 sub unlock_file_flock
 {
-    close( LOCK );		# automatic unlock.
+    close LOCK;		# automatic unlock.
 }
 
 
@@ -615,7 +615,7 @@ sub smtpMsg
     $back = <$sh>;
     if ( $back =~ /^[45]/o )
     {
-	close( $sh );
+	close $sh;
 	$SMTP_ERRSTR = $back;
 	return 0;
     }
@@ -928,7 +928,7 @@ sub CreateUserDb
 
     # create
     open( USERDB, ">$userdb" ) || return 0;
-    close( USERDB );
+    close USERDB;
 
     # add guest user with no passwd.
     if ( !defined( &AddUser( $userdb, $ADMIN, '', ())) ||
@@ -969,16 +969,16 @@ sub AddUser
     local( $dId, $dUser );
 
     open( USERDB, "<$userdb" ) || return 2;
-    while( <USERDB> )
+    while ( <USERDB> )
     {
 	( $dId, $dUser ) = split( /\t/, $_, 3 );
 	if ( $dUser eq $user )
 	{
-	    close( USERDB );
+	    close USERDB;
 	    return 1;
 	}
     }
-    close( USERDB );
+    close USERDB;
 
     $id = &NewId( $userdb );
     local( $salt ) = &NewSalt();
@@ -988,7 +988,7 @@ sub AddUser
     foreach ( @userInfo ) { $newLine .= "\t" . $_; }
     open( USERDB, ">>$userdb" ) || return 2;
     print( USERDB $newLine . "\n" );
-    close( USERDB );
+    close USERDB;
 
     0;
 }
@@ -1022,7 +1022,7 @@ sub SetUserPasswd
     local( $salt ) = &NewSalt();
     open( USERDBTMP, ">$tmpFile" ) || return 0;
     open( USERDB, "<$userdb" ) || return 0;
-    while( <USERDB> )
+    while ( <USERDB> )
     {
 	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
 	chop;
@@ -1039,8 +1039,8 @@ sub SetUserPasswd
 	    print( USERDBTMP $_, "\n" );
 	}
     }
-    close( USERDB );
-    close( USERDBTMP );
+    close USERDB;
+    close USERDBTMP;
 
     rename( $tmpFile, $userdb ) || return 0;
 
@@ -1075,7 +1075,7 @@ sub SetUserInfo
 
     open( USERDBTMP, ">$tmpFile" ) || return 0;
     open( USERDB, "<$userdb" ) || return 0;
-    while( <USERDB> )
+    while ( <USERDB> )
     {
 	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
 	chop;
@@ -1092,8 +1092,8 @@ sub SetUserInfo
 	    print( USERDBTMP $_, "\n" );
 	}
     }
-    close( USERDB );
-    close( USERDBTMP );
+    close USERDB;
+    close USERDBTMP;
 
     rename( $tmpFile, $userdb ) || return 0;
 
@@ -1167,26 +1167,24 @@ sub Header
 ## LinkTagWithAuth - create A tag format.
 #
 # - SYNOPSIS
-#	LinkTagWithAuth( $url, $markUp, $uid, $passwd );
+#	LinkTagWithAuth( $url, $markUp );
 #
 # - ARGS
 #	$url		URL.
 #	$markUp		markup-ed text.
-#	$uid		user id; must be NUMERIC.
-#	$passwd		password; must be encrypted.
 #
 # - DESCRIPTION
 #	create A tag format from given data.
-#	for authentication, 'kinoU=$uid' and 'kinoP=$passwd' is added.
+#	for authentication, 'kinoU=...' and 'kinoP=...' is added.
 #
 # - RETURN
 #	formatted string.
 #
 sub LinkTagWithAuth
 {
-    local( $url, $markUp, $uid, $passwd ) = @_;
+    local( $url, $markUp ) = @_;
     local( $urlStr ) = $url . ( grep( /\?/, $url ) ? '&' : '?' ) .
-	"kinoU=$uid&kinoP=$passwd";
+	"kinoU=$UNAME&kinoP=$PASSWD";
     "<a href=\"$urlStr\">$markUp</a>";
 }
 
@@ -1224,15 +1222,15 @@ sub CheckUserPasswd
 
     return ( 1 ) unless $user;
 
-    return ( &UpdateUserPasswd( $userdb, $user, $passwd ))
-	if ( $checkType == 0 );
+#    return ( &UpdateUserPasswd( $userdb, $user, $passwd ))
+#	if ( $checkType == 0 );
 
     local( $retCode, $retUser, $retPasswd, $retRest );
     $retCode = 3;		# Means `not found'.
 
     local( $dId, $dUser, $dSalt, $dPasswd, $dRest );
     open( USERDB, "<$userdb" ) || return ( 2 );
-    while( <USERDB> )
+    while ( <USERDB> )
     {
 	next if (( $retCode != 3 ) || /^\#/o || /^$/o );
 	chop;
@@ -1248,17 +1246,17 @@ sub CheckUserPasswd
 
 	if ( $dUser eq $user )
 	{
-	    if ( $checkType == 2 )
+	    if (
+		# No check.
+		( $checkType == 2 ) ||
+		# Encrypted passwd.
+		(( $checkType == 1 ) && ( $passwd eq $dPasswd )) ||
+		# Plain passwd.
+		(( $checkType == 0 ) &&
+		 ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dPasswd ))
+	    )
 	    {
-		$UNAME = $dUser;
-		$PASSWD = $dPasswd;
-		$retCode = 0;
-		$retUser = $dUser;
-		$retPasswd = $dPasswd;
-		$retRest = $dRest;
-	    }
-	    elsif (( $checkType == 1 ) && ( $passwd eq $dPasswd ))
-	    {
+		# authentication succeeded!
 		$UNAME = $dUser;
 		$PASSWD = $dPasswd;
 		$retCode = 0;
@@ -1268,12 +1266,12 @@ sub CheckUserPasswd
 	    }
 	    else
 	    {
-		# authentication failed.
+		# authentication failed...
 		$retCode = 4;
 	    }
 	}
     }
-    close( USERDB );
+    close USERDB;
 
     return ( $retCode, $retUser, $retPasswd, split( /\t/, $retRest ));
 }
@@ -1318,10 +1316,9 @@ sub UpdateUserPasswd
     $retCode = 3;		# Means `not found'.
 
     local( $dId, $dUser, $dSalt, $dPasswd, $dRest );
-
     open( USERDBTMP, ">$tmpFile" ) || return ( 2 );
     open( USERDB, "<$userdb" ) || return ( 2 );
-    while( <USERDB> )
+    while ( <USERDB> )
     {
 	print( USERDBTMP $_ ), next if (( $retCode != 3 ) || /^\#/o || /^$/o );
 	chop;
@@ -1362,8 +1359,8 @@ sub UpdateUserPasswd
 	    print( USERDBTMP $_, "\n" );
 	}
     }
-    close( USERDB );
-    close( USERDBTMP );
+    close USERDB;
+    close USERDBTMP;
 
     rename( $tmpFile, $userdb ) || return ( 2 );
 
@@ -1395,7 +1392,7 @@ sub NewId
     local( $dId, $maxId );
     $maxId = 0;
     open( USERDB, "<$userdb" ) || return undef;
-    while( <USERDB> )
+    while ( <USERDB> )
     {
 	next if ( /^\#/o || /^$/o );
 	chop;
@@ -1447,7 +1444,7 @@ sub CreateNewPasswd
     local( $passwd, $n );
     local( $i ) = $DEFAULT_PASSWD_LENGTH;
 
-    while( --$i >= 0 )
+    while ( --$i >= 0 )
     {
 	$n = 97 + int( rand( 36 ));
 	$n = $n - 75 if ( $n >= 123 );
