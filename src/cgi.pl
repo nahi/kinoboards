@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.19 1997-10-20 23:16:47 nakahiro Exp $
+# $Id: cgi.pl,v 1.20 1997-10-21 00:28:08 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -123,8 +123,12 @@
 #		UNIX	$main'MAIL2で指定したsendmailコマンド
 #			(例えば'/usr/lib/sendmail -oi -t')を使って送信します．
 #		WinNT	UNIX以外ではメイル送信はできません．$main'MAIL2で
-#		Win95	指定したファイルに書き出します．ただしMacでなら，
-#		Mac	perl5専用のcgi.pl.libnetを使えばメイル送信ができます．
+#		Win95	指定したファイルに書き出します．
+#		Mac	perl5専用のcgi.pl.libnetを使い，
+#			MacPerl5とlibnet for Macの組み合わせで，
+#			メイル送信を行います．$main'SERVER_NAMEにCGIを起動した
+#			ホスト名を，$main'MAIL2にメイルサーバのホスト名を
+#			指定してください．
 #	送信が無事行えれば1を，なんらかの理由で行えなければ0を返します．
 #
 # &cgi'SecureHtml( *string );
