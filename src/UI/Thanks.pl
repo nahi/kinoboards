@@ -64,18 +64,18 @@ Thanks:
     if ( $Supersede && $SYS_F_D )
     {
 	# 訂正する 
-	$newArtId = &SupersedeArticle($BOARD, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
+	$newArtId = &SupersedeArticle( $BOARD, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail );
 
 	# 表示画面の作成
-	&MsgHeader('Message superseded', "$H_MESGが訂正されました");
+	&MsgHeader( 'Message superseded', "$H_MESGが訂正されました" );
     }
     else
     {
 	# 記事の作成
-	$newArtId = &MakeNewArticle($BOARD, $Id, $op, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
+	$newArtId = &MakeNewArticle( $BOARD, $Id, $op, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail );
 
 	# 表示画面の作成
-	&MsgHeader('Message entried', "書き込みありがとうございました");
+	&MsgHeader( 'Message entried', "書き込みありがとうございました" );
     }
 
     if  ( $SYS_COMMAND_BUTTON )
@@ -87,10 +87,10 @@ Thanks:
     }
     else
     {
-	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$BOARD&c=e&id=$newArtId\">書き込んだ$H_MESGへ</a></p>\n" );
+	&cgiprint'Cache( "<p>", &TagA( "$PROGRAM?b=$BOARD&c=e&id=$newArtId", "書き込んだ$H_MESGへ" ), "</p>\n" );
     }
 
-    if ( $Id ne '' )
+    if ( !$Supersede && ( $Id ne '' ))
     {
 	if  ( $SYS_COMMAND_BUTTON )
 	{
@@ -101,7 +101,7 @@ Thanks:
 	}
 	else
 	{
-	    &cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$H_ORIGの$H_MESGへ</a></p>\n" );
+	    &cgiprint'Cache( "<p>", &TagA( "$PROGRAM?b=$BOARD&c=e&id=$Id", "$H_ORIGの$H_MESGへ" ), "</p>\n" );
 	}
     }
 

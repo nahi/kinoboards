@@ -25,11 +25,14 @@ SearchArticle:
     local( $SearchSubject ) = $cgi'TAGS{'searchsubject'};
     local( $SearchPerson ) = $cgi'TAGS{'searchperson'};
     local( $SearchArticle ) = $cgi'TAGS{'searcharticle'};
+    local( $SearchPostTime ) = $cgi'TAGS{'searchposttime'};
+    local( $SearchPostTimeFrom ) = $cgi'TAGS{'searchposttimefrom'};
+    local( $SearchPostTimeTo ) = $cgi'TAGS{'searchposttimeto'};
     local( $SearchIcon ) = $cgi'TAGS{'searchicon'};
     local( $Icon ) = $cgi'TAGS{'icon'};
 
     # 表示画面の作成
-    &MsgHeader('Message search', "$H_MESGの検索");
+    &MsgHeader( 'Message search', "$H_MESGの検索" );
 
     local( %tags, $str, $msg );
     $msg =<<__EOF__;
@@ -39,29 +42,48 @@ SearchArticle:
 <li>キーワードには，大文字小文字の区別はありません．
 <li>キーワードを半角スペースで区切って，複数のキーワードを指定すると，
 それら全てを含む$H_MESGのみを検索することができます．
-<li>アイコンで検索する場合は，
-「アイコン」をチェックした後，探したい$H_MESGのアイコンを選んでください．
+<li>$H_DATEで検索する場合は，
+「$H_DATE」をチェックした後，
+検索範囲を「YYYY/MM/DD」形式の日付で指定してください
+（例1999/01/01〜1999/12/31）．
+範囲の始点と終点は，どちらかを省略してもかまいません．
+<li>$H_ICONで検索する場合は，
+「$H_ICON」をチェックした後，探したい$H_MESGの$H_ICONを選んでください．
 </ul>
 __EOF__
 
-    $msg .= sprintf("<input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SUBJECT<br>\n", (($SearchSubject) ? 'CHECKED' : ''));
-    $msg .= sprintf("<input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: 名前<br>\n", (($SearchPerson) ? 'CHECKED' : ''));
-    $msg .= sprintf("<input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: $H_MESG<br>\n", (($SearchArticle) ? 'CHECKED' : ''));
-    $msg .= sprintf("<input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // \n", (($SearchIcon) ? 'CHECKED' : ''));
+    $msg .= sprintf( "<input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SUBJECT<br>\n", $SearchSubject? 'CHECKED' : '' );
+
+    $msg .= sprintf( "<input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: 名前<br>\n", $SearchPerson? 'CHECKED' : '' );
+
+    $msg .= sprintf( "<input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: $H_MESG<br>\n", $SearchArticle? 'CHECKED' : '' );
+
+    $msg .= sprintf( "<input name=\"searchposttime\" type=\"checkbox\" value=\"on\" %s>: $H_DATE // \n", $SearchPostTime? 'CHECKED' : '' );
+    $msg .= sprintf( "<input name=\"searchposttimefrom\" type=\"text\" size=\"11\" value=\"%s\"> 〜 ", $SearchPostTimeFrom || '' );
+
+    local( $sec, $min, $hour, $mday, $mon, $year, $nowStr );
+    if ( !$SearchPostTime )
+    {
+	( $sec, $min, $hour, $mday, $mon, $year, $nowStr ) = localtime( $^T );
+	$nowStr = sprintf( "%04d/%02d/%02d", $year+1900, $mon+1, $mday );
+    }
+    $msg .= sprintf( "<input name=\"searchposttimeto\" type=\"text\" size=\"11\" value=\"%s\">の間<br>\n", $SearchPostTimeTo || $nowStr );
+
+    $msg .= sprintf( "<input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // \n", $SearchIcon? 'CHECKED' : '' );
 
     # アイコンの選択
     &CacheIconDb;	# アイコンDBのキャッシュ
-    $msg .= sprintf("<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED'));
+    $msg .= sprintf( "<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' SELECTED' );
 
     local( $IconTitle );
     foreach $IconTitle ( sort keys( %ICON_FILE ))
     {
-	$msg .= sprintf("<OPTION%s>$IconTitle\n", (($Icon eq $IconTitle) ? ' SELECTED' : ''));
+	$msg .= sprintf( "<OPTION%s>$IconTitle\n", ( $Icon eq $IconTitle )? ' SELECTED' : '' );
     }
     $msg .= "</SELECT>\n";
 
     # アイコン一覧
-    $msg .= "(" . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "アイコンの説明" ) . ")\n</p>\n";
+    $msg .= '(' . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "アイコンの説明" ) . ")\n</p>\n";
 
     $msg .=<<__EOF__;
 <p>
@@ -77,8 +99,13 @@ __EOF__
     &cgiprint'Cache( $H_HR );
 
     # キーワードが空でなければ，そのキーワードを含む記事のリストを表示
-    if (($SearchIcon ne '') || (($Key ne '') && ($SearchSubject || ($SearchPerson || $SearchArticle)))) {
-	&SearchArticleList($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon);
+    if ( $SearchIcon ||
+	( $SearchPostTime && ( $SearchPostTimeFrom || $SearchPostTimeTo )) || 
+	(( $Key ne '' ) && ( $SearchSubject || $SearchPerson || $SearchArticle )))
+    {
+	&SearchArticleList( $Key, $SearchSubject, $SearchPerson,
+	    $SearchArticle, $SearchPostTime, $SearchPostTimeFrom,
+	    $SearchPostTimeTo, $SearchIcon, $Icon );
     }
 
     &MsgFooter;
@@ -86,15 +113,17 @@ __EOF__
 
 sub SearchArticleList
 {
-    local($Key, $Subject, $Person, $Article, $Icon, $IconType) = @_;
+    local( $Key, $Subject, $Person, $Article, $PostTime, $PostTimeFrom,
+	$PostTimeTo, $Icon, $IconType ) = @_;
 
-    local($dId, $dAids, $dDate, $dTitle, $dIcon, $dName, $dEmail, $HitNum, $Line, $SubjectFlag, $PersonFlag, $ArticleFlag, @KeyList);
-
-    @KeyList = split(/ +/, $Key);
+    local( @KeyList ) = split(/ +/, $Key);
 
     # リスト開く
     &cgiprint'Cache("<p><ul>\n");
 
+    local( $dId, $dAids, $dDate, $dTitle, $dIcon, $dName, $dEmail );
+    local( $SubjectFlag, $PersonFlag, $PostTimeFlag, $ArticleFlag );
+    local( $HitNum, $Line, $FromUtc, $ToUtc );
     foreach ($[ .. $#DB_ID)
     {
 	# 記事情報
@@ -107,37 +136,56 @@ sub SearchArticleList
 	$dDate = $DB_DATE{$dId};
 
 	# 変数のリセット
-	$SubjectFlag = $PersonFlag = $ArticleFlag = 0;
+	$SubjectFlag = $PersonFlag = $PostTimeFlag = $ArticleFlag = 0;
 	$Line = '';
 
 	# アイコンチェック
-	next if (($Icon ne '') && ($dIcon ne $IconType));
+	next if ( $Icon && ( $dIcon ne $IconType ));
 
-	if ($Key ne '')
+	# 投稿時刻を検索
+	if ( $PostTime )
+	{
+	    $FromUtc = $ToUtc = -1;
+	    $FromUtc = &GetUtcFromYYYY_MM_DD( $PostTimeFrom )
+		if $PostTimeFrom;
+	    $ToUtc = &GetUtcFromYYYY_MM_DD( $PostTimeTo )
+		if $PostTimeTo;
+	    $ToUtc += 86400 if ( $ToUtc >= 0 );
+	    next if !&SearchTime( $dDate, $FromUtc, $ToUtc );
+	}
+
+	if ( $Key ne '' )
 	{
 	    # タイトルを検索
-	    if (($Subject ne '') && ($dTitle ne ''))
+	    if ( $Subject && ( $dTitle ne '' ))
 	    {
 		$SubjectFlag = 1;
-		foreach (@KeyList)
+		foreach ( @KeyList )
 		{
-		    $SubjectFlag = 0 if ($dTitle !~ /$_/i);
+		    $SubjectFlag = 0 if ( $dTitle !~ /$_/i );
 		}
 	    }
 
 	    # 投稿者名を検索
-	    if ($SubjectFlag == 0 && ($Person ne '') && ($dName ne ''))
+	    if ( $Person && !$SubjectFlag && ( $dName ne '' ))
 	    {
 		$PersonFlag = 1;
-		foreach (@KeyList)
+		foreach ( @KeyList )
 		{
-		    $PersonFlag = 0 if (($dName !~ /$_/i) && ($dEmail !~ /$_/i));
+		    if (( $dName !~ /$_/i ) && ( $dEmail !~ /$_/i ))
+		    {
+			$PersonFlag = 0;
+		    }
 		}
 	    }
 
 	    # 本文を検索
-	    if (($SubjectFlag == 0) && ($PersonFlag == 0) && ($Article ne '') && ($Line = &SearchArticleKeyword($dId, $BOARD, @KeyList))) {
-		$ArticleFlag = 1;
+	    if ( $Article && !$SubjectFlag && !$PersonFlag )
+	    {
+		if ( $Line = &SearchArticleKeyword( $dId, $BOARD, @KeyList ))
+		{
+		    $ArticleFlag = 1;
+		}
 	    }
 	}
 	else
@@ -146,36 +194,46 @@ sub SearchArticleList
 	    $SubjectFlag = 1;
 	}
 
-	if ($SubjectFlag || $PersonFlag || $ArticleFlag)
+	if ( $SubjectFlag || $PersonFlag || $ArticleFlag )
 	{
 	    # 最低1つは合致した
 	    $HitNum++;
 
 	    # 記事へのリンクを表示
-	    &cgiprint'Cache( '<li>', &GetFormattedTitle( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate, 1 ), "\n");
+	    &cgiprint'Cache( '<li>', &GetFormattedTitle( $dId, $dAids, $dIcon,
+		$dTitle, $dName, $dDate, 1 ), "\n");
 
 	    # 本文に合致した場合は本文も表示
-	    if ($ArticleFlag)
+	    if ( $ArticleFlag )
 	    {
 		$Line =~ s/<[^>]*>//go;
-		&cgiprint'Cache("<blockquote>$Line</blockquote>\n");
+		&cgiprint'Cache( "<blockquote>$Line</blockquote>\n" );
 	    }
 	}
     }
 
-    # ヒットしなかったら
-    if ($HitNum)
+    # ヒットしたら
+    if ( $HitNum )
     {
-	&cgiprint'Cache("</ul>\n</p><p>\n<ul>");
-	&cgiprint'Cache("<li>$HitNum件の$H_MESGが見つかりました．\n");
+	&cgiprint'Cache( "</ul>\n</p><p>\n<ul>" );
+	&cgiprint'Cache( "<li>$HitNum件の$H_MESGが見つかりました．\n" );
     }
     else
     {
-	&cgiprint'Cache("<li>該当する$H_MESGは見つかりませんでした．\n");
+	&cgiprint'Cache( "<li>該当する$H_MESGは見つかりませんでした．\n" );
     }
 
     # リスト閉じる
-    &cgiprint'Cache("</ul></p>\n");
+    &cgiprint'Cache( "</ul></p>\n" );
+}
+
+sub SearchTime
+{
+    local( $target, $from, $to ) = @_;
+
+    return 0 if (( $from >= 0 ) && ( $target < $from ));
+    return 0 if (( $to >= 0 ) && ( $target > $to ));
+    1;
 }
 
 1;

@@ -303,10 +303,7 @@ sub ViewTitleNodeThread
     if ( $DB_AIDS{$Id} )
     {
 	&cgiprint'Cache( "<ul>\n" );
-	foreach ( split( /,/, $DB_AIDS{$Id} ))
-	{
-	    &ViewTitleNodeThread( $_, 0 );
-	}
+	grep( &ViewTitleNodeThread( $_, 0 ), split( /,/, $DB_AIDS{$Id} ));
 	&cgiprint'Cache( "</ul>\n" );
     }
 }
@@ -329,10 +326,7 @@ sub ViewTitleNodeAllThread
     if ( $DB_AIDS{$Id} )
     {
 	&cgiprint'Cache( "<ul>\n" );
-	foreach ( split( /,/, $DB_AIDS{$Id} ))
-	{
-	    &ViewTitleNodeAllThread( $_, 0 );
-	}
+	grep( &ViewTitleNodeAllThread( $_, 0 ), split( /,/, $DB_AIDS{$Id} ));
 	&cgiprint'Cache( "</ul>\n" );
     }
 }
@@ -389,10 +383,8 @@ sub ViewTitleNodeMaint
     if ($DB_AIDS{$Id})
     {
 	&cgiprint'Cache("<ul>\n");
-	foreach (split(/,/, $DB_AIDS{$Id}))
-	{
-	    &ViewTitleNodeMaint( $_, $ComType, $AddNum, 0 );
-	}
+	grep( &ViewTitleNodeMaint( $_, $ComType, $AddNum, 0 ),
+	     split( /,/, $DB_AIDS{$Id} ));
 	&cgiprint'Cache("</ul>\n");
     }
 }

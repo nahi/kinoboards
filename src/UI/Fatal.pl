@@ -93,7 +93,7 @@ Fatal:
     elsif ( $errno == 15 )
     {
 	$severity = $kinologue'SEV_ERROR;
-	$msg = "書き込み元の入力フォームが古過ぎて，書き込めません．";
+	$msg = "書き込み元の入力フォームが古過ぎます．．．";
     }
     elsif ( $errno == 16 )
     {
@@ -133,7 +133,7 @@ Fatal:
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ))
+    if ( !$PC && ( $errno != 1001 ) && ( $errno != 1001 ))
     {
 	&UnlockBoard;
 	&UnlockAll;
