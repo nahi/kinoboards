@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.17 1999-02-18 01:47:17 nakahiro Exp $
+# $Id: cgi.pl,v 2.18 1999-02-19 13:06:36 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -63,9 +63,11 @@ if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO ))
     $PATH_TRANSLATED = '';
 }
 
-( $CGIDIR_NAME, $CGIPROG_NAME ) = $SCRIPT_NAME =~ m!^(.*)/([^/]*)$!o;
-$SYSDIR_NAME = ( $PATH_INFO ? "$PATH_INFO/" : "$CGIDIR_NAME/" );
-$PROGRAM = ( $PATH_INFO ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME" );
+$SCRIPT_NAME =~ s!/index.cgi$!/!o;
+$SCRIPT_NAME =~ s!/default.asp$!/!o;
+( $CGIDIR_NAME, $CGIPROG_NAME ) = $SCRIPT_NAME =~ m!^(.*/)([^/]*)$!o;
+$SYSDIR_NAME = ( $PATH_INFO? "$PATH_INFO/" : $CGIDIR_NAME );
+$PROGRAM = ( $PATH_INFO? "$SCRIPT_NAME$PATH_INFO" : $CGIPROG_NAME );
 
 
 # Locking
@@ -339,14 +341,14 @@ sub SendMail
 #
 # - SYNOPSIS
 #	require( 'cgi.pl' );
-#	&cgi'sendMail( $fromName, $fromEmail, $sendarName, $sendarEmail,
+#	&cgi'sendMail( $fromName, $fromEmail, $senderName, $senderEmail,
 #	    $subject, $extension, $message, $labelTo, @to );
 #
 # - ARGS
 #	$fromName	from name
 #	$fromEmail	from e-mail addr.
-#	$sendarName	sendar name
-#	$sendarEmail	sendar e-mail addr.
+#	$senderName	sender name
+#	$senderEmail	sender e-mail addr.
 #	$subject	subject
 #	$extension	extension header
 #	$message	message
@@ -363,15 +365,15 @@ sub SendMail
 $SMTP_ERRSTR = '';
 sub sendMail
 {
-    local( $fromName, $fromEmail, $sendarName, $sendarEmail, $subject,
+    local( $fromName, $fromEmail, $senderName, $senderEmail, $subject,
 	$extension, $message, $labelTo,	@to ) = @_;
     local( $header, $body );
 
-    return( 0, '' ) if ( !( $fromEmail && $sendarEmail && $subject &&
+    return( 0, '' ) if ( !( $fromEmail && $senderEmail && $subject &&
 	$message && @to ));
 
     # creating header
-    $header = &smtpHeader( *fromName, *fromEmail, *sendarName, *sendarEmail,
+    $header = &smtpHeader( *fromName, *fromEmail, *senderName, *senderEmail,
 	*subject, *extension, *labelTo, *to );
 
     # creating body
@@ -410,8 +412,8 @@ sub sendMail
 #	(
 #	    $fromName,		From string
 #	    $fromEmail,		From addr.
-#	    $sendarName,	Sendar string
-#	    $sendarEmail,	Sendar addr.
+#	    $senderName,	Sender string
+#	    $senderEmail,	Sender addr.
 #	    $subject,		Subject string
 #	    $extension,		Extension-header string
 #	    $labelTo,		To string
@@ -429,7 +431,7 @@ sub sendMail
 #
 sub smtpHeader
 {
-    local( *fromName, *fromEmail, *sendarName, *sendarEmail, *subject,
+    local( *fromName, *fromEmail, *senderName, *senderEmail, *subject,
 	*extension, *labelTo, *to ) = @_;
 
     # mime encoding of Japanese multi-byte char in header.
@@ -440,12 +442,12 @@ sub smtpHeader
     }
     local( $from ) = "$fromName <$fromEmail>";
 
-    $encode = &jcode'getcode( *sendarName );
+    $encode = &jcode'getcode( *senderName );
     if ( defined( $encode ))
     {
-	$sendarName = join( $CRLF, split( /\n/, &main'mimeencode( $sendarName )));
+	$senderName = join( $CRLF, split( /\n/, &main'mimeencode( $senderName )));
     }
-    local( $sendar ) = "$sendarName <$sendarEmail>";
+    local( $sender ) = "$senderName <$senderEmail>";
 
     $encode = &jcode'getcode( *subject );
     if ( defined( $encode ))
@@ -477,8 +479,8 @@ sub smtpHeader
 	$header .= $CRLF;
     }
     $header .= "From: $from$CRLF";
-    $header .= "Reply-To: $sendar$CRLF";
-    $header .= "Sendar: $sendar$CRLF";
+    $header .= "Reply-To: $sender$CRLF";
+    $header .= "Sender: $sender$CRLF";
     $header .= "Subject: $subject$CRLF";
     $header .= "Content-type: text/plain; charset=ISO-2022-JP$CRLF";
     if ( $extension )
