@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.11 1996-10-15 12:49:04 nakahiro Exp $
+# $Id: cgi.pl,v 1.12 1996-11-19 12:06:35 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -25,6 +25,7 @@
 package cgi;
 
 $MAIL2 = ((defined $'MAIL2) ? $'MAIL2 : "/usr/lib/sendmail -oi -t");
+$JPOUT_SCHEME = ((defined $'JPOUT_SCHEME) ? $'JPOUT_SCHEME : 'jis');
 $WAITPID_BLOCK = ((defined $'WAITPID_BLOCK) ? $'WAITPID_BLOCK : 0);
 
 
@@ -32,7 +33,6 @@ $WAITPID_BLOCK = ((defined $'WAITPID_BLOCK) ? $'WAITPID_BLOCK : 0);
 ## HTMLヘッダの生成
 #
 sub header {
-#    print "Magnus-charset: x-euc-jp\n";
     print "Content-type: text/html\n\n";
 }
 
@@ -76,6 +76,18 @@ sub cookie {
 	($Tag, $Value) = split(/=/, $_, 2);
 	eval("\$$Tag = \"$Value\";");
     }
+}
+
+
+###
+## 日本語の表示
+#
+sub KPrint {
+
+    local($String) = @_;
+    &jcode'convert(*String, $JPOUT_SCHEME);
+    print($String);
+
 }
 
 
