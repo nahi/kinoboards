@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 5.2 1997-07-23 14:52:11 nakahiro Exp $
+# $Id: kb.cgi,v 5.3 1997-09-12 14:30:07 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -1634,6 +1634,7 @@ sub ArticleEncode {
 #
 # - ARGS
 #	$Id		削除記事ID
+#	$Board		掲示板ID
 #	$ThreadFlag	リプライも消すか否か
 #
 # - DESCRIPTION
@@ -1643,7 +1644,7 @@ sub ArticleEncode {
 #	なし
 #
 sub DeleteArticle {
-    local($Id, $ThreadFlag) = @_;
+    local($Id, $Board, $ThreadFlag) = @_;
     local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $dId, @Target, $TargetId);
 
     # 記事情報の取得
@@ -2131,7 +2132,7 @@ sub DeleteArticleFromDbFile {
     local($File, $TmpFile, $dId);
 
     $File = &GetPath($Board, $DB_FILE_NAME);
-    $TmpFile = &GetlPath($Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX");
+    $TmpFile = &GetPath($Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX");
     open(DBTMP, ">$TmpFile") || &Fatal(1, $TmpFile);
     open(DB, "<$File") || &Fatal(1, $File);
 
