@@ -62,14 +62,12 @@ ThreadExt:
     &cgiprint'Cache("$H_HR\n");
     &cgiprint'Cache( $pageLinkStr );
 
-    &cgiprint'Cache("<ul>\n");
-
     local( $AddNum ) = "&num=$Num&old=$Old&rev=$Rev";
 
     if ($To < $From)
     {
 	# 空だった……
-	&cgiprint'Cache("<li>$H_NOARTICLE\n");
+	&cgiprint'Cache("<ul>\n<li>$H_NOARTICLE\n</ul>\n");
     }
     elsif ( $vRev )
     {
@@ -77,10 +75,13 @@ ThreadExt:
 	{
 	    # 該当記事のIDを取り出す
 	    $Id = $DB_ID[$IdNum];
-	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
+	    ( $Fid = $DB_FID{ $Id } ) =~ s/,.*$//o;
 	    # 後方参照は後回し．
-	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+#	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+	    next if (( $Fid ne '' ) && (( $ADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
+
 	    # ノードを表示
+	    &cgiprint'Cache( "<ul>\n" );
 	    if ( $SYS_THREAD_FORMAT == 1 )
 	    {
 		&ThreadTitleNodeAllThread( $Id, 1 );
@@ -93,6 +94,7 @@ ThreadExt:
 	    {
 		&ThreadTitleNodeThread( $Id, 1 );
 	    }
+	    &cgiprint'Cache( "</ul>\n" );
 	}
     }
     else
@@ -100,9 +102,11 @@ ThreadExt:
 	for( $IdNum = $To; $IdNum >= $From; $IdNum-- )
 	{
 	    $Id = $DB_ID[$IdNum];
-	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
-	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+	    ( $Fid = $DB_FID{ $Id } ) =~ s/,.*$//o;
+#	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+	    next if (( $Fid ne '' ) && (( $ADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
+	    &cgiprint'Cache( "<ul>\n" );
 	    if ( $SYS_THREAD_FORMAT == 1 )
 	    {
 		&ThreadTitleNodeAllThread( $Id, 1 );
@@ -115,10 +119,9 @@ ThreadExt:
 	    {
 		&ThreadTitleNodeThread( $Id, 1 );
 	    }
+	    &cgiprint'Cache( "</ul>\n" );
 	}
     }
-
-    &cgiprint'Cache("</ul>\n");
 
     if ( $#IDLIST >= 0 )
     {

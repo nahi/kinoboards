@@ -166,35 +166,36 @@ __EOF__
 
     &cgiprint'Cache( $pageLinkStr );
 
-    &cgiprint'Cache("<ul>\n");
-
     local( $AddNum ) = "&num=$Num&old=$Old&rev=$Rev";
 
     if ($To < $From)
     {
 	# 空だった……
-	&cgiprint'Cache("<li>$H_NOARTICLE\n");
+	&cgiprint'Cache("<ul>\n<li>$H_NOARTICLE\n</ul>\n");
     }
     elsif ( $vRev )
     {
 	# 古いのから処理
 	if (($ComType == 2) && ($DB_FID{$cgi'TAGS{'rfid'}} ne ''))
 	{
-	    &cgiprint'Cache("<li>", &TagA( "$PROGRAM?b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[どの$H_MESGへのリプライでもなく，新着$H_MESGにする]" ), "\n");
+	    &cgiprint'Cache( "<ul>\n<li>", &TagA( "$PROGRAM?b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[どの$H_MESGへのリプライでもなく，新着$H_MESGにする]" ), "\n</ul>\n" );
 	}
 	elsif ($ComType == 4)
 	{
-	    &cgiprint'Cache("<li>", &TagA( "$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[全記事の先頭に移動する(このページの先頭，ではありません)]" ), "\n");
+	    &cgiprint'Cache( "<ul>\n<li>", &TagA( "$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[全記事の先頭に移動する(このページの先頭，ではありません)]" ), "\n</ul>\n" );
 	}
 
 	for( $IdNum = $From; $IdNum <= $To; $IdNum++ )
 	{
 	    # 該当記事のIDを取り出す
 	    $Id = $DB_ID[$IdNum];
-	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
+	    ( $Fid = $DB_FID{ $Id } ) =~ s/,.*$//o;
 	    # 後方参照は後回し．
-	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+#	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+	    next if (( $Fid ne '' ) && (( $ADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
+
 	    # ノードを表示
+	    &cgiprint'Cache( "<ul>\n" );
 	    if ( $SYS_F_MT )
 	    {
 		&ThreadTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
@@ -214,6 +215,7 @@ __EOF__
 		    &ThreadTitleNodeThread( $Id, 1 );
 		}
 	    }
+	    &cgiprint'Cache( "</ul>\n" );
 	}
     }
     else
@@ -232,9 +234,11 @@ __EOF__
 	{
 	    # 後は同じ
 	    $Id = $DB_ID[$IdNum];
-	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
-	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+	    ( $Fid = $DB_FID{ $Id } ) =~ s/,.*$//o;
+#	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+	    next if (( $Fid ne '' ) && (( $ADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
+	    &cgiprint'Cache( "<ul>\n" );
 	    if ( $SYS_F_MT )
 	    {
 		&ThreadTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
@@ -254,10 +258,9 @@ __EOF__
 		    &ThreadTitleNodeThread( $Id, 1 );
 		}
 	    }
+	    &cgiprint'Cache( "</ul>\n" );
 	}
     }
-
-    &cgiprint'Cache("</ul>\n");
 
     &cgiprint'Cache( $pageLinkStr );
 
