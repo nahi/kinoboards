@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.42 2000-03-02 12:48:44 nakahiro Exp $
+# $Id: cgi.pl,v 2.43 2000-03-12 10:45:59 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -178,8 +178,7 @@ sub Header
 	{
 	    # Escape unexpected chars in data.
 	    ( $key, $value ) = split( /=/, $_, 2 );
-	    $value =~ s/(\W)/$urlEscapeCache{$1} ||= sprintf( "%%%02X",
-		ord( $1 ))/eg;
+	    $value =~ s/(\W)/$urlEscapeCache{$1} ||= sprintf( "%%%02X", ord( $1 ))/eg;
 	    print( "Set-Cookie: $key=$value;" );
 	    if ( $cookieExpire eq '' )
 	    {

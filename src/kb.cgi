@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.64 2000-03-03 14:28:23 nakahiro Exp $
+# $Id: kb.cgi,v 5.65 2000-03-12 10:46:01 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -219,7 +219,8 @@ $HTML_HR = "<hr />\n";
 # ローカルカウンタ・フラグ
 $gLinkNum = 0;
 $gTabIndex = 0;
-$gBoardDbCached = 0;
+
+$gDumpedHTTPHeader = 0;
 
 
 ######################################################################
@@ -285,23 +286,24 @@ MAIN:
 	}
     }
 
+    # ロックしないでいいの?
+    &cacheBoard();
+
     if ( $BOARD )
     {
 	$BOARD_ESC = &URIEscape( $BOARD );	# リンク用にescape
-
-	local( $boardConfFileP );
-	( $BOARDNAME, $boardConfFileP ) = &GetBoardInfo( $BOARD );
+	$BOARDNAME = &getBoardName( $BOARD );
 	$LOCK_FILE_B = $LOCK_FILE . ".$BOARD";
 
 	# 掲示板固有セッティングを読み込む
-	if ( $boardConfFileP )
+	if ( &getBoardInfo( $BOARD ))
 	{
 	    local( $boardConfFile ) = &GetPath( $BOARD, $CONF_FILE_NAME );
 	    require( $boardConfFile ) if ( -s "$boardConfFile" );
 	}
 
 	# アイコンDBも読み込む（R7以降）
-	&CacheIconDb( $BOARD ) if $SYS_ICON;
+	&cacheBoardIcon( $BOARD ) if $SYS_ICON;
     }
 
     # 全てのrequireが終わったあと．．．
@@ -759,7 +761,7 @@ sub UIAdminConfigExec
     local( $p2 ) = $cgi'TAGS{'confP2'};
 
     # adminのみ
-    &Fatal( 44, '' ) unless ( $POLICY & 8 );
+    &Fatal( 44, '' ) unless &IsUser( $ADMIN );
 
     if ( !$p2 || ( $p1 ne $p2 ))
     {
@@ -1012,7 +1014,7 @@ sub UIBoardEntryExec
     &secureArticle( *header, $H_TTLABEL[2] );
     local( @arriveMail ) = split( /\n/, $armail );
 
-    &AddBoardDb( $name, $intro, 0, *arriveMail, *header );
+    &insertBoard( $name, $intro, 0, *arriveMail, *header );
 
     &UnlockAll();
 
@@ -1030,9 +1032,9 @@ sub UIBoardConfig
 
     # 全掲示板の情報を取り出す
     @gArriveMail = ();
-    &GetArriveMailTo(1, $BOARD, *gArriveMail); # 宛先とコメントを取り出す
+    &getBoardSubscriber(1, $BOARD, *gArriveMail); # 宛先とコメントを取り出す
     $gHeader = "";
-    &GetHeaderDb( $BOARD, *gHeader ); # ヘッダ文字列を取り出す
+    &getBoardHeader( $BOARD, *gHeader ); # ヘッダ文字列を取り出す
 
     &htmlGen( 'BoardConfig.xml' );
 
@@ -1081,7 +1083,7 @@ sub UIBoardConfigExec
     &secureArticle( *header, $H_TTLABEL[2] );
     local( @arriveMail ) = split( /\n/, $armail );
 
-    &UpdateBoardDb( $BOARD, $valid, $intro, 0, *arriveMail, *header );
+    &updateBoard( $BOARD, $valid, $intro, 0, *arriveMail, *header );
 
     &UnlockAll();
 
@@ -1145,7 +1147,7 @@ sub UIPostReplyEntry
 {
     # Isolation level: SERIALIZABLE.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
 
     local( $back, $quoteFlag ) = @_;
 
@@ -1196,7 +1198,7 @@ sub UISupersedeEntry
 {
     # Isolation level: SERIALIZABLE.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
 
     local( $back ) = @_;
 
@@ -1257,7 +1259,7 @@ sub UIPostPreview
 {
     # Isolation level: SERIALIZABLE.
     &LockAll();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
 
     &UIPostPreviewMain( 'post' );
     &htmlGen( 'PostPreview.xml' );
@@ -1269,7 +1271,7 @@ sub UISupersedePreview
 {
     # Isolation level: READ UNCOMITTED.
     &LockAll();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
     &UnlockAll();
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
@@ -1398,7 +1400,7 @@ sub UIPostExec
 {
     # Isolation level: SERIALIZABLE.
     &LockAll();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
 
     local( $previewFlag ) = @_;
 
@@ -1412,7 +1414,7 @@ sub UISupersedeExec
 {
     # Isolation level: SERIALIZABLE.
     &LockAll();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
@@ -1452,8 +1454,7 @@ sub UIPostExecMain
     # フォーム再利用の禁止
     if ( $SYS_DENY_FORM_RECYCLE )
     {
-	local( $dId, $dKey );
-	&GetArticleId( $BOARD, *dId, *dKey );
+	local( $dKey ) = &getBoardKey( $BOARD );
 	&Fatal( 16, '' ) if ( $dKey && ( $dKey == $op ));
     }
 
@@ -1543,7 +1544,7 @@ sub UIThreadArticle
 {
     # Isolation level: READ UNCOMITTED.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
     &UnlockBoard();
 
     %gADDFLAG = ();
@@ -1691,7 +1692,7 @@ sub UIThreadTitle
 {
     # Isolation level: READ UNCOMITTED.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
 
     ( $gComType ) = @_;
 
@@ -1699,17 +1700,11 @@ sub UIThreadTitle
     {
 	# リンクかけかえの実施
 	&ReLinkExec( $cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD );
-
-	# DB書き換えたので，キャッシュし直す
-	&DbCache( $BOARD );
     }
     elsif ( $gComType == 5 )
     {
 	# 移動の実施
 	&ReOrderExec( $cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD );
-
-	# DB書き換えたので，キャッシュし直す
-	&DbCache( $BOARD );
     }
 
     &UnlockBoard();
@@ -2082,7 +2077,7 @@ sub UISortTitle
 {
     # Isolation level: READ UNCOMITTED.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
     &UnlockBoard();
 
     local( $nofMsg ) = &getNofMsg();
@@ -2160,7 +2155,7 @@ sub UIShowThread
 {
     # Isolation level: READ UNCOMITTED.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
     &UnlockBoard();
 
     $gId = $cgi'TAGS{'id'};
@@ -2209,7 +2204,7 @@ sub UISortArticle
 {
     # Isolation level: READ UNCOMITTED.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
     &UnlockBoard();
 
     $gNum = $cgi'TAGS{'num'};
@@ -2270,7 +2265,7 @@ sub UIShowArticle
 {
     # Isolation level: READ UNCOMITTED.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
     &UnlockBoard();
 
     $gId = $cgi'TAGS{'id'};
@@ -2320,7 +2315,7 @@ sub UISearchArticle
 {
     # Isolation level: READ UNCOMITTED.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
     &UnlockBoard();
 
     &htmlGen( 'SearchArticle.xml' );
@@ -2359,7 +2354,7 @@ sub UIDeletePreview
 {
     # Isolation level: READ UNCOMITTED.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
     &UnlockBoard();
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
@@ -2413,7 +2408,7 @@ sub UIDeleteExec
 {
     # Isolation level: SERIALIZABLE.
     &LockBoard();
-    &DbCache( $BOARD ) if $BOARD;
+    &cacheMsg( $BOARD );
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
@@ -2543,8 +2538,9 @@ sub hg_c_exec_date_time
 sub hg_c_top_menu
 {
     $gHgStr .= qq(<div class="kbTopMenu">\n);
-    local( $formStr, $contents );
+    local( $formStr );
 
+    local( %tags );
     if ( $SYS_AUTH )
     {
 	$formStr .= &LinkP( 'c=bl', 'TOP', 'J' ) . "\n";
@@ -2557,10 +2553,13 @@ sub hg_c_top_menu
 	$formStr .= "&nbsp;&nbsp;&nbsp;\n";
     }
 
-    $formStr .= &TagLabel( "表示画面", 'c', 'W' ) . ": \n";
 
     if ( $BOARD )
     {
+	$tags{ 'b' } = $BOARD;
+	$formStr .= &TagLabel( "表示画面", 'c', 'W' ) . ": \n";
+
+	local( $contents );
 	$contents .= sprintf( qq[<option%s value="v">最新$H_SUBJECT一覧(スレッド)</option>\n], ( $SYS_TITLE_FORMAT == 0 )? ' selected="selected"' : '' );
 	$contents .= sprintf( qq[<option%s value="r">最新$H_SUBJECT一覧(書き込み順)</option>\n], ( $SYS_TITLE_FORMAT == 1 )? ' selected="selected"' : '' );
 	$contents .= qq[<option value="vt">最新$H_MESG一覧(スレッド)</option>\n];
@@ -2573,17 +2572,30 @@ sub hg_c_top_menu
 	    $contents .= qq(<option value="v">--------</option>\n);
 	    $contents .= qq(<option value="n">$H_POSTNEWARTICLE</option>\n);
 	}
+
+	$formStr .= &TagSelect( 'c', $contents );
     }
     else
     {
-	$contents .= qq(<option selected="selected" value="bl">$H_BOARD一覧</option>\n);
+	$tags{ 'c' } = $SYS_TITLE_FORMAT? 'r' : 'v';
+	$formStr .= &TagLabel( "表示画面", 'b', 'W' ) . ": \n";
+
+	local( $contents, $boardId );
+	$boardId = &getBoardId( 0 );
+	$contents .= qq(<option selected="selected" value="$boardId">) . &getBoardName( $boardId ) . "</option>\n";
+	foreach ( 1 .. &getNofBoard() )
+	{
+	    $boardId = &getBoardId( $_ );
+	    $contents .= qq(<option value="$boardId">) . &getBoardName( $boardId ) . "</option>\n";
+	}
+
+	$formStr .= &TagSelect( 'b', $contents );
     }
 
-    $formStr .= &TagSelect( 'c', $contents ) . "\n&nbsp;&nbsp;&nbsp;" .
+    $formStr .= "\n&nbsp;&nbsp;&nbsp;" .
 	&TagLabel( "表示件数", 'num', 'Y' ) . ': ' .
 	&TagInputText( 'text', 'num', (( $cgi'TAGS{'num'} ne '' )? $cgi'TAGS{'num'} : $DEF_TITLE_NUM ),	3 );
 
-    local( %tags ) = ( 'b', $BOARD );
     $tags{ 'old' } = $cgi'TAGS{'old'} if ( defined $cgi'TAGS{'old'} );
     $tags{ 'rev' } = $cgi'TAGS{'rev'} if ( defined $cgi'TAGS{'rev'} );
     $tags{ 'fold' } = $cgi'TAGS{'fold'} if ( defined $cgi'TAGS{'fold'} );
@@ -2640,16 +2652,13 @@ sub hg_c_page_link
 
 sub hg_c_board_link_all
 {
-    # 全掲示板の情報を取り出す
-    local( @board, %boardName, %boardInfo );
-    &GetAllBoardInfo( *board, *boardName, *boardInfo );
-
     $gHgStr .= "<ul>\n";
 
-    local( $newIcon, $modTimeUtc, $modTime, $nofArticle, $boardEsc );
-    foreach ( @board )
+    local( $board, $newIcon, $modTimeUtc, $modTime, $boardEsc );
+    foreach ( 0 .. &getNofBoard() )
     {
-	$modTimeUtc = &getBoardLastmod( $_ );
+	$board = &getBoardId( $_ );
+	$modTimeUtc = &getBoardLastmod( $board );
 	$modTime = &GetDateTimeFormatFromUtc( $modTimeUtc );
 	if ( $SYS_BLIST_NEWICON_DATE &&
 	    (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
@@ -2660,13 +2669,12 @@ sub hg_c_board_link_all
 	{
 	    $newIcon = '';
 	}
-	&GetArticleId( $_, *nofArticle ) || 0;
 
-	$boardEsc = &URIEscape( $_ );
+	$boardEsc = &URIEscape( $board );
 	$gHgStr .= '<li>' .
 	    &LinkP( "b=$boardEsc&c=" . ( $SYS_TITLE_FORMAT? 'r' : 'v' ) .
-	    "&num=$DEF_TITLE_NUM", $boardName{$_} ) .
-	    "$newIcon\n[最新: $modTime, 最新${H_MESG}ID: $nofArticle]\n";
+	    "&num=$DEF_TITLE_NUM", &getBoardName( $board )) .
+	    "$newIcon\n[最新: $modTime]\n";
 	if ( $POLICY & 8 )
 	{
 	    $gHgStr .= &LinkP( "b=$boardEsc&c=bc", "←設定変更" ) . "\n";
@@ -2707,13 +2715,6 @@ sub hg_c_board_link
 	return;
     }
 
-    if ( !$gBoardInfoDbCached )
-    {
-	local( $tmp );
-	&GetAllBoardInfo( *tmp, *gBoardName, *tmp );
-	$gBoardInfoDbCached = 1;
-    }
-
     $modTimeUtc = &getBoardLastmod( $board );
     $modTime = &GetDateTimeFormatFromUtc( $modTimeUtc );
     if ( $SYS_BLIST_NEWICON_DATE &&
@@ -2725,11 +2726,9 @@ sub hg_c_board_link
     {
 	$newIcon = '';
     }
-    &GetArticleId( $board, *nofArticle ) || 0;
 
     local( $boardEsc ) = &URIEscape( $board );
-    $gHgStr .= &LinkP( "b=$boardEsc&c=$com&num=$num", $gBoardName{$board} ) .
-	"$newIcon\n[最新: $modTime, 最新${H_MESG}ID: $nofArticle]\n";
+    $gHgStr .= &LinkP( "b=$boardEsc&c=$com&num=$num", &getBoardName( $board )) . "$newIcon\n[最新: $modTime]\n";
     if ( $POLICY & 8 )
     {
 	$gHgStr .= &LinkP( "b=$boardEsc&c=bc", "←設定変更" ) . "\n";
@@ -2804,13 +2803,13 @@ sub hg_b_search_article_form
 	$contents .= $HTML_BR . &TagLabel( $H_ICON, 'icon', 'I' ) . ": \n";
 
 	# アイコンの選択
-	local( $selContents, $IconTitle );
+	local( $selContents, $iconId );
 	$selContents = sprintf( qq(<option%s>$H_NOICON</option>\n), ( $Icon &&
 	    ( $Icon ne $H_NOICON ))? '' : ' selected="selected"' );
-	foreach $IconTitle ( sort keys( %ICON_FILE ))
+	foreach ( 0 .. &getNofBoardIcon() )
 	{
-	    $selContents .= sprintf( "<option%s>$IconTitle</option>\n",
-	    	( $Icon eq $IconTitle )? ' selected="selected"' : '' );
+	    $iconId = &getBoardIconId( $_ );
+	    $selContents .= sprintf( "<option%s>$iconId</option>\n", ( $iconId eq $Icon )? ' selected="selected"' : '' );
 	}
 	$contents .= &TagSelect( 'icon', $selContents ) . "\n";
 
@@ -2868,10 +2867,12 @@ sub hg_b_all_icon
 {
     return unless $BOARD;
     $gHgStr .= "<ul>\n";
-    foreach ( @ICON_TITLE )
+
+    local( $id );
+    foreach ( 0 .. &getNofBoardIcon() )
     {
-	$gHgStr .= '<li>' . &TagMsgImg( $_ ) . " : [$_] " . ( $ICON_HELP{$_} ||
-	    $_ ) . "</li>\n";
+	$id = &getBoardIconId( $_ );
+	$gHgStr .= '<li>' . &TagMsgImg( $id ) . " : [$id] " . ( &getBoardIconHelp( $id ) || $id ) . "</li>\n";
     }
     $gHgStr .= "</ul>\n";
 }
@@ -2889,7 +2890,7 @@ sub hg_b_all_icon
 sub DumpBoardHeader
 {
     local( $msg );
-    &GetHeaderDb( $BOARD, *msg );
+    &getBoardHeader( $BOARD, *msg );
     
     LINE: while ( 1 )
     {
@@ -2933,11 +2934,11 @@ sub DumpArtEntry
 {
     local( $icon ) = @_;
 
-#    if ( $ICON_TYPE{ $icon } eq 'cfv' )
+#    if ( &getBoardIconType( $icon ) eq 'cfv' )
 #    {
 #	# TBD
 #    }
-#    elsif ( $ICON_TYPE{ $icon } eq 'vote' )
+#    elsif ( &getBoardIconType( $icon ) eq 'vote' )
 #    {
 #	# TBD
 #    }
@@ -2956,18 +2957,18 @@ sub DumpArtEntryNormal
     $texttype = $texttype || $H_TTLABEL[ $SYS_TT_DEFAULT ];
     $icon = $icon || $SYS_ICON_DEFAULT;
 
-    local( $msg );
+    local( $msg, $iconId );
     local( $contents ) = '';
 
     # アイコンの選択
     if ( $SYS_ICON )
     {
 	$msg .= &TagLabel( $H_ICON, 'icon', 'I' ) . " :\n";
-	$contents = sprintf( "<option%s>$H_NOICON</option>\n",
-	    (( $icon eq $H_NOICON )? ' selected="selected"' : '' ));
-	foreach ( @ICON_TITLE )
+	$contents = sprintf( "<option%s>$H_NOICON</option>\n", (( $icon eq $H_NOICON )? ' selected="selected"' : '' ));
+	foreach ( 0 .. &getNofBoardIcon() )
 	{
-	    $contents .= sprintf( "<option%s>$_</option>\n", ( $_ eq $icon )? ' selected="selected"' : '' );
+	    $iconId = &getBoardIconId( $_ );
+	    $contents .= sprintf( "<option%s>$iconId</option>\n", ( $iconId eq $icon )? ' selected="selected"' : '' );
 	}
 	$msg .= &TagSelect( 'icon', $contents ) . "\n";
 
@@ -3120,7 +3121,7 @@ sub DumpArtBody
     {
 	( $fid, $aids, $date, $title, $icon, $host, $name, $eMail, $url ) = &getMsgInfo( $id );
 	local( @articleBody );
-	&GetArticleBody( $id, $BOARD, *articleBody );
+	&getMsgBody( $id, $BOARD, *articleBody );
 	$body = join( '', @articleBody );
     }
     else
@@ -3144,12 +3145,8 @@ sub DumpArtBody
 
     if ( $commandFlag && $SYS_COMMAND )
     {
-	local( $num );
-	foreach ( 0 .. &getNofMsg() )
-	{
-	    $num = $_, last if ( &getMsgId( $_ ) eq $id );
-	}
-	local( $prevId ) = &getMsgId( $num - 1 ) if ( $num > 0 );
+	local( $num ) = &getMsgNum( $id );
+	local( $prevId ) = &getMsgId( $num - 1 );
 	local( $nextId ) = &getMsgId( $num + 1 );
 	&DumpArtCommand( $id, $origId, $prevId, $nextId, ( $aids ne '' ),
 	    (( &IsUser( $name ) && (( $aids eq '' ) || ( $SYS_OVERWRITE == 2 ))) || ( $POLICY & 8 )));
@@ -3161,11 +3158,11 @@ sub DumpArtBody
     # 切れ目
     $gHgStr .= $H_LINE;
 
-#    if ( $ICON_TYPE{ $icon } eq 'cfv' )
+#    if ( &getBoardIconType( $icon ) eq 'cfv' )
 #    {
 #	# TBD
 #    }
-#    elsif ( $ICON_TYPE{ $icon } eq 'vote' )
+#    elsif ( &getBoardIconType( $icon ) eq 'vote' )
 #    {
 #	# TBD
 #    }
@@ -3239,7 +3236,7 @@ sub DumpArtThread
 	&DumpArtBody( $Head, $SYS_COMMAND_EACH, 0 );
     }
 
-    # &cgiprint'Cache( $gHgStr ); $gHgStr = '';
+    &cgiprint'Cache( $gHgStr ); $gHgStr = '';
     # tail recuresive.
     &DumpArtThread( $State, @Tail ) if @Tail;
 }
@@ -3465,8 +3462,15 @@ sub DumpArtTitle
 {
     local( $id, $title, $icon ) = @_;
     local( $markUp );
-    $markUp .= "$id. " if ( $id ne '' );
-    $markUp .= &TagMsgImg( $icon ) . $title;
+
+    if ( $id ne '' )
+    {
+	$markUp .= &TagMsgImg( $icon ) . " <small>$id.</small> " . $title;
+    }
+    else
+    {
+	$markUp .= &TagMsgImg( $icon ) . ' ' . $title;
+    }
     $gHgStr .= '<h2>' . &TagA( $markUp, '', '', '', "a$id" ) . "</h2>\n";
 }
 
@@ -3894,12 +3898,13 @@ sub htmlGen
     {
 	$cookieExpire = '';
     }
-    &cgiauth'Header( 0, 0, 1, $cookieExpire );
+    &cgiauth'Header( 0, 0, 1, $cookieExpire ) unless $gDumpedHTTPHeader;
+    $gDumpedHTTPHeader = 1;
     &cgiprint'Init();
 
     $gHgStr = '';
 
-    # Work around for MSIE 4.5(Macintosh IE).
+    # Workaround for MSIE 4.5(Macintosh IE).
     #   cf. <URL:http://kanzaki.com/docs//html/xhtml1.html>
     if ( $ENV{'HTTP_USER_AGENT'} =~ /MSIE 4.5/o )
     {
@@ -4094,7 +4099,7 @@ sub GetArticlePlainText
     local( $strDate ) = &GetDateTimeFormatFromUtc( $date );
 
     local( @body );
-    &GetArticleBody( $id, $BOARD, *body );
+    &getMsgBody( $id, $BOARD, *body );
 
     $msg = <<__EOF__;
 $H_SUBJECT: $strSubject
@@ -4156,21 +4161,10 @@ sub MakeNewArticleEx
 {
     local( $Board, $Id, $artKey, $postDate, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $MailRelay ) = @_;
 
-    local( $ArticleId );
     &CheckArticle( $Board, *postDate, *Name, *Email, *Url, *Subject, *Icon, *Article );
 
-    # 新しい記事番号を取得(まだ記事番号は増えてない)
-    $ArticleId = &GetNewArticleId( $Board );
-
-    # 正規のファイルの作成
-    &MakeArticleFile( $TextType, $Article, $ArticleId, $Board );
-
-    # 新しい記事番号を書き込む
-    &WriteArticleId( $ArticleId, $Board, $artKey );
-
     # DBファイルに投稿された記事を追加
-    # 通常の記事引用ならID
-    &AddDBFile( $ArticleId, $Board, $Id, $postDate, $Subject, $Icon, ( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail, $MailRelay );
+    local( $ArticleId ) = &insertMsg( $Board, $Id, $artKey, $postDate, $Subject, $Icon, ( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail, $MailRelay, $TextType, $Article );
 
     $ArticleId;
 }
@@ -4288,7 +4282,7 @@ sub SearchArticleKeyword
 
     $ConvFlag = ( $Id !~ /^\d+$/ );
 
-    &GetArticleBody( $Id, $Board, *ArticleBody );
+    &getMsgBody( $Id, $Board, *ArticleBody );
     foreach ( @ArticleBody )
     {
 	$Line = $_;
@@ -4403,7 +4397,7 @@ sub DeleteArticle
     }
 
     # DBを更新する．
-    &DeleteArticleFromDbFile( $Board, *Target );
+    &deleteMsg( $Board, *Target );
 }
 
 
@@ -4420,21 +4414,11 @@ sub SupersedeArticle
 {
     local( $Board, $Id, $postDate, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail ) = @_;
 
-    local( $SupersedeId, $File, $SupersedeFile );
-
     # 入力された記事情報のチェック．投稿日は
     &CheckArticle( $Board, $postDate, *Name, *Email, *Url, *Subject, *Icon, *Article );
 
     # DBファイルを訂正
-    $SupersedeId = &SupersedeDbFile( $Board, $Id, $postDate, $Subject, $Icon, ( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail );
-
-    # ex. 「100」→「100_5」
-    $File = &GetArticleFileName( $Id, $Board );
-    $SupersedeFile = &GetArticleFileName( sprintf( "%s_%s", $Id, $SupersedeId ), $Board );
-    rename( $File, $SupersedeFile ) || &Fatal( 14, "$File -&gt; $SupersedeFile" );
-
-    # 正規のファイルの作成
-    &MakeArticleFile( $TextType, $Article, $Id, $Board );
+    &updateMsg( $Board, $Id, $postDate, $Subject, $Icon, ( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail, $TextType, $Article );
 
     $Id;
 }
@@ -4511,7 +4495,7 @@ sub ReLinkExec
     &setMsgDaughters( $ToId, ( &getMsgDaughters( $ToId ) ne '' ) ? &getMsgDaughters( $ToId ) . ",$FromId" : "$FromId" );
 
     # 記事DBを更新する
-    &UpdateArticleDb( $Board );
+    &flushMsg( $Board );
 }
 
 
@@ -4539,7 +4523,7 @@ sub ReOrderExec
     @Move = ( $FromId, &CollectDaughters( $FromId ));
 
     # 移動させる
-    &ReOrderArticleDb( $Board, $ToId, *Move );
+    &reorderMsg( $Board, $ToId, *Move );
 }
 
 
@@ -5377,7 +5361,7 @@ sub ArticleEncode
 
     local( $url, $urlMatch, @cache );
     local( $tagStr, $quoteStr );
-    while ( $article =~ m/\[url:([^\]]+)\]/gi )
+    while ( $article =~ m/\[url:([^\]]+)\]/gio )
     {
 	$tagStr = '';
 	$url = $1;
@@ -5395,7 +5379,7 @@ sub ArticleEncode
 	    }
 	    elsif ( $artStr =~ m!^([^/]+)/(.*)$! )
 	    {
-		local( $boardEsc ) = &GetBoardInfo( $1 );
+		local( $boardEsc ) = &URIEscape( $1 );
 		$tagStr = &LinkP( "b=$boardEsc&c=e&id=$2", $quoteStr );
 	    }
 	    else
@@ -5405,8 +5389,7 @@ sub ArticleEncode
 	}
 	elsif ( &IsUrl( &HTMLDecode( $urlMatch )))
 	{
-	    $tagStr = &TagA( $quoteStr, &HTMLDecode( $url ), '', '', '',
-		$SYS_LINK_TARGET );
+	    $tagStr = &TagA( $quoteStr, &HTMLDecode( $url ), '', '', '', $SYS_LINK_TARGET );
 	}
 	else
 	{
@@ -5499,7 +5482,7 @@ sub QuoteOriginalArticle
 
     # 引用
     local( @ArticleBody );
-    &GetArticleBody( $Id, $BOARD, *ArticleBody );
+    &getMsgBody( $Id, $BOARD, *ArticleBody );
 
     if ( $SYS_QUOTEMSG )
     {
@@ -5548,7 +5531,7 @@ sub QuoteOriginalArticleWithoutQMark
     local( $Id, *msg ) = @_;
 
     local( @ArticleBody, $line );
-    &GetArticleBody( $Id, $BOARD, *ArticleBody );
+    &getMsgBody( $Id, $BOARD, *ArticleBody );
     foreach $line ( @ArticleBody )
     {
 	if ( $SYS_TAGINSUPERSEDE )
@@ -5989,30 +5972,6 @@ sub CollectDaughters
 
 
 ###
-## GetNewArticleId - 新着記事IDの決定
-#
-# - SYNOPSIS
-#	GetNewArticleId($Board);
-#
-# - ARGS
-#	$Board		掲示板ID
-#
-# - DESCRIPTION
-#	従来の最新記事IDを1増やした，新しい記事番号を返す．
-#
-# - RETURN
-#	新着記事のID
-#
-sub GetNewArticleId
-{
-    local( $Board ) = @_;
-    local( $id, $artKey );
-    &GetArticleId( $Board, *id, *artKey );
-    $id + 1;
-}
-
-
-###
 ## GetTitleOldIndex - 'old'値の取得
 #
 # - SYNOPSIS
@@ -6023,7 +5982,7 @@ sub GetNewArticleId
 #
 # - DESCRIPTION
 #	指定したIDの記事を含むようなold値を計算する．
-#	DbCacheが呼び出し済みでなければならない．
+#	&cacheMsgが呼び出し済みでなければならない．
 #
 # - RETURN
 #	old値
@@ -6454,165 +6413,147 @@ sub FatalStr
 # データインプリメンテーション
 
 
+#### 掲示板関連
+
+
 ###
-## CopyDb - DBのコピー
+## getNofBoard - 掲示板数の取得
+## getBoardId - 掲示板IDの取得
+## getBoardNum - 掲示板番号の取得
 #
 # - SYNOPSIS
-#	CopyDb( $src, $dest );
+#	getNofBoard();
+#	getBoardId( $num );
+#	getBoardNum( $id );
 #
 # - ARGS
-#	$src	コピー元
-#	$dest	コピー先
+#	$num	掲示板番号
+#	$id	掲示板ID
 #
 # - DESCRIPTION
-#	$src, $destをファイル名と見倣してDBをコピーする．
-#	$destは上書きされるので注意．
+#	掲示板数を取得する．
+#	掲示板番号/掲示板IDから，ID/番号を取得する．
 #
 # - RETURN
-#	true if succeeded.
+#	掲示板数
+#	掲示板ID/掲示板番号
 #
-sub CopyDb
+sub getNofBoard
 {
-    local( $src, $dest ) = @_;
-    open( SRC, "<$src" ) || return 0;
-    open( DEST, ">$dest" ) || return 0;
-    while ( <SRC> )
+    $#BOARD_ID;
+}
+sub getBoardId
+{
+    return '' if ( $_[0] < 0 );
+    $BOARD_ID[ $_[0] ];
+}
+sub getBoardNum
+{
+    local( $id ) = $_[0];
+    foreach ( 0 .. &getNofBoard() )
     {
-	print( DEST $_ ) || return 0;
+	return $_ if ( &getBoardId( $_ ) eq $id );
     }
-    close DEST || return 0;
-    close SRC;
-
-    1;
+    return -1;
 }
 
 
 ###
-## GenTSV - タブ区切り文字列の作成
+## getBoardName - 掲示板名の取得
+## getBoardInfo - 掲示板情報の取得
+## getBoardKey - 掲示板ガードキーの取得
 #
 # - SYNOPSIS
-#	GenTSV( *line, @data );
+#	getBoardName( $id );
+#	getBoardInfo( $id );
+#	getBoardKey( $id );
 #
 # - ARGS
-#	$line	タブ区切りのデータを格納する文字列
-#	@data	データ
+#	$id	掲示板ID
 #
 # - DESCRIPTION
-#	データをTSVフォーマットに整形する．
-#	データは改行を含んではならない．
+#	掲示板情報を取得する．
 #
-sub GenTSV
+# - RETURN
+#	get*
+#
+sub getBoardName { $BOARD_NAME{ $_[0] }; }
+sub getBoardInfo { $BOARD_INFO{ $_[0] }; }
+sub getBoardKey
 {
-    local( *line, @data ) = @_;
-    grep( s/\t/$COLSEP/go, @data );
-    $line = join( "\t", @data );
+    local( $board ) = @_;
+
+    local( $id, $artKey );
+    local( $file ) = &GetPath( $board, $ARTICLE_NUM_FILE_NAME );
+    open( AID, "<$file" ) || &Fatal( 1, $file );
+    chop( $id = <AID> );
+    chop( $artKey = <AID> );
+    close AID;
+    $artKey;
 }
 
 
 ###
-## GenCSV - カンマ区切り文字列の作成
+## getNofBoardIcon - アイコン数の取得
+## getBoardIconId - アイコンIDの取得
+## getBoardIconNum - アイコン番号の取得
 #
 # - SYNOPSIS
-#	GenCSV( *line, @data );
+#	getNofBoardIcon();
+#	getBoardIconId( $num );
+#	getBoardIconNum( $id );
 #
 # - ARGS
-#	$line	タブ区切りのデータを格納する文字列
-#	@data	データ
+#	$num	アイコン番号
+#	$id	アイコンID
 #
 # - DESCRIPTION
-#	データをCSVフォーマットに整形する．
+#	アイコン数を取得する．
+#	アイコン番号/アイコンIDから，ID/番号を取得する．
 #
-sub GenCSV
+# - RETURN
+#	アイコン数
+#	アイコンID/アイコン番号
+#
+sub getNofBoardIcon
 {
-    local( *line, @data ) = @_;
-    grep((( s/\"/\"\"/go || m/,/o || m/\n/o ) && ( $_ = "\"$_\"" )), @data );
-    $line = join( ',', @data );
+    $#ICON_ID;
 }
-
-
-###
-## ParseTSV - タブ区切り文字列の解析
-#
-# - SYNOPSIS
-#	ParseTSV( *src, *dataArray );
-#
-# - ARGS
-#	$src		解析元データ
-#	@dataArray	解析したデータを格納するリスト
-#
-# - DESCRIPTION
-#	データをTSVフォーマットに整形する．
-#
-sub ParseTSV
+sub getBoardIconId
 {
-    local( *src, *dataArray ) = @_;
-    @dataArray = split( /\t/, $src );
+    return '' if ( $_[0] < 0 );
+    $ICON_ID[ $_[0] ];
 }
-
-
-###
-## DbCache - 記事DBの全読み込み
-#
-# - SYNOPSIS
-#	DbCache($Board);
-#
-# - ARGS
-#	$Board		掲示板ID
-#
-# - DESCRIPTION
-#	主に起動時に呼び出され，記事DBの内容を大域変数にキャッシュする．
-#
-sub DbCache
+sub getBoardIconNum
 {
-    return if $gBoardDbCached;
-
-    local( $Board ) = @_;
-
-    local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
-
-    @DB_ID = %DB_FID = %DB_AIDS = %DB_DATE = %DB_TITLE = %DB_ICON = %DB_REMOTEHOST = %DB_NAME = %DB_EMAIL = %DB_URL = %DB_FMAIL = %DB_NEW = ();
-
-    local( $newIconLimit );
-    $newIconLimit = $^T - $SYS_NEWICON_VALUE * 24 * 60 * 60
-	if ( $SYS_NEWICON == 2 );
-    
-    local( $i ) = 0;
-    local( @data, $dId );
-    local( $DBFile ) = &GetPath( $Board, $DB_FILE_NAME );
-    open( DB, "<$DBFile" ) || &Fatal( 1, $DBFile );
-    while ( <DB> )
+    local( $id ) = $_[0];
+    foreach ( 0 .. &getNofBoardIcon() )
     {
-	next if (/^\#/o || /^$/o);
-	chop;
-	( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_, 11 );
-	$DB_ID[$i++] = $dId;
-	$DB_FID{$dId} = $dFid;
-	$DB_AIDS{$dId} = $dAids;
-	$DB_DATE{$dId} = $dDate || &GetModifiedTime( $dId, $Board );
-	$DB_TITLE{$dId} = $dTitle || $dId;
-	$DB_ICON{$dId} = $dIcon;
-	$DB_REMOTEHOST{$dId} = $dRemoteHost;
-	$DB_NAME{$dId} = $dName || $MAINT_NAME;
-	$DB_EMAIL{$dId} = $dEmail;
-	$DB_URL{$dId} = $dUrl;
-	$DB_FMAIL{$dId} = $dFmail;
-
-	if (( $SYS_NEWICON == 2 ) && ( $newIconLimit < $DB_DATE{$dId} ))
-	{
-	    $DB_NEW{$dId} = 1
-	}
+	return $_ if ( &getBoardIconId( $_ ) eq $id );
     }
-    close DB;
-
-    if ( $SYS_NEWICON == 1 )
-    {
-	local( $from ) = ( $#DB_ID >= $SYS_NEWICON_VALUE )?
-	    $#DB_ID - $SYS_NEWICON_VALUE + 1 : 0;
-	foreach ( $from .. $#DB_ID ) { $DB_NEW{ $DB_ID[$_] } = 1; }
-    }
-
-    $gBoardDbCached = 1;		# cached
+    return -1;
 }
+
+
+###
+## getBoardIconFile - アイコンファイル名の取得
+## getBoardIconHelp - アイコンヘルプの取得
+## getBoardIconType - アイコンタイプの取得
+#
+# - SYNOPSIS
+#	getBoardIconFile( $id );
+#	getBoardIconHelp( $id );
+#	getBoardIconType( $id );
+#
+# - ARGS
+#	$id	アイコンID
+#
+# - DESCRIPTION
+#	アイコン情報を取得する．
+#
+sub getBoardIconFile { $ICON_FILE{ $_[0] }; }
+sub getBoardIconHelp { $ICON_HELP{ $_[0] }; }
+sub getBoardIconType { $ICON_TYPE{ $_[0] }; }
 
 
 ###
@@ -6641,41 +6582,373 @@ sub getBoardLastmod
 
 
 ###
+## getBoardHeader - 掲示板別ヘッダDBの全読み込み
+#
+# - SYNOPSIS
+#	getBoardHeader( $board, *header );
+#
+# - ARGS
+#	$board		掲示板ID
+#	*header		ヘッダ文字列
+#
+sub getBoardHeader
+{
+    local( $board, *header ) = @_;
+
+    local( $file ) = &GetPath( $board, $HEADER_FILE_NAME );
+    # ファイルがなきゃ空のまま
+    open( DB, "<$file" ) || return;
+    while ( <DB> )
+    {
+	$header .= $_;
+    }
+    close DB;
+}
+
+
+###
+## getBoardSubscriber - 掲示板講読者の取得
+#
+# - SYNOPSIS
+#	getBoardSubscriber( $CommentFlag, $Board, *ArriveMail );
+#
+# - ARGS
+#	$CommentFlag	コメント行を含むか否か(0: 含まない, 1: 含む)
+#	$Board		掲示板ID
+#	*ArriveMail	送信先のメイルアドレスのリストのリファレンス
+#
+# - DESCRIPTION
+#	掲示板講読者を取得する．
+#	メイルアドレスが正しいか否か等のチェックは，一切行なわない．
+#
+sub getBoardSubscriber
+{
+    local($CommentFlag, $Board, *ArriveMail) = @_;
+    local($ArriveMailFile);
+
+    $ArriveMailFile = &GetPath( $Board, $ARRIVEMAIL_FILE_NAME );
+    # ファイルがなきゃ空のまま
+    open( ARMAIL, "<$ArriveMailFile" ) || return;
+    while ( <ARMAIL> )
+    {
+	next if ((! $CommentFlag) && (/^\#/o || /^$/o));
+	chop;
+	push(@ArriveMail, $_);
+    }
+    close ARMAIL;
+}
+
+
+###
+## cacheBoard - 掲示板DBの読み込み
+#
+# - SYNOPSIS
+#	cacheBoard();
+#
+# - DESCRIPTION
+#	掲示板DBから，掲示板情報を取ってくる．
+#
+sub cacheBoard
+{
+    local( $i ) = 0;
+    local( $bId, $bName, $bInfo );
+    local( $dbFile ) = &GetPath( $SYS_DIR, $BOARD_FILE );
+    open( DB, "<$dbFile" ) || &Fatal( 1, $dbFile );
+    while ( <DB> )
+    {
+	next if ( /^\#/o || /^$/o );
+	chop;
+	( $bId, $bName, $bInfo ) = split( /\t/, $_, 3 );
+	$BOARD_ID[$i++] = $bId;
+	$BOARD_NAME{$bId} = $bName;
+	$BOARD_INFO{$bId} = $bInfo;
+    }
+    close DB;
+}
+
+
+###
+## cacheBoardIcon - アイコンDBの全読み込み
+#
+# - SYNOPSIS
+#	cacheBoardIcon($board);
+#
+# - ARGS
+#	$board		掲示板ID
+#
+# - DESCRIPTION
+#	アイコンDBを読み込んで連想配列に放り込む．
+#	大域変数，@ICON_ID，%ICON_FILE，%ICON_HELPを破壊する．
+#
+sub cacheBoardIcon
+{
+    local( $board ) = @_;
+    local( $fileName, $title, $help, $type );
+
+    @ICON_ID = %ICON_FILE = %ICON_HELP = %ICON_TYPE = ();
+
+    local( $i ) = 0;
+    open( ICON, &GetIconPath( "$board.$ICONDEF_POSTFIX" ))
+	|| ( open( ICON, &GetIconPath( "$DEFAULT_ICONDEF" ))
+	    || &Fatal( 1, &GetIconPath( "$DEFAULT_ICONDEF" )));
+    while ( <ICON> )
+    {
+	next if ( /^\#/o || /^$/o );
+	chop;
+	( $fileName, $title, $help, $type ) = split( /\t/, $_, 4 );
+
+	$ICON_ID[$i++] = $title;
+	$ICON_FILE{$title} = $fileName;
+	$ICON_HELP{$title} = $help;
+	$ICON_TYPE{$title} = $type || 'article';
+    }
+    close ICON;
+}
+
+
+###
+## updateBoardSubscriber - 掲示板別新規メイル送信先DBの全更新
+#
+# - SYNOPSIS
+#	updateBoardSubscriber($Board, *ArriveMail);
+#
+# - ARGS
+#	$Board		掲示板ID
+#	*ArriveMail	送信先のメイルアドレスのリストのリファレンス
+#			(コメント，空行も含まれる)
+#
+# - DESCRIPTION
+#	掲示板別新規メイル送信先DBを，新たな送信先リストで一新する．
+#	メイルアドレスが正しいか否か等のチェックは，一切行なわない．
+#
+sub updateBoardSubscriber
+{
+    local( $Board, *ArriveMail ) = @_;
+
+    local( $File ) = &GetPath( $Board, $ARRIVEMAIL_FILE_NAME );
+    local( $TmpFile ) = &GetPath( $Board, $ARRIVEMAIL_FILE_NAME );
+    open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
+    local( $line );
+    foreach ( @ArriveMail )
+    {
+	( $line = $_ ) =~ s/\s*$//o;
+	print( DBTMP "$line\n" ) || &Fatal( 13, $TmpFile );
+    }
+    close DBTMP || &Fatal( 13, $TmpFile );
+    rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
+}
+
+
+###
+## updateBoardHeader - 掲示板別ヘッダDBの全更新
+#
+# - SYNOPSIS
+#	updateBoardHeader( $board, *header );
+#
+# - ARGS
+#	$board		掲示板ID
+#	*header		ヘッダ文字列
+#
+sub updateBoardHeader
+{
+    local( $board, *header ) = @_;
+
+    local( $file ) = &GetPath( $board, $HEADER_FILE_NAME );
+    local( $tmpFile ) = &GetPath( $board, $HEADER_FILE_NAME );
+    open( DBTMP, ">$tmpFile" ) || &Fatal( 1, $tmpFile );
+    print( DBTMP $header ) || &Fatal( 13, $tmpFile );
+    close DBTMP || &Fatal( 13, $tmpFile );
+    rename( $tmpFile, $file ) || &Fatal( 14, "$tmpFile -&gt; $file" );
+}
+
+
+###
+## insertBoard - 掲示板DBへの追加
+#
+# - SYNOPSIS
+#	insertBoard( $name, $intro, $conf, *arriveMail, *header );
+#
+# - ARGS
+#	$name		掲示板名
+#	$intro		紹介文
+#	$conf		掲示板固有設定ファイルを利用するか否か(0/1)
+#	*arriveMail	自動送信メイルのメイル先リスト
+#	*header		ヘッダ文字列
+#
+# - DESCRIPTION
+#	掲示板DBに掲示板を追加する．
+#
+# - RETURN
+#	作成した掲示板のID
+#
+sub insertBoard
+{
+    local( $name, $intro, $conf, *arriveMail, *header ) = @_;
+
+    # 掲示板ディレクトリの作成
+    mkdir( $name, 0777 ) || &Fatal( 1, $name );
+
+    local( $src, $dest );
+
+    # 記事DBの作成（コピー）
+    $src = &GetPath( $BOARDSRC_DIR, $DB_FILE_NAME );
+    $dest = &GetPath( $name, $DB_FILE_NAME );
+    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
+
+    # 記事数DBの作成（コピー）
+    $src = &GetPath( $BOARDSRC_DIR, $ARTICLE_NUM_FILE_NAME );
+    $dest = &GetPath( $name, $ARTICLE_NUM_FILE_NAME );
+    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
+
+    # 自動送信メイルDBの作成
+    &updateBoardSubscriber( $name, *arriveMail );
+
+    # ヘッダファイルの作成
+    &updateBoardHeader( $name, *header );
+
+    # 最後に，掲示板DBを更新する
+    local( $file ) = &GetPath( $SYS_DIR, $BOARD_FILE );
+    local( $tmpFile ) = &GetPath( $SYS_DIR, "$BOARD_FILE.$TMPFILE_SUFFIX$$" );
+    local( $dbLine );
+    open( DBTMP, ">$tmpFile" ) || &Fatal( 1, $tmpFile );
+    open( DB, "<$file" ) || &Fatal( 1, $file );
+
+    local( $dName, $dIntro, $dConf );
+    while ( <DB> )
+    {
+	if ( /^\#/o || /^$/o )
+	{
+	    print( DBTMP "$_" ) || &Fatal( 13, $tmpFile );
+	    next;
+	}
+	chop;
+
+	( $dName, $dIntro, $dConf ) = split( /\t/, $_, 3 );
+	&Fatal( 51, $name ) if ( $name eq $dName );
+
+	&GenTSV( *dbLine, ( $dName, $dIntro, $dConf ));
+	print( DBTMP "$dbLine\n" ) || &Fatal( 13, $tmpFile );
+    }
+
+    # 新しい記事のデータを書き加える．
+    &GenTSV( *dbLine, ( $name, $intro, $conf ));
+    print( DBTMP "$dbLine\n" ) || &Fatal( 13, $tmpFile );
+
+    # close Files.
+    close DB;
+    close DBTMP || &Fatal( 13, $tmpFile );
+
+    rename( $tmpFile, $file ) || &Fatal( 14, "$tmpFile -&gt; $file" );
+}
+
+
+###
+## updateBoard - 掲示板DBの更新
+#
+# - SYNOPSIS
+#	updateBoard( $board, $valid, $intro, $conf, *arriveMail, *header );
+#
+# - ARGS
+#	$board		掲示板ID
+#	$valid		この掲示板を利用するか否か
+#	$intro		掲示板名
+#	$conf		設定ファイルを読むか否か
+#	*arriveMail	自動送信メイルのメイル先リスト
+#	*header		ヘッダ文字列
+#
+# - DESCRIPTION
+#	掲示板DBを更新する．
+#
+sub updateBoard
+{
+    local( $name, $valid, $intro, $conf, *arriveMail, *header ) = @_;
+
+    local( $file ) = &GetPath( $SYS_DIR, $BOARD_FILE );
+    local( $tmpFile ) = &GetPath( $SYS_DIR, "$BOARD_FILE.$TMPFILE_SUFFIX$$" );
+    open( DBTMP, ">$tmpFile" ) || &Fatal( 1, $tmpFile );
+    open( DB, "<$file" ) || &Fatal( 1, $file );
+
+    local( $dbLine, $dName, $dIntro, $dConf );
+    while ( <DB> ) {
+
+	if ( /^\#/o || /^$/o )
+	{
+	    print( DBTMP "$_" ) || &Fatal( 13, $tmpFile );
+	    next;
+	}
+	chop;
+
+	( $dName, $dIntro, $dConf ) = split( /\t/, $_, 3 );
+	if ( $name eq $dName )
+	{
+	    $dName = '#' . $dName unless $valid;
+	    $dIntro = $intro;
+	    $dConf = $conf;
+	}
+
+	# DBに書き加える
+	&GenTSV( *dbLine, ( $dName, $dIntro, $dConf ));
+	print( DBTMP "$dbLine\n" ) || &Fatal( 13, $tmpFile );
+    }
+
+    # close Files.
+    close DB;
+    close DBTMP || &Fatal( 13, $tmpFile );
+
+    # DBを更新する
+    rename( $tmpFile, $file ) || &Fatal( 14, "$tmpFile -&gt; $file" );
+
+    # 自動送信メイルDBも更新する．
+    &updateBoardSubscriber( $BOARD, *arriveMail );
+
+    # ヘッダファイルも更新する．
+    &updateBoardHeader( $name, *header );
+}
+
+
+#### メッセージ関連
+
+
+###
 ## getNofMsg - メッセージ数の取得
+## getMsgId - メッセージIDの取得
+## getMsgNum - メッセージ番号の取得
 #
 # - SYNOPSIS
 #	getNofMsg();
+#	getMsgId( $num );
+#	getMsgNum( $id );
+#
+# - ARGS
+#	$num	メッセージ番号
+#	$id	メッセージID
 #
 # - DESCRIPTION
 #	全メッセージ数を取得する．削除済みメッセージは数に入らない．
+#	メッセージ番号/メッセージIDから，ID/番号を取得する．
 #
 # - RETURN
 #	メッセージ数
+#	メッセージID/メッセージ番号
 #
 sub getNofMsg
 {
     $#DB_ID;
 }
-
-
-###
-## getMsgId - メッセージIDの取得
-#
-# - SYNOPSIS
-#	getMsgId( $num );
-#
-# - ARGS
-#	$num	メッセージ番号
-#
-# - DESCRIPTION
-#	メッセージ番号からメッセージIDを取得する．
-#
-# - RETURN
-#	メッセージID
-#
 sub getMsgId
 {
+    return '' if ( $_[0] < 0 );
     $DB_ID[ $_[0] ];
+}
+sub getMsgNum
+{
+    local( $id ) = $_[0];
+    foreach ( 0 .. &getNofMsg() )
+    {
+#	return $_ if ( &getMsgId( $_ ) eq $id );
+	return $_ if ( $DB_ID[$_] eq $id );
+    }
+    return -1;
 }
 
 
@@ -6800,13 +7073,103 @@ sub getMsgAuthor
 
 
 ###
-## AddDBFile - 記事DBへの追加
+## getMsgBody - メッセージ本文の取得
 #
 # - SYNOPSIS
-#	AddDBFile($Id, $Board, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
+#	getMsgBody( $id, $board, *articleBody );
 #
 # - ARGS
-#	$Id		記事ID
+#	$id		メッセージID
+#	$board		掲示板ID
+#	*articleBody	本文各行を入れる配列変数へのリファレンス
+#
+# - DESCRIPTION
+#	メッセージ本文を取得する．
+#
+sub getMsgBody
+{
+    local( $id, $board, *articleBody ) = @_;
+
+    local( $file ) = &GetArticleFileName( $id, $board );
+    open( TMP, "<$file" ) || &Fatal( 1, $file );
+    while ( <TMP> )
+    {
+	push( @articleBody, $_ );
+    }
+    close TMP;
+}
+
+
+###
+## cacheMsg - 記事DBの全読み込み
+#
+# - SYNOPSIS
+#	cacheMsg( $board );
+#
+# - ARGS
+#	$board		掲示板ID
+#
+# - DESCRIPTION
+#	主に起動時に呼び出され，記事DBの内容を大域変数にキャッシュする．
+#
+sub cacheMsg
+{
+    local( $board ) = @_;
+
+    return unless $board;
+
+    local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
+
+    @DB_ID = %DB_FID = %DB_AIDS = %DB_DATE = %DB_TITLE = %DB_ICON = %DB_REMOTEHOST = %DB_NAME = %DB_EMAIL = %DB_URL = %DB_FMAIL = %DB_NEW = ();
+
+    local( $newIconLimit );
+    $newIconLimit = $^T - $SYS_NEWICON_VALUE * 24 * 60 * 60
+	if ( $SYS_NEWICON == 2 );
+    
+    local( $i ) = 0;
+    local( @data, $dId );
+    local( $DBFile ) = &GetPath( $board, $DB_FILE_NAME );
+    open( DB, "<$DBFile" ) || &Fatal( 1, $DBFile );
+    while ( <DB> )
+    {
+	next if (/^\#/o || /^$/o);
+	chop;
+	( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_, 11 );
+	$DB_ID[$i++] = $dId;
+	$DB_FID{$dId} = $dFid;
+	$DB_AIDS{$dId} = $dAids;
+	$DB_DATE{$dId} = $dDate || &GetModifiedTime( $dId, $board );
+	$DB_TITLE{$dId} = $dTitle || $dId;
+	$DB_ICON{$dId} = $dIcon;
+	$DB_REMOTEHOST{$dId} = $dRemoteHost;
+	$DB_NAME{$dId} = $dName || $MAINT_NAME;
+	$DB_EMAIL{$dId} = $dEmail;
+	$DB_URL{$dId} = $dUrl;
+	$DB_FMAIL{$dId} = $dFmail;
+
+	if (( $SYS_NEWICON == 2 ) && ( $newIconLimit < $DB_DATE{$dId} ))
+	{
+	    $DB_NEW{$dId} = 1
+	}
+    }
+    close DB;
+
+    if ( $SYS_NEWICON == 1 )
+    {
+	local( $from ) = ( $#DB_ID >= $SYS_NEWICON_VALUE )?
+	    $#DB_ID - $SYS_NEWICON_VALUE + 1 : 0;
+	foreach ( $from .. $#DB_ID ) { $DB_NEW{ $DB_ID[$_] } = 1; }
+    }
+}
+
+
+###
+## insertMsg - 記事DBへの追加
+#
+# - SYNOPSIS
+#      insertMsg( $Board, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail );
+#
+# - ARGS
 #	$Board		掲示板ID
 #	$Fid		リプライ元の記事ID
 #	$InputDate	書き込み日付(UTC)
@@ -6822,9 +7185,18 @@ sub getMsgAuthor
 # - DESCRIPTION
 #	記事DBに記事を追加する．
 #
-sub AddDBFile
+sub insertMsg
 {
-    local( $Id, $Board, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $MailRelay ) = @_;
+    local( $Board, $Fid, $artKey, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $MailRelay, $TextType, $Article ) = @_;
+
+    # 新しい記事番号を取得(まだ記事番号は増えてない)
+    local( $newArtId ) = &GetNewArticleId( $Board );
+
+    # 正規のファイルの作成
+    &MakeArticleFile( $TextType, $Article, $newArtId, $Board );
+
+    # 新しい記事番号を書き込む
+    &WriteArticleId( $newArtId, $Board, $artKey );
 
     local( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $FidList, @FollowMailTo, @FFid );
 
@@ -6859,11 +7231,11 @@ sub AddDBFile
 	    # その記事のフォロー記事IDリストに加える(カンマ区切り)
 	    if ( $dAids ne '' )
 	    {
-		$dAids .= ",$Id";
+		$dAids .= ",$newArtId";
 	    }
 	    else
 	    {
-		$dAids = $Id;
+		$dAids = $newArtId;
 	    }
 
 	    # 元記事のフォロー先リストを取ってきて元記事を加え，
@@ -6898,7 +7270,7 @@ sub AddDBFile
     }
 
     # 新しい記事のデータを書き加える．
-    &GenTSV( *dbLine, ( $Id, $FidList, '', $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ));
+    &GenTSV( *dbLine, ( $newArtId, $FidList, '', $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ));
     print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 
     # close Files.
@@ -6912,23 +7284,118 @@ sub AddDBFile
     if ( $MailRelay && $SYS_MAIL & 1 )
     {
 	local( @ArriveMailTo );
-	&GetArriveMailTo( 0, $Board, *ArriveMailTo );
-	&ArriveMail( $Name, $Email, $InputDate, $Subject, $Icon, $Id, @ArriveMailTo ) if @ArriveMailTo;
+	&getBoardSubscriber( 0, $Board, *ArriveMailTo );
+	&ArriveMail( $Name, $Email, $InputDate, $Subject, $Icon, $newArtId, @ArriveMailTo ) if @ArriveMailTo;
     }
 
     # 必要なら反応があったことをメイルする
     if ( $MailRelay && ( $SYS_MAIL & 2 ) && @FollowMailTo )
     {
-	&FollowMail( $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $Name, $Email, $InputDate, $Subject, $Icon, $Id, @FollowMailTo );
+	&FollowMail( $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $Name, $Email, $InputDate, $Subject, $Icon, $newArtId, @FollowMailTo );
     }
+
+    $newArtId;
 }
 
 
 ###
-## UpdateArticleDb - 記事DBの全更新
+## updateMsg - 訂正記事の記事DBへの書き込み
 #
 # - SYNOPSIS
-#	UpdateArticleDb($Board);
+#	updateMsg($Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
+#
+# - ARGS
+#	$Board		訂正する記事が含まれる掲示板のID
+#	$Id		訂正する記事のID
+#	$InputDate	訂正時間(UTC)
+#	$Subject	訂正記事Subject
+#	$Icon		訂正記事アイコン
+#	$RemoteHost	訂正記事書き込みホスト名
+#	$Name		訂正記事書き込みユーザ名
+#	$Email		訂正記事書き込みユーザメイルアドレス
+#	$Url		訂正記事書き込みユーザURL
+#	$Fmail		リプライ時にメイルを送信するか否か
+#
+# - DESCRIPTION
+#	訂正記事をDBファイルに書き込み，agingした記事のIDを返す．
+#
+# - RETURN
+#	agingした記事のID．
+#
+sub updateMsg
+{
+    local( $Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $TextType, $Article ) = @_;
+
+    local( $SupersedeId, $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
+    
+    # initial versionは1で，1ずつ増えていく．1，2，…9，10，11，…
+    # later versionはDB中で必ず，younger versionよりも下に出現する．
+    # すなわち10_2，10，10_1は，10_1，10_2，10の順に並ぶものとする．
+    $SupersedeId = 1;
+
+    local( $dbLine );
+    local( $File ) = &GetPath( $Board, $DB_FILE_NAME );
+    local( $TmpFile ) = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
+    open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
+    open( DB, "<$File" ) || &Fatal( 1, $File );
+    while ( <DB> )
+    {
+	if ( /^\#/o || /^$/o )
+	{
+	    print( DBTMP "$_" ) || &Fatal( 13, $TmpFile );
+	    next;
+	}
+
+	chop;
+
+	( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_ );
+
+	# later versionが見つかったら，versionを先読みしておく．
+	if ( "$dId" eq ( sprintf( "#-%s_%s", $Id, $SupersedeId )))
+	{
+	    $SupersedeId++;
+	}
+
+	# 訂正記事の最新版が見つかったら，
+	if ( $dId eq $Id )
+	{
+	    # agingしてしまう
+	    &GenTSV( *dbLine, ( sprintf( "-%s_%s", $dId, $SupersedeId ), $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ));
+	    print( DBTMP "#$dbLine\n" ) || &Fatal( 13, $TmpFile );
+
+	    # 続いて新しい記事を書き加える
+	    &GenTSV( *dbLine, ( $Id, $dFid, $dAids, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ));
+	    print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
+	}
+	else
+	{
+	    # DBに書き加える
+	    print( DBTMP "$_\n" ) || &Fatal( 13, $TmpFile );
+	}
+    }
+
+    # close Files.
+    close DB;
+    close DBTMP || &Fatal( 13, $TmpFile );
+
+    # DBを更新する
+    rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
+
+    # ex. 「100」→「100_5」
+    local( $oldFile ) = &GetArticleFileName( $Id, $Board );
+    local( $supersedeFile ) = &GetArticleFileName( sprintf( "%s_%s", $Id, $SupersedeId ), $Board );
+    rename( $oldFile, $supersedeFile ) || &Fatal( 14, "$File -&gt; $supersedeFile" );
+
+    # 正規のファイルの作成
+    &MakeArticleFile( $TextType, $Article, $Id, $Board );
+}
+
+
+###
+## flushMsg - 記事DBの全更新
+#
+# - SYNOPSIS
+#	flushMsg( $Board );
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -6937,7 +7404,7 @@ sub AddDBFile
 #	記事DBを，新たな記事データで全更新する．
 #	書き込む記事データはキャッシュされているもの．
 #
-sub UpdateArticleDb
+sub flushMsg
 {
     local( $Board ) = @_;
 
@@ -6969,14 +7436,17 @@ sub UpdateArticleDb
 
     # DBを更新する
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
+
+    # DB書き換えたので，キャッシュし直す
+    &cacheMsg( $Board );
 }
 
 
 ###
-## DeleteArticleFromDbFile - 記事DBの更新
+## deleteMsg - 記事DBの更新
 #
 # - SYNOPSIS
-#	DeleteArticleFromDbFile($Board, *Target);
+#	deleteMsg( $Board, *Target );
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -6985,7 +7455,7 @@ sub UpdateArticleDb
 # - DESCRIPTION
 #	記事DBから指定された記事群のエントリを削除する．
 #
-sub DeleteArticleFromDbFile
+sub deleteMsg
 {
     local( $Board, *Target ) = @_;
 
@@ -7026,10 +7496,10 @@ sub DeleteArticleFromDbFile
 
 
 ###
-## ReOrderArticleDb - 記事DBの順序変更
+## reorderMsg - 記事DBの順序変更
 #
 # - SYNOPSIS
-#	ReOrderArticleDb($Board, $Id, *Move);
+#	reorderMsg( $Board, $Id, *Move );
 #
 # - ARGS
 #	$Board		掲示板ID
@@ -7040,7 +7510,7 @@ sub DeleteArticleFromDbFile
 #	指定された記事群を，指定された記事の下に移動する．
 #	「下」がDB中で先か後かは，新着が上か下か，に依り異なる．
 #
-sub ReOrderArticleDb
+sub reorderMsg
 {
     local( $Board, $Id, *Move ) = @_;
 
@@ -7119,6 +7589,87 @@ sub ReOrderArticleDb
 
     # DBを更新する
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
+
+    # DB書き換えたので，キャッシュし直す
+    &cacheMsg( $Board );
+}
+
+
+#### その他
+
+
+###
+## CopyDb - DBのコピー
+#
+# - SYNOPSIS
+#	CopyDb( $src, $dest );
+#
+# - ARGS
+#	$src	コピー元
+#	$dest	コピー先
+#
+# - DESCRIPTION
+#	$src, $destをファイル名と見倣してDBをコピーする．
+#	$destは上書きされるので注意．
+#
+# - RETURN
+#	true if succeeded.
+#
+sub CopyDb
+{
+    local( $src, $dest ) = @_;
+    open( SRC, "<$src" ) || return 0;
+    open( DEST, ">$dest" ) || return 0;
+    while ( <SRC> )
+    {
+	print( DEST $_ ) || return 0;
+    }
+    close DEST || return 0;
+    close SRC;
+
+    1;
+}
+
+
+###
+## GenTSV - タブ区切り文字列の作成
+#
+# - SYNOPSIS
+#	GenTSV( *line, @data );
+#
+# - ARGS
+#	$line	タブ区切りのデータを格納する文字列
+#	@data	データ
+#
+# - DESCRIPTION
+#	データをTSVフォーマットに整形する．
+#	データは改行を含んではならない．
+#
+sub GenTSV
+{
+    local( *line, @data ) = @_;
+    grep( s/\t/$COLSEP/go, @data );
+    $line = join( "\t", @data );
+}
+
+
+###
+## ParseTSV - タブ区切り文字列の解析
+#
+# - SYNOPSIS
+#	ParseTSV( *src, *dataArray );
+#
+# - ARGS
+#	$src		解析元データ
+#	@dataArray	解析したデータを格納するリスト
+#
+# - DESCRIPTION
+#	データをTSVフォーマットに整形する．
+#
+sub ParseTSV
+{
+    local( *src, *dataArray ) = @_;
+    @dataArray = split( /\t/, $src );
 }
 
 
@@ -7153,31 +7704,26 @@ sub MakeArticleFile
 
 
 ###
-## GetArticleBody - 記事本文DBの読み込み
+## GetNewArticleId - 新着記事IDの決定
 #
 # - SYNOPSIS
-#	GetArticleBody($Id, $Board, *ArticleBody);
+#	GetNewArticleId($Board);
 #
 # - ARGS
-#	$Id		記事ID
-#	$BoardId	掲示板ID
-#	*ArticleBody	本文各行を入れる配列変数へのリファレンス
+#	$Board		掲示板ID
 #
 # - DESCRIPTION
-#	記事本文DB(掲示板IDと同じ名前のディレクトリ)の中の，
-#	IDと同じ名前のファイルを読み出す．
+#	従来の最新記事IDを1増やした，新しい記事番号を返す．
 #
-sub GetArticleBody
+# - RETURN
+#	新着記事のID
+#
+sub GetNewArticleId
 {
-    local( $Id, $Board, *ArticleBody ) = @_;
-
-    local( $QuoteFile ) = &GetArticleFileName( $Id, $Board );
-    open( TMP, "<$QuoteFile" ) || &Fatal( 1, $QuoteFile );
-    while ( <TMP> )
-    {
-	push( @ArticleBody, $_ );
-    }
-    close TMP;
+    local( $Board ) = @_;
+    local( $id, $artKey );
+    &GetArticleId( $Board, *id, *artKey );
+    $id + 1;
 }
 
 
@@ -7185,16 +7731,15 @@ sub GetArticleBody
 ## GetArticleId - 記事番号DBの読み込み
 #
 # - SYNOPSIS
-#	GetArticleId($Board);
+#	GetArticleId( $Board, *id, *artKey );
 #
 # - ARGS
 #	$Board		掲示板ID
+#	$id		最新メッセージID
+#	$artKey		キー
 #
 # - DESCRIPTION
 #	従来の最新記事IDを読み出す．
-#
-# - RETURN
-#	最新記事のID
 #
 sub GetArticleId
 {
@@ -7240,375 +7785,6 @@ sub WriteArticleId
     close AID || &Fatal( 13, $TmpFile );
 
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
-}
-
-
-###
-## GetArriveMailTo - 掲示板別新規メイル送信先DBの全読み込み
-#
-# - SYNOPSIS
-#	GetArriveMailTo($CommentFlag, $Board, *ArriveMail);
-#
-# - ARGS
-#	$CommentFlag	コメント行を含むか否か(0: 含まない, 1: 含む)
-#	$Board		掲示板ID
-#	*ArriveMail	送信先のメイルアドレスのリストのリファレンス
-#
-# - DESCRIPTION
-#	掲示板別新規メイル送信先DBを，読み込む．
-#	メイルアドレスが正しいか否か等のチェックは，一切行なわない．
-#
-sub GetArriveMailTo
-{
-    local($CommentFlag, $Board, *ArriveMail) = @_;
-    local($ArriveMailFile);
-
-    $ArriveMailFile = &GetPath( $Board, $ARRIVEMAIL_FILE_NAME );
-    # ファイルがなきゃ空のまま
-    open( ARMAIL, "<$ArriveMailFile" ) || return;
-    while ( <ARMAIL> )
-    {
-	next if ((! $CommentFlag) && (/^\#/o || /^$/o));
-	chop;
-	push(@ArriveMail, $_);
-    }
-    close ARMAIL;
-}
-
-
-###
-## UpdateArriveMailDb - 掲示板別新規メイル送信先DBの全更新
-#
-# - SYNOPSIS
-#	UpdateArriveMailDb($Board, *ArriveMail);
-#
-# - ARGS
-#	$Board		掲示板ID
-#	*ArriveMail	送信先のメイルアドレスのリストのリファレンス
-#			(コメント，空行も含まれる)
-#
-# - DESCRIPTION
-#	掲示板別新規メイル送信先DBを，新たな送信先リストで一新する．
-#	メイルアドレスが正しいか否か等のチェックは，一切行なわない．
-#
-sub UpdateArriveMailDb
-{
-    local( $Board, *ArriveMail ) = @_;
-
-    local( $File ) = &GetPath( $Board, $ARRIVEMAIL_FILE_NAME );
-    local( $TmpFile ) = &GetPath( $Board, $ARRIVEMAIL_FILE_NAME );
-    open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
-    local( $line );
-    foreach ( @ArriveMail )
-    {
-	( $line = $_ ) =~ s/\s*$//o;
-	print( DBTMP "$line\n" ) || &Fatal( 13, $TmpFile );
-    }
-    close DBTMP || &Fatal( 13, $TmpFile );
-    rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
-}
-
-
-###
-## GetHeaderDb - 掲示板別ヘッダDBの全読み込み
-#
-# - SYNOPSIS
-#	GetHeaderDb( $board, *header );
-#
-# - ARGS
-#	$board		掲示板ID
-#	*header		ヘッダ文字列
-#
-sub GetHeaderDb
-{
-    local( $board, *header ) = @_;
-
-    local( $file ) = &GetPath( $board, $HEADER_FILE_NAME );
-    # ファイルがなきゃ空のまま
-    open( DB, "<$file" ) || return;
-    while ( <DB> )
-    {
-	$header .= $_;
-    }
-    close DB;
-}
-
-
-###
-## UpdateHeaderDb - 掲示板別ヘッダDBの全更新
-#
-# - SYNOPSIS
-#	UpdateHeaderDb( $board, *header );
-#
-# - ARGS
-#	$board		掲示板ID
-#	*header		ヘッダ文字列
-#
-sub UpdateHeaderDb
-{
-    local( $board, *header ) = @_;
-
-    local( $file ) = &GetPath( $board, $HEADER_FILE_NAME );
-    local( $tmpFile ) = &GetPath( $board, $HEADER_FILE_NAME );
-    open( DBTMP, ">$tmpFile" ) || &Fatal( 1, $tmpFile );
-    print( DBTMP $header ) || &Fatal( 13, $tmpFile );
-    close DBTMP || &Fatal( 13, $tmpFile );
-    rename( $tmpFile, $file ) || &Fatal( 14, "$tmpFile -&gt; $file" );
-}
-
-
-###
-## AddBoardDb - 掲示板DBへの追加
-#
-# - SYNOPSIS
-#	AddBoardDb( $name, $intro, $conf, *arriveMail, *header );
-#
-# - ARGS
-#	$name		掲示板名
-#	$intro		紹介文
-#	$conf		掲示板固有設定ファイルを利用するか否か(0/1)
-#	*arriveMail	自動送信メイルのメイル先リスト
-#	*header		ヘッダ文字列
-#
-# - DESCRIPTION
-#	掲示板DBに掲示板を追加する．
-#
-# - RETURN
-#	作成した掲示板のID
-#
-sub AddBoardDb
-{
-    local( $name, $intro, $conf, *arriveMail, *header ) = @_;
-
-    # 掲示板ディレクトリの作成
-    mkdir( $name, 0777 ) || &Fatal( 1, $name );
-
-    local( $src, $dest );
-
-    # 記事DBの作成（コピー）
-    $src = &GetPath( $BOARDSRC_DIR, $DB_FILE_NAME );
-    $dest = &GetPath( $name, $DB_FILE_NAME );
-    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
-
-    # 記事数DBの作成（コピー）
-    $src = &GetPath( $BOARDSRC_DIR, $ARTICLE_NUM_FILE_NAME );
-    $dest = &GetPath( $name, $ARTICLE_NUM_FILE_NAME );
-    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
-
-    # 自動送信メイルDBの作成
-    &UpdateArriveMailDb( $name, *arriveMail );
-
-    # ヘッダファイルの作成
-    &UpdateHeaderDb( $name, *header );
-
-    # 最後に，掲示板DBを更新する
-    local( $file ) = &GetPath( $SYS_DIR, $BOARD_FILE );
-    local( $tmpFile ) = &GetPath( $SYS_DIR, "$BOARD_FILE.$TMPFILE_SUFFIX$$" );
-    local( $dbLine );
-    open( DBTMP, ">$tmpFile" ) || &Fatal( 1, $tmpFile );
-    open( DB, "<$file" ) || &Fatal( 1, $file );
-
-    local( $dName, $dIntro, $dConf );
-    while ( <DB> )
-    {
-	if ( /^\#/o || /^$/o )
-	{
-	    print( DBTMP "$_" ) || &Fatal( 13, $tmpFile );
-	    next;
-	}
-	chop;
-
-	( $dName, $dIntro, $dConf ) = split( /\t/, $_, 3 );
-	&Fatal( 51, $name ) if ( $name eq $dName );
-
-	&GenTSV( *dbLine, ( $dName, $dIntro, $dConf ));
-	print( DBTMP "$dbLine\n" ) || &Fatal( 13, $tmpFile );
-    }
-
-    # 新しい記事のデータを書き加える．
-    &GenTSV( *dbLine, ( $name, $intro, $conf ));
-    print( DBTMP "$dbLine\n" ) || &Fatal( 13, $tmpFile );
-
-    # close Files.
-    close DB;
-    close DBTMP || &Fatal( 13, $tmpFile );
-
-    rename( $tmpFile, $file ) || &Fatal( 14, "$tmpFile -&gt; $file" );
-}
-
-
-###
-## UpdateBoardDb - 掲示板DBの更新
-#
-# - SYNOPSIS
-#	UpdateBoardDb( $board, $valid, $intro, $conf, *arriveMail, *header );
-#
-# - ARGS
-#	$board		掲示板ID
-#	$valid		この掲示板を利用するか否か
-#	$intro		掲示板名
-#	$conf		設定ファイルを読むか否か
-#	*arriveMail	自動送信メイルのメイル先リスト
-#	*header		ヘッダ文字列
-#
-# - DESCRIPTION
-#	掲示板DBを更新する．
-#
-sub UpdateBoardDb
-{
-    local( $name, $valid, $intro, $conf, *arriveMail, *header ) = @_;
-
-    local( $file ) = &GetPath( $SYS_DIR, $BOARD_FILE );
-    local( $tmpFile ) = &GetPath( $SYS_DIR, "$BOARD_FILE.$TMPFILE_SUFFIX$$" );
-    open( DBTMP, ">$tmpFile" ) || &Fatal( 1, $tmpFile );
-    open( DB, "<$file" ) || &Fatal( 1, $file );
-
-    local( $dbLine, $dName, $dIntro, $dConf );
-    while ( <DB> ) {
-
-	if ( /^\#/o || /^$/o )
-	{
-	    print( DBTMP "$_" ) || &Fatal( 13, $tmpFile );
-	    next;
-	}
-	chop;
-
-	( $dName, $dIntro, $dConf ) = split( /\t/, $_, 3 );
-	if ( $name eq $dName )
-	{
-	    $dName = '#' . $dName unless $valid;
-	    $dIntro = $intro;
-	    $dConf = $conf;
-	}
-
-	# DBに書き加える
-	&GenTSV( *dbLine, ( $dName, $dIntro, $dConf ));
-	print( DBTMP "$dbLine\n" ) || &Fatal( 13, $tmpFile );
-    }
-
-    # close Files.
-    close DB;
-    close DBTMP || &Fatal( 13, $tmpFile );
-
-    # DBを更新する
-    rename( $tmpFile, $file ) || &Fatal( 14, "$tmpFile -&gt; $file" );
-
-    # 自動送信メイルDBも更新する．
-    &UpdateArriveMailDb( $BOARD, *arriveMail );
-
-    # ヘッダファイルも更新する．
-    &UpdateHeaderDb( $name, *header );
-}
-
-
-###
-## GetAllBoardInfo - 掲示板DBの全読み込み
-#
-# - SYNOPSIS
-#	GetAllBoardInfo( *board, *boardName, *boardInfo );
-#
-# - ARGS
-#	*board		掲示板IDの配列のリファレンス
-#	*boardName	掲示板ID-掲示板名の連想配列のリファレンス
-#	*boardInfo	掲示板ID-掲示板情報の連想配列のリファレンス
-#
-# - DESCRIPTION
-#	掲示板DBから，掲示板情報を取ってくる．
-#
-sub GetAllBoardInfo
-{
-    local( *board, *boardName, *boardInfo ) = @_;
-
-    local( $bId, $bName, $bInfo );
-    local( $dbFile ) = &GetPath( $SYS_DIR, $BOARD_FILE );
-    open( DB, "<$dbFile" ) || &Fatal( 1, $dbFile );
-    while ( <DB> )
-    {
-	next if ( /^\#/o || /^$/o );
-	chop;
-	( $bId, $bName, $bInfo ) = split( /\t/, $_, 4 );
-	push( @board, $bId );
-	$boardName{ $bId } = $bName;
-	$boardInfo{ $bId } = $bInfo;
-    }
-    close DB;
-}
-
-
-###
-## GetBoardInfo - 掲示板DBの読み込み
-#
-# - SYNOPSIS
-#	GetBoardInfo( $board );
-#
-# - ARGS
-#	$board		掲示板ID
-#
-# - DESCRIPTION
-#	掲示板DBから，掲示板情報を取ってくる．
-#
-# - RETURN
-#	掲示板名，固有設定の有無，のリスト
-#
-sub GetBoardInfo
-{
-    local( $board ) = @_;
-
-    local( $dBoard, $dBoardName, $dBoardConf );
-
-    local( $dbFile ) = &GetPath( $SYS_DIR, $BOARD_FILE );
-    open( DB, "<$dbFile" ) || &Fatal( 1, $dbFile );
-    while ( <DB> )
-    {
-	next if ( /^\#/o || /^$/o );
-	chop;
-	( $dBoard, $dBoardName, $dBoardConf ) = split( /\t/, $_, 4 );
-	if ( $board eq $dBoard )
-	{
-	    close DB;
-	    return( $dBoardName, $dBoardConf );
-	}
-    }
-    close DB;
-
-    &Fatal( 11, $board );
-}
-
-
-###
-## CacheIconDb - アイコンDBの全読み込み
-#
-# - SYNOPSIS
-#	CacheIconDb($board);
-#
-# - ARGS
-#	$board		掲示板ID
-#
-# - DESCRIPTION
-#	アイコンDBを読み込んで連想配列に放り込む．
-#	大域変数，@ICON_TITLE，%ICON_FILE，%ICON_HELPを破壊する．
-#
-sub CacheIconDb
-{
-    local( $board ) = @_;
-    local( $fileName, $title, $help, $type );
-
-    @ICON_TITLE = %ICON_FILE = %ICON_HELP = %ICON_TYPE = ();
-    open( ICON, &GetIconPath( "$board.$ICONDEF_POSTFIX" ))
-	|| ( open( ICON, &GetIconPath( "$DEFAULT_ICONDEF" ))
-	    || &Fatal( 1, &GetIconPath( "$DEFAULT_ICONDEF" )));
-    while ( <ICON> )
-    {
-	next if ( /^\#/o || /^$/o );
-	chop;
-	( $fileName, $title, $help, $type ) = split( /\t/, $_, 4 );
-
-	push( @ICON_TITLE, $title );
-	$ICON_FILE{$title} = $fileName;
-	$ICON_HELP{$title} = $help;
-	$ICON_TYPE{$title} = $type || 'article';
-    }
-    close ICON;
 }
 
 
@@ -7774,97 +7950,11 @@ sub GetIconUrlFromTitle
     local( $icon ) = @_;
     return $ICON_NEW if ( $icon eq $H_NEWARTICLE );
 
+    local( $file ) = &getBoardIconFile( $icon );
+
     # check
-    return '' unless $ICON_FILE{ $icon };
+    return '' unless $file;
 
     # return
-    &GetIconURL( $ICON_FILE{ $icon } );
-}
-
-
-###
-## SupersedeDbFile - 訂正記事の記事DBへの書き込み
-#
-# - SYNOPSIS
-#	SupersedeDbFile($Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
-#
-# - ARGS
-#	$Board		訂正する記事が含まれる掲示板のID
-#	$Id		訂正する記事のID
-#	$InputDate	訂正時間(UTC)
-#	$Subject	訂正記事Subject
-#	$Icon		訂正記事アイコン
-#	$RemoteHost	訂正記事書き込みホスト名
-#	$Name		訂正記事書き込みユーザ名
-#	$Email		訂正記事書き込みユーザメイルアドレス
-#	$Url		訂正記事書き込みユーザURL
-#	$Fmail		リプライ時にメイルを送信するか否か
-#
-# - DESCRIPTION
-#	訂正記事をDBファイルに書き込み，agingした記事のIDを返す．
-#
-# - RETURN
-#	agingした記事のID．
-#
-sub SupersedeDbFile
-{
-    local( $Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ) = @_;
-
-    local( $SupersedeId, $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
-    
-    # initial versionは1で，1ずつ増えていく．1，2，…9，10，11，…
-    # later versionはDB中で必ず，younger versionよりも下に出現する．
-    # すなわち10_2，10，10_1は，10_1，10_2，10の順に並ぶものとする．
-    $SupersedeId = 1;
-
-    local( $dbLine );
-    local( $File ) = &GetPath( $Board, $DB_FILE_NAME );
-    local( $TmpFile ) = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
-    open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
-    open( DB, "<$File" ) || &Fatal( 1, $File );
-    while ( <DB> )
-    {
-	if ( /^\#/o || /^$/o )
-	{
-	    print( DBTMP "$_" ) || &Fatal( 13, $TmpFile );
-	    next;
-	}
-
-	chop;
-
-	( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_ );
-
-	# later versionが見つかったら，versionを先読みしておく．
-	if ( "$dId" eq ( sprintf( "#-%s_%s", $Id, $SupersedeId )))
-	{
-	    $SupersedeId++;
-	}
-
-	# 訂正記事の最新版が見つかったら，
-	if ( $dId eq $Id )
-	{
-	    # agingしてしまう
-	    &GenTSV( *dbLine, ( sprintf( "-%s_%s", $dId, $SupersedeId ), $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ));
-	    print( DBTMP "#$dbLine\n" ) || &Fatal( 13, $TmpFile );
-
-	    # 続いて新しい記事を書き加える
-	    &GenTSV( *dbLine, ( $Id, $dFid, $dAids, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail ));
-	    print( DBTMP "$dbLine\n" ) || &Fatal( 13, $TmpFile );
-	}
-	else
-	{
-	    # DBに書き加える
-	    print( DBTMP "$_\n" ) || &Fatal( 13, $TmpFile );
-	}
-    }
-
-    # close Files.
-    close DB;
-    close DBTMP || &Fatal( 13, $TmpFile );
-
-    # DBを更新する
-    rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
-
-    # 返す
-    $SupersedeId;
+    &GetIconURL( $file );
 }
