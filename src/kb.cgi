@@ -10,7 +10,7 @@
 # 2. kbdataディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    ブラウザからアクセス可能なディレクトリでなくてもかまいません．
 #
-$KBDIR_PATH = '';
+$KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst/';
 # $KBDIR_PATH = '/home/nahi/kbdata/';
 # $KBDIR_PATH = 'd:\securedata\kbdata\';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb:';			# Macの場合?
@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.72 2000-05-02 15:00:35 nakahiro Exp $
+# $Id: kb.cgi,v 5.73 2000-05-05 06:01:37 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -3482,10 +3482,9 @@ sub dumpArtEntryNormal
 	    &tagInputText( 'text', 'url', ( $url || 'http://' ), $URL_LENGTH ) . $HTML_BR;
     }
 
-    if ( $SYS_MAIL & 2 )
+    if (( $SYS_MAIL & 2 ) && ( $UMAIL ne '' ))
     {
-	$msg .= &tagLabel( "リプライがあった時に$H_MAILで連絡", 'fmail', 'F'
-	    ) . ': ' . &tagInputCheck( 'fmail', $fMail ) . "\n";
+	$msg .= &tagLabel( "リプライがあった時に$H_MAILで連絡", 'fmail', 'F' ) . ': ' . &tagInputCheck( 'fmail', $fMail ) . "\n";
     }
     $msg .= "</p>\n<p>\n";
 
@@ -4001,22 +4000,22 @@ sub dumpArtCommand
     {
 	if ( $SYS_REPLYQUOTE )
 	{
-	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=f&id=$id", &tagComImg( $ICON_FOLLOW, $H_REPLYTHISARTICLE ), 'R' ) . "\n";
+	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=q&id=$id", &tagComImg( $ICON_QUOTE, $H_REPLYTHISARTICLE ), 'Q' ) . "\n";
 	}
 	else
 	{
-	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=q&id=$id", &tagComImg( $ICON_QUOTE, $H_REPLYTHISARTICLE ), 'Q' ) . "\n";
+	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=f&id=$id", &tagComImg( $ICON_FOLLOW, $H_REPLYTHISARTICLE ), 'R' ) . "\n";
 	}
     }
     else
     {
 	if ( $SYS_REPLYQUOTE )
 	{
-	    $gHgStr .= $dlmtS . &tagComImg( $ICON_FOLLOW_X, $H_REPLYTHISARTICLE ) . "\n";
+	    $gHgStr .= $dlmtS . &tagComImg( $ICON_QUOTE_X, $H_REPLYTHISARTICLE ) . "\n";
 	}
 	else
 	{
-	    $gHgStr .= $dlmtS . &tagComImg( $ICON_QUOTE_X, $H_REPLYTHISARTICLE ) . "\n";
+	    $gHgStr .= $dlmtS . &tagComImg( $ICON_FOLLOW_X, $H_REPLYTHISARTICLE ) . "\n";
 	}
     }
 
