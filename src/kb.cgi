@@ -16,7 +16,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.10 1998-04-07 02:21:53 nakahiro Exp $
+# $Id: kb.cgi,v 5.11 1998-06-19 07:30:37 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -45,7 +45,7 @@ $| = 1;				# pipe flushed
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '5.5';		# release
+$KB_RELEASE = '5.6';		# release
 $MACPERL = (( $] =~ /^5/o ) && ( $^O eq '' ));	# perl5なのに，OSが空……だとMacPerl(?)
 
 # ディレクトリ
@@ -167,14 +167,8 @@ MAIN: {
     # 掲示板固有セッティングを読み込む
     if ( $boardConfFileP ) {
 	local( $boardConfFile ) = &GetPath( $BOARD, $CONF_FILE_NAME );
-	eval( "require( \"$boardConfFile\" );" ) || &Fatal( 1, $boardConfFile );
-    }
-
-    ### View - 木構造表示 - 未使用
-    if ( $c eq 'tr' ) {
-	$gVarComType = 0;
-	require( &GetPath( $UI_DIR, 'View.pl' ));
-	last;
+	eval( "require( \"$boardConfFile\" );" )
+	    || &Fatal( 1, $boardConfFile );
     }
 
     ### ShowArticle - 単一記事の表示
@@ -812,20 +806,19 @@ __EOF__
 sub MsgHeader {
     local( $Title, $Message, $LastModified ) = @_;
     
-    if ( $LastModified ) {
-	&cgi'Header( $LastModified, $LastModified, 0, '' );
-    }
-    else {
-	&cgi'Header( $LastModified, $LastModified, 0, '' );
-    }
+    # Last-Modifiedは空．Cookiesも空．
+    &cgi'Header( 0, 0, 0, 0 );
+#    &cgi'Header( 1, $LastModified, 0, 0 );
 
     &cgiprint'Init();
     &cgiprint'Cache(<<__EOF__);
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
-<title>$Title</title>
 <base href="$BASE_URL">
+<title>$Title - $BOARDNAME - $SYSTEM_NAME</title>
+<LINK REV=MADE HREF="mailto:$MAINT">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-2022-JP">
 </head>
 __EOF__
 
@@ -846,8 +839,7 @@ __EOF__
 <p>[
 __EOF__
 
-    &cgiprint'Cache( "$H_USER: $UNAME // \n" ) if ( $UID );
-    &cgiprint'Cache( "$H_BOARD: $BOARDNAME // \n" ) if ( $BOARD );
+    &cgiprint'Cache( "$H_BOARD: $BOARDNAME // \n" ) if ( $BOARD && $BOARDNAME );
     &cgiprint'Cache( "時刻: " . &GetDateTimeFormatFromUtc( $^T ));
     &cgiprint'Cache(<<__EOF__);
 ]</p>
@@ -1052,7 +1044,7 @@ sub SendMail {
 	}
     }
 
-    &cgi'sendMail( $MAINT_NAME, $MAINT, $Subject, $ExtensionHeader, $Message, $MAILTO_LABEL, @To ) || &Fatal( 9, '' );
+    &cgi'sendMail( $MAILFROM_LABEL || $MAINT_NAME, $MAINT, $Subject, $ExtensionHeader, $Message, $MAILTO_LABEL, @To ) || &Fatal( 9, "$BOARDNAME/$Id" );
 }
 
 
@@ -1592,7 +1584,13 @@ sub GetDateTimeFormatFromUtc {
     # 変換
     ( $Sec, $Min, $Hour, $Mday, $Mon, $Year, $Wday, $Yday, $Isdst ) = localtime( $Utc );
 
-    sprintf( "%d/%d(%02d:%02d)", $Mon + 1, $Mday, $Hour, $Min );
+    sprintf( "%d/%d/%d(%02d:%02d)", $Year, $Mon + 1, $Mday, $Hour, $Min );
+
+    # for MM/DD
+    # sprintf( "%d/%d(%02d:%02d)", $Mon + 1, $Mday, $Hour, $Min );
+
+    # for Y2k!
+    # sprintf( "%d/%d/%d(%02d:%02d)", $Year+1900, $Mon + 1, $Mday, $Hour, $Min );
 }
 
 
