@@ -16,7 +16,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.8 1998-04-03 17:55:27 nakahiro Exp $
+# $Id: kb.cgi,v 5.9 1998-04-06 06:18:17 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -38,7 +38,7 @@ $PC = 0;	# for UNIX / WinNT
 # This file implements main functions of KINOBOARDS.
 
 # perl¤ÎÀßÄê
-umask( umask() & 707 );		# permission of CGI created files.
+umask( umask() | 070 );		# permission of CGI created files.
 $[ = 0;				# zero origined
 $| = 1;				# pipe flushed
 
