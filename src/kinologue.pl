@@ -1,7 +1,7 @@
 # kinologue: KINO series LOGging Utility packagE
 # Copyright (C) 1997 NAKAMURA Hiroshi.
 #
-# $Id: kinologue.pl,v 1.1 1997-11-02 12:11:22 nakahiro Exp $
+# $Id: kinologue.pl,v 1.2 1997-11-26 08:27:07 nakahiro Rel $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,10 +50,9 @@ $SEV_WARN	= 2;		# only warning.
 $SEV_ERROR	= 3;		# action should be taken.
 $SEV_CAUTION	= 4;		# action must be taken.
 $SEV_FATAL	= 5;		# system is down.
-$SEV_ETC	= 6;		# another severity.
-# severity label for logging.
-# CAUTION: each label must be shorter than 8 octet.
-@SEV_LABEL = ( DEBUG, INFO, WARN, ERROR, CAUTION, FATAL, ETC );
+$SEV_ANY	= 6;		# another severity.
+# severity label for logging. ( max 5 char )
+@SEV_LABEL = ( DEBUG, INFO, WARN, ERROR, CAUTN, FATAL, ANY );
 
 # require jcode.pl if needed.
 if ( $JAPANESE_CODE ) { require( 'jcode.pl' ); }
@@ -86,21 +85,23 @@ if ( $JAPANESE_CODE ) { require( 'jcode.pl' ); }
 #	but on the OS which supports multi I/O, records possibly be mixed.
 #
 # - RETURN
-#	1 if succeed, 0 if failed. when the given severity
-#	is not enough severe, log no message, but returns 1.
+#	1 if succeed, 0 if failed.
+#	when the given severity is not enough severe,
+#	log no message, but returns 1.
 #
 sub KlgLog {
     local( $severity, $msg, $progname, $filename ) = @_;
     if ( $severity < $SEV_THRESHOLD ) { return( 1 ); }
 
     local( $sevStr ) = &_KlgSevLabelOfSevId( $severity );
+    local( $sevChar ) = substr( $sevStr, 0, 1 );
     local( $timeStr ) = &_KlgDateTimeFormatOfUtc( time );
     local( $logStr );
 
     &_KlgMsgFormat( *msg );
     if ( !$progname ) { $progname = $DEFAULT_PROGNAME; }
     if ( !$filename ) {	$filename = $DEFAULT_LOGFILE; }
-    $logStr = sprintf( "[%s #%d(%s)] %8s -- %s\n", $timeStr, $$, $progname, $sevStr, $msg );
+    $logStr = sprintf( "%s, [%s #%d(%s)] %5s -- %s\n", $sevChar, $timeStr, $$, $progname, $sevStr, $msg );
 
     open( LOG, ">>$filename" ) || return( 0 );
     print( LOG $logStr );
