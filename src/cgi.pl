@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.28.2.7 2000-07-01 12:05:41 nakahiro Exp $
+# $Id: cgi.pl,v 2.28.2.8 2000-08-14 14:20:39 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -687,7 +687,7 @@ sub SecureHtmlEx
 	    {
 		$feature = '';
 	    }
-	    if ( &SecureFeature( $tag, $fVec{ $tag }, $feature ))
+	    if ( &SecureFeature( $feature, $fVec{ $tag } ))
 	    {
 		if ( $srcString =~ m!</$tag>!i )
 		{
@@ -746,16 +746,17 @@ sub SecureHtmlEx
 #
 sub SecureFeature
 {
-    local( $tag, $allowedFeatures, $features ) = @_;
+    local( $features, $allowedFeatures ) = @_;
 
-    return 1 unless $features;
+    $features =~ s/^\s+//o;
 
     local( @allowed ) = split( /\//, $allowedFeatures );
-    while ( $features =~ m/^\s*([^=\s]+)\s*=\s*('|")([^'"]*)\2/go )#'
+    while ( $features =~ s/([^=\s]+)\s*=\s*('|")([^'"]*)\2\s*//go )
     {
 	return 0 if (( !$3 ) || ( !grep( /^$1$/i, @allowed )));
     }
-    1;
+
+    return ( $features? 0 : 1 );
 }
 
 
