@@ -1,0 +1,56 @@
+/*
+ * kinoStyle.css: CSS style definition file for `KINO documents'.
+ */
+
+/* $Id: kinoStyle.css,v 1.1 1999-06-26 15:01:59 nakahiro Exp $ */
+
+body
+{
+    color: black;
+    background: #EEEEEE;
+    margin-left: 2%;
+    margin-right: 2%;
+}
+
+h1
+{
+    font-family: "comic sans ms", verdana, sans-serif; 
+    margin-top: 5%;
+}
+
+h2, h3
+{
+    margin-top: 10%;
+    padding-left: 5%;
+    color: black;
+    background: #CCCCCC;
+}
+
+div.header
+{
+    text-align: right;
+    margin-right: 5%;
+}
+
+div.header p.status
+{
+    font-style: italic;
+}
+
+div.main dt
+{
+    color: red;
+    background: #EEEEEE;
+    margin-top: 2ex;
+    margin-left: 1em;
+}
+
+div.footer address
+{
+    color: gray;
+    text-align: right;
+    font-family: Times, serif;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+}
