@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.32 1999-06-17 12:21:57 nakahiro Exp $
+# $Id: kb.cgi,v 5.33 1999-06-18 10:16:35 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -659,6 +659,9 @@ sub ViewOriginalArticle
     local( $NextId ) = $DB_ID[$Num + 1];
 
     local( $msg );
+
+    $msg .= "<p><a name=\"$Id\"> </a>\n";
+
     if ( $CommandFlag && $SYS_COMMAND )
     {
 	# コマンド表示
@@ -679,8 +682,6 @@ sub ViewOriginalArticle
 	}
 
 	local( $Old ) = &GetTitleOldIndex( $Id );
-
-	$msg .= "<p>\n";
 
 	$msg .= &TagA( $BOARDLIST_URL, &TagComImg( $ICON_BLIST, $H_BACKBOARD,
 	    $SYS_COMICON )) . "\n" if $SYS_F_B;
@@ -747,10 +748,8 @@ sub ViewOriginalArticle
 	    $msg .= $DlmtS . &TagA( "$PROGRAM?b=$BOARD&c=i&type=article",
 		&TagComImg( $ICON_HELP, "ヘルプ", $SYS_COMICON )) . "\n";
 	}
-	$msg .= "</p>\n";
+	$msg .= "</p>\n<p>\n";
     }
-
-    $msg .= "<p>\n";
 
     # 記事番号，題
     $msg .= "<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> ";
@@ -801,8 +800,10 @@ sub ViewOriginalArticle
 #	ThreadArticle($SubjectOnly, $Head, @Tail);
 #
 # - ARGS
-#	$SubjectOnly	タイトルのみを表示するのか，
-#			あるいは記事本文も表示するのか．
+#	$State		表示制御フラグ
+#	    2^0 ... スレッドの先頭であるか（▲が付く）
+#	    2^1 ... 同一ページfragmentリンクを利用するか（#記事番号でリンク）
+#	    2^2 ... タイトルを表示する(4), 記事本文を表示する(0)
 #	$Head		木構造のヘッドノード
 #	@Tail		木構造の娘ノード群
 #
@@ -820,13 +821,8 @@ sub ThreadArticleMain
 {
     local( $State, $Head, @Tail ) = @_;
 
-    # $State:
-    # ... 0: Body
-    # ... 1: Subject only(original)
-    # ... 2: Subject only(others)
-
     # 記事概要か，記事そのものか．
-    if ( $State )
+    if ( $State&4 )
     {
 	if ( $Head eq '(' )
 	{
@@ -839,15 +835,8 @@ sub ThreadArticleMain
 	else
 	{
 	    local( $dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName ) = &GetArticlesInfo( $Head );
-	    if ( $State == 1 )
-	    {
-		&cgiprint'Cache( "<li>", &GetFormattedTitle( $Head, $dAids, $dIcon, $dSubject, $dName, $dDate, 1 ), "\n" );
-		$State = 2;
-	    }
-	    else
-	    {
-		&cgiprint'Cache( "<li>", &GetFormattedTitle( $Head, $dAids, $dIcon, $dSubject, $dName, $dDate, 0 ), "\n" );
-	    }
+	    &cgiprint'Cache( "<li>", &GetFormattedTitle( $Head, $dAids, $dIcon, $dSubject, $dName, $dDate, $State&3 ), "\n" );
+	    $State ^= 1 if ( $State&1 );
 	}
     }
     elsif (( $Head ne '(' ) && ( $Head ne ')' ))
@@ -985,7 +974,7 @@ sub ReplyArticles
 	    &GetFollowIdTree( $id, *tree );
 	    
 	    # メイン関数の呼び出し(記事概要)
-	    &ThreadArticleMain( 2, @tree );
+	    &ThreadArticleMain( 4, @tree );
 	}
     }
     else
@@ -1521,19 +1510,22 @@ __EOF__
 ## GetFormattedTitle - タイトルリストのフォーマット
 #
 # - SYNOPSIS
-#	GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date);
+#	GetFormattedTitle( $id, $aids, $icon, $title, $name, $origDate, $flag);
 #
 # - ARGS
-#	$Id		記事ID
-#	$Aids		リプライ記事があるか否か
-#	$Icon		記事アイコンID
-#	$Title		記事のSubject
-#	$Name		記事の投稿者名
-#	$Date		記事の投稿日付(UTC)
+#	$id		記事ID
+#	$aids		リプライ記事があるか否か
+#	$icon		記事アイコンID
+#	$title		記事のSubject
+#	$name		記事の投稿者名
+#	$origDate	記事の投稿日付(UTC)
+#	$flag		表示カスタマイズフラグ
+#	    2^0 ... スレッドの先頭であるか（▲が付く）
+#	    2^1 ... 同一ページfragmentリンクを利用するか（#記事番号でリンク）
 #
 # - DESCRIPTION
 #	ある記事をタイトルリスト表示用にフォーマットする．
-#	$TITLE_STRを破壊する．何度も使われるので，localを減らすため．．．
+#	$G_TITLE_STRを破壊する．何度も使われるので，localを減らすため．．．
 #	かなりパフォーマンスに効く．
 #
 # - RETURN
@@ -1541,36 +1533,36 @@ __EOF__
 #
 sub GetFormattedTitle
 {
-    local( $id, $aids, $icon, $title, $name, $origDate,	$topFlag ) = @_;
+    local( $id, $aids, $icon, $title, $name, $origDate,	$flag ) = @_;
 
-    $TITLE_STR = "$id.";	# 初期化
+    $G_TITLE_STR = "$id.";	# 初期化
 
-    if ( $SYS_F_T && $topFlag && $DB_FID{$id} )
+    if ( $SYS_F_T && $flag&1 && $DB_FID{$id} )
     {
 	local( $fId ) = $DB_FID{$id};
 	$fId =~ s/^.*,//o;
-	$TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$fId",
+	$G_TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$fId",
 	    $H_THREAD_ALL );
     }
 
-    $TITLE_STR .= ' ' . &TagMsgImg( $icon ) . ' ' .
-	&TagA( "$PROGRAM?b=$BOARD&c=e&id=$id", $title || $id );
+    $G_TITLE_STR .= ' ' . &TagMsgImg( $icon ) . ' ' .
+	&TagA( ( $flag&2 )? "$cgi'REQUEST_URI#$id" :
+	"$PROGRAM?b=$BOARD&c=e&id=$id",	$title || $id );
 
     if ( $SYS_F_T && $aids )
     {
-	$TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$id", $H_THREAD );
+	$G_TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$id", $H_THREAD );
     }
 
-
-    $TITLE_STR .= ' [' . ( $name || $MAINT_NAME ) . '] ' .
+    $G_TITLE_STR .= ' [' . ( $name || $MAINT_NAME ) . '] ' .
 	&GetDateTimeFormatFromUtc( $origDate || &GetModifiedTime( $id,$BOARD));
 
     if ( $DB_NEW{$id} )
     {
-	$TITLE_STR .= ' ' . &TagMsgImg( $H_NEWARTICLE );
+	$G_TITLE_STR .= ' ' . &TagMsgImg( $H_NEWARTICLE );
     }
 
-    $TITLE_STR;
+    $G_TITLE_STR;
 }
 
 

@@ -31,10 +31,10 @@ ThreadArticle:
     &MsgHeader('Message view (threaded)', "$H_REPLYをまとめ読み");
 
     # メイン関数の呼び出し(記事概要)
-    &ThreadArticleMain( 1, @FollowIdTree );
+    &ThreadArticleMain( 6, @FollowIdTree );
 
     # メイン関数の呼び出し(記事)
-    &ThreadArticleMain( 0, @FollowIdTree );
+    &ThreadArticleMain( 2, @FollowIdTree );
 
     &cgiprint'Cache("$H_HR\n");
 
