@@ -1,3 +1,4 @@
+#!/usr/local/bin/perl
 #!/usr/local/bin/perl4.036
 #!/usr/local/bin/perl5.00503-debug -d:DProf
 
@@ -9,7 +10,7 @@
 # 2. kbディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    !! KB/1.0R6.4以降，この設定は必須となりました !!
 #
-$KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst';
+$KBDIR_PATH = '';
 # $KBDIR_PATH = '/home/nahi/public_html';
 # $KBDIR_PATH = 'd:\inetpub\wwwroot\kb';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb';			# Macの場合?
@@ -33,7 +34,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.47 1999-08-28 08:56:50 nakahiro Exp $
+# $Id: kb.cgi,v 5.48 1999-08-28 09:02:52 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
