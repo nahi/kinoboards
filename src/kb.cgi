@@ -42,7 +42,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.58 2000-02-25 15:01:43 nakahiro Exp $
+# $Id: kb.cgi,v 5.59 2000-02-29 13:10:35 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -73,7 +73,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7β4';		# release
+$KB_RELEASE = '7β5';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -179,10 +179,11 @@ $H_REORDERTO_MARK = '[▽]';
 @URL_SCHEME = ( 'http', 'ftp', 'gopher', 'mailto' );
 
 # 各種画像アイコンファイル相対URL
-$ICON_BLIST = &GetIconURL( 'blist.gif' );		# 掲示板一覧へ
-$ICON_TLIST = &GetIconURL( 'tlist.gif' );		# タイトル一覧へ
-$ICON_PREV = &GetIconURL( 'prev.gif' );			# 前の記事へ
-$ICON_NEXT = &GetIconURL( 'next.gif' );			# 次の記事へ
+#$ICON_BLIST = &GetIconURL( 'blist.gif' );		# 掲示板一覧へ
+$ICON_UP = &GetIconURL( 'tlist.gif' );			# 上へ
+$ICON_PREV = &GetIconURL( 'prev.gif' );			# 前へ
+$ICON_NEXT = &GetIconURL( 'next.gif' );			# 次へ
+$ICON_DOWN = &GetIconURL( 'thread.gif' );		# 下へ
 $ICON_WRITENEW = &GetIconURL( 'writenew.gif' );		# 新規書き込み
 $ICON_FOLLOW = &GetIconURL( 'follow.gif' );		# リプライ
 $ICON_QUOTE = &GetIconURL( 'quote.gif' );		# 引用してリプライ
@@ -270,7 +271,14 @@ MAIN:
     }
     elsif ( $c eq '' )
     {
-	$c = $BOARD? 'v' : 'bl';
+	if ( $BOARD )
+	{
+	    $c = $SYS_TITLE_FORMAT? 'r' : 'v';
+	}
+	else
+	{
+	    $c = 'bl';
+	}
     }
 
     if ( $BOARD )
@@ -426,13 +434,13 @@ MAIN:
 	}
 	elsif ( $c eq 'r' )
 	{
-	    # 日付順にソート
+	    # 書き込み順にソート
 	    &UISortTitle();
 	    last;
 	}
 	elsif ( $c eq 'l' )
 	{
-	    # 新しい記事を日付順に表示
+	    # 新しい記事を書き込み順に表示
 	    &UISortArticle();
 	    last;
 	}
@@ -745,7 +753,7 @@ sub UIAdminConfigExec
     local( $p2 ) = $cgi'TAGS{'confP2'};
 
     # adminのみ
-    &Fatal( 44, '' ) unless ( &IsUser( $ADMIN ));
+    &Fatal( 44, '' ) unless ( $POLICY & 8 );
 
     # lock system.
     &LockAll();
@@ -870,14 +878,14 @@ sub hg_user_config_form
 	$msg .= &TagLabel( "変更する$H_USERの$H_FROM", 'confUser', 'N' ) .
 	    ': ' . &TagInputText( 'text', 'confUser', '', $NAME_LENGTH ) .
 	    "（管理者は全$H_USERの設定を変更できます）" . $HTML_BR . $HTML_BR;
-	$msg .= &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' . &TagInputText(
-	    'text', 'confMail', '', $MAIL_LENGTH ) . $HTML_BR;
-	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . ': ' . &TagInputText(
-	    'text', 'confUrl', 'http://', $URL_LENGTH ) . $HTML_BR . $HTML_BR;
-	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' . &TagInputText(
-	    'password', 'confP', '', $PASSWD_LENGTH ) . $HTML_BR;
-	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' . &TagInputText(
-	    'password', 'confP2', '', $PASSWD_LENGTH ) .
+	$msg .= &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' .
+	    &TagInputText( 'text', 'confMail', '', $MAIL_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . ': ' .
+	    &TagInputText( 'text', 'confUrl', 'http://', $URL_LENGTH ) . $HTML_BR . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' .
+	    &TagInputText( 'password', 'confP', '', $PASSWD_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' .
+	    &TagInputText( 'password', 'confP2', '', $PASSWD_LENGTH ) .
 	    '（念のため，もう一度お願いします）' . $HTML_BR;
 	%tags = ( 'c', 'ucx' );
 	&DumpForm( *tags, '設定', 'リセット', *msg );
@@ -888,12 +896,15 @@ sub hg_user_config_form
 
 	local( %tags, $msg );
 	$msg .= $H_FROM . ': ' . $UNAME . $HTML_BR . $HTML_BR;
-	$msg .= &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' . &TagInputText(
-	    'text', 'confMail', $UMAIL, $MAIL_LENGTH ) . $HTML_BR;
-	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . ': ' . &TagInputText(
-	    'text', 'confUrl', $UURL, $URL_LENGTH ) . $HTML_BR . $HTML_BR;
-	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' . &TagInputText( 'password', 'confP', '*' x $PASSWD_LENGTH , $PASSWD_LENGTH ) . $HTML_BR;
-	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' . &TagInputText( 'password', 'confP2', '*' x $PASSWD_LENGTH, $PASSWD_LENGTH ) . '（念のため，もう一度お願いします）' . $HTML_BR;
+	$msg .= &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' .
+	    &TagInputText( 'text', 'confMail', $UMAIL, $MAIL_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . ': ' .
+	    &TagInputText( 'text', 'confUrl', $UURL, $URL_LENGTH ) . $HTML_BR . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' .
+	    &TagInputText( 'password', 'confP', '' , $PASSWD_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' .
+	    &TagInputText( 'password', 'confP2', '', $PASSWD_LENGTH ) .
+	    '（念のため，もう一度お願いします）' . $HTML_BR;
 	%tags = ( 'c', 'ucx' );
 	&DumpForm( *tags, '設定', 'リセット', *msg );
     }
@@ -1091,6 +1102,7 @@ sub UIPostNewEntry
     local( $back ) = @_;
 
     $gId = '';			# 0ではダメ．そういうファイル名もあるかも．
+    $gDefPostDateStr = $cgi'TAGS{'postdate'};
     $gDefSubject = $cgi'TAGS{'subject'};
     $gDefName = $cgi'TAGS{'name'};
     $gDefEmail = $cgi'TAGS{'mail'};
@@ -1122,6 +1134,7 @@ sub UIPostReplyEntry
     &DbCache( $BOARD ) if $BOARD;
 
     $gId = $cgi'TAGS{'id'};
+    $gDefPostDateStr = $cgi'TAGS{'postdate'};
     $gDefSubject = $cgi'TAGS{'subject'};
     $gDefName = $cgi'TAGS{'name'};
     $gDefEmail = $cgi'TAGS{'mail'};
@@ -1176,11 +1189,12 @@ sub UISupersedeEntry
     &DbCache( $BOARD ) if $BOARD;
 
     $gId = $cgi'TAGS{'id'};
+    $gDefPostDateStr = $cgi'TAGS{'postdate'};
     $gDefSubject = $cgi'TAGS{'subject'};
     $gDefName = $cgi'TAGS{'name'};
     $gDefEmail = $cgi'TAGS{'mail'};
     $gDefUrl = $cgi'TAGS{'url'};
-    $gDefTextType = $cgi'TAGS{'texttype'};
+    $gDefTextType = $cgi'TAGS{'texttype'};	# 訂正時はXHTML入力のほうがいいかも 
     $gDefIcon = $cgi'TAGS{'icon'};
     $gDefArticle = $cgi'TAGS{'article'};
     $gDefFmail = $cgi'TAGS{'fmail'};
@@ -1193,9 +1207,9 @@ sub UISupersedeEntry
     }
     else
     {
-	local( $tmp );
-	( $tmp, $tmp, $tmp, $gDefSubject, $gDefIcon , $tmp, $gDefName,
-	    $gDefEmail, $gDefUrl ) = &GetArticlesInfo( $gId );
+	local( $tmp, $postDate );
+	( $tmp, $tmp, $postDate, $gDefSubject, $gDefIcon, $tmp, $gDefName, $gDefEmail, $gDefUrl ) = &GetArticlesInfo( $gId );
+	$gDefPostDateStr = &GetYYYY_MM_DD_HH_MM_SSFromUtc( $postDate );
 	&QuoteOriginalArticleWithoutQMark( $gId, *gDefArticle );
     }
 
@@ -1207,21 +1221,13 @@ sub UISupersedeEntry
 
 sub hg_post_reply_entry_orig_article
 {
-    if ( $_[0] ne 'PostReplyEntry.xml' )
-    {
-	&Fatal( 18, "$_[0]/PostReplyEntryOrigArticle" );
-    }
-
+    &Fatal( 18, "$_[0]/PostReplyEntryOrigArticle" ) if ( $_[0] ne 'PostReplyEntry.xml' );
     &DumpArtBody( $gId, 0, 1 );
 }
 
 sub hg_supersede_entry_orig_article
 {
-    if ( $_[0] ne 'SupersedeEntry.xml' )
-    {
-	&Fatal( 18, "$_[0]/SupersedeEntryOrigArticle" );
-    }
-
+    &Fatal( 18, "$_[0]/SupersedeEntryOrigArticle" ) if ( $_[0] ne 'SupersedeEntry.xml' );
     &DumpArtBody( $gId, 0, 1 );
 }
 
@@ -1253,6 +1259,7 @@ sub UIPostPreviewMain
 
     # 入力された記事情報
     $gOrigId = $cgi'TAGS{'id'};
+    $gPostDateStr = $cgi'TAGS{'postdate'};
     $gSubject = $cgi'TAGS{'subject'};
     $gIcon = $cgi'TAGS{'icon'};
     $gArticle = $cgi'TAGS{'article'};
@@ -1261,14 +1268,21 @@ sub UIPostPreviewMain
     &LockAll();
     &DbCache( $BOARD ) if $BOARD;
 
-    ( $gO2Id ) = &GetArticlesInfo( $gOrigId ) if ( $gOrigId ne '' );
-
-    # ユーザ情報の取得
-    if ( &IsUser( $ADMIN ))
+    # 各種情報の取得
+    if ( $POLICY & 8 )
     {
-	$gName = $MAINT_NAME;
-	$gEmail = $MAINT;
-	$gUrl = $MAINT_URL;
+	if ( $cgi'TAGS{'name'} eq '' )
+	{
+	    $gName = $MAINT_NAME;
+	    $gEmail = $MAINT;
+	    $gUrl = $MAINT_URL;
+	}
+	else
+	{
+	    $gName = $cgi'TAGS{'name'};
+	    $gEmail = $cgi'TAGS{'mail'};
+	    $gUrl = $cgi'TAGS{'url'};
+	}
     }
     elsif ( $POLICY & 4 )
     {
@@ -1289,9 +1303,11 @@ sub UIPostPreviewMain
     &secureSubject( *gSubject );
     &secureArticle( *gArticle, $gTextType );
 
+    local( $postDate ) = $^T;
+    $postDate = &GetUtcFromYYYY_MM_DD_HH_MM_SS( $gPostDateStr ) if ( $gPostDateStr ne '' );
+
     # 入力された記事情報のチェック
-    &CheckArticle( $BOARD, *gName, *gEmail, *gUrl, *gSubject, *gIcon,
-	*gArticle );
+    &CheckArticle( $BOARD, *postDate, *gName, *gEmail, *gUrl, *gSubject, *gIcon, *gArticle );
 
     &UnlockAll();
 }
@@ -1305,14 +1321,12 @@ sub hg_post_preview_form
     local( $supersede ) = $_[1];
 
     local( %tags, $msg, $contents );
-    $contents = &TagInputRadio( 'com_e', 'com', 'e', 0 ) . ":\n" . &TagLabel(
-	'戻ってやりなおす', 'com_e', 'P' ) . $HTML_BR;
-    $contents .= &TagInputRadio( 'com_x', 'com', 'x', 1 ) . "\n" . &TagLabel(
-	'登録する', 'com_x', 'X' ) . $HTML_BR;
+    $contents = &TagInputRadio( 'com_e', 'com', 'e', 0 ) . ":\n" . &TagLabel( '戻ってやりなおす', 'com_e', 'P' ) . $HTML_BR;
+    $contents .= &TagInputRadio( 'com_x', 'com', 'x', 1 ) . "\n" . &TagLabel( '登録する', 'com_x', 'X' ) . $HTML_BR;
     $msg = &TagFieldset( "コマンド:$HTML_BR", $contents );
     %tags = ( 'corig', $cgi'TAGS{'corig'}, 'c', 'x', 'b', $BOARD,
-	     'id', $gOrigId, 'texttype', $gTextType, 'name', $gName,
-	     'mail', $gEmail, 'url', $gUrl, 'icon', $gIcon,
+	     'id', $gOrigId, 'postdate', $gPostDateStr, 'texttype', $gTextType,
+	     'name', $gName, 'mail', $gEmail, 'url', $gUrl, 'icon', $gIcon,
 	     'subject', $gEncSubject, 'article', $gEncArticle,
 	     'fmail', $cgi'TAGS{'fmail'}, 's', $supersede,
 	     'op', $cgi'TAGS{'op'} );
@@ -1322,38 +1336,33 @@ sub hg_post_preview_form
 
 sub hg_supersede_preview_form
 {
-    if ( $_[0] ne 'SupersedePreview.xml' )
-    {
-	&Fatal( 18, "$_[0]/SupersedePreviewForm" );
-    }
-
+    &Fatal( 18, "$_[0]/SupersedePreviewForm" ) if ( $_[0] ne 'SupersedePreview.xml' );
     &hg_post_preview_form( 'PostPreview.xml', 1 );
 }
 
 sub hg_post_preview_body
 {
     &Fatal( 18, "$_[0]/PostPreviewBody" ) if ( $_[0] ne 'PostPreview.xml' );
-    &DumpArtBody( '', 0, 1, $gOrigId, 0, $^T, $gSubject, $gIcon, 0, $gName,
-	$gEmail, $gUrl, $gArticle );
+
+    local( $postDate ) = $^T;
+    $postDate = &GetUtcFromYYYY_MM_DD_HH_MM_SS( $gPostDateStr ) if ( $gPostDateStr ne '' );
+    &DumpArtBody( '', 0, 1, $gOrigId, '', $postDate, $gSubject, $gIcon, 0, $gName, $gEmail, $gUrl, $gArticle );
 }
 
 sub hg_supersede_preview_body
 {
-    if ( $_[0] ne 'SupersedePreview.xml' )
-    {
-	&Fatal( 18, "$_[0]/SupersedePreviewBody" );
-    }
+    &Fatal( 18, "$_[0]/SupersedePreviewBody" ) if ( $_[0] ne 'SupersedePreview.xml' );
 
-    &hg_post_preview_body( 'PostPreview.xml' );
+    local( $postDate ) = $^T;
+    $postDate = &GetUtcFromYYYY_MM_DD_HH_MM_SS( $gPostDateStr ) if ( $gPostDateStr ne '' );
+
+    # hg_post_preview_bodyとは異なり，fidが空（リプライ元ではない）．
+    &DumpArtBody( '', 0, 1, '', '', $postDate, $gSubject, $gIcon, 0, $gName, $gEmail, $gUrl, $gArticle );
 }
 
 sub hg_supersede_preview_orig_article
 {
-    if ( $_[0] ne 'SupersedePreview.xml' )
-    {
-	&Fatal( 18, "$_[0]/SupersedePreviewOrigArticle" );
-    }
-
+    &Fatal( 18, "$_[0]/SupersedePreviewOrigArticle" ) if ( $_[0] ne 'SupersedePreview.xml' );
     &DumpArtBody( $gOrigId, 0, 1 );
 }
 
@@ -1389,6 +1398,7 @@ sub UIPostExecMain
 
     # 入力された記事情報
     $gOrigId = $cgi'TAGS{'id'};
+    local( $postDateStr ) = $cgi'TAGS{'postdate'};
     local( $TextType ) = $cgi'TAGS{'texttype'};
     local( $Icon ) = $cgi'TAGS{'icon'};
     local( $Subject ) = $cgi'TAGS{'subject'};
@@ -1398,27 +1408,6 @@ sub UIPostExecMain
 
     &LockAll();
     &DbCache( $BOARD ) if $BOARD;
-
-    # ユーザ情報の取得
-    local( $Name, $Email, $Url );
-    if ( &IsUser( $ADMIN ))
-    {
-	$Name = $MAINT_NAME;
-	$Email = $MAINT;
-	$Url = $MAINT_URL;
-    }
-    elsif ( $POLICY & 4 )
-    {
-	$Name = $UNAME;
-	$Email = $UMAIL;
-	$Url = $UURL;
-    }
-    else
-    {
-	$Name = $cgi'TAGS{'name'};
-	$Email = $cgi'TAGS{'mail'};
-	$Url = $cgi'TAGS{'url'};
-    }
 
     # ここ半日の間に生成されたフォームからしか投稿を許可しない．
     local( $base ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
@@ -1435,6 +1424,41 @@ sub UIPostExecMain
 	&Fatal( 16, '' ) if ( $dKey && ( $dKey == $op ));
     }
 
+    # 各種情報の取得
+    local( $Name, $Email, $Url, $postDate );
+    $postDate = $^T;
+    if ( $POLICY & 8 )
+    {
+	if ( $cgi'TAGS{'name'} eq '' )
+	{
+	    $Name = $MAINT_NAME;
+	    $Email = $MAINT;
+	    $Url = $MAINT_URL;
+	}
+	else
+	{
+	    $Name = $cgi'TAGS{'name'};
+	    $Email = $cgi'TAGS{'mail'};
+	    $Url = $cgi'TAGS{'url'};
+	}
+	if ( $postDateStr ne '' )
+	{
+	    $postDate = &GetUtcFromYYYY_MM_DD_HH_MM_SS( $postDateStr );
+	}
+    }
+    elsif ( $POLICY & 4 )
+    {
+	$Name = $UNAME;
+	$Email = $UMAIL;
+	$Url = $UURL;
+    }
+    else
+    {
+	$Name = $cgi'TAGS{'name'};
+	$Email = $cgi'TAGS{'mail'};
+	$Url = $cgi'TAGS{'url'};
+    }
+
     $Subject = &MIME'base64decode( $Subject ) if $previewFlag;
     $Article = &MIME'base64decode( $Article ) if $previewFlag;
     &secureSubject( *Subject );
@@ -1443,20 +1467,17 @@ sub UIPostExecMain
     if ( $type eq 'post' )
     {
 	# 記事の作成
-	$gNewArtId = &MakeNewArticle( $BOARD, $gOrigId, $op, $TextType, $Name,
-	    $Email, $Url, $Icon, $Subject, $Article, $Fmail, 1 );
+	$gNewArtId = &MakeNewArticleEx( $BOARD, $gOrigId, $op, $postDate, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, 1 );
     }
     elsif ( $type eq 'supersede' )
     {
 	# 記事の訂正
 	local( $tmp, $aids, $name );
-	( $tmp, $aids, $tmp, $tmp, $tmp, $tmp, $name ) = &GetArticlesInfo(
-	    $gOrigId );
+	( $tmp, $aids, $tmp, $tmp, $tmp, $tmp, $name ) = &GetArticlesInfo( $gOrigId );
 	&Fatal( 44, '' ) if ( !&IsUser( $name ) && !( $POLICY & 8 ));
-	&Fatal( 19, '' ) if ( $aids && ( $SYS_OVERWRITE == 1 ));
+	&Fatal( 19, '' ) if ( $aids && !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 1 ));
 
-	$gNewArtId = &SupersedeArticle( $BOARD, $gOrigId, $TextType, $Name,
-	    $Email, $Url, $Icon, $Subject, $Article, $Fmail );
+	$gNewArtId = &SupersedeArticle( $BOARD, $gOrigId, $postDate, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail );
     }
     else
     {
@@ -1468,35 +1489,20 @@ sub UIPostExecMain
 
 sub hg_post_exec_jump_to_new_article
 {
-    if ( $_[0] ne 'PostExec.xml' )
-    {
-	&Fatal( 18, "$_[0]/PostExecJumpToNewArticle" );
-    }
-
+    &Fatal( 18, "$_[0]/PostExecJumpToNewArticle" ) if ( $_[0] ne 'PostExec.xml' );
     &DumpButtonToArticle( $BOARD, $gNewArtId, "書き込んだ$H_MESGへ" );
 }
 
 sub hg_supersede_exec_jump_to_new_article
 {
-    if ( $_[0] ne 'SupersedeExec.xml' )
-    {
-	&Fatal( 18, "$_[0]/SupersedeExecJumpToNewArticle" );
-    }
-
+    &Fatal( 18, "$_[0]/SupersedeExecJumpToNewArticle" ) if ( $_[0] ne 'SupersedeExec.xml' );
     &DumpButtonToArticle( $BOARD, $gNewArtId, "訂正した$H_MESGへ" );
 }
 
 sub hg_post_exec_jump_to_orig_article
 {
-    if ( $_[0] ne 'PostExec.xml' )
-    {
-	&Fatal( 18, "$_[0]/PostExecJumpToOrigArticle" );
-    }
-
-    if ( $gOrigId ne '' )
-    {
-	&DumpButtonToArticle( $BOARD, $gOrigId, "$H_ORIGの$H_MESGへ" );
-    }
+    &Fatal( 18, "$_[0]/PostExecJumpToOrigArticle" ) if ( $_[0] ne 'PostExec.xml' );
+    &DumpButtonToArticle( $BOARD, $gOrigId, "$H_ORIGの$H_MESGへ" ) if ( $gOrigId ne '' );
 }
 
 
@@ -1547,13 +1553,10 @@ sub UIThreadArticle
 
 sub hg_thread_article_tree
 {
-    if ( $_[0] ne 'ThreadArticle.xml' )
-    {
-	&Fatal( 18, "$_[0]/ThreadArticleTree" );
-    }
+    &Fatal( 18, "$_[0]/ThreadArticleTree" ) if ( $_[0] ne 'ThreadArticle.xml' );
 
     $gHgStr .= $HTML_HR;
-    
+
     local( $AddNum ) = "&num=$gNum&old=$gOld&rev=$gRev";
 
     local( $Id, $IdNum, $Fid );
@@ -1572,8 +1575,7 @@ sub hg_thread_article_tree
 	    $Id = $DB_ID[$IdNum];
 	    ( $Fid = $DB_FID{ $Id } ) =~ s/,.*$//o;
 	    # 後方参照は後回し．
-	    next if (( $Fid ne '' ) && (( $gADDFLAG{$Fid} == 2 ) ||
-		( $SYS_THREAD_FORMAT == 2 )));
+	    next if (( $Fid ne '' ) && (( $gADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
 	    # ノードを表示
 	    $gHgStr .= "<ul>\n" unless $gFold;
@@ -1635,10 +1637,7 @@ sub hg_thread_article_tree
 
 sub hg_thread_article_body
 {
-    if ( $_[0] ne 'ThreadArticle.xml' )
-    {
-	&Fatal( 18, "$_[0]/ThreadArticleBody" );
-    }
+    &Fatal( 18, "$_[0]/ThreadArticleBody" ) if ( $_[0] ne 'ThreadArticle.xml' );
 
     local( $id );
     if ( $#gIDLIST >= 0 )
@@ -1744,10 +1743,7 @@ sub UIThreadTitle
 
 sub hg_thread_title_board_header
 {
-    if ( $_[0] ne 'ThreadTitle.xml' )
-    {
-	&Fatal( 18, "$_[0]/ThreadTitleBoardHeader" )
-	}
+    &Fatal( 18, "$_[0]/ThreadTitleBoardHeader" ) if ( $_[0] ne 'ThreadTitle.xml' );
 
     if ( $gComType == 2 )
     {
@@ -1786,10 +1782,10 @@ sub hg_thread_title_board_header
 この$H_MESGの$H_REPLY先を変更します．$H_REPLY先を指定する画面に飛びます．</li>
 <li>$H_REORDERFROM_MARK:
 この$H_MESGの順序を変更します．移動先を指定する画面に飛びます．</li>
-<li>$H_DELETE_ICON:
-この$H_MESGを削除します．</li>
 <li>$H_SUPERSEDE_ICON:
 この$H_MESGを訂正します．</li>
+<li>$H_DELETE_ICON:
+この$H_MESGを削除します．</li>
 <li>$H_RELINKTO_MARK:
 先に指定した$H_MESGの$H_REPLY先を，この$H_MESGにします．</li>
 <li>$H_REORDERTO_MARK:
@@ -2009,10 +2005,10 @@ sub ThreadTitleMaintIcon
     }
 
     # 削除・訂正コマンド
-    $gHgStr .= &LinkP( "b=$BOARD_ESC&c=dp&id=$id", $H_DELETE_ICON, '',
-	$H_DELETE_ICON_L ) . "\n";
     $gHgStr .= &LinkP( "b=$BOARD_ESC&c=f&s=on&id=$id", $H_SUPERSEDE_ICON, '',
 	$H_SUPERSEDE_ICON_L ) . "\n";
+    $gHgStr .= &LinkP( "b=$BOARD_ESC&c=dp&id=$id", $H_DELETE_ICON, '',
+	$H_DELETE_ICON_L ) . "\n";
 
     # 移動コマンド(To)
     if (( $gComType == 4 ) && ( $fromId ne $id ) && ( $DB_FID{$id} eq '' ) &&
@@ -2036,7 +2032,7 @@ sub ThreadTitleMaintIcon
 
 
 ###
-## 日付順タイトル一覧
+## 書き込み順タイトル一覧
 #
 sub UISortTitle
 {
@@ -2119,6 +2115,8 @@ sub UIShowThread
 
     local( $id ) = $cgi'TAGS{'id'};
 
+    ( $gFids ) = &GetArticlesInfo( $id );
+
     # フォロー記事の木構造の取得
     # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
     @gFollowIdTree = ();
@@ -2138,37 +2136,27 @@ sub hg_show_thread_title
 
 sub hg_show_thread_title_tree
 {
-    if ( $_[0] ne 'ShowThread.xml' )
-    {
-	&Fatal( 18, "$_[0]/ShowThreadTitleTree" );
-    }
+    &Fatal( 18, "$_[0]/ShowThreadTitleTree" ) if ( $_[0] ne 'ShowThread.xml' );
 
-    &DumpArtThread( 7, @gFollowIdTree );
+    &DumpOriginalArticles( $gFids );
+    &DumpArtThread( 6, @gFollowIdTree );
 }
 
 sub hg_show_thread_msg_body
 {
-    if ( $_[0] ne 'ShowThread.xml' )
-    {
-	&Fatal( 18, "$_[0]/ShowThreadMsgBody" );
-    }
-
+    &Fatal( 18, "$_[0]/ShowThreadMsgBody" ) if ( $_[0] ne 'ShowThread.xml' );
     &DumpArtThread( 2, @gFollowIdTree );
 }
 
 sub hg_show_thread_back_to_title_button
 {
-    if ( $_[0] ne 'ShowThread.xml' )
-    {
-	&Fatal( 18, "$_[0]/ShowThreadBackToTitleButton" );
-    }
-
+    &Fatal( 18, "$_[0]/ShowThreadBackToTitleButton" ) if ( $_[0] ne 'ShowThread.xml' );
     &DumpButtonToTitleList( $BOARD, $cgi'TAGS{'id'} );
 }
 
 
 ###
-## 日付順メッセージ一覧
+## 書き込み順メッセージ一覧
 #
 sub UISortArticle
 {
@@ -2237,7 +2225,7 @@ sub UIShowArticle
     &UnlockBoard();
 
     local( $tmp );
-    ( $tmp, $gAids, $tmp, $gSubject ) = &GetArticlesInfo( $cgi'TAGS{'id'} );
+    ( $gFids, $gAids, $tmp, $gSubject ) = &GetArticlesInfo( $cgi'TAGS{'id'} );
 
     # 未投稿記事は読めない
     &Fatal( 8, '' ) if ( $gSubject eq '' );
@@ -2248,22 +2236,31 @@ sub UIShowArticle
 sub hg_show_article_title
 {
     &Fatal( 18, "$_[0]/ShowArticleTitle" ) if ( $_[0] ne 'ShowArticle.xml' );
-
     $gHgStr .= $gSubject;
 }
 
 sub hg_show_article_body
 {
     &Fatal( 18, "$_[0]/ShowArticleBody" ) if ( $_[0] ne 'ShowArticle.xml' );
-
     &DumpArtBody( $cgi'TAGS{'id'}, 1, 1 );
+}
+
+sub hg_show_article_original
+{
+    &Fatal( 18, "$_[0]/ShowArticleOriginal" ) if ( $_[0] ne 'ShowArticle.xml' );
+    if ( $gFids ne '' )
+    {
+	$gHgStr .= "<p>▼$H_ORIG</p>\n";
+	&DumpOriginalArticles( $gFids );
+    }
 }
 
 sub hg_show_article_reply
 {
     &Fatal( 18, "$_[0]/ShowArticleReply" ) if ( $_[0] ne 'ShowArticle.xml' );
 
-    &DumpReplyArticles( split( /,/, $gAids ));
+    $gHgStr .= "<p>▼$H_REPLY</p>\n";
+    &DumpReplyArticles( $gAids );
 }
 
 
@@ -2277,10 +2274,7 @@ sub UISearchArticle
 
 sub hg_search_article_result
 {
-    if ( $_[0] ne 'SearchArticle.xml' )
-    {
-	&Fatal( 18, "$_[0]/SearchArticleResult" );
-    }
+    &Fatal( 18, "$_[0]/SearchArticleResult" ) if ( $_[0] ne 'SearchArticle.xml' );
 
     &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
@@ -2334,10 +2328,7 @@ sub UIDeletePreview
 
 sub hg_delete_preview_form
 {
-    if ( $_[0] ne 'DeletePreview.xml' )
-    {
-	&Fatal( 18, "$_[0]/DeletePreviewForm" );
-    }
+    &Fatal( 18, "$_[0]/DeletePreviewForm" ) if ( $_[0] ne 'DeletePreview.xml' );
 
     local( %tags );
     %tags = ( 'c', 'de', 'b', $BOARD, 'id', $gId );
@@ -2352,22 +2343,16 @@ sub hg_delete_preview_form
 
 sub hg_delete_preview_body
 {
-    if ( $_[0] ne 'DeletePreview.xml' )
-    {
-	&Fatal( 18, "$_[0]/DeletePreviewBody" );
-    }
-
+    &Fatal( 18, "$_[0]/DeletePreviewBody" ) if ( $_[0] ne 'DeletePreview.xml' );
     &DumpArtBody( $gId, 0, 1 );
 }
 
 sub hg_delete_preview_reply
 {
-    if ( $_[0] ne 'DeletePreview.xml' )
-    {
-	&Fatal( 18, "$_[0]/DeletePreviewReply" );
-    }
+    &Fatal( 18, "$_[0]/DeletePreviewReply" ) if ( $_[0] ne 'DeletePreview.xml' );
 
-    &DumpReplyArticles( split( /,/, $gAids ));
+    $gHgStr .= "<p>▼$H_REPLY</p>\n";
+    &DumpReplyArticles( $gAids );
 }
 
 
@@ -2403,11 +2388,7 @@ sub UIDeleteExec
 
 sub hg_delete_exec_back_to_title_button
 {
-    if ( $_[0] ne 'DeleteExec.xml' )
-    {
-	&Fatal( 18, "$_[0]/DeleteExecBackToTitleButton" );
-    }
-
+    &Fatal( 18, "$_[0]/DeleteExecBackToTitleButton" ) if ( $_[0] ne 'DeleteExec.xml' );
     &DumpButtonToTitleList( $BOARD, $gId );
 }
 
@@ -2472,8 +2453,7 @@ sub hg_s_address
 sub hg_c_status
 {
     $gHgStr .= qq(<p class="kbStatus">[);
-    if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne
-	$cgiauth'F_COOKIE_RESET ))
+    if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne $cgiauth'F_COOKIE_RESET ))
     {
 	$gHgStr .= "$H_USER: $UNAME -- \n";
     }
@@ -2490,8 +2470,7 @@ sub hg_c_remote_info
 
 sub hg_c_auth_user
 {
-    if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne
-	$cgiauth'F_COOKIE_RESET ))
+    if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne $cgiauth'F_COOKIE_RESET ))
     {
 	$gHgStr .= $UNAME;
     }
@@ -2527,17 +2506,22 @@ sub hg_c_top_menu
 
     if ( $BOARD )
     {
-	$contents .= sprintf( qq[<option%s value="v">最新$H_SUBJECT一覧(スレッド)</option>\n], ( $cgi'TAGS{'c'} eq 'v' )? ' selected' : '' );
-	$contents .= sprintf( qq[<option%s value="r">最新$H_SUBJECT一覧(日付順)</option>\n], ( $cgi'TAGS{'c'} eq 'r' )? ' selected' : '' );
-	$contents .= sprintf( qq[<option%s value="vt">最新$H_MESG一覧(スレッド)</option>\n], ( $cgi'TAGS{'c'} eq 'vt' )? ' selected' : '' );
-	$contents .= sprintf( qq[<option%s value="l">最新$H_MESG一覧(日付順)</option>\n], ( $cgi'TAGS{'c'} eq 'l' )? ' selected' : '' );
-	$contents .= sprintf( qq(<option%s value="s">$H_MESGの検索</option>\n), ( $cgi'TAGS{'c'} eq 's' )? ' selected' : '' ) if $SYS_F_S;
-	$contents .= sprintf( qq(<option%s value="n">$H_POSTNEWARTICLE</option>\n), ( $cgi'TAGS{'c'} eq 'n' )? ' selected' : '' ) if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )));
-	$contents .= sprintf( qq(<option%s value="i">使える$H_ICON一覧</option>\n), ( $cgi'TAGS{'c'} eq 'i' )? ' selected' : '' ) if $SYS_ICON;
+	$contents .= sprintf( qq[<option%s value="v">最新$H_SUBJECT一覧(スレッド)</option>\n], ( $SYS_TITLE_FORMAT == 0 )? ' selected' : '' );
+	$contents .= sprintf( qq[<option%s value="r">最新$H_SUBJECT一覧(書き込み順)</option>\n], ( $SYS_TITLE_FORMAT == 1 )? ' selected' : '' );
+	$contents .= qq[<option value="vt">最新$H_MESG一覧(スレッド)</option>\n];
+	$contents .= qq[<option value="l">最新$H_MESG一覧(書き込み順)</option>\n];
+	$contents .= qq(<option value="v">--------</option>\n);
+	$contents .= qq(<option value="s">$H_MESGの検索</option>\n);
+	$contents .= qq(<option value="i">使える$H_ICON一覧</option>\n) if $SYS_ICON;
+	if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )))
+	{
+	    $contents .= qq(<option value="v">--------</option>\n);
+	    $contents .= qq(<option value="n">$H_POSTNEWARTICLE</option>\n);
+	}
     }
     else
     {
-	$contents .= sprintf( qq(<option%s value="bl">$H_BOARD一覧</option>\n), ( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
+	$contents .= qq(<option selected value="bl">$H_BOARD一覧</option>\n);
     }
 
     $formStr .= &TagSelect( 'c', $contents ) . "\n&nbsp;&nbsp;&nbsp;" .
@@ -2623,7 +2607,8 @@ sub hg_c_board_link_all
 
 	$boardEsc = &URIEscape( $_ );
 	$gHgStr .= '<li>' .
-	    &LinkP( "b=$boardEsc&c=v&num=$DEF_TITLE_NUM", $boardName{$_} ) .
+	    &LinkP( "b=$boardEsc&c=" . ( $SYS_TITLE_FORMAT? 'r' : 'v' ) .
+	    "&num=$DEF_TITLE_NUM", $boardName{$_} ) .
 	    "$newIcon\n[最新: $modTime, 最新${H_MESG}ID: $nofArticle]\n";
 	if ( $POLICY & 8 )
 	{
@@ -2699,6 +2684,17 @@ sub hg_c_anchor
     $gHgStr .= &TagA( split( ',', $_[1] ));
 }
 
+sub hg_c_icon_msg
+{
+    $gHgStr .= &TagMsgImg( $_[1] );
+}
+
+sub hg_c_icon
+{
+    local( $src, $alt ) = split( ',', $_[1], 2 );
+    $gHgStr .= &TagComImg( &GetIconURL( $src ), $alt );
+}
+
 sub hg_b_board_name
 {
     $gHgStr .= $BOARDNAME if $BOARD;
@@ -2713,9 +2709,7 @@ sub hg_b_post_entry_form
 {
     if ( $POLICY & 2 )
     {
-	&DumpArtEntry( $gDefIcon, $gEntryType, $gId, $gDefSubject,
-	    $gDefTextType, $gDefArticle, $gDefName, $gDefEmail, $gDefUrl,
-	    $gDefFmail );
+	&DumpArtEntry( $gDefIcon, $gEntryType, $gId, $gDefPostDateStr, $gDefSubject, $gDefTextType, $gDefArticle, $gDefName, $gDefEmail, $gDefUrl, $gDefFmail );
     }
 }
 
@@ -2826,12 +2820,13 @@ sub DumpBoardHeader
 ## DumpArtEntry - メッセージ入力フォームの表示
 #
 # - SYNOPSIS
-#	DumpArtEntry( $icon, $type, $id, $title, $texttype, $article, $name, $eMail, $url, $fMail );
+#	DumpArtEntry( $icon, $type, $id, $postDateStr, $title, $texttype, $article, $name, $eMail, $url, $fMail );
 #
 # - ARGS
 #	$icon		アイコン
 #	$type		メッセージタイプ( 'supersede', and so )
 #	$id		リプライ/修正元メッセージID
+#	$postDateStr	デフォルト投稿日（yyyy/mm/dd(HH:MM:SS)）
 #	$title		デフォルトタイトル（プレビューからの戻りなどで使う）
 #	$texttype	デフォルト書き込み形式
 #	$article	デフォルトメッセージ本文
@@ -2862,7 +2857,7 @@ sub DumpArtEntry
 # 通常メッセージ
 sub DumpArtEntryNormal
 {
-    local( $icon, $type, $id, $title, $texttype, $article, $name, $eMail, $url, $fMail ) = @_;
+    local( $icon, $type, $id, $postDateStr, $title, $texttype, $article, $name, $eMail, $url, $fMail ) = @_;
 
     $texttype = $texttype || $H_TTLABEL[ $SYS_TT_DEFAULT ];
     $icon = $icon || $SYS_ICON_DEFAULT;
@@ -2895,8 +2890,7 @@ sub DumpArtEntryNormal
     
     foreach ( @H_TTLABEL )
     {
-	if (( $SYS_TEXTTYPE & ( 2 ** $ttBit )) &&
-	    ( $SYS_TEXTTYPE ^ ( 2 ** $ttBit )))
+	if (( $SYS_TEXTTYPE & ( 2 ** $ttBit )) && ( $SYS_TEXTTYPE ^ ( 2 ** $ttBit )))
 	{
 	    $ttFlag = 1;	# 後で使う．きたない．．．
 	}
@@ -2924,44 +2918,55 @@ sub DumpArtEntryNormal
 		}
 		if ( $texttype eq $H_TTLABEL[$ttBit] )
 		{
-		    $contents .= &TagInputRadio( 'texttype_' . $ttBit,
-		    	'texttype', $H_TTLABEL[$ttBit], 1 );
+		    $contents .= &TagInputRadio( 'texttype_' . $ttBit, 'texttype', $H_TTLABEL[$ttBit], 1 );
 		    $labelTarget = 'texttype_' . $ttBit;
 		}
 		else
 		{
-		    $contents .= &TagInputRadio( 'texttype_' . $ttBit,
-		    	'texttype', $H_TTLABEL[$ttBit], 0 );
+		    $contents .= &TagInputRadio( 'texttype_' . $ttBit, 'texttype', $H_TTLABEL[$ttBit], 0 );
 		}
 		$contents .= $H_TTLABEL[$ttBit];
 	    }
 	    $ttBit++;
 	}
-	$msg .= &TagFieldset( &TagLabel( $H_TEXTTYPE, $labelTarget, 'Z' ) .
-	    ': ', $contents );
+	$msg .= &TagFieldset( &TagLabel( $H_TEXTTYPE, $labelTarget, 'Z' ) . ': ', $contents );
     }
     else
     {
-	$msg .= sprintf(
-	    qq(<input name="texttype" type="hidden" value="%s" />),
-	    $H_TTLABEL[(( log $SYS_TEXTTYPE ) / ( log 2 ))] ) . $HTML_BR;
+	$msg .= sprintf( qq(<input name="texttype" type="hidden" value="%s" />), $H_TTLABEL[(( log $SYS_TEXTTYPE ) / ( log 2 ))] ) . $HTML_BR;
     }
 
     $msg .= &TagLabel( $H_MESG, 'article', 'A' ) . ':' . $HTML_BR .
 	&TagTextarea( 'article', $article, $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
 
-    if ( $POLICY & 4 )
+    if ( $POLICY & 8 )
+    {
+	# 管理権限は特別扱い
+	$msg .= &TagLabel( $H_DATE, 'postdate', 'T' ) . ': ' .
+	    &TagInputText( 'text', 'postdate', $postDateStr, 20 ) .
+	    qq[('yyyy/mm/dd(HH:MM:SS)'の形式で指定)] . $HTML_BR;
+	$msg .= &TagLabel( $H_FROM, 'name', 'N' ) . ': ' .
+	    &TagInputText( 'text', 'name', $name, $NAME_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_MAIL, 'mail', 'M' ) . ': ' .
+	    &TagInputText( 'text', 'mail', $eMail, $MAIL_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_URL, 'url', 'U' ) . ': ' .
+	    &TagInputText( 'text', 'url', ( $url || 'http://' ), $URL_LENGTH ) . $HTML_BR;
+    }
+    elsif ( $POLICY & 4 )
     {
 	# 登録済みの場合，名前，メイル，URLの入力は，無し．
+	$msg .= $H_FROM . ": $UNAME" . $HTML_BR;
+	$msg .= $H_MAIL . ": $UMAIL" . $HTML_BR if ( $SYS_SHOWMAIL && $UMAIL );
+	$msg .= $H_URL . ": $UURL" . $HTML_BR if $UURL;
     }
     else
     {
-	$msg .= &TagLabel( $H_FROM, 'name', 'N' ) . ': ' . &TagInputText(
-	    'text', 'name', $name, $NAME_LENGTH ) . $HTML_BR;
-	$msg .= &TagLabel( $H_MAIL, 'mail', 'M' ) . ': ' . &TagInputText(
-	    'text', 'mail', $eMail, $MAIL_LENGTH ) . $HTML_BR;
-	$msg .= &TagLabel( $H_URL, 'url', 'U' ) . ': ' . &TagInputText( 'text',
-	    'url', ( $url || 'http://' ), $URL_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_FROM, 'name', 'N' ) . ': ' .
+	    &TagInputText( 'text', 'name', $name, $NAME_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_MAIL, 'mail', 'M' ) . ': ' .
+	    &TagInputText( 'text', 'mail', $eMail, $MAIL_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_URL, 'url', 'U' ) . ': ' .
+	    &TagInputText( 'text', 'url', ( $url || 'http://' ), $URL_LENGTH ) . $HTML_BR;
     }
 
     if ( $SYS_MAIL & 2 )
@@ -3038,25 +3043,24 @@ sub DumpArtBody
     # タイトル
     &DumpArtTitle( $id, $title, $icon );
 
+    local( $origId );
+    if ( $fid ne '' )
+    {
+	( $origId = $fid ) =~ s/,.*$//o;
+    }
+
     if ( $commandFlag && $SYS_COMMAND )
     {
 	local( $num );
 	foreach ( 0 .. $#DB_ID ) { $num = $_, last if ( $DB_ID[$_] eq $id ); }
 	local( $prevId ) = $DB_ID[$num - 1] if ( $num > 0 );
 	local( $nextId ) = $DB_ID[$num + 1];
-	&DumpArtCommand( $id, $prevId, $nextId, ( $aids ne '' ), (( &IsUser(
-	    $name ) && (( $aids eq '' ) || ( $SYS_OVERWRITE == 2 ))) ||
-	    ( $POLICY & 8 )));
-    }
-
-    local( @origIdList );
-    if ( $origFlag && ( $fid ne '' ))
-    {
-	@origIdList = split( /,/, $fid );
+	&DumpArtCommand( $id, $origId, $prevId, $nextId, ( $aids ne '' ),
+	    (( &IsUser( $name ) && (( $aids eq '' ) || ( $SYS_OVERWRITE == 2 ))) || ( $POLICY & 8 )));
     }
 
     # ヘッダ（ユーザ情報とリプライ元: タイトルは除く）
-    &DumpArtHeader( $name, $eMail, $url, $host, $date, @origIdList );
+    &DumpArtHeader( $name, $eMail, $url, $host, $date, ( $origFlag? $origId : '' ));
 
     # 切れ目
     $gHgStr .= $H_LINE;
@@ -3126,10 +3130,8 @@ sub DumpArtThread
 	}
 	else
 	{
-	    local( $dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost,
-		$dName ) = &GetArticlesInfo( $Head );
-	    &DumpArtSummaryItem( $Head, $dAids, $dIcon, $dSubject, $dName,
-		$dDate, $State&3 );
+	    local( $dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName ) = &GetArticlesInfo( $Head );
+	    &DumpArtSummaryItem( $Head, $dAids, $dIcon, $dSubject, $dName, $dDate, $State&3 );
 	    $gHgStr .= "</li>\n";
 	    $State ^= 1 if ( $State&1 );
 	}
@@ -3286,26 +3288,60 @@ sub DumpSearchResult
 
 
 ###
+## DumpOriginalArticles - オリジナル記事へのリンクの表示
+#
+# - SYNOPSIS
+#	DumpOriginalArticles( $fids );
+#
+# - ARGS
+#	$fids	オリジナル記事IDデータ
+#
+# - DESCRIPTION
+#	オリジナル記事へのリンクを表示する．
+#
+sub DumpOriginalArticles
+{
+    if ( $_[0] ne '' )
+    {
+	# オリジナル記事があるなら…
+
+	$gHgStr .= "<ul>\n";
+
+	local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName );
+	foreach $dId ( reverse( split( /,/, $_[0] )))
+	{
+	    ( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName ) = &GetArticlesInfo( $dId );
+	    &DumpArtSummaryItem( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate, 0 );
+	}
+	$gHgStr .= "</ul>\n";
+    }
+    else
+    {
+	# なにも表示しない．
+    }
+}
+
+
+###
 ## DumpReplyArticles - リプライ記事へのリンクの表示
 #
 # - SYNOPSIS
-#	DumpReplyArticles( @_ );
+#	DumpReplyArticles( $aids );
 #
 # - ARGS
-#	@_	リプライ記事IDのリスト
+#	$aids	リプライ記事IDデータ
 #
 # - DESCRIPTION
 #	リプライ記事へのリンクを表示する．
 #
 sub DumpReplyArticles
 {
-    $gHgStr .= "$H_LINE\n<p>\n▼$H_REPLY\n";
-
-    if ( @_ )
+    if ( $_[0] ne '' )
     {
 	# 反応記事があるなら…
+
 	local( $id, @tree );
-	foreach $id ( @_ )
+	foreach $id ( split( /,/, $_[0] ))
 	{
 	    # フォロー記事の木構造の取得
 	    # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
@@ -3319,10 +3355,9 @@ sub DumpReplyArticles
     else
     {
 	# 反応記事無し
+
 	$gHgStr .= "<ul>\n<li>現在，この$H_MESGへの$H_REPLYはありません</li>\n</ul>\n";
     }
-
-    $gHgStr .= "</p>\n";
 }
 
 
@@ -3351,10 +3386,11 @@ sub DumpArtTitle
 ## DumpArtCommand - 記事コマンドの表示
 #
 # - SYNOPSIS
-#	DumpArtCommand( $id, $prevId, $nextId, $reply, $delete );
+#	DumpArtCommand( $id, $upId, $prevId, $nextId, $reply, $delete );
 #
 # - ARGS
 #	$id	記事ID
+#	$upId	上記事ID
 #	$prevId	前記事ID
 #	$nextId	次記事ID
 #	$reply	リプライ記事があるか
@@ -3362,7 +3398,7 @@ sub DumpArtTitle
 #
 sub DumpArtCommand
 {
-    local( $id, $prevId, $nextId, $reply, $delete ) = @_;
+    local( $id, $upId, $prevId, $nextId, $reply, $delete ) = @_;
 
     $gHgStr .= qq(<p class="command">\n);
 
@@ -3383,12 +3419,14 @@ sub DumpArtCommand
 	$dlmtL = '';
     }
 
-    local( $old ) = &GetTitleOldIndex( $id );
-
-    $gHgStr .= &LinkP( 'c=bl', &TagComImg( $ICON_BLIST, $H_BACKBOARD ), 'B' ) . "\n";
-
-    $gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=v&num=$DEF_TITLE_NUM&old=$old",
-	&TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY ), 'T' ) . "\n";
+    if ( $upId ne '' )
+    {
+	$gHgStr .= &LinkP( "b=$BOARD_ESC&c=e&id=$upId", &TagComImg( $ICON_UP, $H_UPARTICLE ), 'U' ) . "\n";
+    }
+    else
+    {
+	$gHgStr .= &TagComImg( $ICON_UP, $H_UPARTICLE, ) . "\n";
+    }
 	
     if ( $prevId ne '' )
     {
@@ -3468,7 +3506,7 @@ sub DumpArtCommand
 ## DumpArtHeader - 記事ヘッダ（タイトル除く）の表示
 #
 # - SYNOPSIS
-#	DumpArtHeader( $name, $eMail, $url, $host, $date, @origIdList );
+#	DumpArtHeader( $name, $eMail, $url, $host, $date, $origId );
 #
 # - ARGS
 #	$name		ユーザ名
@@ -3476,11 +3514,11 @@ sub DumpArtCommand
 #	$url		URL
 #	$host		Remote Host名
 #	$date		日付（UTC）
-#	@origIdList	リプライ元記事ID
+#	$origId		リプライ元記事ID
 #
 sub DumpArtHeader
 {
-    local( $name, $eMail, $url, $host, $date, @origIdList ) = @_;
+    local( $name, $eMail, $url, $host, $date, $origId ) = @_;
 
     $gHgStr .= qq(<p class="header">\n);
 
@@ -3508,26 +3546,11 @@ sub DumpArtHeader
     $gHgStr .= "<strong>$H_DATE</strong>: " . &GetDateTimeFormatFromUtc( $date ) . $HTML_BR;
 
     # リプライ元へのリンク
-    if ( @origIdList )
+    if ( $origId )
     {
-	# オリジナル記事
-	local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName );
-	if ( $#origIdList > 0 )
-	{
-	    $dId = $origIdList[$#origIdList];
-	    ( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName ) =
-		&GetArticlesInfo( $dId );
-	    $gHgStr .= "<strong>$H_ORIG_TOP:</strong> ";
-	    &DumpArtSummary( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate, 0 );
-	    $gHgStr .= $HTML_BR;
-	}
-
-	# 元記事
-	$dId = $origIdList[0];
-	( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName ) =
-	    &GetArticlesInfo( $dId );
+	( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName ) = &GetArticlesInfo( $origId );
 	$gHgStr .= "<strong>$H_ORIG:</strong> ";
-	&DumpArtSummary( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate, 0 );
+	&DumpArtSummary( $origId, $dAids, $dIcon, $dTitle, $dName, $dDate, 0 );
 	$gHgStr .= $HTML_BR;
     }
 
@@ -3565,11 +3588,8 @@ sub DumpButtonToTitleList
     else
     {
 	local( $boardEsc ) = &URIEscape( $board );
-	$gHgStr .= "<p>" . &LinkP(
-	    "b=$boardEsc&c=v&num=$DEF_TITLE_NUM&old=$old", $H_BACKTITLEREPLY .
-	    &TagAccessKey( 'B' ), 'B' ) . "</p>\n";
-	$gHgStr .= "<p>" . &LinkP(
-	    "b=$boardEsc&c=r&num=$DEF_TITLE_NUM&old=$old", $H_BACKTITLEDATE ) .
+	$gHgStr .= "<p>" . &LinkP( "b=$boardEsc&c=v&num=$DEF_TITLE_NUM&old=$old", $H_BACKTITLEREPLY . &TagAccessKey( 'B' ), 'B' ) . "</p>\n";
+	$gHgStr .= "<p>" . &LinkP( "b=$boardEsc&c=r&num=$DEF_TITLE_NUM&old=$old", $H_BACKTITLEDATE ) .
 	    "</p>\n";
     }
 }
@@ -3721,7 +3741,7 @@ sub DumpArtSummary
     {
 	$gHgStr .= ' ' . &TagMsgImg( $H_NEWARTICLE );
     }
-    $gHgStr .= '</span>';
+    $gHgStr .= "</span>\n";
 }
 
 
@@ -3776,8 +3796,8 @@ sub htmlGen
     }
     elsif ( $SYS_COOKIE_EXPIRE == 2 )
     {
-	$cookieExpire = $^T + ( $SYS_COOKIE_VALUE * 86400 );
 	# 86400 = 24 * 60 * 60
+	$cookieExpire = $^T + ( $SYS_COOKIE_VALUE * 86400 );
     }
     elsif ( $SYS_COOKIE_EXPIRE == 3 )
     {
@@ -4005,15 +4025,17 @@ __EOF__
 
 
 ###
-## MakeNewArticle - 新たに投稿された記事の生成
+## MakeNewArticle, MakeNewArticleEx - 新たに投稿された記事の生成
 #
 # - SYNOPSIS
-#	MakeNewArticle($Board, $Id, $artKey, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
+#	MakeNewArticleEx( $Board, $Id, $artKey, $postDate, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $MailRelay );
+#	MakeNewArticle( $Board, $Id, $artKey, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $MailRelay );
 #
 # - ARGS
 #	$Board		作成する記事が入る掲示板のID
 #	$Id		リプライ元記事のID
 #	$artKey		多重書き込み防止用キー
+#	$postDate	投稿時刻（UTCからの経過秒数）
 #	$TextType	文書タイプ
 #	$Name		投稿者名
 #	$Email		投稿者E-Mail addr.
@@ -4025,15 +4047,21 @@ __EOF__
 #
 # - DESCRIPTION
 #	投稿された記事を記事DBに整理する．
+#	&MakeNewArticleには$postDate引数がない．
+#	今後（R7以後）は極力&MakeNewArticleExの方を使うように．
 #
 sub MakeNewArticle
 {
-    local( $Board, $Id, $artKey, $TextType, $Name, $Email, $Url, $Icon,
-	$Subject, $Article, $Fmail, $MailRelay ) = @_;
+    local( $Board, $Id, $artKey, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $MailRelay ) = @_;
+    &MakeNewArticleEx( $Board, $Id, $artKey, $^T, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $MailRelay );
+}
+
+sub MakeNewArticleEx
+{
+    local( $Board, $Id, $artKey, $postDate, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $MailRelay ) = @_;
 
     local( $ArticleId );
-
-    &CheckArticle( $Board, *Name, *Email, *Url, *Subject, *Icon, *Article );
+    &CheckArticle( $Board, *postDate, *Name, *Email, *Url, *Subject, *Icon, *Article );
 
     # 新しい記事番号を取得(まだ記事番号は増えてない)
     $ArticleId = &GetNewArticleId( $Board );
@@ -4046,9 +4074,7 @@ sub MakeNewArticle
 
     # DBファイルに投稿された記事を追加
     # 通常の記事引用ならID
-    &AddDBFile( $ArticleId, $Board, $Id, $^T, $Subject, $Icon,
-	( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail,
-	$MailRelay );
+    &AddDBFile( $ArticleId, $Board, $Id, $postDate, $Subject, $Icon, ( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail, $MailRelay );
 
     $ArticleId;
 }
@@ -4200,15 +4226,15 @@ sub DeleteArticle
 #
 sub SupersedeArticle
 {
-    local( $Board, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail ) = @_;
+    local( $Board, $Id, $postDate, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail ) = @_;
 
     local( $SupersedeId, $File, $SupersedeFile );
 
-    # 入力された記事情報のチェック
-    &CheckArticle( $Board, *Name, *Email, *Url, *Subject, *Icon, *Article );
+    # 入力された記事情報のチェック．投稿日は
+    &CheckArticle( $Board, $postDate, *Name, *Email, *Url, *Subject, *Icon, *Article );
 
     # DBファイルを訂正
-    $SupersedeId = &SupersedeDbFile( $Board, $Id, $^T, $Subject, $Icon, ( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail );
+    $SupersedeId = &SupersedeDbFile( $Board, $Id, $postDate, $Subject, $Icon, ( $SYS_LOGHOST? $REMOTE_INFO : '' ), $Name, $Email, $Url, $Fmail );
 
     # ex. 「100」→「100_5」
     $File = &GetArticleFileName( $Id, $Board );
@@ -4335,10 +4361,11 @@ sub ReOrderExec
 ## CheckArticle - 入力された記事情報のチェック
 #
 # - SYNOPSIS
-#	CheckArticle($board, *name, *eMail, *url, *subject, *icon, *article);
+#	CheckArticle( $board, *postDate, *name, *eMail, *url, *subject, *icon, *article );
 #
 # - ARGS
 #	$board		掲示板ID
+#	*postDate	投稿日（空でもOK）
 #	*name		投稿者名
 #	*eMail		メイルアドレス
 #	*url		URL
@@ -4351,8 +4378,9 @@ sub ReOrderExec
 #
 sub CheckArticle
 {
-    local( $board, *name, *eMail, *url, *subject, *icon, *article ) = @_;
+    local( $board, *postDate, *name, *eMail, *url, *subject, *icon, *article ) = @_;
 
+    &CheckPostDate( *postDate );
     &CheckName( *name );
     &CheckEmail( *eMail );
     &CheckURL( *url );
@@ -4515,6 +4543,30 @@ sub secureArticle
     {
 	&Fatal( 0, 'must not be reached...' );
     }
+}
+
+
+###
+## CheckPostDate - 投稿日チェック
+#
+# - SYNOPSIS
+#	CheckPostDate( *str );
+#
+# - ARGS
+#	*str		投稿日（UTCからの経過秒数）
+#
+# - DESCRIPTION
+#	投稿日のチェックを行なう．
+#
+sub CheckPostDate
+{
+    local( *str ) = @_;
+
+    # 空でもOK
+    return if ( $str eq '' );
+
+    # 不正な値になってないか?（解析に失敗してたら-1になってるはず）
+    &Fatal( 21, '' ) if ( $str < 0 );
 }
 
 
@@ -4914,9 +4966,6 @@ sub GetModifiedTime
 #
 # - DESCRIPTION
 #	UTCを時分秒に分割し，フォーマットして文字列として返す．
-#	古いバージョンのKINOBOARDSでは，
-#	DB中に時刻を表す文字列(not UTC)がそのまま入っているが，
-#	それが渡された場合(UTCでなかった場合)は，そのまま返す．
 #
 # - RETURN
 #	時刻を表わす文字列
@@ -4926,6 +4975,80 @@ sub GetDateTimeFormatFromUtc
     local( $utc ) = @_;
     local( $sec, $min, $hour, $mDay, $mon, $year ) = localtime( $utc );
     sprintf( "%d/%d/%d(%02d:%02d)", $year+1900, $mon+1, $mDay, $hour, $min );
+}
+
+
+###
+## GetYYYY_MM_DD_HH_MM_SSFromUtc - UTCからYYYY/MM/DD(HH:MM:SS)を取得
+#
+# - SYNOPSIS
+#	GetYYYY_MM_DD_HH_MM_SSFromUtc( $utc );
+#
+# - ARGS
+#	$utc		時刻（UTCからの経過秒数）
+#
+# - DESCRIPTION
+#	UTCを時分秒に分割し，YYYY/MM/DD(HH:MM:SS)の形にフォーマットして
+#	文字列として返す．
+#
+#	GetDateTimeFormatFromUtcと似ているが，これは，
+#	GetYYYY_MM_DD_HH_MM_SSFromUtcとGetUtcFromYYYY_MM_DD_HH_MM_SSが
+#	対応している必要があるため．GetDateTimeFormatFromUtcは無関係なので，
+#	自由に変更して構わない．
+#
+# - RETURN
+#	YYYY/MM/DD(HH:MM:SS)
+#
+sub GetYYYY_MM_DD_HH_MM_SSFromUtc
+{
+    local( $utc ) = @_;
+    local( $sec, $min, $hour, $mDay, $mon, $year ) = localtime( $utc );
+    sprintf( "%d/%d/%d(%02d:%02d:%02d)", $year+1900, $mon+1, $mDay, $hour, $min, $sec );
+}
+
+
+###
+## GetUtcFromYYYY_MM_DD_HH_MM_SS - YYYY/MM/DD(HH:MM:SS)からUTCを取得
+#
+# - SYNOPSIS
+#	&GetUtcFromYYYY_MM_DD_HH_MM_SS
+#	(
+#	    $str	時刻を表す文字列
+#	);
+#
+# - DESCRIPTION
+#	YYYY/MM/DD(HH:MM:SS)の文字列を分解してUTCを計算．
+#
+# - RETURN
+#	UTCからの経過秒数
+#
+sub GetUtcFromYYYY_MM_DD_HH_MM_SS
+{
+    local( $str ) = shift;
+
+    $str =~ m!^(\d+)/(\d+)/(\d+)\((\d\d):(\d\d):(\d\d)\)$!o;
+    local( $year, $month, $mday, $hour, $min, $sec ) = ( $1, $2, $3, $4, $5, $6 );
+    if (( $year < 1970 )
+	|| ( $year > 2037 )
+	|| ( $month < 1 )
+	|| ( $month > 12 )
+	|| ( $mday < 1 )
+	|| ( $mday > 31 )
+	|| ( $hour < 0 )
+	|| ( $hour > 23 )
+	|| ( $min < 0 )
+	|| ( $min > 59 )
+	|| ( $sec < 0 )
+	|| ( $sec > 60 ))
+    {
+	# can't exec timegm/timelocal...
+	return -1;
+    }
+
+    require( 'timelocal.pl' );
+    $year -= 1900;
+    $month--;
+    &timelocal( $sec, $min, $hour, $mday, $month, $year );
 }
 
 
@@ -4942,7 +5065,7 @@ sub GetDateTimeFormatFromUtc
 #	YYYY/MM/DDの文字列を分解してUTCを計算．
 #
 # - RETURN
-#	UTC
+#	UTCからの経過秒数
 #
 sub GetUtcFromYYYY_MM_DD
 {
@@ -4950,12 +5073,12 @@ sub GetUtcFromYYYY_MM_DD
     return -1 if ( length( $str ) != 10 );
 
     local( $year, $month, $mday ) = unpack( "a4 x a2 x a2", $str );
-    if (( $year < 1970 ) ||
-	( $year > 2037 ) ||
-	( $month < 1 ) ||
-	( $month > 12 ) ||
-	( $mday < 1 ) ||
-	( $mday > 31 ))
+    if (( $year < 1970 )
+	|| ( $year > 2037 )
+	|| ( $month < 1 )
+	|| ( $month > 12 )
+	|| ( $mday < 1 )
+	|| ( $mday > 31 ))
     {
 	# can't exec timegm/timelocal...
 	return -1;
@@ -5761,7 +5884,7 @@ sub TagInputCheck
     $gTabIndex++;
     if ( $checked )
     {
-	qq(<input type="checkbox" id="$id" name="$id" value="on" tabindex="$gTabIndex" checked />);
+	qq(<input type="checkbox" id="$id" name="$id" value="on" tabindex="$gTabIndex" checked="checked" />);
     }
     else
     {
@@ -5788,7 +5911,7 @@ sub TagInputRadio
     $gTabIndex++;
     if ( $checked )
     {
-	qq(<input type="radio" id="$id" name="$name" value="$value" tabindex="$gTabIndex" checked />);
+	qq(<input type="radio" id="$id" name="$name" value="$value" tabindex="$gTabIndex" checked="checked" />);
     }
     else
     {
@@ -6010,6 +6133,8 @@ sub UnlockBoard
 #
 # - DESCRIPTION
 #       現在の利用ユーザが$nameかどうか確かめる．
+#	権限チェックは$POLICYにまとめている．
+#	権限チェックに関することは，この関数に依存しないようにすべきである．
 #   
 # - RETURN
 #       true/false
@@ -6286,6 +6411,11 @@ sub FatalStr
     {
 	$severity = $kinologue'SEV_FATAL;
 	$msg = "次のcopyに失敗しました（$errInfo）．ファイルパーミッションの設定ミスの可能性があります．";
+    }
+    elsif ( $errno == 21 )
+    {
+	$severity = $kinologue'SEV_INFO;
+	$msg = "$H_DATEのフォーマットが'yyyy/mm/dd(HH:MM:SS)'ではありません．戻ってもう一度やり直してみてください．";
     }
     elsif ( $errno == 40 )
     {
@@ -6589,7 +6719,7 @@ sub AddDBFile
 
     local( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $FidList, $FFid, @FollowMailTo, @FFid );
 
-    # リプライ元のリプライ元，を取ってくる
+    # メイル送信用に，リプライ元のリプライ元，を取ってくる
     if ( $Fid ne '' )
     {
 	( $FFid ) = &GetArticlesInfo( $Fid );

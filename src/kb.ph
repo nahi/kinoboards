@@ -186,6 +186,11 @@ $MSGICON_WIDTH = 20;		# 幅[dot]
 # 0を指定するとアイコンを付けません．
 $SYS_BLIST_NEWICON_DATE = 7;	# [日]
 
+# デフォルトのタイトル一覧画面表示方法を指定してください．
+#   0: スレッド表示
+#   1: 日付順表示
+$SYS_TITLE_FORMAT = 0;
+
 # タイトル一覧画面において，最近のメッセージに，[new!]アイコンをつけますか?
 #   0: つけない．
 #   1: 最近のメッセージn個に[new!]アイコンをつける．
@@ -461,6 +466,7 @@ $H_NEWARTICLE = 'new!';
 $H_BACKBOARD = '掲示板一覧へ';
 $H_BACKTITLEREPLY = 'タイトル一覧へ(スレッド)';
 $H_BACKTITLEDATE = 'タイトル一覧へ(日付順)';
+$H_UPARTICLE = '上へ';
 $H_PREVARTICLE = '前へ';
 $H_NEXTARTICLE = '次へ';
 $H_POSTNEWARTICLE = '新規に書き込む';
@@ -484,5 +490,5 @@ $H_REORDERTO_MARK_L = '移動先に指定';
 
 
 #/////////////////////////////////////////////////////////////////////
-# $Id: kb.ph,v 5.32 2000-02-25 12:53:57 nakahiro Exp $
+# $Id: kb.ph,v 5.33 2000-02-29 13:10:38 nakahiro Exp $
 1;
