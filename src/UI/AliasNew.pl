@@ -31,7 +31,7 @@ $H_ALIASの新規登録/登録内容の変更を行ないます．
 登録内容が変更されていないかどうか，
 書き込む時の「試しに表示する」画面を注意してチェックしてください．
 また，間違って同じエイリアスを登録されてしまわないように，
-あまりに簡単な「エイリアス」は避けてくださいね．<br>
+あまりに簡単な「エイリアス」は避けてくださいね．
 __EOF__
     &TagForm( *str, *tags, "登録/変更する", '', *msg );
     &cgiprint'Cache( "<h2>新規登録/登録内容の変更</h2>\n$str\n$H_HR\n" );
@@ -39,7 +39,7 @@ __EOF__
     %tags = ( 'c', 'ad' );
     $msg =<<__EOF__;
 $H_ALIAS: <input name="alias" type="text" size="$NAME_LENGTH"><br>
-上記$H_ALIASを削除します．<br>
+上記$H_ALIASを削除します．
 __EOF__
     &TagForm( *str, *tags, "削除する", '', *msg );
     &cgiprint'Cache( "<h2>削除</h2>\n$str\n$H_HR\n" );
