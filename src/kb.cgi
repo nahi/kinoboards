@@ -16,7 +16,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.12 1998-09-14 19:47:15 nakahiro Exp $
+# $Id: kb.cgi,v 5.13 1998-09-14 22:50:22 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -38,14 +38,16 @@ $PC = 0;	# for UNIX / WinNT
 # This file implements main functions of KINOBOARDS.
 
 # perlの設定
-umask( umask() | 070 );		# permission of CGI created files.
 $[ = 0;				# zero origined
 $| = 1;				# pipe flushed
+# umaskは特に設定しない．混乱の元なので．．．
+# umask( umask() | 070 );	# ユーザとnobodyが別グループの場合
+# umask( umask() | 007 );	# ユーザとnobodyが同グループの場合
 
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '5.6';		# release
+$KB_RELEASE = '5.7';		# release
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
