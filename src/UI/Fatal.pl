@@ -100,6 +100,11 @@ Fatal:
 	$severity = $kinologue'SEV_ERROR;
 	$msg = "同一書き込みフォームからの連続書き込みは禁止されています．連続して記事を書き込む場合は，書き込みフォームも再度読み込み直してからにしてください．";
     }
+    elsif ( $errno == 17 )
+    {
+	$severity = $kinologue'SEV_ERROR;
+	$msg = "現在，アイコンが使える設定になっていません．アイコンを使える設定に変更してから再度やり直してください．";
+    }
     elsif ( $errno == 50 )
     {
 	$severity = $kinologue'SEV_INFO;
