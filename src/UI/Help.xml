@@ -3,7 +3,7 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.keynauts.com/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
@@ -25,30 +25,29 @@
 </p>
 
 <ul>
-<li>▲ : そのスレッドの先頭メッセージから，全てのリプライをまとめて表示します．
-<li>▼ : そのメッセージへのリプライをまとめて表示します．
+<li>▲ : そのスレッドの先頭メッセージから，全てのリプライをまとめて表示します．</li>
+<li>▼ : そのメッセージへのリプライをまとめて表示します．</li>
 <br /><br />
 
-<LI><IMG alt="[new!]" height="20" src="icons/listnew.gif" width="20" class="kbComIcon"> : 新着メッセージであることを示しています．
+<li><kb:c_icon_msg var="new!" /> : 新着メッセージであることを示しています．</li>
 <br /><br />
 
-<LI><IMG alt="掲示板一覧へ" height="20" src="icons/blist.gif" width="20" class="kbComIcon"> : 掲示板一覧に戻ります．
-<LI><IMG alt="タイトル一覧へ" height="20" src="icons/tlist.gif" width="20" class="kbComIcon"> : タイトル一覧に戻ります．
-<LI><IMG alt="前へ" height="20" src="icons/prev.gif" width="20" class="kbComIcon"> : (あれば)前のメッセージを表示します(日付順)．
-<LI><IMG alt="次へ" height="20" src="icons/next.gif" width="20" class="kbComIcon"> : (あれば)次のメッセージを表示します(日付順)．
-<LI><IMG alt="リプライをまとめ読み" height="20" src="icons/thread.gif" width="20" class="kbComIcon"> : そのメッセージへのリプライをまとめて表示します．
+<li><kb:c_icon var="tlist.gif,上へ" /> : (あれば)リプライ元のメッセージを表示します．</li>
+<li><kb:c_icon var="prev.gif,前へ" /> : (あれば)前のメッセージを表示します(書き込み順)．</li>
+<li><kb:c_icon var="next.gif,次へ" /> : (あれば)次のメッセージを表示します(書き込み順)．</li>
+<li><kb:c_icon var="thread.gif,リプライをまとめ読み" /> : (あれば)そのメッセージへのリプライをまとめて表示します．▼と同じです．</li>
 <br /><br />
 
-<LI><IMG alt="リプライを書き込む" height="20" src="icons/follow.gif" width="20" class="kbComIcon"> : そのメッセージへのリプライ（返事）を書き込みます．
-<LI><IMG alt="引用してリプライを書き込む" height="20" src="icons/quote.gif" width="20" class="kbComIcon"> : メッセージを引用して，リプライを書き込みます．
+<li><kb:c_icon var="follow.gif,リプライを書き込む" /> : そのメッセージへのリプライを書き込みます．</li>
+<li><kb:c_icon var="quote.gif,引用してリプライを書き込む" /> : メッセージを引用して，リプライを書き込みます．</li>
 <br /><br />
 
-<LI><IMG alt="訂正する" height="20" src="icons/supersede.gif" width="20" class="kbComIcon"> : そのメッセージを訂正します．
-<LI><IMG alt="削除する" height="20" src="icons/delete.gif" width="20" class="kbComIcon"> : そのメッセージを削除します．
+<li><kb:c_icon var="supersede.gif,訂正する" /> : そのメッセージを訂正します．</li>
+<li><kb:c_icon var="delete.gif,削除する" /> : そのメッセージを削除します．</li>
 <br /><br />
 
-<LI><IMG alt="ヘルプ" height="20" src="icons/help.gif" width="20" class="kbComIcon"> : コマンドヘルプを表示します．
-</UL>
+<li><kb:c_icon var="help.gif,ヘルプ" /> : コマンドヘルプを表示します．</li>
+</ul>
 
 <hr />
 

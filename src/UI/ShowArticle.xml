@@ -3,7 +3,7 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.keynauts.com/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
@@ -19,6 +19,10 @@
 <hr />
 
 <kb:show_article_body />
+
+<p>--------------------</p>
+
+<kb:show_article_original />
 
 <kb:show_article_reply />
 

@@ -3,15 +3,15 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.keynauts.com/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
-<title>メッセージ一覧（日付順） - <kb:b_board_name /></title>
+<title>メッセージ一覧（書き込み順） - <kb:b_board_name /></title>
 </head>
 <body>
 
-<h1>メッセージ一覧（日付順） - <kb:b_board_name /></h1>
+<h1>メッセージ一覧（書き込み順） - <kb:b_board_name /></h1>
 
 <kb:c_status />
 <kb:c_top_menu />

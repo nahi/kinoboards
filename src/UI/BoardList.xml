@@ -3,7 +3,7 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.keynauts.com/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
@@ -28,9 +28,9 @@
 <!-- yyyは掲示板名です．例えば「test」「board」など． -->
 <!-- xxxは以下のうちのいずれかを指定してください． -->
 <!--   title-thread ... タイトル一覧（スレッド） -->
-<!--   title-bydate ... タイトル一覧（日付順） -->
+<!--   title-bydate ... タイトル一覧（書き込み順） -->
 <!--   message-thread ... メッセージ一覧（スレッド） -->
-<!--   message-bydate ... メッセージ一覧（日付順） -->
+<!--   message-bydate ... メッセージ一覧（書き込み順） -->
 
 <!-- 例: ＜kb:c_board_link var="message-thread,test" /＞ -->
 <!--     ↑test掲示板のメッセージ一覧（スレッド）へのリンクを生成 -->
