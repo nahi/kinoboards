@@ -260,6 +260,13 @@ $SYS_SHOWMAIL = 1;
 #
 $SYS_THREAD_FORMAT = 0;
 
+  # 上で「2: リプライは一切表示せず，新着メッセージのみ表示する」を
+  # 設定した場合，以下の設定は意味がありません．
+  # リプライ表示ON/OFF用のリンクを使いますか?
+  #   0: 表示しない
+  #   1: 表示する
+  $SYS_EXPAND = 1;
+
 # 掲示板一覧で，最近書き込まれた掲示板に[new!]アイコンをつけることができます．
 # 何日以内に書き込まれたらアイコンを付けますか?
 # 0を指定するとアイコンを付けません．
@@ -392,21 +399,20 @@ $MSGICON_WIDTH = 20;		# 幅[dot]
 #
 # ユーザウェブページへのURL，メッセージ中の[url:〜]として許すURL等，
 # 外部リンクを張ることを許可するschemeを指定してください．
-@URL_SCHEME = ( 'http', 'ftp', 'gopher', 'mailto', 'kb' );
+@URL_SCHEME = ( 'http', 'ftp', 'gopher', 'mailto' );
 #
 # 書き込みメッセージ中で，[url:http://〜]など，
-# 上記で許されたschemeへのリンクを張る際に使うtargetを指定してください．
+# 上記で許されたschemeへのリンクを張る際に使うtargetを指定します．
 # [url:kb:〜]など，掲示板内へのリンクには適用されません．
 #
 # この設定を空でなくする場合，UI/*.htmlのDOCTYPEを，
-# フレームが使えるものに変更する必要があります．
+# フレームが使えるものに変更したほうがいいでしょう．
 #   例: $SYS_LINK_TARGET = '_blank';
 #       $SYS_LINK_TARGET = '_top';
 $SYS_LINK_TARGET = '';
 
 # ○メッセージの宣言
 #
-$H_LOGIN = 'ユーザ確認';
 $H_BOARD = '掲示板';
 $H_ICON = 'アイコン';
 $H_SUBJECT = 'タイトル';
@@ -437,21 +443,23 @@ $H_REPLYTHISARTICLEQUOTE = '引用してリプライを書き込む';
 $H_READREPLYALL = 'リプライをまとめ読み';
 $H_DELETE = '削除する';
 $H_SUPERSEDE = '訂正する';
-$H_NOBACKART = '前のページはありません．';
-$H_NONEXTART = '次のページはありません．';
 $H_NOARTICLE = '該当するメッセージがありません．';
 
-$H_TOP = '←';
-$H_BOTTOM = '→';
-$H_BACKART = '前ページへ';
-$H_NEXTART = '次ページへ';
+$H_TOP = '&lt;&lt;最新';
+$H_BOTTOM = '先頭&gt;&gt;';
+$H_UP = '&lt;次';
+$H_DOWN = '前&gt;';
 
 $H_THREAD_ALL = '▲';
 $H_THREAD_ALL_L = 'スレッド全て';
 $H_THREAD = '▼';
 $H_THREAD_L = 'リプライ全て';
-$H_REVERSE = '△▽';
+$H_REVERSE[0] = '△';
+$H_REVERSE[1] = '▽';
 $H_REVERSE_L = '逆順表示';
+$H_EXPAND[0] = '↓';
+$H_EXPAND[1] = '↑';
+$H_EXPAND_L = 'リプライ表示ON/OFF';
 $H_SUPERSEDE_ICON = '[※]';
 $H_SUPERSEDE_ICON_L = '訂正';
 $H_DELETE_ICON = '[×]';
@@ -467,5 +475,5 @@ $H_REORDERTO_MARK_L = '移動先に指定';
 
 
 #/////////////////////////////////////////////////////////////////////
-# $Id: kb.ph,v 5.27 1999-09-22 14:15:09 nakahiro Exp $
+# $Id: kb.ph,v 5.28 1999-10-20 14:31:37 nakahiro Exp $
 1;
