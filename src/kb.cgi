@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.18 1998-12-10 11:29:11 nakahiro Exp $
+# $Id: kb.cgi,v 5.19 1998-12-25 06:47:11 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -57,7 +57,7 @@ $COLSEP = "\376";
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.2';		# release
+$KB_RELEASE = '6.3';		# release
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
@@ -98,7 +98,7 @@ require( 'cgi.pl' );
 require( 'kinologue.pl' );
 $PROGNAME = $cgi'CGIPROG_NAME;
 $PROGRAM = $cgi'PROGRAM;
-$kinologue'SEV_THRESHOLD = $kinologue'SEV_WARN;
+$kinologue'SEV_THRESHOLD = $SYS_LOGLEVEL;
 
 $cgi'SMTP_SERVER = $SMTP_SERVER;
 $cgi'AF_INET = $AF_INET;
@@ -106,7 +106,6 @@ $cgi'SOCK_STREAM = $SOCK_STREAM;
 $cgi'CHARSET = $CHARSET;
 @cgi'TAG_ALLOWED = ( 'article', 'subject', 'key' );
 $FF_LOG = ( $SYS_LOG == 1 ) ? $kinologue'FF_HTML : $kinologue'FF_PLAIN;
-$SYS_F_MT = ($SYS_F_D || $SYS_F_AM || $SYS_F_MV);
 if (( $cgi'SERVER_PORT != 80 ) && ( $SYS_PORTNO == 1 ))
 {
     $SERVER_PORT_STRING = ":$cgi'SERVER_PORT";
@@ -169,11 +168,24 @@ sub DoKill
 # - RETURN
 #	なし
 #
+&KbLog( $kinologue'SEV_INFO, 'Exec started.' );
 MAIN:
 {
     local( $boardConfFileP, $c, $com );
 
     &cgi'Decode();
+
+    if ( $kinologue'SEV_THRESHOLD == $kinologue'SEV_DEBUG )
+    {
+	local( $key, $value, $msg );
+	while (( $key, $value ) = each %cgi'TAGS )
+	{
+	    $msg .= '&' if $msg;
+	    $msg .= "$key=$value";
+	}
+	&KbLog( $kinologue'SEV_DEBUG, "Command executed with ... " . $msg );
+    }
+
     $c = $cgi'TAGS{'c'};
     $com = $cgi'TAGS{'com'};
     $BOARD = $cgi'TAGS{'b'};
@@ -191,6 +203,7 @@ MAIN:
 	eval( "require( \"$boardConfFile\" );" ) || &Fatal( 1, $boardConfFile );
     }
     if ( $BOARDLIST_URL eq '-' ) { $BOARDLIST_URL = "$PROGRAM?c=bl"; }
+    $SYS_F_MT = ( $SYS_F_D || $SYS_F_AM || $SYS_F_MV );
 
     if ( $c eq 'e' )
     {
@@ -207,22 +220,40 @@ MAIN:
 
     if ( $SYS_F_N )
     {
+	if (( $c eq 'x' ) && ( $com ne 'x' ))
+	{
+	    # previewからの戻りなので，コマンド書き換え．
+	    $gVarBack = 1;
+	    $cgi'TAGS{'c'} = $cgi'TAGS{'corig'};
+	    $c = $cgi'TAGS{'c'};
+	}
+
+	### Entry - 書き込み画面の表示
 	if ( $c eq 'n' )
 	{
-	    ### Entry - 書き込み画面の表示
-	    $gVarQuoteFlag = 0;
+	    # 新規
+	    $gVarEntryType = 0;
 	    require( &GetPath( $UI_DIR, 'Entry.pl' ));
 	    last;
 	}
-	elsif ( $c eq 'f' )
+	elsif (( $c eq 'f' ) && !$cgi'TAGS{'s'} )
 	{
-	    $gVarQuoteFlag = 1;
+	    # リプライ
+	    $gVarEntryType = 1;
 	    require( &GetPath( $UI_DIR, 'Entry.pl' ));
 	    last;
 	}
 	elsif ( $c eq 'q' )
 	{
-	    $gVarQuoteFlag = 2;
+	    # 引用リプライ
+	    $gVarEntryType = 2;
+	    require( &GetPath( $UI_DIR, 'Entry.pl' ));
+	    last;
+	}
+    elsif ( $SYS_F_D && ( $c eq 'f' ) && $cgi'TAGS{'s'} )
+	{
+	    # 訂正
+	    $gVarEntryType = 3;
 	    require( &GetPath( $UI_DIR, 'Entry.pl' ));
 	    last;
 	}
@@ -232,9 +263,17 @@ MAIN:
 	    require( &GetPath( $UI_DIR, 'Preview.pl' ));
 	    last;
 	}
-	elsif (( $c eq 'x' ) || (( $c eq 'p' ) && ( $com eq 'x' )))
+	elsif (( $c eq 'p' ) && ( $com eq 'x' ))
 	{
-	    ### Thanks - 登録後画面の表示
+	    ### Thanks - 登録後画面の表示（直接）
+	    $gVarPreviewFlag = 0;
+	    require( &GetPath( $UI_DIR, 'Thanks.pl' ));
+	    last;
+	}
+	elsif (( $c eq 'x' ) && ( $com eq 'x' ))
+	{
+	    ### Thanks - 登録後画面の表示（プレビュー経由）
+	    $gVarPreviewFlag = 1;
 	    require( &GetPath( $UI_DIR, 'Thanks.pl' ));
 	    last;
 	}
@@ -393,7 +432,7 @@ MAIN:
     # どのコマンドでもない．エラー．
     &Fatal( 99, $c );
 }
-
+&KbLog( $kinologue'SEV_INFO, 'Exec finished.' );
 exit( 0 );
 
 
@@ -460,6 +499,7 @@ sub ViewOriginalArticle
     local( $PrevId ) = $DB_ID[$Num - 1] if ( $Num > 0 );
     local( $NextId ) = $DB_ID[$Num + 1];
 
+    local( $msg );
     if ( $CommandFlag && $SYS_COMMAND )
     {
 	# コマンド表示
@@ -479,33 +519,37 @@ sub ViewOriginalArticle
 	    $DlmtL = "";
 	}
 
-	local( $Old ) = $#DB_ID - int( $Id + $DEF_TITLE_NUM/2 );
-	$Old = 0 if ( $Old < 0 );
+	local( $Old ) = &GetTitleOldIndex( $Id );
 
-	&cgiprint'Cache( "<p>\n" );
+	$msg .= "<p>\n";
 
-	&cgiprint'Cache( &TagA( $BOARDLIST_URL, &TagComImg( $ICON_BLIST, $H_BACKBOARD, $SYS_COMICON )), "\n" ) if $SYS_F_B;
+	$msg .= &TagA( $BOARDLIST_URL, &TagComImg( $ICON_BLIST, $H_BACKBOARD,
+	    $SYS_COMICON )) . "\n" if $SYS_F_B;
 
-	&cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM&old=$Old", &TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY, $SYS_COMICON )), "\n" );
+	$msg .= $DlmtS .
+	    &TagA( "$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM&old=$Old",
+	    &TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY, $SYS_COMICON )) . "\n";
 	
 	local( $TagTmp ) = &TagComImg( $ICON_PREV, $H_PREVARTICLE, $SYS_COMICON );
 	if ( $PrevId ne '' )
 	{
-	    &cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=e&id=$PrevId", $TagTmp ), "\n" );
+	    $msg .= $DlmtS .
+		&TagA( "$PROGRAM?b=$BOARD&c=e&id=$PrevId", $TagTmp ) . "\n";
 	}
 	else
 	{
-	    &cgiprint'Cache( $DlmtS, $TagTmp, "\n" );
+	    $msg .= "$DlmtS$TagTmp\n";
 	}
 	
 	$TagTmp = &TagComImg( $ICON_NEXT, $H_NEXTARTICLE, $SYS_COMICON );
 	if ( $NextId ne '' )
 	{
-	    &cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=e&id=$NextId", $TagTmp ), "\n" );
+	    $msg .= $DlmtS .
+		&TagA( "$PROGRAM?b=$BOARD&c=e&id=$NextId", $TagTmp ) . "\n";
 	}
 	else
 	{
-	    &cgiprint'Cache( $DlmtS, $TagTmp, "\n" );
+	    $msg .= "$DlmtS$TagTmp\n";
 	}
 	
 	if ( $SYS_F_T )
@@ -513,74 +557,84 @@ sub ViewOriginalArticle
 	    $TagTmp = &TagComImg( $ICON_THREAD, $H_READREPLYALL, $SYS_COMICON );
 	    if ( $Aids ne '' )
 	    {
-		&cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=t&id=$Id", $TagTmp ), "\n" );
+		$msg .= $DlmtS .
+		    &TagA( "$PROGRAM?b=$BOARD&c=t&id=$Id", $TagTmp ) . "\n";
 	    }
 	    else
 	    {
-		&cgiprint'Cache( $DlmtS, $TagTmp, "\n");
+		$msg .= "$DlmtS$TagTmp\n";
 	    }
 	}
 
-	&cgiprint'Cache( $DlmtL, "\n" ) if $DlmtL;
+	$msg .= "$DlmtL\n" if $DlmtL;
 
 	if ( $SYS_F_N )
 	{
-	    &cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=n", &TagComImg( $ICON_WRITENEW, $H_POSTNEWARTICLE, $SYS_COMICON )), "\n" );
-	    &cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=f&id=$Id", &TagComImg( $ICON_FOLLOW, $H_REPLYTHISARTICLE, $SYS_COMICON )), "\n" );
-	    &cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=q&id=$Id", &TagComImg( $ICON_QUOTE, $H_REPLYTHISARTICLEQUOTE, $SYS_COMICON )), "\n" );
+	    $msg .= $DlmtS . &TagA( "$PROGRAM?b=$BOARD&c=n",
+		&TagComImg( $ICON_WRITENEW, $H_POSTNEWARTICLE, $SYS_COMICON ))
+		. "\n" .
+		$DlmtS . &TagA( "$PROGRAM?b=$BOARD&c=f&id=$Id",
+		&TagComImg( $ICON_FOLLOW, $H_REPLYTHISARTICLE, $SYS_COMICON ))
+		. "\n" .
+		$DlmtS . &TagA( "$PROGRAM?b=$BOARD&c=q&id=$Id",
+		&TagComImg( $ICON_QUOTE, $H_REPLYTHISARTICLEQUOTE,
+		$SYS_COMICON )) . "\n";
 	}
 
-	&cgiprint'Cache( $DlmtL, "\n" ) if $DlmtL;
+	$msg .= "$DlmtL\n" if $DlmtL;
 
-	&cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=i&type=article", &TagComImg( $ICON_HELP, "ヘルプ", $SYS_COMICON )), "\n")
-	    if ( $SYS_COMICON == 1 );
-
-	&cgiprint'Cache( "</p>\n" );
+	if ( $SYS_COMICON == 1 )
+	{
+	    $msg .= $DlmtS . &TagA( "$PROGRAM?b=$BOARD&c=i&type=article",
+		&TagComImg( $ICON_HELP, "ヘルプ", $SYS_COMICON )) . "\n";
+	}
+	$msg .= "</p>\n";
     }
 
-    &cgiprint'Cache( "<p>\n" );
+    $msg .= "<p>\n";
 
     # 記事番号，題
-    &cgiprint'Cache( "<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> " );
+    $msg .= "<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> ";
     if (( $Icon eq $H_NOICON ) || ( $Icon eq '' ))
     {
-	&cgiprint'Cache( $Subject );
+	$msg .= $Subject;
     }
     else
     {
-	&cgiprint'Cache( &TagMsgImg( &GetIconUrlFromTitle( $Icon, $BOARD ),
-				    $Icon ), $Subject );
+	$msg .= &TagMsgImg( &GetIconUrlFromTitle( $Icon, $BOARD ), $Icon ) .
+	    $Subject;
     }
 
     # お名前
     if ( $Url eq '' )
     {
-	&cgiprint'Cache( "<br>\n<strong>$H_FROM</strong>: ", $Name );
+	$msg .= "<br>\n<strong>$H_FROM</strong>: $Name";
     }
     else
     {
-	&cgiprint'Cache( "<br>\n<strong>$H_FROM</strong>: ",
-			&TagA( $Url, $Name ));
+	$msg .=  "<br>\n<strong>$H_FROM</strong>: " . &TagA( $Url, $Name );
     }
 
     # メイル
-    &cgiprint'Cache( " ", &TagA( "mailto:$Email" , "&lt;$Email&gt;" ))
+    $msg .= ' ' . &TagA( "mailto:$Email" , "&lt;$Email&gt;" )
 	if ( $SYS_SHOWMAIL && $Email );
 
     # マシン
-    &cgiprint'Cache( "<br>\n<strong>$H_HOST</strong>: $RemoteHost" )
-	if $SYS_SHOWHOST;
+    $msg .= "<br>\n<strong>$H_HOST</strong>: $RemoteHost" if $SYS_SHOWHOST;
 
     # 投稿日
-    &cgiprint'Cache( "<br>\n<strong>$H_DATE</strong>: ",
-		    &GetDateTimeFormatFromUtc( $Date ));
+    $msg .= "<br>\n<strong>$H_DATE</strong>: " .
+	&GetDateTimeFormatFromUtc( $Date );
 
     # 反応元(引用の場合)
-    &ShowLinksToFollowedArticle( split( /,/, $Fid ))
+    &ShowLinksToFollowedArticle( *msg, split( /,/, $Fid ))
 	if ( $OriginalFlag && ( $Fid ne '' ));
 
     # 切れ目
-    &cgiprint'Cache( "</p>\n$H_LINE\n" );
+    $msg .= "</p>\n$H_LINE\n";
+
+    &cgiprint'Cache( $msg );
+    $msg = '';
 
     # 記事の中身
     local( @ArticleBody );
@@ -613,10 +667,15 @@ sub ViewOriginalArticle
 #
 sub ThreadArticleMain
 {
-    local( $SubjectOnly, $Head, @Tail ) = @_;
+    local( $State, $Head, @Tail ) = @_;
+
+    # $State:
+    # ... 0: Body
+    # ... 1: Subject only(original)
+    # ... 2: Subject only(others)
 
     # 記事概要か，記事そのものか．
-    if ( $SubjectOnly )
+    if ( $State )
     {
 	if ( $Head eq '(' )
 	{
@@ -629,7 +688,15 @@ sub ThreadArticleMain
 	else
 	{
 	    local( $dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName ) = &GetArticlesInfo( $Head );
-	    &cgiprint'Cache( "<li>", &GetFormattedTitle( $Head, $BOARD, $dAids, $dIcon, $dSubject, $dName, $dDate ), "\n" );
+	    if ( $State == 1 )
+	    {
+		&cgiprint'Cache( "<li>", &GetFormattedTitle( $Head, $dAids, $dIcon, $dSubject, $dName, $dDate, 1 ), "\n" );
+		$State = 2;
+	    }
+	    else
+	    {
+		&cgiprint'Cache( "<li>", &GetFormattedTitle( $Head, $dAids, $dIcon, $dSubject, $dName, $dDate, 0 ), "\n" );
+	    }
 	}
     }
     elsif (( $Head ne '(' ) && ( $Head ne ')' ))
@@ -640,7 +707,7 @@ sub ThreadArticleMain
     }
 
     # tail recuresive.
-    &ThreadArticleMain( $SubjectOnly, @Tail ) if @Tail;
+    &ThreadArticleMain( $State, @Tail ) if @Tail;
 }
 
 
@@ -734,6 +801,53 @@ sub QuoteOriginalArticleWithoutQMark
 
 
 ###
+## ReplyArticles - リプライ記事へのリンクの表示
+#
+# - SYNOPSIS
+#	ReplyArticles( @_ );
+#
+# - ARGS
+#	@_	リプライ記事IDのリスト
+#
+# - DESCRIPTION
+#	リプライ記事へのリンクを表示する．
+#
+# - RETURN
+#	なし
+#
+sub ReplyArticles
+{
+    &cgiprint'Cache( "$H_LINE\n<p>\n" );
+
+    # 反応記事
+    &cgiprint'Cache( "▼$H_REPLY\n" );
+
+    if ( @_ )
+    {
+	# 反応記事があるなら…
+	local( $id, @tree );
+	foreach $id ( @_ )
+	{
+	    # フォロー記事の木構造の取得
+	    # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
+	    @tree = ();
+	    &GetFollowIdTree( $id, *tree );
+	    
+	    # メイン関数の呼び出し(記事概要)
+	    &ThreadArticleMain( 2, @tree );
+	}
+    }
+    else
+    {
+	# 反応記事無し
+	&cgiprint'Cache( "<ul>\n<li>$H_REPLYはありません\n</ul>\n" );
+    }
+
+    &cgiprint'Cache( "</p>\n" );
+}
+
+
+###
 ## BoardHeader - 掲示板ヘッダの表示
 #
 # - SYNOPSIS
@@ -754,9 +868,9 @@ sub BoardHeader
 {
     local( $Type ) = @_;
 
-    local( @BoardHeader );
-    &GetBoardHeader( $BOARD, *BoardHeader );
-    &cgiprint'Cache( @BoardHeader );
+    local( $msg );
+    &GetBoardHeader( $BOARD, *msg );
+    &cgiprint'Cache( $msg );
 
     if ( $SYS_F_MT && ( $Type eq 'normal' ))
     {
@@ -773,23 +887,265 @@ sub BoardHeader
 
 
 ###
+## ShowPageLinkTop - ページヘッダ/フッタの表示
+#
+# - SYNOPSIS
+#	ShowPageLinkTop( $com, $num, $old, $rev, $vRev );
+#	ShowPageLinkBottom( $com, $num, $old, $rev, $vRev );
+#
+# - ARGS
+#	$com	リンクするコマンド文字列
+#	$num	'num'指定
+#	$old	'old'指定
+#	$rev	'rev'指定
+#
+# - DESCRIPTION
+#	ページヘッダ/フッタのリンク群文字列を取得する．
+#
+# - RETURN
+#	なし
+#
+sub PageLink
+{
+    local( $com, $num, $old, $rev ) = @_;
+
+    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
+    local( $backOld ) = ( $old + $num );
+
+    local( $str );
+    $str = '<p>';
+
+    if ( $old )
+    {
+	$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", "$H_TOP$H_NEXTART" );
+    }
+    else
+    {
+	$str .= $H_NONEXTART;
+    }
+
+    if ( $SYS_REVERSE )
+    {
+	$str .= ' // ' . &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE );
+    }
+
+    $str .= ' // ';
+
+    if ( $num && ( $#DB_ID - $old - $num > 0 ))
+    {
+	$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", "$H_BACKART$H_BOTTOM" );
+    }
+    else
+    {
+	$str .= $H_NOBACKART;
+    }
+
+    $str .= "</p>\n";
+
+    $str;
+}
+
+sub ShowPageLinkEachPage	# not used.
+{
+    local( $com, $num, $old, $rev, $vRev ) = @_;
+
+    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
+    local( $backOld ) = ( $old + $num );
+
+    local( $str );
+    $str = '<p>';
+
+    $MAX_PAGELINK = 5;
+
+    if ( $SYS_REVERSE )
+    {
+	$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE ) . ' ';
+    }
+
+    if ( $vRev )
+    {
+	if ( $num && ( $#DB_ID - $old - $num > 0 ))
+	{
+	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", $H_TOP );
+	}
+	else
+	{
+	    $str .= $H_TOP;
+	}
+
+	local( $i );
+	for ( $i = -$MAX_PAGELINK; $i <= +$MAX_PAGELINK; $i++ )
+	{
+	    $str .= ' ';
+	    if ( $old - $i * $num <= $#DB_ID )
+	    {
+		$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=" . ( $i*$num ) . "&rev=$rev", $i );
+	    }
+	    else
+	    {
+		$str .= $i;
+	    }
+	}
+	$str .= ' ';
+
+	if ( $old )
+	{
+	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", $H_BOTTOM );
+	}
+	else
+	{
+	    $str .= $H_BOTTOM;
+	}
+    }
+    else
+    {
+	if ( $old )
+	{
+	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", $H_TOP );
+	}
+	else
+	{
+	    $str .= $H_TOP;
+	}
+
+	local( $i );
+	$MAX_PAGELINK = 5;
+	for ( $i = $MAX_PAGELINK; $i >= -$MAX_PAGELINK; $i-- )
+	{
+	    $str .= ' ';
+	    if ( $old - $i * $num <= $#DB_ID )
+	    {
+		$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=" . ( $i*$num ) . "&rev=$rev", $i );
+	    }
+	    else
+	    {
+		$str .= $i;
+	    }
+	}
+	$str .= ' ';
+
+	if ( $num && ( $#DB_ID - $old - $num > 0 ))
+	{
+	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", $H_BOTTOM );
+	}
+	else
+	{
+	    $str .= $H_BOTTOM;
+	}
+    }
+
+    $str .= "</p>\n";
+
+    $str;
+}
+
+sub ShowPageLinkTop		# not used
+{
+    local( $com, $num, $old, $rev, $vRev ) = @_;
+
+    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
+    local( $backOld ) = ( $old + $num );
+
+    local( $str );
+    $str = '<p>';
+
+    if ( $vRev )
+    {
+	if ( $num && ( $#DB_ID - $old - $num > 0 ))
+	{
+	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", "$H_TOP$H_BACKART" );
+	}
+	else
+	{
+	    $str .= $H_NOBACKART;
+	}
+    }
+    else
+    {
+	if ( $old )
+	{
+	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", "$H_TOP$H_NEXTART" );
+	}
+	else
+	{
+	    $str .= $H_NONEXTART;
+	}
+    }
+
+    if ( $SYS_REVERSE )
+    {
+	$str .= ' // ' . &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE );
+    }
+
+    $str .= "</p>\n";
+
+    &cgiprint'Cache( $str );
+}
+
+sub ShowPageLinkBottom		# not used.
+{
+    local( $com, $num, $old, $rev, $vRev ) = @_;
+
+    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
+    local( $backOld ) = ( $old + $num );
+
+    local( $str );
+    $str = '<p>';
+
+    if ( $SYS_REVERSE )
+    {
+	$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE ) . ' // ';
+    }
+
+    if ( $vRev )
+    {
+	if ( $old )
+	{
+	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev", "$H_NEXTART$H_BOTTOM" );
+	}
+	else
+	{
+	    $str .= $H_NONEXTART;
+	}
+    }
+    else
+    {
+	if ( $num && ( $#DB_ID - $old - $num > 0 ))
+	{
+	    $str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", "$H_BACKART$H_BOTTOM" );
+	}
+	else
+	{
+	    $str .= $H_NOBACKART;
+	}
+    }
+
+    $str .= "</p>\n";
+
+    &cgiprint'Cache( $str );
+}
+
+
+
+###
 ## ShowLinksToFollowedArticle - 元記事情報の表示
 #
 # - SYNOPSIS
-#	ShowLinksToFollowedArticle(@IdList);
+#	ShowLinksToFollowedArticle( *msg, @IdList );
 #
 # - ARGS
+#	$msg		生成文字列
 #	@IdList		リプライ記事IDのリスト(古いリプライほど末尾にくる)
 #
 # - DESCRIPTION
-#	元記事情報を表示する．
+#	元記事情報を生成する．
 #
 # - RETURN
 #	なし
 #
 sub ShowLinksToFollowedArticle
 {
-    local( @IdList ) = @_;
+    local( *msg, @IdList ) = @_;
 
     local( $Id, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name );
 
@@ -798,13 +1154,15 @@ sub ShowLinksToFollowedArticle
     {
 	$Id = $IdList[$#IdList];
 	( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name ) = &GetArticlesInfo( $Id );
-	&cgiprint'Cache( "<br>\n<strong>$H_ORIG_TOP:</strong> ", &GetFormattedTitle( $Id, $BOARD, $Aids, $Icon, $Subject, $Name, $Date ));
+	$msg .= "<br>\n<strong>$H_ORIG_TOP:</strong> " .
+	    &GetFormattedTitle( $Id, $Aids, $Icon, $Subject, $Name, $Date, 0 );
     }
 
     # 元記事
     $Id = $IdList[0];
     ( $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name ) = &GetArticlesInfo( $Id );
-    &cgiprint'Cache( "<br>\n<strong>$H_ORIG:</strong> ", &GetFormattedTitle( $Id, $BOARD, $Aids, $Icon, $Subject, $Name, $Date ));
+    $msg .= "<br>\n<strong>$H_ORIG:</strong> " .
+	&GetFormattedTitle( $Id, $Aids, $Icon, $Subject, $Name, $Date, 0 );
 }
 
 
@@ -825,26 +1183,29 @@ sub ShowLinksToFollowedArticle
 #
 sub PrintButtonToTitleList
 {
-    local( $Board ) = @_;
+    local( $board, $id ) = @_;
+    local( $old ) = &GetTitleOldIndex( $id );
 
     if  ( $SYS_COMMAND_BUTTON )
     {
-	local( %tags ) = ( 'b', $Board, 'c', 'v', 'num', $DEF_TITLE_NUM );
+	local( %tags ) = ( 'b', $board, 'c', 'v', 'num', $DEF_TITLE_NUM, 'old',
+	    $old );
 	local( $str );
 	&TagForm( *str, *tags, "$H_BACKTITLEREPLY", '', '' );
 	&cgiprint'Cache( $str );
 
 	if ( $SYS_F_R )
 	{
-	    %tags = ( 'b', $Board, 'c', 'r', 'num', $DEF_TITLE_NUM );
+	    %tags = ( 'b', $board, 'c', 'r', 'num', $DEF_TITLE_NUM, 'old',
+		$old );
 	    &TagForm( *str, *tags, "$H_BACKTITLEDATE", '', '' );
 	    &cgiprint'Cache( $str );
 	}
     }
     else
     {
-	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$Board&c=v&num=$DEF_TITLE_NUM\">$H_BACKTITLEREPLY</a></p>\n" );
-	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$Board&c=r&num=$DEF_TITLE_NUM\">$H_BACKTITLEDATE</a></p>\n" ) if ( $SYS_F_R );
+	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$board&c=v&num=$DEF_TITLE_NUM&old=$old\">$H_BACKTITLEREPLY</a></p>\n" );
+	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$board&c=r&num=$DEF_TITLE_NUM&old=$old\">$H_BACKTITLEDATE</a></p>\n" ) if ( $SYS_F_R );
     }
 }
 
@@ -931,8 +1292,8 @@ sub MsgHeader
 	&cgi'Header( 0, 0, 0, 0, 0 );
     }
 
-    &cgiprint'Init();
-    &cgiprint'Cache(<<__EOF__);
+    local( $msg );
+    $msg .= <<__EOF__;
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
@@ -942,32 +1303,36 @@ sub MsgHeader
 </head>
 __EOF__
 
-    &cgiprint'Cache( "<body" );
+    $msg .= '<body';
     if ( $SYS_NETSCAPE_EXTENSION )
     {
-	&cgiprint'Cache(" background=\"$BG_IMG\"") if $BG_IMG;
-	&cgiprint'Cache(" bgcolor=\"$BG_COLOR\"") if $BG_COLOR;
-	&cgiprint'Cache(" TEXT=\"$TEXT_COLOR\"") if $TEXT_COLOR;
-	&cgiprint'Cache(" LINK=\"$LINK_COLOR\"") if $LINK_COLOR;
-	&cgiprint'Cache(" ALINK=\"$ALINK_COLOR\"") if $ALINK_COLOR;
-	&cgiprint'Cache(" VLINK=\"$VLINK_COLOR\"") if $VLINK_COLOR;
+	$msg .= " background=\"$BG_IMG\"" if $BG_IMG;
+	$msg .= " bgcolor=\"$BG_COLOR\"" if $BG_COLOR;
+	$msg .= " TEXT=\"$TEXT_COLOR\"" if $TEXT_COLOR;
+	$msg .= " LINK=\"$LINK_COLOR\"" if $LINK_COLOR;
+	$msg .= " ALINK=\"$ALINK_COLOR\"" if $ALINK_COLOR;
+	$msg .= " VLINK=\"$VLINK_COLOR\"" if $VLINK_COLOR;
     }
-    &cgiprint'Cache( ">\n" );
+    $msg .= ">\n";
 
-    &cgiprint'Cache(<<__EOF__);
+    $msg .= <<__EOF__;
 <h1>$Message</h1>
 
 <p>[
 __EOF__
 
-    &cgiprint'Cache( "$H_BOARD: $BOARDNAME // \n" ) if ( $BOARD && $BOARDNAME );
-    &cgiprint'Cache( "時刻: ", &GetDateTimeFormatFromUtc( $^T ));
-    &cgiprint'Cache(<<__EOF__);
+    $msg .= "$H_BOARD: $BOARDNAME // \n" if ( $BOARD && $BOARDNAME );
+    $msg .= "最新${H_MESG}ID: " . $DB_ID[$#DB_ID] . " // \n" if @DB_ID;
+    $msg .= "時刻: " . &GetDateTimeFormatFromUtc( $^T );
+    $msg .= <<__EOF__;
 ]</p>
 
 $H_HR
 
 __EOF__
+
+    &cgiprint'Init;
+    &cgiprint'Cache( $msg );
 }
 
 
@@ -1010,11 +1375,10 @@ __EOF__
 ## GetFormattedTitle - タイトルリストのフォーマット
 #
 # - SYNOPSIS
-#	GetFormattedTitle($Id, $Board, $Aids, $Icon, $Title, $Name, $Date);
+#	GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date);
 #
 # - ARGS
 #	$Id		記事ID
-#	$Board		掲示板ID
 #	$Aids		リプライ記事があるか否か
 #	$Icon		記事アイコンID
 #	$Title		記事のSubject
@@ -1023,35 +1387,48 @@ __EOF__
 #
 # - DESCRIPTION
 #	ある記事をタイトルリスト表示用にフォーマットする．
+#	$TITLE_STRを破壊する．何度も使われるので，localを減らすため．．．
+#	かなりパフォーマンスに効く．
 #
 # - RETURN
 #	フォーマットした文字列
 #
 sub GetFormattedTitle
 {
-    local( $Id, $Board, $Aids, $Icon, $Title, $Name, $Date ) = @_;
+    local( $id, $aids, $icon, $title, $name, $origDate,	$topFlag ) = @_;
 
-    local( $String, $InputDate, $IdStr, $Link, $Thread, $NewIcon );
+    $TITLE_STR = "$id.";	# 初期化
 
-    $InputDate = &GetDateTimeFormatFromUtc(( $Date || &GetModifiedTime( $Id, $Board )));
-    # タイトルがついてなかったら，Idをそのままタイトルにする．
-    $Title = $Title || $Id;
-
-    $IdStr = "<strong>$Id.</strong> ";
-    $Link = &TagA( "$PROGRAM?b=$Board&c=e&id=$Id", $Title );
-    $Thread = (($SYS_F_T && $Aids) ? " " . &TagA( "$PROGRAM?b=$Board&c=t&id=$Id", $H_THREAD ) : '');
-    $NewIcon = " " . &TagMsgImg( $ICON_NEW, $H_NEWARTICLE ) if $DB_NEW{$Id};
-
-    if (( $Icon eq $H_NOICON ) || ($Icon eq '' ))
+    if ( $SYS_F_T && $topFlag && $DB_FID{$id} )
     {
-	$String = "$IdStr$Link$Thread [" . ( $Name || $MAINT_NAME ) . "] $InputDate$NewIcon";
+	local( $fId ) = $DB_FID{$id};
+	$fId =~ s/^.*,//o;
+	$TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$fId",
+	    $H_THREAD_ALL );
     }
-    else
+
+    if ( $icon && ( $icon ne $H_NOICON ))
     {
-#	$String = $IdStr . &TagMsgImg( &GetIconUrlFromTitle( $Icon, $Board ), "$Icon " ) . "$Link [" . ( $Name || $MAINT_NAME ) . "] $InputDate$NewIcon";
-	$String = $IdStr . &TagMsgImg( &GetIconUrlFromTitle( $Icon, $Board ), "$Icon " ) . "$Link$Thread [" . ( $Name || $MAINT_NAME ) . "] $InputDate$NewIcon";
+	$TITLE_STR .= ' ' . &TagMsgImg( &GetIconUrlFromTitle( $icon, $BOARD ),
+	    "$icon" );
     }
-    $String;
+
+    $TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=e&id=$id", $title || $id );
+
+    if ( $SYS_F_T && $aids )
+    {
+	$TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$id", $H_THREAD );
+    }
+
+    $TITLE_STR .= ' [' . ( $name || $MAINT_NAME ) . '] ' .
+	&GetDateTimeFormatFromUtc( $origDate || &GetModifiedTime( $id,$BOARD));
+
+    if ( $DB_NEW{$id} )
+    {
+	$TITLE_STR .= ' ' . &TagMsgImg( $ICON_NEW, $H_NEWARTICLE );
+    }
+
+    $TITLE_STR;
 }
 
 
@@ -1352,7 +1729,8 @@ sub SearchArticleKeyword
 	    }
 	}
 	# 空なら抜け．
-	last unless ( @KeyList = @NewKeyList );
+	@KeyList = @NewKeyList;
+	last unless @KeyList;
     }
 
     # まだ残ってたらアウト．空なら最初のマッチした行を返す．
@@ -1420,42 +1798,52 @@ sub CheckArticle
 
 ###
 ## secureSubject - 安全なSubjectを作り出す
+## secureArticle - 安全なArticleを作り出す
 #
 # - SYNOPSIS
 #	secureSubject( *subject );
+#	secureArticle( *article, $textType );
 #
 # - ARGS
 #	*subject	Subject文字列
+#	*article	Article文字列
+#	$textType	入力形式
 #
 # - DESCRIPTION
 #	$subjectを安全な文字列に変換する．
+#	$articleを安全な文字列に変換する．
 #
+$HTML_TAGS_COREATTRS = 'ID/CLASS/STYLE/TITLE';
+$HTML_TAGS_I18NATTRS = 'LANG/DIR';
+$HTML_TAGS_GENATTRS = "$HTML_TAGS_COREATTRS/$HTML_TAGS_I18NATTRS";
+
 sub secureSubject
 {
     local( *subject ) = @_;
 
     if ( $SYS_TAGINSUBJECT )
     {
-	local( @subjectTags ) =
-	    (
-	     # タグ名, 閉じ必須か否か, 使用可能なfeature
-	     'B',		1,	'',
-	     'BR',		0,	'',
-	     'CITE',		1,	'',
-	     'CODE',		1,	'',
-	     'EM',		1,	'',
-	     'FONT',		1,	'SIZE/COLOR',
-	     'H2',		1,	'ALIGN',
-	     'H3',		1,	'ALIGN',
-	     'H4',		1,	'ALIGN',
-	     'H5',		1,	'ALIGN',
-	     'H6',		1,	'ALIGN',
-	     'I',		1,	'',
-	     'IMG',		0,	'SRC/ALT/ALIGN/WIDTH/HEIGHT/BORDER',
-	     'STRONG',		1,	'',
-	     'TT',		1,	'',
-	     'VAR',		1,	'',
-	     );
+	local( @subjectTags ) = (
+	'B',	1,	$HTML_TAGS_GENATTRS,
+	'BIG',	1,	$HTML_TAGS_GENATTRS,
+	'CITE',	1,	$HTML_TAGS_GENATTRS,
+	'CODE',	1,	$HTML_TAGS_GENATTRS,
+	'DEL',	1,	"$HTML_TAGS_GENATTRS/CITE/DATETIME",
+	'EM',	1,	$HTML_TAGS_GENATTRS,
+	'I',	1,	$HTML_TAGS_GENATTRS,
+	'IMG',	0,	"$HTML_TAGS_GENATTRS/ALT/HEIGHT/LONGDESC/SRC/WIDTH",
+	'INS',	1,	"$HTML_TAGS_GENATTRS/CITE/DATETIME",
+	'KBD',	1,	$HTML_TAGS_GENATTRS,
+	'SAMP',	1,	$HTML_TAGS_GENATTRS,
+	'SMALL',1,	$HTML_TAGS_GENATTRS,
+	'SPAN',	1,	$HTML_TAGS_GENATTRS,
+	'STRONG',1,	$HTML_TAGS_GENATTRS,
+	'STYLE',1,	"$HTML_TAGS_I18NATTRS/MEDIA/TITLE/TYPE",
+	'SUB',	1,	$HTML_TAGS_GENATTRS,
+	'SUP',	1,	$HTML_TAGS_GENATTRS,
+	'TT',	1,	$HTML_TAGS_GENATTRS,
+	'VAR',	1,	$HTML_TAGS_GENATTRS,
+	);
 	
 	local( %sNeedVec, %sFeatureVec, $tag );
 	while( @subjectTags )
@@ -1474,63 +1862,55 @@ sub secureSubject
     }
 }
 
-
-###
-## secureArticle - 安全なArticleを作り出す
-#
-# - SYNOPSIS
-#	secureArticle( *article, $textType );
-#
-# - ARGS
-#	*article	Article文字列
-#	$textType	入力形式
-#
-# - DESCRIPTION
-#	$articleを安全な文字列に変換する．
-#
 sub secureArticle
 {
     local( *article, $textType ) = @_;
 
-    local( @articleTags ) =
-	(
-	 # タグ名, 閉じ必須か否か, 使用可能なfeature
-	 'A',		1,	'HREF/NAME/TARGET',
-	 'ADDRESS',		1,	'',
-	 'B',		1,	'',
-	 'BLOCKQUOTE',	1,	'',
-	 'BR',		0,	'',
-	 'CITE',		1,	'',
-	 'CODE',		1,	'',
-	 'DD',		0,	'',
-	 'DIR',		1,	'',
-	 'DL',		1,	'COMPACT',
-	 'DT',		0,	'',
-	 'EM',		1,	'',
-	 'FONT',		1,	'SIZE/COLOR',
-	 'H1',		1,	'ALIGN',
-	 'H2',		1,	'ALIGN',
-	 'H3',		1,	'ALIGN',
-	 'H4',		1,	'ALIGN',
-	 'H5',		1,	'ALIGN',
-	 'H6',		1,	'ALIGN',
-	 'HR',		0,	'SIZE/WIDTH/ALIGN',
-	 'I',		1,	'',
-	 'IMG',		0,	'SRC/ALT/ALIGN/WIDTH/HEIGHT/BORDER',
-	 'KBD',		1,	'',
-	 'LI',		0,	'TYPE/VALUE',
-	 'LISTING',		1,	'',
-	 'MENU',		1,	'',
-	 'OL',		1,	'START',
-	 'P',		0,	'ALIGN',
-	 'PRE',		1,	'',
-	 'SAMP',		1,	'',
-	 'STRONG',		1,	'',
-	 'TT',		1,	'',
-	 'UL',		1,	'',
-	 'VAR',		1,	'',
-	 'XMP',		1,	'',
-	 );
+    local( @articleTags ) = (
+	# タグ名, 閉じ必須か否か, 使用可能なfeature
+	'A',	1,	"$HTML_TAGS_GENATTRS/CHARSET/HREF/HREFLANG/NAME/REL/REV/TABINDEX/TARGET/TYPE",
+	'ABBR',	1,	$HTML_TAGS_GENATTRS,
+	'ADDRESS',1,	$HTML_TAGS_GENATTRS,
+	'B',	1,	$HTML_TAGS_GENATTRS,
+	'BIG',	1,	$HTML_TAGS_GENATTRS,
+	'BLOCKQUOTE',1,	"$HTML_TAGS_GENATTRS/CITE",
+	'BR',	0,	$HTML_TAGS_COREATTRS,
+	'CITE',	1,	$HTML_TAGS_GENATTRS,
+	'CODE',	1,	$HTML_TAGS_GENATTRS,
+	'DD',	0,	$HTML_TAGS_GENATTRS,
+	'DEL',	1,	"$HTML_TAGS_GENATTRS/CITE/DATETIME",
+	'DFN',	1,	$HTML_TAGS_GENATTRS,
+	'DIV',	1,	$HTML_TAGS_GENATTRS,
+	'DL',	1,	$HTML_TAGS_GENATTRS,
+	'DT',	0,	$HTML_TAGS_GENATTRS,
+	'EM',	1,	$HTML_TAGS_GENATTRS,
+	'H1',	1,	$HTML_TAGS_GENATTRS,
+	'H2',	1,	$HTML_TAGS_GENATTRS,
+	'H3',	1,	$HTML_TAGS_GENATTRS,
+	'H4',	1,	$HTML_TAGS_GENATTRS,
+	'H5',	1,	$HTML_TAGS_GENATTRS,
+	'H6',	1,	$HTML_TAGS_GENATTRS,
+	'HR',	0,	$HTML_TAGS_COREATTRS,
+	'I',	1,	$HTML_TAGS_GENATTRS,
+	'IMG',	0,	"$HTML_TAGS_GENATTRS/ALT/HEIGHT/LONGDESC/SRC/WIDTH",
+	'INS',	1,	"$HTML_TAGS_GENATTRS/CITE/DATETIME",
+	'KBD',	1,	$HTML_TAGS_GENATTRS,
+	'LI',	0,	$HTML_TAGS_GENATTRS,
+	'OL',	1,	$HTML_TAGS_GENATTRS,
+	'P',	1,	$HTML_TAGS_GENATTRS,
+	'PRE',	1,	$HTML_TAGS_GENATTRS,
+	'Q',	1,	"$HTML_TAGS_GENATTRS/CITE",
+	'SAMP',	1,	$HTML_TAGS_GENATTRS,
+	'SMALL',1,	$HTML_TAGS_GENATTRS,
+	'SPAN',	1,	$HTML_TAGS_GENATTRS,
+	'STRONG',1,	$HTML_TAGS_GENATTRS,
+	'STYLE',1,	"$HTML_TAGS_I18NATTRS/MEDIA/TITLE/TYPE",
+	'SUB',	1,	$HTML_TAGS_GENATTRS,
+	'SUP',	1,	$HTML_TAGS_GENATTRS,
+	'TT',	1,	$HTML_TAGS_GENATTRS,
+	'UL',	1,	$HTML_TAGS_GENATTRS,
+	'VAR',	1,	$HTML_TAGS_GENATTRS,
+    );
 	
     local( %aNeedVec, %aFeatureVec, $tag );
     while( @articleTags )
@@ -1771,7 +2151,7 @@ sub IsUrl
     local( $Scheme );
     foreach $Scheme ( @URL_SCHEME )
     {
-	$IsUrl = 1 if ( $String =~ m!^$Scheme://!i );
+	$IsUrl = 1 if ( $String =~ m!^$Scheme:!i );
     }
     $IsUrl;
 }
@@ -1829,31 +2209,29 @@ sub GetFollowIdTree
 ## GetReplySubject - リプライSubjectの生成
 #
 # - SYNOPSIS
-#	GetReplySubject($Id);
+#	GetReplySubject( *subjectStr );
 #
 # - ARGS
-#	$Id	記事ID
+#	$subjectStr	Subject文字列
 #
 # - DESCRIPTION
-#	あるIdの記事からSubjectを取ってきて，先頭に「Re:」を1つだけつけて返す．
+#	先頭に「Re:」を1つだけつける．
 #
 # - RETURN
-#	生成したSubject文字列
+#	なし
 #
 sub GetReplySubject
 {
-    local( $Id ) = @_;
-
-    local( $dFid, $dAids, $dDate, $dSubject ) = &GetArticlesInfo( $Id );
+    local( *subjectStr ) = @_;
 
     # Re:を取り除き，
-    $dSubject =~ s/^Re:\s*//oi;
+    $subjectStr =~ s/^Re:\s*//oi;
 
     # TAG用エンコードして，
-    &TAGEncode( *dSubject );
+    &TAGEncode( *subjectStr );
 
     # 先頭に「Re: 」をくっつけて返す．
-    "Re: $dSubject";
+    $subjectStr = "Re: $subjectStr";
 }
 
 
@@ -1902,53 +2280,13 @@ sub GetModifiedTime
 #
 sub GetDateTimeFormatFromUtc
 {
-    local( $Utc ) = @_;
+    local( $utc ) = @_;
+    local( $sec, $min, $hour, $mDay, $mon, $year ) = localtime( $utc );
+    sprintf( "%d/%d/%d(%02d:%02d)", $year, $mon+1, $mDay, $hour, $min );
 
-    local( $Sec, $Min, $Hour, $Mday, $Mon, $Year, $Wday, $Yday, $Isdst );
+# for y2k problem...
+#    sprintf( "%d/%d/%d(%02d:%02d)", $year+1900, $mon+1, $mDay, $hour, $min );
 
-    # 古い時代のものらしい．
-    return $Utc if ( $Utc !~ m/^\d+$/ );
-
-    # 変換
-    ( $Sec, $Min, $Hour, $Mday, $Mon, $Year, $Wday, $Yday, $Isdst ) = localtime( $Utc );
-
-    sprintf( "%d/%d/%d(%02d:%02d)", $Year, $Mon + 1, $Mday, $Hour, $Min );
-
-    # for MM/DD
-    # sprintf( "%d/%d(%02d:%02d)", $Mon + 1, $Mday, $Hour, $Min );
-
-    # for Y2k!
-    # sprintf( "%d/%d/%d(%02d:%02d)", $Year+1900, $Mon + 1, $Mday, $Hour, $Min );
-}
-
-
-###
-## GetUtcFromOldDateTimeFormat - 時刻のUTCへの正規化
-#
-# - SYNOPSIS
-#	GetUtcFromOldDateTimeFormat($Time);
-#
-# - ARGS
-#	$Time		時間を表わす文字列
-#
-# - DESCRIPTION
-#	古いバージョンのKINOBOARDSでは，
-#	DB中に時刻を表す文字列がそのまま(UTCでなく)入っている．
-#	これが渡された場合は適当なUTC(854477921 = 97/01/29 03:58)を返す．
-#	UTCが渡されたらそのままそのUTCを返す．
-#
-# - RETURN
-#	時刻(UTC)
-#
-sub GetUtcFromOldDateTimeFormat
-{
-    local( $Time ) = @_;
-
-    # 新規らしい
-    return $Time if ( $Time =~ m/^\d+$/ );
-
-    # 適当
-    854477921;
 }
 
 
@@ -2071,20 +2409,46 @@ sub ArticleEncode
 {
     local( $article ) = @_;
 
-    local( $ret ) = $article;
-    local( $url, $urlMatch, $str, @cache );
+    local( $retArticle ) = $article;
+
+    local( $url, $urlMatch, @cache );
+    local( $tagStr, $quoteStr );
     while ( $article =~ m/<URL:([^>][^>]*)>/gi )
     {
 	$url = $1;
 	( $urlMatch = $url ) =~ s/([?+*^\\\[\]\|()])/\\$1/go;
 	next if ( grep( /^$urlMatch$/, @cache ));
 	push( @cache, $url );
-	$str = "<URL:$url>";
-	$str = &TagA( $url, $str ) if ( &IsUrl( $urlMatch ));
-	$ret =~ s/<URL:$urlMatch>/$str/gi;
+	$quoteStr = "<URL:$url>";
+
+	if ( $urlMatch =~ m/^kb:(.*)$/ )
+	{
+	    local( $artStr ) = $1;
+	    if ( $artStr =~ m!^//.*$! )
+	    {
+		# not implemented now...
+	    }
+	    elsif ( $artStr =~ m!^([^/][^/]*)/(.*)$! )
+	    {
+		local( $boardInfo ) = &GetBoardInfo( $1 );
+		$tagStr = &TagA( "$PROGRAM?b=$1&c=e&id=$2", $quoteStr )
+		    if $boardInfo;
+	    }
+	    else
+	    {
+		$tagStr = &TagA( "$PROGRAM?b=$BOARD&c=e&id=$artStr",
+		    $quoteStr );
+	    }
+	}
+	elsif ( &IsUrl( $urlMatch ))
+	{
+	    $tagStr = &TagA( $url, $quoteStr );
+	}
+
+	$retArticle =~ s/<URL:$urlMatch>/$tagStr/gi;
     }
 
-    $ret;
+    $retArticle;
 }
 
 
@@ -2397,9 +2761,78 @@ sub CollectDaughters
 sub GetNewArticleId
 {
     local( $Board ) = @_;
-    local( $id );
-    &GetArticleId( $Board, *id );
+    local( $id, $artKey );
+    &GetArticleId( $Board, *id, *artKey );
     $id + 1;
+}
+
+
+###
+## GetTitleOldIndex - 'old'値の取得
+#
+# - SYNOPSIS
+#	GetTitleOldIndex( $id );
+#
+# - ARGS
+#	$id	記事番号
+#
+# - DESCRIPTION
+#	指定したIDの記事を含むようなold値を計算する．
+#	DbCacheが呼び出し済みでなければならない．
+#
+# - RETURN
+#	old値
+#
+sub GetTitleOldIndex
+{
+    local( $id ) = @_;
+    local( $old ) = $#DB_ID - int( $id + $DEF_TITLE_NUM/2 );
+    ( $old >= 0 )? $old : 0;
+}
+
+
+###
+## LockAll/UnlockAll - システムのロック/アンロック
+## LockBoard/UnlockBoard - 掲示板のロック/アンロック
+#
+# - SYNOPSIS
+#	LockAll;
+#	UnlockAll;
+#	LockBoard;
+#	UnlockBoard;
+#
+# - ARGS
+#	なし
+#
+# - DESCRIPTION
+#	システム/掲示板をロック/アンロックする．
+#	ロックに使うファイルは$LOCK_FILE/$LOCK_FILE_B．
+#
+# - RETURN
+#	なし．戻れば成功．失敗すればエラーページへ．
+#
+sub LockAll
+{
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
+    &Fatal( 1001, '' ) if ( $lockResult == 2 );
+    &Fatal( 999, '' ) if ( $lockResult != 1 );
+}
+
+sub UnlockAll
+{
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
+}
+
+sub LockBoard
+{
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
+    &Fatal( 1001, '' ) if ( $lockResult == 2 );
+    &Fatal( 999, '' ) if ( $lockResult != 1 );
+}
+
+sub UnlockBoard
+{
+    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
 }
 
 
@@ -2430,19 +2863,19 @@ sub DbCache
 
     local( $Board ) = @_;
 
-    local( $DBFile, $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
+    local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
 
     @DB_ID = %DB_FID = %DB_AIDS = %DB_DATE = %DB_TITLE = %DB_ICON = %DB_REMOTEHOST = %DB_NAME = %DB_EMAIL = %DB_URL = %DB_FMAIL = %DB_NEW = ();
 
     local( $i ) = 0;
-    $DBFile = &GetPath( $Board, $DB_FILE_NAME );
+    local( $DBFile ) = &GetPath( $Board, $DB_FILE_NAME );
     open( DB, "<$DBFile" ) || &Fatal( 1, $DBFile );
     while ( <DB> )
     {
 	next if (/^\#/o || /^$/o);
 	chop;
 	( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_, 11 );
-	next if ( $dId eq '' );
+	next unless $dId;
 
 	$DB_ID[$i++] = $dId;
 	$DB_FID{$dId} = $dFid;
@@ -2461,7 +2894,7 @@ sub DbCache
 	    # 86400 = 24 * 60 * 60
 	    if (( $^T - $DB_DATE{$dId} ) < $SYS_NEWICON_VALUE * 86400 )
 	    {
-		$DB_NEW{ $dId } = 1;
+		$DB_NEW{$dId} = 1;
 	    }
 	}
     }
@@ -3193,11 +3626,12 @@ sub WriteAliasData
 ## GetAllBoardInfo - 掲示板DBの全読み込み
 #
 # - SYNOPSIS
-#	GetAllBoardInfo(*BoardList, *BoardInfo);
+#	GetAllBoardInfo( *board, *boardName, *boardInfo );
 #
 # - ARGS
-#	*BoardList	掲示板ID-掲示板名の連想配列のリファレンス
-#	*BoardInfo	掲示板ID-掲示板情報の連想配列のリファレンス
+#	*board		掲示板IDの配列のリファレンス
+#	*boardName	掲示板ID-掲示板名の連想配列のリファレンス
+#	*boardInfo	掲示板ID-掲示板情報の連想配列のリファレンス
 #
 # - DESCRIPTION
 #	掲示板DBから，掲示板情報を取ってくる．
@@ -3207,18 +3641,18 @@ sub WriteAliasData
 #
 sub GetAllBoardInfo
 {
-    local( *BoardList, *BoardInfo ) = @_;
+    local( *board, *boardName, *boardInfo ) = @_;
 
-    local( $BoardId, $BName, $BInfo );
-
+    local( $bId, $bName, $bInfo );
     open( ALIAS, "<$BOARD_ALIAS_FILE" ) || &Fatal( 1, $BOARD_ALIAS_FILE );
     while ( <ALIAS> )
     {
 	next if ( /^\#/o || /^$/o );
 	chop;
-	( $BoardId, $BName, $BInfo ) = split( /\t/, $_, 3 );
-	$BoardList{$BoardId} = $BName;
-	$BoardInfo{$BoardId} = $BInfo;
+	( $bId, $bName, $bInfo ) = split( /\t/, $_, 3 );
+	push( @board, $bId );
+	$boardName{ $bId } = $bName;
+	$boardInfo{ $bId } = $bInfo;
     }
     close ALIAS;
 }
@@ -3241,7 +3675,7 @@ sub GetAllBoardInfo
 #
 sub GetBoardInfo
 {
-    local( $Alias ) = @_;
+    local( $alias ) = @_;
 
     local( $dAlias, $dBoardName, $dBoardConf );
 
@@ -3251,14 +3685,15 @@ sub GetBoardInfo
 	next if ( /^\#/o || /^$/o );
 	chop;
 	( $dAlias, $dBoardName, $dBoardConf ) = split( /\t/, $_, 4 );
-	if ( $Alias eq $dAlias ) {
+	if ( $alias eq $dAlias )
+	{
 	    close ALIAS;
 	    return( $dBoardName, $dBoardConf );
 	}
     }
     close ALIAS;
 
-    &Fatal( 11, $Alias );
+    &Fatal( 11, $alias );
 }
 
 
@@ -3284,11 +3719,10 @@ sub CacheIconDb
 {
     return if $ICON_DB_CACHE;
 
-    local( $Board ) = @_;
     local( $FileName, $IconTitle, $IconHelp );
 
     @ICON_TITLE = %ICON_FILE = %ICON_HELP = ();
-    open( ICON, &GetIconPath( "$Board.$ICONDEF_POSTFIX" ))
+    open( ICON, &GetIconPath( "$BOARD.$ICONDEF_POSTFIX" ))
 	|| ( open( ICON, &GetIconPath( "$DEFAULT_ICONDEF" ))
 	    || &Fatal( 1, &GetIconPath( "$DEFAULT_ICONDEF" )));
     while ( <ICON> )
@@ -3315,7 +3749,7 @@ sub CacheIconDb
 #
 # - ARGS
 #	$BoardId	掲示板ID
-#	*BoardHeader	本文各行を入れる配列変数へのリファレンス
+#	*BoardHeader	本文各行を入れる文字列へのリファレンス
 #
 # - DESCRIPTION
 #	掲示板ディレクトリの中の，掲示板ヘッダファイルを読み出す．
@@ -3331,9 +3765,11 @@ sub GetBoardHeader
     open( HEADER, "<$File" ) || &Fatal( 1, $File );
     while ( <HEADER> )
     {
-	s/__PROGRAM__/$PROGRAM/g;
-	s/__BOARD__/$Board/g;
-	push( @BoardHeader, $_ );
+	s/__PROGRAM__/$PROGRAM/go;
+	s/__BOARD__/$Board/go;
+	s/__TITLE_NUM__/$DEF_TITLE_NUM/go;
+	s/__ARTICLE_NUM__/$DEF_ARTICLE_NUM/go;
+	$BoardHeader .= $_;
     }
     close HEADER;
 }
@@ -3455,6 +3891,12 @@ sub GetIconPath
 sub GetIconUrlFromTitle
 {
     local( $Icon, $Board ) = @_;
+
+    if ( $Board eq $BOARD )
+    {
+	&CacheIconDb unless $ICON_DB_CACHE;
+	return "$ICON_DIR/" . $ICON_FILE{$Icon};
+    }
 
     local( $FileName, $Title, $TargetFile );
 
