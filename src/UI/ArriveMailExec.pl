@@ -42,7 +42,7 @@ __EOF__
 </pre></p>
 __EOF__
 
-    &PrintButtonToTitleList( $BOARD, 0 );
+    &PrintButtonToTitleList( $BOARD, undef );
     &PrintButtonToBoardList if $SYS_F_B;
     &MsgFooter;
 }

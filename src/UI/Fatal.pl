@@ -153,7 +153,7 @@ Fatal:
 
     if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ))
     {
-	&PrintButtonToTitleList( $BOARD, 0 )
+	&PrintButtonToTitleList( $BOARD, undef )
 	    if (( $BOARD ne '' ) && ( $errno != 11 ));
 	&PrintButtonToBoardList if $SYS_F_B;
     }
