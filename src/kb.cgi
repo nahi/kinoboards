@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.82 2000-07-01 13:15:37 nakahiro Exp $
+# $Id: kb.cgi,v 5.83 2000-08-06 14:53:58 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -77,7 +77,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7.2';		# release
+$KB_RELEASE = '7.3-dev';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -314,7 +314,7 @@ MAIN:
     if ( $SYS_AUTH )
     {
 	$SYS_AUTH_DEFAULT = $SYS_AUTH;
-	$SYS_AUTH = 3 if ( &cgi'tag( 'kinoA' ) == 3 );
+	$SYS_AUTH = 3 if ( !$SYS_COOKIE_FORCE && ( &cgi'tag( 'kinoA' ) == 3 ));
 	if ( $c eq 'lo' )
 	{
 	    # ログイン
@@ -339,7 +339,6 @@ MAIN:
 	    
 	local( $err, @userInfo );
 	( $err, $UNAME, $PASSWD, @userInfo ) = &cgiauth'checkUser( $USER_AUTH_FILE );
-	    
 	if ( $err == 3 )
 	{
 	    # ユーザ名がみつからない
@@ -461,6 +460,12 @@ MAIN:
 	{
 	    # ヘルプ画面
 	    &uiHelp();
+	    last;
+	}
+	elsif ( $c eq 'bl' )
+	{
+	    # 掲示板一覧の表示
+	    &uiBoardList();
 	    last;
 	}
     }
@@ -626,13 +631,6 @@ MAIN:
         }
     }
 
-    if ( $c eq 'bl' )
-    {
-	# 掲示板一覧の表示
-	&uiBoardList();
-	last;
-    }
-
     # from command line?
     if ( $#ARGV >= 0 )
     {
@@ -666,6 +664,13 @@ MAIN:
 		last;
 	    }
 	}
+    }
+
+    # 認証ありだが参照権限がない場合は，ログイン画面へ
+    if ( $SYS_AUTH && !( $POLICY & 1 ))
+    {
+	&uiLogin();
+	last;
     }
 
     # どのコマンドでもない．エラー．
@@ -1093,11 +1098,12 @@ sub htmlGen
     {
 	LINE: while ( 1 )
 	{
-	    if (( index( $_, '<kb' ) >= 0 ) &&
-		( s!<kb:(\w+)(\s*var="([^"]*)")?\s+/>!!o ))
+	    s!xmlns:kb="http://www\.jin\.gr\.jp/xmlns/kb-html-embedding"\s*!!o;
+	    if ( s!<kb:(\w+)(\s*([^>]+))?\s*/>!!o )
 	    {
 		$gHgStr .= $`;
-		eval( '&hg_' . $1 . '( "' . $source . '", "' . $3 . '" );' );
+		$gHgArgStr = $3;
+		eval( '&hg_' . $1 . '( "' . $source . '" );' );
 		if ( $@ )
 		{
 		    if ( $source != $file )
@@ -1153,14 +1159,20 @@ sub hg_login_form
     if ( $SYS_AUTH_DEFAULT == 1 )
     {
 	local( $contents );
-	$contents = &tagInputRadio( 'kinoA_url', 'kinoA', '3', 0 ) . ":\n" .
-	    &tagLabel( 'クッキー(HTTP-Cookies)を使わずに認証する', 'kinoA_url', 'U' ) . $HTML_BR;
-	$contents .= &tagInputRadio( 'kinoA_cookies', 'kinoA', '1', 1 ) . "\n" .
-	    &tagLabel( 'クッキーを使ってこのブラウザに情報を覚えさせる', 'kinoA_cookies', 'C' ) . $HTML_BR;
-	$msg .= &tagFieldset( "クッキー:$HTML_BR", $contents );
+	if ( $SYS_COOKIE_FORCE )
+	{
+	    # クッキー使用を強制する
+	    $contents .= qq(<input name="kinoA" type="hidden" value="1" />\n);
+	}
+	else
+	{
+	    $contents .= &tagInputRadio( 'kinoA_url', 'kinoA', '3', 0 ) . ":\n" . &tagLabel( 'クッキー(HTTP-Cookies)を使わずに認証する', 'kinoA_url', 'U' ) . $HTML_BR;
+	    $contents .= &tagInputRadio( 'kinoA_cookies', 'kinoA', '1', 1 ) . "\n" . &tagLabel( 'クッキーを使ってこのブラウザに情報を覚えさせる', 'kinoA_cookies', 'C' ) . $HTML_BR;
+	    $msg .= &tagFieldset( "クッキー:$HTML_BR", $contents );
+	}
     }
 
-    %tags = ( 'c', 'bl', 'kinoT', 'plain' );
+    %tags = ( 'kinoT', 'plain' );
     &dumpForm( *tags, '実行', 'リセット', *msg, 1 );
 }
 
@@ -1185,7 +1197,7 @@ sub hg_admin_config_form
 	&tagInputText( 'password', 'confP2', '', $PASSWD_LENGTH ) .
 	'（念のため，もう一度お願いします）' . $HTML_BR;
     %tags = ( 'c', 'acx' );
-    &dumpForm( *tags, '設定', 'リセット', *msg, 1 );
+    &dumpForm( *tags, '設定', 'リセット', *msg, 0 );
 }
 
 
@@ -1335,7 +1347,7 @@ sub hg_user_config_form
 	$msg .= &tagLabel( '新しい' . $H_PASSWD, 'confP2', 'C' ) . ': ' .
 	    &tagInputText( 'password', 'confP2', '', $PASSWD_LENGTH ) .
 	    '（念のため，もう一度お願いします）' . $HTML_BR;
-	%tags = ( 'c', 'ucx' );
+	%tags = ( 'c', 'ucx', 'kinoT', 'plain' );
 	&dumpForm( *tags, '設定', 'リセット', *msg );
     }
     else
@@ -1357,7 +1369,7 @@ sub hg_user_config_form
 	$msg .= &tagLabel( '新しい' . $H_PASSWD, 'confP2', 'C' ) . ': ' .
 	    &tagInputText( 'password', 'confP2', '', $PASSWD_LENGTH ) .
 	    '（念のため，もう一度お願いします）' . $HTML_BR;
-	%tags = ( 'c', 'ucx' );
+	%tags = ( 'c', 'ucx', 'kinoT', 'plain' );
 	&dumpForm( *tags, '設定', 'リセット', *msg );
     }
 }
@@ -1424,13 +1436,14 @@ sub uiUserConfigExec
 
     &unlockAll();
 
-    if ( $changePasswd )
+    if ( $changePasswd || !( $POLICY&1 ))
     {
 	# ユーザ情報をクリアして，再度ログイン
 	&uiLogin();
     }
     else
     {
+	# 参照権限がある場合のみ
 	&uiBoardList();
     }
 }
@@ -1486,6 +1499,7 @@ sub uiBoardEntryExec
 
     &unlockAll();
 
+    # 権限チェックをしていないが，管理者なのでOK
     &uiBoardList();
 }
 
@@ -1553,6 +1567,7 @@ sub uiBoardConfigExec
 
     &unlockAll();
 
+    # 権限チェックをしていないが，管理者なのでOK
     &uiBoardList();
 }
 
@@ -1667,7 +1682,7 @@ sub uiSupersedeEntry
 
     local( $back ) = @_;
 
-    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    if ( !( $POLICY & 8 ) && ( $SYS_SUPERSEDE == 0 ))
     {
 	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
@@ -1737,7 +1752,7 @@ sub uiSupersedePreview
     # Isolation level: 1 ( Read comitted )
     &cacheArt( $BOARD );
 
-    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    if ( !( $POLICY & 8 ) && ( $SYS_SUPERSEDE == 0 ))
     {
 	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
@@ -1879,7 +1894,7 @@ sub uiSupersedeExec
     &lockAll();
     &cacheArt( $BOARD );
 
-    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    if ( !( $POLICY & 8 ) && ( $SYS_SUPERSEDE == 0 ))
     {
 	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
@@ -1971,7 +1986,7 @@ sub uiPostExecMain
 	# 記事の訂正
 	local( $name ) = &getArtAuthor( $gOrigId );
 	&fatal( 44, '' ) if ( !&isUser( $name ) && !( $POLICY & 8 ));
-	&fatal( 19, '' ) if (( &getArtDaughters( $gOrigId ) ne '' ) && !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 1 ));
+	&fatal( 19, '' ) if (( &getArtDaughters( $gOrigId ) ne '' ) && !( $POLICY & 8 ) && ( $SYS_SUPERSEDE == 1 ));
 
 	$gNewArtId = &supersedeArticle( $BOARD, $gOrigId, $postDate, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail );
     }
@@ -2713,7 +2728,7 @@ sub uiDeletePreview
     &lockBoard();
     &cacheArt( $BOARD );
 
-    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    if ( !( $POLICY & 8 ) && ( $SYS_DELETE == 0 ))
     {
 	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
@@ -2768,7 +2783,7 @@ sub uiDeleteExec
     &lockBoard();
     &cacheArt( $BOARD );
 
-    if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
+    if ( !( $POLICY & 8 ) && ( $SYS_DELETE == 0 ))
     {
 	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
@@ -2779,7 +2794,7 @@ sub uiDeleteExec
 
     local( $name ) = &getArtAuthor( $gId );
     &fatal( 44, '' ) if ( !&isUser( $name ) && !( $POLICY & 8 ));
-    &fatal( 19, '' ) if (( &getArtDaughters( $gId ) ne '' ) && !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 1 ));
+    &fatal( 19, '' ) if (( &getArtDaughters( $gId ) ne '' ) && !( $POLICY & 8 ) && ( $SYS_DELETE == 1 ));
 
     # 削除実行
     &deleteArticle( $gId, $BOARD, $threadFlag );
@@ -2897,71 +2912,75 @@ sub hg_c_top_menu
     local( $formStr );
 
     local( %tags );
+    $formStr .= &linkP( 'c=bl', 'TOP', 'J' ) . "\n";
+    $formStr .= ' ' . &linkP( 'c=h', 'HELP', 'H' ) . "\n";
+
     if ( $SYS_AUTH )
     {
-	$formStr .= &linkP( 'c=bl', 'TOP', 'J' ) . "\n";
-	$formStr .= ' ' . &linkP( 'c=h', 'HELP', 'H' ) . "\n";
 	$formStr .= ' ' . &linkP( 'c=ue', 'OPEN', 'O' ) . "\n";
 	$formStr .= ' ' . &linkP( 'c=lo', 'LOGIN', 'L' ) . "\n";
 	if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne $cgiauth'F_COOKIE_RESET ))
 	{
 	    $formStr .= ' ' . &linkP( 'c=uc', 'INFO', 'I' ) . "\n";
 	}
-	$formStr .= "&nbsp;&nbsp;\n";
     }
 
-    if ( $BOARD )
+    if ( $POLICY&1 )
     {
-	$tags{ 'b' } = $BOARD;
-	$formStr .= &tagLabel( "表示画面", 'c', 'W' ) . ": \n";
+	$formStr .= "&nbsp;&nbsp;\n";
 
-	local( $contents );
-	$contents .= sprintf( qq[<option%s value="v">最新$H_SUBJECT一覧(スレッド)</option>\n], ( $SYS_TITLE_FORMAT == 0 )? ' selected="selected"' : '' );
-	$contents .= sprintf( qq[<option%s value="r">最新$H_SUBJECT一覧(書き込み順)</option>\n], ( $SYS_TITLE_FORMAT == 1 )? ' selected="selected"' : '' );
-	$contents .= qq[<option value="vt">最新$H_MESG一覧(スレッド)</option>\n];
-	$contents .= qq[<option value="l">最新$H_MESG一覧(書き込み順)</option>\n];
-	$contents .= qq(<option value="v">&nbsp;</option>\n);
-	$contents .= qq(<option value="s">$H_MESGの検索</option>\n);
-	$contents .= qq(<option value="i">使える$H_ICON一覧</option>\n) if $SYS_ICON;
-	if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )))
+	if ( $BOARD )
 	{
-	    $contents .= qq(<option value="v">&nbsp;</option>\n);
-	    $contents .= qq(<option value="n">$H_POSTNEWARTICLE</option>\n);
+	    $tags{ 'b' } = $BOARD;
+	    $formStr .= &tagLabel( "一覧表示", 'c', 'W' ) . ": \n";
+
+	    local( $contents );
+	    $contents .= sprintf( qq[<option%s value="v">最新$H_SUBJECT(スレッド)</option>\n], ( $SYS_TITLE_FORMAT == 0 )? ' selected="selected"' : '' );
+	    $contents .= sprintf( qq[<option%s value="r">最新$H_SUBJECT(日付順)</option>\n], ( $SYS_TITLE_FORMAT == 1 )? ' selected="selected"' : '' );
+	    $contents .= qq[<option value="vt">最新$H_MESG(スレッド)</option>\n];
+	    $contents .= qq[<option value="l">最新$H_MESG(日付順)</option>\n];
+	    $contents .= qq(<option value="s">$H_MESGの検索</option>\n);
+	    $formStr .= &tagSelect( 'c', $contents );
+	}
+	else
+	{
+	    $tags{ 'c' } = $SYS_TITLE_FORMAT? 'r' : 'v';
+	    $formStr .= &tagLabel( "表示画面", 'b', 'W' ) . ": \n";
+
+	    local( $contents, $boardId );
+	    $boardId = &getBoardId( 0 );
+	    $contents .= qq(<option selected="selected" value="$boardId">) . &getBoardName( $boardId ) . "</option>\n";
+	    foreach ( 1 .. &getNofBoard() )
+	    {
+		$boardId = &getBoardId( $_ );
+		$contents .= qq(<option value="$boardId">) . &getBoardName( $boardId ) . "</option>\n";
+	    }
+
+	    $formStr .= &tagSelect( 'b', $contents );
 	}
 
-	$formStr .= &tagSelect( 'c', $contents );
+	$formStr .= "\n&nbsp;&nbsp;&nbsp;" .
+	    &tagLabel( "表示件数", 'num', 'Y' ) . ': ' .
+	    &tagInputText( 'text', 'num', (( &cgi'tag( 'num' ) ne '' )? scalar( &cgi'tag( 'num' )) : $DEF_TITLE_NUM ),	3 );
+
+	$tags{ 'old' } = &cgi'tag( 'old' ) if ( defined &cgi'tag( 'old' ));
+	$tags{ 'rev' } = &cgi'tag( 'rev' ) if ( defined &cgi'tag( 'rev' ));
+	$tags{ 'fold' } = &cgi'tag( 'fold' ) if ( defined &cgi'tag( 'fold' ));
+	&dumpForm( *tags, ( $SYS_KEYBOARD_SHORTCUT ? '表示(V)' : '表示' ), '', *formStr );
     }
     else
     {
-	$tags{ 'c' } = $SYS_TITLE_FORMAT? 'r' : 'v';
-	$formStr .= &tagLabel( "表示画面", 'b', 'W' ) . ": \n";
-
-	local( $contents, $boardId );
-	$boardId = &getBoardId( 0 );
-	$contents .= qq(<option selected="selected" value="$boardId">) . &getBoardName( $boardId ) . "</option>\n";
-	foreach ( 1 .. &getNofBoard() )
-	{
-	    $boardId = &getBoardId( $_ );
-	    $contents .= qq(<option value="$boardId">) . &getBoardName( $boardId ) . "</option>\n";
-	}
-
-	$formStr .= &tagSelect( 'b', $contents );
+	$gHgStr .= "<p>$formStr</p>\n";
     }
 
-    $formStr .= "\n&nbsp;&nbsp;&nbsp;" .
-	&tagLabel( "表示件数", 'num', 'Y' ) . ': ' .
-	&tagInputText( 'text', 'num', (( &cgi'tag( 'num' ) ne '' )? scalar( &cgi'tag( 'num' )) : $DEF_TITLE_NUM ),	3 );
-
-    $tags{ 'old' } = &cgi'tag( 'old' ) if ( defined &cgi'tag( 'old' ));
-    $tags{ 'rev' } = &cgi'tag( 'rev' ) if ( defined &cgi'tag( 'rev' ));
-    $tags{ 'fold' } = &cgi'tag( 'fold' ) if ( defined &cgi'tag( 'fold' ));
-    &dumpForm( *tags, ( $SYS_KEYBOARD_SHORTCUT ? '表示(V)' : '表示' ), '', *formStr );
     $gHgStr .= "</div>\n";
 }
 
 sub hg_c_help
 {
-    $gHgStr .= &linkP( "b=$BOARD_ESC&c=h", &tagComImg( $ICON_HELP, 'ヘルプ' ), 'H', '', '', $_[1] );
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    $gHgStr .= &linkP( "b=$BOARD_ESC&c=h", &tagComImg( $ICON_HELP, 'ヘルプ' ), 'H', '', '', $var{ 'type' } );
 }
 
 sub hg_c_site_name
@@ -3016,8 +3035,7 @@ sub hg_c_board_link_all
 	$board = &getBoardId( $_ );
 	$modTimeUtc = &getBoardLastmod( $board );
 	$modTime = &getDateTimeFormatFromUtc( $modTimeUtc );
-	if ( $SYS_BLIST_NEWICON_DATE &&
-	    (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
+	if ( $SYS_BLIST_NEWICON_DATE && (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
 	{
 	    $newIcon = " " . &tagArtImg( $H_NEWARTICLE );
 	}
@@ -3043,7 +3061,9 @@ sub hg_c_board_link_all
 
 sub hg_c_board_link
 {
-    local( $com, $board ) = split( ',', $_[1], 2 );
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    local( $com, $board ) = ( $var{ 'com' }, $var{ 'board' } || $BOARD );
     local( $num );
     return unless $board;
     if ( $com eq 'title-thread' )
@@ -3073,8 +3093,7 @@ sub hg_c_board_link
 
     $modTimeUtc = &getBoardLastmod( $board );
     $modTime = &getDateTimeFormatFromUtc( $modTimeUtc );
-    if ( $SYS_BLIST_NEWICON_DATE &&
-	(( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
+    if ( $SYS_BLIST_NEWICON_DATE && (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
     {
 	$newIcon = " " . &tagArtImg( $H_NEWARTICLE );
     }
@@ -3091,26 +3110,73 @@ sub hg_c_board_link
     }
 }
 
+sub hg_c_board_name
+{
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    $gHgStr .= &getBoardName( $var{ 'board' } || $BOARD );
+}
+
+sub hg_c_board_info
+{
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    $gHgStr .= &getBoardInfo( $var{ 'board' } || $BOARD );
+}
+
+sub hg_c_board_lastmod
+{
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    local( $modTimeUtc ) = &getBoardLastmod( $var{ 'board' } || $BOARD );
+    $gHgStr .= &getDateTimeFormatFromUtc( $modTimeUtc );
+
+    if (( $var{ 'newIcon' } eq 'on' ) && (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
+    {
+	$gHgStr .= ' ' . &tagArtImg( $H_NEWARTICLE );
+    }
+}
+
 sub hg_c_anchor
 {
-    $gHgStr .= &tagA( split( ',', $_[1] ));
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    $gHgStr .= &tagA( $var{ 'comment' }, $var{ 'url' } );
 }
 
 sub hg_c_icon_msg
 {
-    $gHgStr .= &tagArtImg( $_[1] );
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    $gHgStr .= &tagArtImg( $var{ 'icon' } );
 }
 
 sub hg_c_icon
 {
-    local( $src, $alt ) = split( ',', $_[1], 2 );
-    $gHgStr .= &tagComImg( &getIconURL( $src ), $alt );
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    $gHgStr .= &tagComImg( &getIconURL( $var{ 'icon' } ), $var{ 'alt' } );
 }
 
 sub hg_c_img
 {
-    local( $src, $alt, $width, $height ) = split( ',', $_[1], 4 );
-    $gHgStr .= &tagImg( &getImgURL( $src ), $alt, $width, $height, 'kbImg' );
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    $gHgStr .= &tagImg( &getImgURL( $var{ 'src' } ), $var{ 'alt' }, $var{ 'width' }, $var{ 'height' }, 'kbImg' );
+}
+
+sub hg_c_command
+{
+    local( %var );
+    &parseXmlAttr( $gHgArgStr, *var );
+    local( $comment ) = $var{ 'comment' };
+    local( @comm, $tag, $value );
+    delete( $var{ 'comment' } );
+    while (( $tag, $value ) = each( %var ))
+    {
+	push( @comm, $tag . '=' . $value );
+    }
+    $gHgStr .= &linkP( join( '&', @comm ), $comment );
 }
 
 sub hg_b_board_name
@@ -3234,11 +3300,11 @@ sub dumpBoardHeader
     
     LINE: while ( 1 )
     {
-	if (( index( $msg, '<kb' ) >= 0 ) &&
-	    ( $msg =~ s!<kb:(\w+)(\s*var="([^"]*)")?\s+/>!!o ))
+	if ( $msg =~ s!<kb:(\w+)(\s*([^>]+))?\s*/>!!o )
 	{
 	    $gHgStr .= $`;
-	    eval( '&hg_' . $1 . '( "' . $source . '", "' . $3 . '" );' );
+	    $gHgArgStr = $3;
+	    eval( '&hg_' . $1 . '( "' . $source . '" );' );
 	    &fatal( 998, "$file : $@" ) if $@;
 	    $msg = $';
 	}
@@ -3474,9 +3540,6 @@ sub dumpArtBody
 
     $gHgStr .= qq(<div class="kbArticle">\n);
 
-    # タイトル
-    &dumpArtTitle( $id, $title, $icon );
-
     local( $origId );
     if ( $fid ne '' )
     {
@@ -3488,12 +3551,30 @@ sub dumpArtBody
 	local( $num ) = &getArtNum( $id );
 	local( $prevId ) = &getArtId( $num - 1 );
 	local( $nextId ) = &getArtId( $num + 1 );
-	&dumpArtCommand( $id, $origId, $prevId, $nextId, ( $aids ne '' ),
-	    (( &isUser( $name ) && (( $aids eq '' ) || ( $SYS_OVERWRITE == 2 ))) || ( $POLICY & 8 )));
+	local( $flag ) = 0;
+	if ( $POLICY&8 )
+	{
+	    # 管理者は訂正・削除OK
+	    $flag = 1 + 2;
+	}
+	elsif ( &isUser( $name ))
+	{
+	    # 本人は...
+	    if (( $SYS_SUPERSEDE == 2 ) || (( $SYS_SUPERSEDE == 1 ) && ( $aids eq '' )))
+	    {
+		$flag += 1;
+	    }
+	    if (( $SYS_DELETE == 2 ) || (( $SYS_DELETE == 1 ) && ( $aids eq '' )))
+	    {
+		$flag += 2;
+	    }
+	}
+
+	&dumpArtCommand( $id, $origId, $prevId, $nextId, ( $aids ne '' ), $flag );
     }
 
-    # ヘッダ（ユーザ情報とリプライ元: タイトルは除く）
-    &dumpArtHeader( $name, $eMail, $url, $host, $date, ( $origFlag? $origId : '' ));
+    # メッセージヘッダ
+    &dumpArtHeader( $id, $title, $icon, $name, $eMail, $url, $host, $date, ( $origFlag? $origId : '' ));
 
     # 切れ目
     $gHgStr .= $H_LINE;
@@ -3858,7 +3939,7 @@ sub dumpArtTitle
 ## dumpArtCommand - 記事コマンドの表示
 #
 # - SYNOPSIS
-#	&dumpArtCommand( $id, $upId, $prevId, $nextId, $reply, $delete );
+#	&dumpArtCommand( $id, $upId, $prevId, $nextId, $reply, $flag );
 #
 # - ARGS
 #	$id	記事ID
@@ -3866,11 +3947,13 @@ sub dumpArtTitle
 #	$prevId	前記事ID
 #	$nextId	次記事ID
 #	$reply	リプライ記事があるか
-#	$delete	削除・訂正が可能か
+#	$flag	コマンドフラグ
+#	    2^0 ... 訂正が可能か
+#	    2^1 ... 削除が可能か
 #
 sub dumpArtCommand
 {
-    local( $id, $upId, $prevId, $nextId, $reply, $delete ) = @_;
+    local( $id, $upId, $prevId, $nextId, $reply, $flag ) = @_;
 
     $gHgStr .= qq(<p class="command">\n);
 
@@ -3956,17 +4039,22 @@ sub dumpArtCommand
     {
 	$gHgStr .= $dlmtL;
 
-	if ( $delete )
+	if ( $flag&1 )
 	{
-	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=f&s=on&id=$id",
-		&tagComImg( $ICON_SUPERSEDE, $H_SUPERSEDE ), 'S' ) . "\n" .
-		$dlmtS . &linkP( "b=$BOARD&c=dp&id=$id",
-		&tagComImg( $ICON_DELETE, $H_DELETE ), 'D' ) . "\n";
+	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=f&s=on&id=$id", &tagComImg( $ICON_SUPERSEDE, $H_SUPERSEDE ), 'S' ) . "\n";
 	}
 	else
 	{
-	    $gHgStr .= $dlmtS . &tagComImg( $ICON_SUPERSEDE_X, $H_SUPERSEDE ) .
-	    	"\n" . $dlmtS . &tagComImg( $ICON_DELETE_X, $H_DELETE ) . "\n";
+	    $gHgStr .= $dlmtS . &tagComImg( $ICON_SUPERSEDE_X, $H_SUPERSEDE ) . "\n";
+	}
+
+	if ( $flag&2 )
+	{
+	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD&c=dp&id=$id", &tagComImg( $ICON_DELETE, $H_DELETE ), 'D' ) . "\n";
+	}
+	else
+	{
+	    $gHgStr .= $dlmtS . &tagComImg( $ICON_DELETE_X, $H_DELETE ) . "\n";
 	}
     }
 
@@ -3983,9 +4071,12 @@ sub dumpArtCommand
 ## dumpArtHeader - 記事ヘッダ（タイトル除く）の表示
 #
 # - SYNOPSIS
-#	&dumpArtHeader( $name, $eMail, $url, $host, $date, $origId );
+#	&dumpArtHeader( $id, $title, $icon, $name, $eMail, $url, $host, $date, $origId );
 #
 # - ARGS
+#	$id		記事ID
+#	$title		タイトル
+#	$icon		アイコン
 #	$name		ユーザ名
 #	$eMail		メイルアドレス
 #	$url		URL
@@ -3995,9 +4086,21 @@ sub dumpArtCommand
 #
 sub dumpArtHeader
 {
-    local( $name, $eMail, $url, $host, $date, $origId ) = @_;
+    local( $id, $title, $icon, $name, $eMail, $url, $host, $date, $origId ) = @_;
 
     $gHgStr .= qq(<p class="header">\n);
+
+    local( $markUp );
+
+    if ( $id ne '' )
+    {
+	$markUp .= &tagArtImg( $icon ) . " <small>$id.</small> " . $title;
+    }
+    else
+    {
+	$markUp .= &tagArtImg( $icon ) . ' ' . $title;
+    }
+    $gHgStr .= qq(<p class="kbTitle">) . &tagA( $markUp, '', '', '', "a$id" ) . '</p>';
 
     # お名前
     if ( $url eq '' )
@@ -4120,16 +4223,6 @@ sub dumpForm
     $gHgStr .= qq(<form action="$PROGRAM" method="POST">\n);
 
     $gHgStr .= "<p>\n";
-    foreach ( keys( %tags ))
-    {
-	$gHgStr .= qq(<input name="$_" type="hidden" value="$tags{$_}" />\n);
-    }
-    if ( !$noAuth && ( $SYS_AUTH == 3 ))
-    {
-	$gHgStr .= qq(<input name="kinoU" type="hidden" value="$UNAME" />\n);
-	$gHgStr .= qq(<input name="kinoP" type="hidden" value="$PASSWD" />\n);
-	$gHgStr .= qq(<input name="kinoA" type="hidden" value="3" />\n);
-    }
     local( $accessKey );
     if ( $submit =~ /\((\w)\)$/o )
     {
@@ -4154,6 +4247,18 @@ sub dumpForm
 	}
 	$gHgStr .= ' ' . &tagInputSubmit( 'reset', $reset, $accessKey ) . "\n";
     }
+
+    # 重複を避けるため，隠しエレメントは最後に回す
+    foreach ( keys( %tags ))
+    {
+	$gHgStr .= qq(<input name="$_" type="hidden" value="$tags{$_}" />\n);
+    }
+    if ( !$noAuth && ( $SYS_AUTH == 3 ))
+    {
+	$gHgStr .= qq(<input name="kinoU" type="hidden" value="$UNAME" />\n);
+	$gHgStr .= qq(<input name="kinoP" type="hidden" value="$PASSWD" />\n);
+	$gHgStr .= qq(<input name="kinoA" type="hidden" value="3" />\n);
+    }
     $gHgStr .= "</p>\n</form>\n";
 }
 
@@ -4175,7 +4280,6 @@ sub dumpForm
 #	$flag		表示カスタマイズフラグ
 #	    2^0 ... スレッドの先頭であるか（▲が付く）
 #	    2^1 ... 同一ページfragmentリンクを利用するか（#記事番号でリンク）
-#	    2^2 ... スレッドの末端であるか（▼が付く）
 #
 # - DESCRIPTION
 #	ある記事をタイトルリスト表示用にフォーマットする．
@@ -4187,7 +4291,7 @@ sub dumpArtSummary
     $subject = $subject || $id;
     $name = $name || $MAINT_NAME;
 
-    $gHgStr .= qq(<span class="kbTitle">);	# 初期化
+    $gHgStr .= qq(<span class="kbSummaryTitle">);	# 初期化
 
     if ( $flag&1 && ( &getArtParents( $id ) ne '' ))
     {
@@ -6586,6 +6690,30 @@ sub getTitleOldIndex
 }
 
 
+###
+## parseXmlAttr - XML attributeの解析
+#
+# - SYNOPSIS
+#	&parseXmlAttr( $str, *var );
+#
+# - ARGS
+#	$str	解析対象（ex. 'foo="FOO" bar="BAR"'）
+#	%var	解析結果を格納するhash
+#
+# - DESCRIPTION
+#	解析し，attribute名と値を取り出し，hashに格納する．
+#	decodingは一切行なっていないので注意．
+#
+sub parseXmlAttr
+{
+    local( $str, *var ) = @_;
+    while ( $str =~ m/([^=\s]+)\s*=\s*('|")([^'"]*)\2\s*/go )
+    {
+	$var{ $1 } = $3;
+    }
+}
+
+
 ######################################################################
 # データインプリメンテーション
 
@@ -6659,6 +6787,31 @@ sub getBoardKey
 
 
 ###
+## getBoardLastmod - ある掲示板の最終更新時刻を取得
+#
+# - SYNOPSIS
+#	&getBoardLastmod( $board );
+#
+# - ARGS
+#	$board		掲示板ID
+#
+# - DESCRIPTION
+#	掲示板用のメッセージDBファイルの最終更新時刻を計算し，
+#	その掲示板の最終更新時刻として返す．
+#
+# - RETURN
+#	UTCからの経過秒数
+#
+sub getBoardLastmod
+{
+    local( $board ) = @_;
+
+    # 86400 = 24 * 60 * 60
+    $^T - ( -M &getPath( $board, $DB_FILE_NAME )) * 86400;
+}
+
+
+###
 ## getNofBoardIcon - アイコン数の取得
 ## getBoardIconId - アイコンIDの取得
 #
@@ -6707,31 +6860,6 @@ sub getBoardIconId
 sub getBoardIconFile { $ICON_FILE{ $_[0] }; }
 sub getBoardIconHelp { $ICON_HELP{ $_[0] }; }
 sub getBoardIconType { $ICON_TYPE{ $_[0] }; }
-
-
-###
-## getBoardLastmod - ある掲示板の最終更新時刻を取得
-#
-# - SYNOPSIS
-#	&getBoardLastmod( $board );
-#
-# - ARGS
-#	$board		掲示板ID
-#
-# - DESCRIPTION
-#	掲示板用のメッセージDBファイルの最終更新時刻を計算し，
-#	その掲示板の最終更新時刻として返す．
-#
-# - RETURN
-#	UTCからの経過秒数
-#
-sub getBoardLastmod
-{
-    local( $board ) = @_;
-
-    # 86400 = 24 * 60 * 60
-    $^T - ( -M &getPath( $board, $DB_FILE_NAME )) * 86400;
-}
 
 
 ###
