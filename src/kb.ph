@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.14 1997-02-06 17:27:43 nakahiro Exp $
+# $Id: kb.ph,v 4.15 1997-02-08 21:25:43 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -50,9 +50,10 @@ $MAIL2 = ':SendMail'			if ($ARCH eq 'Mac');
 #
 # WinやMacPerlの場合，今のところメイル送信機能がありません．
 # メイルはすべて，上で指定したファイルに書き出されます．
-# あるいはそのファイルを適当に分割し，
-# 1日1回手動で送信するという手もありますね．(^_^;
-# WinNTにはsendmailがあるはずなんだけど……
+#
+# 一応ファイルに書き出されるので，1日1回，そのファイルを適当に分割し，
+# 手動で送信するという手もありますね．(^_^;
+# WinNTにはsendmailがあるはずなので，いつかは対応したい……
 #
 
 #
