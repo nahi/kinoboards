@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.49 2000-06-22 13:08:24 nakahiro Exp $
+# $Id: cgi.pl,v 2.50 2000-06-23 10:12:26 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -766,6 +766,9 @@ sub secureXHTML
     local( $srcString, $tag, $need, $emptyElement, $feature, $markuped );
 
     $string =~ s/\\>/__EscapedGt\377__/go;
+    $string =~ s/&nbsp;?/__HtmlNbsp\377__/go;
+    $string =~ s/&copy;?/__HtmlCopy\377__/go;
+    $string =~ s/&reg;?/__HtmlReg\377__/go;
     $string =~ s/&amp;?/__HtmlAmp\377__/go;
     $string =~ s/&quot;?/__HtmlQuote\377__/go;
     $string =~ s/&lt;?/__HtmlLt\377__/go;
@@ -820,6 +823,9 @@ sub secureXHTML
     }
     $string =~ s/__EscapedGt\377__/\\>/go;
     $string =~ s/__EscapedQuote\377__/\\"/go;
+    $string =~ s/&nbsp;?/__HtmlNbsp\377__/go;
+    $string =~ s/&copy;?/__HtmlCopy\377__/go;
+    $string =~ s/&reg;?/__HtmlReg\377__/go;
     $string =~ s/&/&amp;/g;
     $string =~ s/"/&quot;/g;
     $string =~ s/</&lt;/g;
