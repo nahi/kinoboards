@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.14 1996-07-25 13:18:23 nakahiro Exp $
+# $Id: kb.cgi,v 4.15 1996-07-26 15:09:37 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -59,11 +59,6 @@ require('tag_secure.pl');
 $[ = 0;
 
 #
-# default http port
-#
-$DEFAULT_HTTP_PORT = 80;
-
-#
 # 著作権表示
 #
 $ADDRESS = "KINOBOARDS/1.0: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
@@ -95,11 +90,6 @@ $LOCK_ORG = ".lock.kb.org";
 $LOCK_WAIT = 10;
 
 #
-# prefix of quote file.
-#
-$QUOTE_PREFIX = ".q";
-
-#
 # アイコンディレクトリ
 # (アイコンとアイコン定義ファイルを入れるディレクトリ名)
 #
@@ -120,12 +110,6 @@ $ICON_HELP = "$ICON_DIR/q.gif";
 $ICONDEF_POSTFIX = "idef";
 $ICON_HEIGHT = 20;
 $ICON_WIDTH = 20;
-
-#
-# 制御用コメント文
-#
-$COM_ARTICLE_BEGIN = "<!-- Article Begin -->";
-$COM_ARTICLE_END = "<!-- Article End -->";
 
 #
 # 引用フラグ
@@ -178,6 +162,7 @@ MAIN: {
 
     # 頻繁に使うので大域変数
     $BOARD = $cgi'TAGS{'b'};
+    $BOARDNAME = &GetBoardInfo($BOARD);
 
     # 掲示板固有セッティングを読み込む
     require("$BOARD/$CONF_FILE_NAME") if (-s "$BOARD/$CONF_FILE_NAME");
@@ -269,11 +254,8 @@ sub Entry {
     # 引用あり/なしと，引用する場合はそのId(引用しない時は0)
     local($QuoteFlag, $Id) = @_;
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 表示画面の作成
-    &MsgHeader("$BoardName: $ENTRY_MSG");
+    &MsgHeader("$BOARDNAME: $ENTRY_MSG");
 
     # フォローの場合
     if ($Id != 0) {
@@ -305,22 +287,19 @@ sub EntryHeader {
 
     local($Subject, $Id) = @_;
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # お約束
-    print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-    print("<input name=\"c\" type=\"hidden\" value=\"p\">\n");
-    print("<input name=\"b\" type=\"hidden\" value=\"$BOARD\">\n");
-    
-    # 引用Id; 引用でないなら0．
-    print("<input name=\"id\" type=\"hidden\" value=\"$Id\">\n");
-
-    # あおり文
-    print("<p>$H_AORI</p>\n");
-
-    # Board名
-    print("$H_BOARD $BoardName<br>\n");
+    print(<<__EOF__);
+<p>
+<form action="$PROGRAM" method="POST">
+<input name="c" type="hidden" value="p">
+<input name="b" type="hidden" value="$BOARD">
+<input name="id" type="hidden" value="$Id">
+</p>
+<p>
+$H_AORI
+</p>
+$H_BOARD $BOARDNAME<br>
+__EOF__
 
     # アイコンの選択
     if ($SYS_ICON) {
@@ -331,7 +310,7 @@ sub EntryHeader {
 	# 一つ一つ表示
 	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
 	    || (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+		|| &Fatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
 	    chop;
 	    ($FileName, $Title) = split(/\t/, $_, 2);
@@ -348,11 +327,14 @@ sub EntryHeader {
 
     # TextType
     if ($SYS_TEXTTYPE) {
-	print("$H_TEXTTYPE\n");
-	print("<SELECT NAME=\"texttype\">\n");
-	print("<OPTION SELECTED>$H_PRE\n");
-	print("<OPTION>$H_HTML\n");
-	print("</SELECT><BR>\n");
+	print(<<__EOF__);
+$H_TEXTTYPE
+<SELECT NAME="texttype">
+<OPTION SELECTED>$H_PRE
+<OPTION>$H_HTML
+</SELECT><BR>
+__EOF__
+
     }
 
 }
@@ -364,27 +346,33 @@ sub EntryHeader {
 sub EntryFooter {
 
     # 名前とメールアドレス，URL．
-    print("$H_FROM <input name=\"name\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
-    print("$H_MAIL <input name=\"mail\" type=\"text\" size=\"$MAIL_LENGTH\"><br>\n");
-    print("$H_URL <input name=\"url\" type=\"text\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
-    print("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n")
-	if ($SYS_FOLLOWMAIL);
+    print(<<__EOF__);
+$H_FROM <input name="name" type="text" size="$NAME_LENGTH"><br>
+$H_MAIL <input name="mail" type="text" size="$MAIL_LENGTH"><br>
+$H_URL <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
+__EOF__
+
+    ($SYS_FOLLOWMAIL) && print("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
     
     if ($SYS_ALIAS) {
-	print("<p>$H_ALIASINFO\n");
-	print("(<a href=\"$PROGRAM?c=as\">$H_SEEALIAS</a> // \n");
-	print("<a href=\"$PROGRAM?c=an\">$H_ALIASENTRY</a>)</p>\n");
+	print(<<__EOF__);
+<p>
+$H_ALIASINFO
+(<a href="$PROGRAM?c=as">$H_SEEALIAS</a> //
+ <a href="$PROGRAM?c=an">$H_ALIASENTRY</a>)
+</p>
+__EOF__
+
     }
 
     # ボタン
-    print("<p>\n");
-    print("<input type=\"radio\" name=\"com\" value=\"p\" CHECKED>: $H_PREVIEW<br>\n");
-    print("<input type=\"radio\" name=\"com\" value=\"x\">: $H_ENTRY<br>\n");
-    print("<input type=\"submit\" value=\"$H_PUSHHERE\">\n");
-    print("</p>\n");
-
-    # お約束
-    print("</form>\n");
+    print(<<__EOF__);
+<input type="radio" name="com" value="p" CHECKED>: $H_PREVIEW<br>
+<input type="radio" name="com" value="x">: $H_ENTRY<br>
+<input type="submit" value="$H_PUSHHERE">
+</p>
+</form>
+__EOF__
 
     &MsgFooter();
 }
@@ -423,7 +411,7 @@ sub QuoteOriginalArticle {
     local($QuoteFile) = &GetArticleFileName($Id, $Board);
 
     # ファイルを開く
-    open(TMP, "<$QuoteFile") || &MyFatal(1, $QuoteFile);
+    open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
     while(<TMP>) {
 
 	# 引用のための変換
@@ -455,9 +443,6 @@ sub QuoteOriginalArticle {
 ## プレビュー画面
 #
 sub Preview {
-
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
 
     # 入力された記事情報
     local($Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article,
@@ -500,24 +485,27 @@ sub Preview {
     &MsgHeader($PREVIEW_MSG);
 
     # お約束
-    print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-    print("<input name=\"c\"        type=\"hidden\" value=\"x\">\n");
-    print("<input name=\"b\"        type=\"hidden\" value=\"$BOARD\">\n");
-    print("<input name=\"id\"       type=\"hidden\" value=\"$Id\">\n");
-    print("<input name=\"texttype\" type=\"hidden\" value=\"$TextType\">\n");
-    print("<input name=\"name\"     type=\"hidden\" value=\"$Name\">\n");
-    print("<input name=\"mail\"     type=\"hidden\" value=\"$Email\">\n");
-    print("<input name=\"url\"      type=\"hidden\" value=\"$Url\">\n");
-    print("<input name=\"icon\"     type=\"hidden\" value=\"$Icon\">\n");
-    print("<input name=\"subject\"  type=\"hidden\" value=\"$Subject\">\n");
-    print("<input name=\"article\"  type=\"hidden\" value=\"$Article\">\n");
-    print("<input name=\"file\"     type=\"hidden\" value=\"$File\">\n");
-    print("<input name=\"qurl\"     type=\"hidden\" value=\"$Qurl\">\n");
-    print("<input name=\"fmail\"    type=\"hidden\" value=\"$Fmail\">\n");
+    print(<<__EOF__);
+<form action="$PROGRAM" method="POST">
+<input name="c"        type="hidden" value="x">
+<input name="b"        type="hidden" value="$BOARD">
+<input name="id"       type="hidden" value="$Id">
+<input name="texttype" type="hidden" value="$TextType">
+<input name="name"     type="hidden" value="$Name">
+<input name="mail"     type="hidden" value="$Email">
+<input name="url"      type="hidden" value="$Url">
+<input name="icon"     type="hidden" value="$Icon">
+<input name="subject"  type="hidden" value="$Subject">
+<input name="article"  type="hidden" value="$Article">
+<input name="file"     type="hidden" value="$File">
+<input name="qurl"     type="hidden" value="$Qurl">
+<input name="fmail"    type="hidden" value="$Fmail">
 
-    # あおり文
-    print("<p>$H_POSTINFO");
-    print("<input type=\"submit\" value=\"$H_PUSHHERE\"></p>\n");
+<p>
+$H_POSTINFO
+<input type="submit" value="$H_PUSHHERE">
+</p>
+__EOF__
 
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
@@ -573,7 +561,7 @@ sub CheckArticle {
     $_ = $Name;
     if (/^#.*$/) {
         ($Tmp, $Email, $Url) = &GetUserInfo($_);
-	&MyFatal(7, $Name) if ($Tmp eq '');
+	&Fatal(7, $Name) if ($Tmp eq '');
 	$Name = $Tmp;
     }
 
@@ -609,13 +597,17 @@ sub Thanks {
     # 表示画面の作成
     &MsgHeader($THANKS_MSG);
 
-    print("<p>$H_THANKSMSG</p>");
-    print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-    print("<input name=\"b\" type=\"hidden\" value=\"$BOARD\">\n");
-    print("<input name=\"c\" type=\"hidden\" value=\"v\">\n");
-    print("<input name=\"num\" type=\"hidden\" value=\"40\">\n");
-    print("<input type=\"submit\" value=\"$H_BACK\">\n");
-    print("</form>\n");
+    print(<<__EOF__);
+<p>
+$H_THANKSMSG
+</p>
+<form action="$PROGRAM" method="POST">
+<input name="b" type="hidden" value="$BOARD">
+<input name="c" type="hidden" value="v">
+<input name="num" type="hidden" value="40">
+<input type="submit" value="$H_BACK">
+</form>
+__EOF__
 
     &MsgFooter();
 }
@@ -625,9 +617,6 @@ sub Thanks {
 ## 新たに投稿された記事の生成
 #
 sub MakeNewArticle {
-
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
 
     # 日付を取り出す．
     local($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
@@ -686,7 +675,7 @@ sub MakeArticleFile {
     local($File) = &GetArticleFileName($Id, $BOARD);
 
     # ファイルを開く
-    open(TMP, ">$File") || &MyFatal(1, $File);
+    open(TMP, ">$File") || &Fatal(1, $File);
 
     # TextType用前処理
     print(TMP "<pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
@@ -739,7 +728,7 @@ sub AddArticleId {
     local($ArticleId) = &GetNewArticleId();
 
     # 書き込む．
-    open(AID, ">$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
+    open(AID, ">$ArticleNumFile") || &Fatal(1, $ArticleNumFile);
     print(AID $ArticleId, "\n");
     close(AID);
 
@@ -752,28 +741,25 @@ sub AddArticleId {
 sub AddDBFile {
 
     # 記事Id，名前，アイコン，題，日付
-    local($Id, $Fid, $InputDate, $Subject, $Icon,
-	  $RemoteHost, $Name, $Email, $Url, $Fmail) = @_;
-    local($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon,
-	  $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail)
-		   = ('', '', '', '', '', '', '', '', '', '', ());
+    local($Id, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = @_;
+    local($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
     
     # 登録ファイル
     local($File) = &GetPath($BOARD, $DB_FILE_NAME);
     local($TmpFile) = &GetPath($BOARD, $DB_TMP_FILE_NAME);
 
     # Open Tmp File
-    open(DBTMP, ">$TmpFile") || &MyFatal(1, $TmpFile);
+    open(DBTMP, ">$TmpFile") || &Fatal(1, $TmpFile);
     # Open DB File
-    open(DB, "<$File") || &MyFatal(1, $File);
+    open(DB, "<$File") || &Fatal(1, $File);
 
     while(<DB>) {
 
 	print(DBTMP "$_"), next if (/^\#/);
+	print(DBTMP "$_"), next if (/^$/);
 	chop;
 
-	($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon,
-	 $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
+	($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
 	
 	# フォロー先記事が見つかったら，
 	if ($dId == $Fid) {
@@ -823,55 +809,49 @@ sub ShowArticle {
     # 記事のファイル名を取得
     local($File) = &GetArticleFileName($Id, $BOARD);
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 引用記事の情報
-    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName,
-	  $rEmail, $rUrl, $rFmail) = ('', '', '', '', '', '', '', '', '', '');
+    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail);
 
     # 反応記事の情報
-    local($aFid, $aAids, $aDate, $aSubject, $aIcon, $aRemoteHost, $aName,
-	  $aEmail, $aUrl, $aFmail) = ('', '', '', '', '', '', '', '', '', '');
+    local($aFid, $aAids, $aDate, $aSubject, $aIcon, $aRemoteHost, $aName, $aEmail, $aUrl, $aFmail);
 
     # 記事情報の取得
-    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email,
-	  $Url, $Fmail) = &GetArticlesInfo($Id);
+    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = &GetArticlesInfo($Id);
     local(@AidList) = split(/,/, $Aids);
     local($Aid) = '';
 
     # 未投稿記事は読めない
-    &MyFatal(11, '') unless ($Name);
+    &Fatal(11, '') unless ($Name);
 
     # 引用記事情報の抽出
     ($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail,
      $rUrl, $rFmail) = &GetArticlesInfo($Fid) if ($Fid != 0);
 
     # 表示画面の作成
-    &MsgHeader("[$BoardName: $Id] $Subject");
+    &MsgHeader("[$BOARDNAME: $Id] $Subject");
 
     # お約束
-    print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-    print("<input name=\"c\" type=\"hidden\" value=\"m\">\n");
-    print("<input name=\"b\" type=\"hidden\" value=\"$BOARD\">\n");
-    print("<input name=\"id\" type=\"hidden\" value=\"$Id\">\n");
-
-    # コマンド部分の表示
-    print("<p>\n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=v&num=40\"><img src=\"$ICON_TLIST\" alt=\"$H_TITLELIST\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=en&id=$Id\"><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=n\"><img src=\"$ICON_WRITENEW\" alt=\"$H_POSTNEWARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=f&id=$Id\"><img src=\"$ICON_FOLLOW\" alt=\"$H_REPLYTHISARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=q&id=$Id\"><img src=\"$ICON_QUOTE\" alt=\"$H_REPLYTHISARTICLEQUOTE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$H_SEEICON</a>\n");
-    print("</p>\n");
+    print(<<__EOF__);
+<form action="$PROGRAM" method="POST">
+<input name="c" type="hidden" value="m">
+<input name="b" type="hidden" value="$BOARD">
+<input name="id" type="hidden" value="$Id">
+<p>
+<a href="$PROGRAM?b=$BOARD&c=v&num=40"><img src="$ICON_TLIST" alt="$H_TITLELIST" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=en&id=$Id"><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="" width="$ICON_WIDTH" height="$ICON_HEIGHT">$H_SEEICON</a>
+</p>
+__EOF__
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	print("<strong>$H_SUBJECT</strong> [$BoardName: $Id] $Subject<br>\n");
+	print("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong> [$BoardName: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURL($Icon));
+	printf("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURL($Icon));
     }
 
     # お名前
@@ -899,7 +879,7 @@ sub ShowArticle {
     print("$H_LINE<br>\n");
 
     # 記事
-    open(TMP, "<$File") || &MyFatal(1, $File);
+    open(TMP, "<$File") || &Fatal(1, $File);
     while(<TMP>) {print($_);}
     close(TMP);
 
@@ -947,11 +927,8 @@ sub ThreadArticle {
     # 元記事のIdを取得
     local($Id) = @_;
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 表示画面の作成
-    &MsgHeader("$BoardName: $THREADARTICLE_MSG");
+    &MsgHeader("$BOARDNAME: $THREADARTICLE_MSG");
 
     # メイン関数の呼び出し(記事概要)
     print("<ul>\n");
@@ -1025,15 +1002,14 @@ sub GetFollowIdList {
     local(@Result) = ();
 
     # 記事情報
-    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
-	  $dEmail, $dUrl, $dFmail)
-	= (0, '', '', '', '', '', '', '', '', '', '');
+    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
 
     # 取り込み
-    open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
+    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
     while(<DB>) {
 
 	next if (/^\#/);
+	next if (/^$/);
 	chop;
 
 	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
@@ -1059,11 +1035,9 @@ sub PrintAbstract {
     local($Id) = @_;
 
     # 記事情報を取り出す．
-    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName,
-	  $dEmail, $dUrl, $dFmail) = &GetArticlesInfo($Id);
+    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = &GetArticlesInfo($Id);
 
-    printf("%s\n",
-	   &GetFormattedAbstract($Id, $dIcon, $dSubject, $dName, $dDate));
+    printf("%s\n", &GetFormattedAbstract($Id, $dIcon, $dSubject, $dName, $dDate));
 
 }
 
@@ -1083,7 +1057,7 @@ sub GetUserInfo {
     local($rN, $rE, $rU) = ('', '', '');
 
     # ファイルを開く
-    open(ALIAS, "<$USER_ALIAS_FILE") || &MyFatal(1, $USER_ALIAS_FILE);
+    open(ALIAS, "<$USER_ALIAS_FILE") || &Fatal(1, $USER_ALIAS_FILE);
     
     # 1つ1つチェック．
     while(<ALIAS>) {
@@ -1116,7 +1090,6 @@ sub FollowMail {
     # 宛先いろいろ
     local($To, $Name, $Date, $Subject, $Id, $Fname, $Fsubject, $Fid) = @_;
 
-    local($BoardName) = &GetBoardInfo($BOARD);
     local($URL) = "$SCRIPT_URL?b=$BOARD&c=e&id=$Id";
     local($FURL) = "$SCRIPT_URL?b=$BOARD&c=e&id=$Fid";
     
@@ -1124,7 +1097,7 @@ sub FollowMail {
     local($MailSubject) = "The article was followed.";
 
     # Message
-    local($Message) = "$SYSTEM_NAMEからのお知らせです．\n\n$Dateに「$BoardName」に対して「$Name」さんが書いた，\n「$Subject」\n$URL\nに対して，\n「$Fname」さんから\n「$Fsubject」という題での反応がありました．\n\nお時間のある時に\n$FURL\nを御覧下さい．\n\nでは失礼します．";
+    local($Message) = "$SYSTEM_NAMEからのお知らせです．\n\n$Dateに「$BOARDNAME」に対して「$Name」さんが書いた，\n「$Subject」\n$URL\nに対して，\n「$Fname」さんから\n「$Fsubject」という題での反応がありました．\n\nお時間のある時に\n$FURL\nを御覧下さい．\n\nでは失礼します．";
 
     # メール送信
     &SendMail($MailSubject, $Message, $To);
@@ -1142,7 +1115,7 @@ sub GetSubjectFromFile {
     # 取り出したSubject
     local($Title) = '';
 
-    open(TMP, "<$File") || &MyFatal(1, $File);
+    open(TMP, "<$File") || &Fatal(1, $File);
     while(<TMP>) {
 	
 	# コード変換
@@ -1169,7 +1142,7 @@ sub SendMail {
     local($Subject, $Message, $To) = @_;
 
     # メール用ファイルを開く
-    open(MAIL, "| $MAIL2") || &MyFatal(9, '');
+    open(MAIL, "| $MAIL2") || &Fatal(9, '');
 
     # Toヘッダ
     $_ = $To;
@@ -1207,7 +1180,6 @@ sub SendMail {
 #*
 sub ShowIcon {
 
-    local($BoardName) = &GetBoardInfo($BOARD);
     local($FileName, $Title);
 
     # タイプを拾う
@@ -1218,28 +1190,37 @@ sub ShowIcon {
 
     if ($Type eq 'article') {
 
-	print("<p>$H_ICONINTRO_ARTICLE</p>\n");
-	print("<p><dl>\n");
-
-	print("<dt><img src=\"$ICON_TLIST\" alt=\"$H_TITLELIST\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_TITLELIST\n");
-	print("<dt><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_NEXTARTICLE\n");
-	print("<dt><img src=\"$ICON_WRITENEW\" alt=\"$H_POSTNEWARTICLE\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_POSTNEWARTICLE\n");
-	print("<dt><img src=\"$ICON_FOLLOW\" alt=\"$H_REPLYTHISARTICLE\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_REPLYTHISARTICLE\n");
-	print("<dt><img src=\"$ICON_QUOTE\" alt=\"$H_REPLYTHISARTICLEQUOTE\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_REPLYTHISARTICLEQUOTE\n");
-	print("<dt><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_READREPLYALL\n");
-
-	print("</dl></p>\n");
+	print(<<__EOF__);
+<p>
+$H_ICONINTRO_ARTICLE
+</p>
+<p>
+<dl>
+<dt><img src="$ICON_TLIST" alt="$H_TITLELIST" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_TITLELIST
+<dt><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_NEXTARTICLE
+<dt><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_POSTNEWARTICLE
+<dt><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_REPLYTHISARTICLE
+<dt><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_REPLYTHISARTICLEQUOTE
+<dt><img src="$ICON_THREAD" alt="$H_READREPLYALL" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_READREPLYALL
+</dl>
+</p>
+__EOF__
 
     } else {
 
-	print("<p>\"$BoardName\"$H_ICONINTRO_ENTRY</p>\n");
-	print("<p><dl>\n");
-	print("<dt>$H_THREAD : $THREADARTICLE_MSG\n");
+	print(<<__EOF__);
+<p>
+"$BOARDNAME"$H_ICONINTRO_ENTRY
+</p>
+<p>
+<dl>
+<dt>$H_THREAD : $THREADARTICLE_MSG
+__EOF__
 
 	# 一つ一つ表示
 	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
 	    || (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+		|| &Fatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
 	    chop;
 	    ($FileName, $Title) = split(/\t/, $_, 2);
@@ -1247,7 +1228,7 @@ sub ShowIcon {
 	}
 	close(ICON);
 
-	print("</dl></p>\n");
+	print("</dl>\n</p>\n");
 
     }
 
@@ -1274,17 +1255,13 @@ sub SortArticle {
     # 記事番号を収めるファイル
     local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 最新記事番号を取得
     local($ArticleToId) = &GetArticleId($ArticleNumFile);
     local($ArticleFromId) = 0;
 
     local($ListFlag) = 0;
     local(@Lines) = ();
-    local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
-	  $Url, $Fmail) = (0, '', '', '', '', '', '', '', '', '', '');
+    local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
 
     # 数字が0なら最初から全て
     if ($Num == 0) {
@@ -1298,11 +1275,12 @@ sub SortArticle {
     }
 
     # 取り込み．DBファイルがなければ何も表示しない．
-    open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
+    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
 
     while(<DB>) {
 
 	next if (/^\#/);
+	next if (/^$/);
 	chop;
 
 	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
@@ -1318,7 +1296,7 @@ sub SortArticle {
     close(DB);
 
     # 表示画面の作成
-    &MsgHeader("$BoardName: $SORT_MSG");
+    &MsgHeader("$BOARDNAME: $SORT_MSG");
 
     &BoardHeader;
 
@@ -1358,9 +1336,6 @@ sub ViewTitle {
     # 記事番号を収めるファイル
     local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 最新記事番号を取得
     local($ArticleToId) = &GetArticleId($ArticleNumFile);
     local($ArticleFromId) = 0;
@@ -1368,8 +1343,7 @@ sub ViewTitle {
     local($ListFlag) = 0;
     local(@Lines) = ();
     local($Line) = '';
-    local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
-	  $Url, $Fmail) = (0, '', '', '', '', '', '', '', '', '', '');
+    local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
 
     # 数字が0なら最初から全て
     if ($Num == 0) {
@@ -1383,10 +1357,11 @@ sub ViewTitle {
     }
 
     # 取り込み．DBファイルがなければ何も表示しない．
-    open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
+    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
     while(<DB>) {
 
 	next if (/^\#/);
+	next if (/^$/);
 	chop;
 
 	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
@@ -1410,7 +1385,7 @@ sub ViewTitle {
     close(DB);
 
     # 表示画面の作成
-    &MsgHeader("$BoardName: $VIEW_MSG");
+    &MsgHeader("$BOARDNAME: $VIEW_MSG");
 
     &BoardHeader;
 
@@ -1541,9 +1516,6 @@ sub NewArticle {
     # 記事番号を収めるファイル
     local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 最新記事番号を取得
     local($ArticleToId) = &GetArticleId($ArticleNumFile);
     local($ArticleFromId) = 0;
@@ -1561,7 +1533,7 @@ sub NewArticle {
     }
 
     # 表示画面の作成
-    &MsgHeader("$BoardName: $NEWARTICLE_MSG");
+    &MsgHeader("$BOARDNAME: $NEWARTICLE_MSG");
 
     &BoardHeader;
 
@@ -1589,35 +1561,30 @@ sub NewArticle {
 sub SearchArticle {
 
     # キーワード，検索範囲を拾う
-    local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon,
-	  $Icon)
+    local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon)
 	= ($cgi'TAGS{'key'}, $cgi'TAGS{'searchsubject'},
 	   $cgi'TAGS{'searchperson'}, $cgi'TAGS{'searcharticle'},
 	   $cgi'TAGS{'searchicon'}, $cgi'TAGS{'icon'});
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 表示画面の作成
-    &MsgHeader("$BoardName: $SEARCHARTICLE_MSG");
+    &MsgHeader("$BOARDNAME: $SEARCHARTICLE_MSG");
 
     # お約束
-    print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-    print("<input name=\"c\" type=\"hidden\" value=\"s\">\n");
-    print("<input name=\"b\" type=\"hidden\" value=\"$BOARD\">\n");
+    print(<<__EOF__);
+<form action="$PROGRAM\" method="POST">
+<input name="c" type="hidden" value="s">
+<input name="b" type="hidden" value="$BOARD">
+ 
+<p>$H_INPUTKEYWORD</p>
+<input type="submit" value="$H_SEARCHKEYWORD">
+<input type="reset" value="$H_RESETKEYWORD">
 
-    # ボタン
-    print("<p>$H_INPUTKEYWORD</p>\n");
-    print("<input type=\"submit\" value=\"$H_SEARCHKEYWORD\">\n");
-    print("<input type=\"reset\" value=\"$H_RESETKEYWORD\">\n");
+<p>$H_KEYWORD:
+<input name="key" type="text" size="$KEYWORD_LENGTH" value="$Key">
+</p>
 
-    # キーワード入力部
-    print("<p>$H_KEYWORD:\n");
-    print("<input name=\"key\" type=\"text\" size=\"$KEYWORD_LENGTH\" value=\"$Key\">");
-    print("</p>\n");
-
-    # 検索範囲設定部
-    print("<p>$H_SEARCHTARGET:\n");
+<p>$H_SEARCHTARGET:
+__EOF__
 
     printf("<li>$H_SEARCHTARGETSUBJECT: <input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchSubject) ? 'CHECKED' : ''));
     printf("<li>$H_SEARCHTARGETPERSON: <input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchPerson) ? 'CHECKED' : ''));
@@ -1633,7 +1600,7 @@ sub SearchArticle {
     # 一つ一つ表示
     open(ICON, "$ICON_DIR/$BOARDDIR.$ICONDEF_POSTFIX")
 	|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-	    || &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+	    || &Fatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
     while(<ICON>) {
 	chop;
 	($FileName, $IconTitle) = split(/\t/, $_, 2);
@@ -1644,11 +1611,13 @@ sub SearchArticle {
     print("</SELECT>\n");
 
     # アイコン一覧
-    print("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
-
-    print("</p>\n</ul>\n</form>\n");
-
-    print("<hr>\n");
+    print(<<__EOF__);
+(<a href="$PROGRAM?b=$BOARD&c=i&type=entry">$H_SEEICON</a>)<BR>
+</p>
+</ul>
+</form>
+<hr>
+__EOF__
 
     # キーワードが空でなければ，そのキーワードを含む記事のリストを表示
     if (($SearchIcon)
@@ -1673,7 +1642,8 @@ sub SearchArticleList {
     # DBファイル
     local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
 
-    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = (0, '', '', '', '', '', '', '', '', '', '');
+    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
+
     local($ArticleFile, $HitFlag) = ('', 0);
     local($Line, $Flag) = ('', 0);
 
@@ -1681,10 +1651,11 @@ sub SearchArticleList {
     print("<ul>\n");
 
     # ファイルを開く．DBファイルがなければnot found.
-    open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
+    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
     while(<DB>) {
 
 	next if (/^\#/);
+	next if (/^$/);
 
 	# 変数のリセット
 	$Flag = 0;
@@ -1751,7 +1722,7 @@ sub SearchArticleKeyword {
 
     # 検索する
     # SearchArticleListでlockしてるのでlockする必要なし
-    open(ARTICLE, "<$File") || &MyFatal(1, $File);
+    open(ARTICLE, "<$File") || &Fatal(1, $File);
     while(<ARTICLE>) {
 
 	# TAGを取り除く
@@ -1779,38 +1750,41 @@ sub AliasNew {
     &MsgHeader($ALIASNEW_MSG);
 
     # 新規登録/登録内容の変更
-    print("<p>$H_ALIASTITLE</p>\n");
-    print("<p>\n");
-    print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-    print("<input name=\"c\" type=\"hidden\" value=\"am\">\n");
-    print("$H_ALIAS <input name=\"alias\" type=\"text\" value=\"#\" size=\"$NAME_LENGTH\"><br>\n");
-    print("$H_FROM <input name=\"name\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
-    print("$H_MAIL <input name=\"email\" type=\"text\" size=\"$MAIL_LENGTH\"><br>\n");
-    print("$H_URL <input name=\"url\" type=\"text\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
-    print("$H_ALIASNEWCOM<br>\n");
-    print("<input type=\"submit\" value=\"$H_ALIASNEWPUSH\">\n");
-    print("</form></p>\n");
-    
-    print("<hr>\n");
-    
-    # 削除
-    print("<p>$H_ALIASDELETE</p>\n");
-    print("<p>\n");
-    print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-    print("<input name=\"c\" type=\"hidden\" value=\"ad\">\n");
-    print("$H_ALIAS <input name=\"alias\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
-    print("$H_ALIASDELETECOM<br>\n");
-    print("<input type=\"submit\" value=\"$H_ALIASDELETEPUSH\">\n");
-    print("</form></p>\n");
-    
-    print("<hr>\n");
-    
-    # 参照
-    print("<p>\n");
-    print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-    print("<input name=\"c\" type=\"hidden\" value=\"as\">\n");
-    print("<input type=\"submit\" value=\"$H_ALIASREFERPUSH\">\n");
-    print("</form></p>\n");
+    print(<<__EOF__);
+<p>
+$H_ALIASTITLE
+</p>
+<p>
+<form action="$PROGRAM" method="POST">
+<input name="c" type="hidden" value="am">
+$H_ALIAS <input name="alias" type="text" value="#" size="$NAME_LENGTH"><br>
+$H_FROM <input name="name" type="text" size="$NAME_LENGTH"><br>
+$H_MAIL <input name="email" type="text" size="$MAIL_LENGTH"><br>
+$H_URL <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
+$H_ALIASNEWCOM<br>
+<input type="submit" value="$H_ALIASNEWPUSH">
+</form>
+</p>
+<hr>
+<p>
+$H_ALIASDELETE
+</p>
+<p>
+<form action="$PROGRAM" method="POST">
+<input name="c" type="hidden" value="ad">
+$H_ALIAS <input name="alias" type="text" size="$NAME_LENGTH"><br>
+$H_ALIASDELETECOM<br>
+<input type="submit" value="$H_ALIASDELETEPUSH">
+</form>
+</p>
+<hr>
+<p>
+<form action="$PROGRAM" method="POST">
+<input name="c" type="hidden" value="as">
+<input type="submit" value="$H_ALIASREFERPUSH">
+</form>
+</p>
+__EOF__
     
     # お約束
     &MsgFooter();
@@ -1847,7 +1821,7 @@ sub AliasMod {
     }
     
     # ホスト名が合わない!
-    &MyFatal(6, '') if ($HitFlag == 1);
+    &Fatal(6, '') if ($HitFlag == 1);
     
     # データの登録
     $Name{$Alias} = $N;
@@ -1912,10 +1886,10 @@ sub AliasDel {
     }
     
     # ホスト名が合わない!
-    &MyFatal(6, '') if ($HitFlag == 1);
+    &Fatal(6, '') if ($HitFlag == 1);
     
     # エイリアスがない!
-    &MyFatal(7, $A) if ($HitFlag == 0);
+    &Fatal(7, $A) if ($HitFlag == 0);
     
     # 名前を消す
     $Name{$A} = '';
@@ -1951,13 +1925,16 @@ sub AliasShow {
     
     # 1つずつ表示
     foreach $Alias (sort keys(%Name)) {
-	print("<p>\n");
-	print("<dt><strong>$Alias</strong>\n");
-	print("<dd>$H_FROM $Name{$Alias}\n");
-	print("<dd>$H_MAIL $Email{$Alias}\n");
-	print("<dd>$H_HOST $Host{$Alias}\n");
-	print("<dd>$H_URL $URL{$Alias}\n");
-	print("</p>\n");
+	print(<<__EOF__);
+<p>
+<dt><strong>$Alias</strong>
+<dd>$H_FROM $Name{$Alias}
+<dd>$H_MAIL $Email{$Alias}
+<dd>$H_HOST $Host{$Alias}
+<dd>$H_URL $URL{$Alias}
+</p>
+__EOF__
+
     }
 
     # リスト閉じる
@@ -1977,10 +1954,10 @@ sub CashAliasData {
     # ファイル
     local($File) = @_;
     
-    local($A, $N, $E, $H, $U) = ('', '', '', '', '');
+    local($A, $N, $E, $H, $U);
 
     # 放り込む．
-    open(ALIAS, "<$File") || &MyFatal(1, $File);
+    open(ALIAS, "<$File") || &Fatal(1, $File);
     while(<ALIAS>) {
 	
 	chop;
@@ -2009,7 +1986,7 @@ sub WriteAliasData {
     local($Alias);
 
     # 書き出す
-    open(ALIAS, ">$File") || &MyFatal(1, $File);
+    open(ALIAS, ">$File") || &Fatal(1, $File);
     foreach $Alias (sort keys(%Name)) {
 	($Name{$Alias}) && printf(ALIAS "%s\t%s\t%s\t%s\t%s\n",
 				  $Alias, $Name{$Alias}, $Email{$Alias},
@@ -2027,7 +2004,7 @@ sub BoardHeader {
 
     local($File) = &GetPath($BOARD, $BOARD_FILE_NAME);
 
-    open(HEADER, "<$File") || &MyFatal(1, $File);
+    open(HEADER, "<$File") || &Fatal(1, $File);
     while(<HEADER>){
         print("$_");
     }
@@ -2051,7 +2028,7 @@ sub GetNewArticleId {
     # 記事番号
     local($ArticleId) = 0;
 
-    open(AID, "<$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
+    open(AID, "<$ArticleNumFile") || &Fatal(1, $ArticleNumFile);
     while(<AID>) {
 	chop;
 	$ArticleId = $_;
@@ -2075,7 +2052,7 @@ sub GetArticleId {
     # 記事番号
     local($ArticleId);
 
-    open(AID, "$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
+    open(AID, "$ArticleNumFile") || &Fatal(1, $ArticleNumFile);
     while(<AID>) {
 	chop;
 	$ArticleId = $_;
@@ -2099,7 +2076,7 @@ sub GetBoardInfo {
     local($BoardName);
 
     open(ALIAS, "<$BOARD_ALIAS_FILE")
-	|| &MyFatal(1, $BOARD_ALIAS_FILE);
+	|| &Fatal(1, $BOARD_ALIAS_FILE);
     while(<ALIAS>) {
 	
 	chop;
@@ -2165,17 +2142,14 @@ sub ShowFormattedLinkToFollowedArticle {
 
     local($Src, $Icon, $Subject) = @_;
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 参照先の取得
     local($Link) = ($Src =~ /^http:/) ? $Src : "$PROGRAM?b=$BOARD&c=e&id=$Src";
 
     if ($Src != 0) {
 	if (($Icon eq $H_NOICON) || (! $Icon)) {
-	    print("<strong>$H_REPLY</strong> [$BoardName: $Src] <a href=\"$Link\">$Subject</a><br>\n");
+	    print("<strong>$H_REPLY</strong> [$BOARDNAME: $Src] <a href=\"$Link\">$Subject</a><br>\n");
 	} else {
-	    printf("<strong>$H_REPLY</strong> [$BoardName: $Src] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURL($Icon));
+	    printf("<strong>$H_REPLY</strong> [$BOARDNAME: $Src] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURL($Icon));
 	}
     } elsif ($Src =~ /^http:/) {
 	print("<strong>$H_REPLY</strong> <a href=\"$Link\">$Link</a><br>\n");
@@ -2191,13 +2165,13 @@ sub CheckAlias {
     local($String) = @_;
 
     # 空チェック
-    ($String eq '') && &MyFatal(2, '');
+    ($String eq '') && &Fatal(2, '');
 
     # `#'で始まってる?
-    ($String =~ (/^#/)) || &MyFatal(8, 'alias');
+    ($String =~ (/^#/)) || &Fatal(8, 'alias');
 
     # 1文字じゃだめ
-    (length($String) > 1) || &MyFatal(8, 'alias');
+    (length($String) > 1) || &Fatal(8, 'alias');
 
 }
 
@@ -2210,13 +2184,13 @@ sub CheckSubject {
     local($String) = @_;
 
     # 空チェック
-    ($String eq '') && &MyFatal(2, '');
+    ($String eq '') && &Fatal(2, '');
 
     # タグをチェック
-    ($String =~ /</o) && &MyFatal(4, '');
+    ($String =~ /</o) && &Fatal(4, '');
 
     # 改行コードをチェック
-    ($String =~ /\n/o) && &MyFatal(3, '');
+    ($String =~ /\n/o) && &Fatal(3, '');
 
 }
 
@@ -2229,10 +2203,10 @@ sub CheckName {
     local($String) = @_;
 
     # 空チェック
-    ($String eq '') && &MyFatal(2, '');
+    ($String eq '') && &Fatal(2, '');
 
     # 改行コードをチェック
-    ($String =~ /\n/o) && &MyFatal(3, '');
+    ($String =~ /\n/o) && &Fatal(3, '');
 
 }
 
@@ -2245,13 +2219,13 @@ sub CheckEmail {
     local($String) = @_;
 
     # 空チェック
-    ($String eq '') && &MyFatal(2, '');
+    ($String eq '') && &Fatal(2, '');
 
     # `@'が入ってなきゃアウト
-    ($String =~ (/@/)) || &MyFatal(8, 'E-Mail');
+    ($String =~ (/@/)) || &Fatal(8, 'E-Mail');
 
     # 改行コードをチェック
-    ($String =~ /\n/o) && &MyFatal(3, '');
+    ($String =~ /\n/o) && &Fatal(3, '');
 
 }
 
@@ -2264,7 +2238,7 @@ sub CheckURL {
     local($String) = @_;
 
     ($String =~ m#^http://.*$#) || ($String =~ m#^http://$#)
-	|| ($String eq '') || &MyFatal(8, 'URL');
+	|| ($String eq '') || &Fatal(8, 'URL');
 
 }
 
@@ -2278,15 +2252,17 @@ sub MsgHeader {
     local($Message) = @_;
     
     &cgi'header;
-    print("<html>\n");
-    print("<head>\n");
-    print("<!--陝 (0xF0A1): cool idea to euc decode error protection; thanks to faichan\@kt.rim.or.jp-->\n");
-    print("<title>$Message</title>\n");
-    print("<base href=\"http://$SERVER_NAME:$SERVER_PORT$SYSDIR_NAME\">\n");
-    print("</head>\n");
-    print("<body bgcolor=\"$BG_COLOR\" TEXT=\"$TEXT_COLOR\" LINK=\"$LINK_COLOR\" ALINK=\"$ALINK_COLOR\" VLINK=\"$VLINK_COLOR\">\n");
-    print("<h1>$Message</h1>\n");
-    print("<hr>\n");
+    print(<<__EOF__);
+<html>
+<head>
+<!--陝 (0xF0A1): cool idea to euc decode error protection; thanks to faichan\@kt.rim.or.jp-->
+<title>$Message</title>
+<base href="http://$SERVER_NAME:$SERVER_PORT$SYSDIR_NAME">
+</head>
+<body bgcolor="$BG_COLOR" TEXT="$TEXT_COLOR" LINK="$LINK_COLOR" ALINK="$ALINK_COLOR" VLINK="$VLINK_COLOR">
+<h1>$Message</h1>
+<hr>
+__EOF__
 
 }
 
@@ -2296,12 +2272,14 @@ sub MsgHeader {
 #
 sub MsgFooter {
 
-    print("<hr>\n");
-    print("<address>\n");
-    print("$ADDRESS\n");
-    print("</address>\n");
-    print("</body>\n");
-    print("</html>\n");
+    print(<<__EOF__);
+<hr>
+<address>
+$ADDRESS
+</address>
+</body>
+</html>
+__EOF__
 
 }
 
@@ -2318,7 +2296,7 @@ sub lock {
 
     srand(time|$$);
 
-    open(LOCKORG, ">$LOCK_ORG") || &MyFatal(1, $LOCK_ORG);
+    open(LOCKORG, ">$LOCK_ORG") || &Fatal(1, $LOCK_ORG);
     close(LOCKORG);
 
     for($TimeOut = 0; $TimeOut < $LOCK_WAIT; $TimeOut++) {
@@ -2327,7 +2305,7 @@ sub lock {
     }
 
     unlink($LOCK_ORG);
-    &MyFatal(999, $TimeOut) unless ($Flag);
+    &Fatal(999, $TimeOut) unless ($Flag);
 
 }
 
@@ -2345,44 +2323,38 @@ sub ViewOriginalArticle {
     # Id，コマンドを表示するか否か
     local($Id, $Flag) = @_;
 
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
     # 引用するファイル
     local($QuoteFile) = &GetArticleFileName($Id, $BOARD);
 
     # 引用記事の情報
-    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName,
-	  $rEmail, $rUrl, $rFmail) = ('', '', '', '', '', '', '', '', '', '');
+    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail);
 
     # 記事情報の取得
-    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email,
-	  $Url, $Fmail) = &GetArticlesInfo($Id);
+    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = &GetArticlesInfo($Id);
 
     # 引用記事情報の抽出
-    ($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail,
-     $rUrl, $rFmail) = &GetArticlesInfo($Fid) if ($Fid != 0);
+    ($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail) = &GetArticlesInfo($Fid) if ($Fid != 0);
 
     # コマンド表示?
     if ($Flag) {
 
-	print("<p>\n");
-
-	# まとめ読み系なので，「次の記事」リンクは無し．
-	print("<a href=\"$PROGRAM?b=$BOARD&c=n\"><img src=\"$ICON_WRITENEW\" alt=\"$H_POSTNEWARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-	print("<a href=\"$PROGRAM?b=$BOARD&c=f&id=$Id\"><img src=\"$ICON_FOLLOW\" alt=\"$H_REPLYTHISARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-	print("<a href=\"$PROGRAM?b=$BOARD&c=q&id=$Id\"><img src=\"$ICON_QUOTE\" alt=\"$H_REPLYTHISARTICLEQUOTE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-	print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
-	print("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$H_SEEICON</a>\n");
-	print("</p>\n");
+	print(<<__EOF__);
+<p>
+<a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="" width="$ICON_WIDTH" height="$ICON_HEIGHT">$H_SEEICON</a>
+</p>
+__EOF__
 
     }
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	print("<strong>$H_SUBJECT</strong> [$BoardName: $Id] $Subject<br>\n");
+	print("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong> [$BoardName: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURL($Icon));
+	printf("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURL($Icon));
     }
 
     # お名前
@@ -2410,7 +2382,7 @@ sub ViewOriginalArticle {
     print("$H_LINE<br>\n");
 
     # 記事の中身
-    open(TMP, "<$QuoteFile") || &MyFatal(1, $QuoteFile);
+    open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
     while(<TMP>) { print("$_"); }
     close(TMP);
 
@@ -2459,7 +2431,7 @@ sub GetIconURL {
     # 一つ一つ表示
     open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
 	|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-	    || &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+	    || &Fatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
     while(<ICON>) {
 	chop;
 	($FileName, $Title) = split(/\t/, $_);
@@ -2483,23 +2455,19 @@ sub GetArticlesInfo {
     # DBファイル
     local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
 
-    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
-	  $dEmail, $dUrl, $dFmail)
-			 = (0, '', '', '', '', '', '', '', '', '', '');
+    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
 
-    local($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName,
-	  $rEmail, $rUrl, $rFmail)
-			 = ('', '', '', '', '', '', '', '', '', '');
+    local($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail) = ('', '', '', '', '', '', '', '', '', '');
 
     # 取り込み．DBファイルがなければ0/''を返す．
     open(DB, "<$DBFile");
     while(<DB>) {
 
 	next if (/^\#/);
+	next if (/^$/);
 	chop;
 
-	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
-	 $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
+	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
 
 	if ($Id == $dId) {
 	    $rFid = $dFid;
@@ -2516,8 +2484,7 @@ sub GetArticlesInfo {
     }
     close(DB);
 
-    return($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName,
-	   $rEmail, $rUrl, $rFmail);
+    return($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail);
 
 }
 
@@ -2525,79 +2492,79 @@ sub GetArticlesInfo {
 ###
 ## エラー表示
 #
-sub MyFatal {
+sub Fatal {
 
     # エラー番号とエラー情報の取得
-    local($MyFatalNo, $MyFatalInfo) = @_;
+    local($FatalNo, $FatalInfo) = @_;
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    &unlock if ($MyFatalNo != 999);
+    &unlock if ($FatalNo != 999);
 
     &MsgHeader($ERROR_MSG);
     
-    if ($MyFatalNo == 1) {
+    if ($FatalNo == 1) {
 
 	print("<p>
-File: $MyFatalInfoが存在しない，
+File: $FatalInfoが存在しない，
 あるいはpermissionの設定が間違っています．
 お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで，
 上記ファイル名をお知らせ下さい．
 </p>\n");
 
-    } elsif ($MyFatalNo == 2) {
+    } elsif ($FatalNo == 2) {
 
 	print("<p>
 入力されていない項目があります．戻ってもう一度やり直してみてください．
 </p>\n");
 
-    } elsif ($MyFatalNo == 3) {
+    } elsif ($FatalNo == 3) {
 
 	print("<p>
 題や名前，メールアドレスに，改行が入ってしまっています．
 戻ってもう一度やり直してみてください．
 </p>\n");
 
-    } elsif ($MyFatalNo == 4) {
+    } elsif ($FatalNo == 4) {
 
 	print("<p>
 題中にHTMLタグを入れることは禁じられています．
 戻って違う題に書き換えてください．
 </p>\n");
 
-    } elsif ($MyFatalNo == 6) {
+    } elsif ($FatalNo == 6) {
 
 	print("<p>
 登録されているエイリアスのものと，ホスト名が一致しません．
 お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．
 </p>\n");
 
-    } elsif ($MyFatalNo == 7) {
+    } elsif ($FatalNo == 7) {
 
 	print("<p>
-$MyFatalInfoというエイリアスは，登録されていません．
+$FatalInfoというエイリアスは，登録されていません．
 </p>\n");
 
-    } elsif ($MyFatalNo == 8) {
+    } elsif ($FatalNo == 8) {
 
 	print("<p>
-$MyFatalInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．
+$FatalInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．
 </p>\n");
 
-    } elsif ($MyFatalNo == 9) {
+    } elsif ($FatalNo == 9) {
 
 	print("<p>
 メールが送信できませんでした．お手数ですが，このエラーが生じた状況を，
 <a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．
 </p>\n");
 
-    } elsif ($MyFatalNo == 11) {
+    } elsif ($FatalNo == 11) {
 
 	print("<p>
 次の記事はまだ投稿されていません．
 </p>\n");
 
-    } elsif ($MyFatalNo == 999) {
+    } elsif ($FatalNo == 999) {
 
 	print("<p>
 システムのロックに失敗しました．
