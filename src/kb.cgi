@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.80 2000-06-23 10:53:08 nakahiro Exp $
+# $Id: kb.cgi,v 5.81 2000-06-26 06:05:14 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -4464,7 +4464,7 @@ sub quoteOriginalArticle
 	$premsg =~ s/__TITLE__/$subject/;
 	$premsg =~ s/__DATE__/&getDateTimeFormatFromUtc( $date )/e;
 	$premsg =~ s/__NAME__/$name/;
-	$msg .= $premsg;
+	$msg .= $premsg . "\n";
     }
     local( $QMark, $line );
     foreach $line ( @ArticleBody )
@@ -4707,8 +4707,8 @@ sub tagA
     {
 	$key = $gLinkNum;
 	$gLinkNum = 0 if ( ++$gLinkNum > 9 );
-	$gTagAStr .= qq( accesskey="$key");
     }
+    $gTagAStr .= qq( accesskey="$key") if $SYS_KEYBOARD_SHORTCUT;
     $gTagAStr .= qq( href="$href") if ( $href ne '' );
     $gTagAStr .= qq( title="$title") if ( $title ne '' );
     $gTagAStr .= qq( name="$name") if ( $name ne '' );
