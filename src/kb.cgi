@@ -1,6 +1,6 @@
-#!/usr/local/bin/GNU/perl
+#!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.10 1996-06-11 17:09:29 nakahiro Exp $
+# $Id: kb.cgi,v 4.11 1996-07-05 11:15:51 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -2262,7 +2262,7 @@ sub MsgFooter {
 sub lock {
 
     local($TimeOut) = 0;
-    local(*LOCKORG);
+    local($Flag) = 0;
 
     srand(time|$$);
 
@@ -2270,13 +2270,12 @@ sub lock {
     close(LOCKORG);
 
     for($TimeOut = 0; $TimeOut < $LOCK_WAIT; $TimeOut++) {
-	last if link($LOCK_ORG, $LOCK_FILE);
+	$Flag = 1, last if link($LOCK_ORG, $LOCK_FILE);
 	select(undef, undef, undef, (rand(6)+5)/10);
     }
 
     unlink($LOCK_ORG);
-
-    &MyFatal(999, $TimeOut) if ($TimeOut > $LOCK_WAIT);
+    &MyFatal(999, $TimeOut) unless ($Flag);
 
 }
 
