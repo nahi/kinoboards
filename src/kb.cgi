@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.14 1998-10-22 15:41:04 nakahiro Exp $
+# $Id: kb.cgi,v 5.15 1998-10-29 17:36:11 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -56,7 +56,7 @@ $| = 1;				# pipe flushed
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '5.8';		# release
+$KB_RELEASE = '6.0';		# release
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
@@ -73,6 +73,7 @@ $ARTICLE_NUM_FILE_NAME = 'kb.aid';		# 記事番号DB
 $USER_ALIAS_FILE = 'kinousers';			# ユーザエイリアス用DB
 $DEFAULT_ICONDEF = 'all.idef';			# アイコンDB
 $LOCK_FILE = 'kb.lock';				# ロックファイル
+$LOCK_FILE_B = '';				# 掲示板別ロックファイル
 $LOGFILE = 'kb.klg';				# ログファイル
 # Suffix
 $TMPFILE_SUFFIX = 'tmp';			# DBテンポラリファイルのSuffix
@@ -102,6 +103,7 @@ $cgi'SMTP_SERVER = $SMTP_SERVER;
 $cgi'AF_INET = $AF_INET;
 $cgi'SOCK_STREAM = $SOCK_STREAM;
 $cgi'CHARSET = $CHARSET;
+@cgi'TAG_ALLOWED = ( 'article', 'subject', 'key' );
 $FF_LOG = ( $SYS_LOG == 1 ) ? $kinologue'FF_HTML : $kinologue'FF_PLAIN;
 $SYS_F_MT = ($SYS_F_D || $SYS_F_AM || $SYS_F_MV);
 if (( $cgi'SERVER_PORT != 80 ) && ( $SYS_PORTNO == 1 ))
@@ -115,7 +117,6 @@ else
 $SCRIPT_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgi'SCRIPT_NAME$cgi'PATH_INFO";
 $BASE_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgi'SYSDIR_NAME";
 if ( $TIME_ZONE ) { $ENV{'TZ'} = $TIME_ZONE; }
-if ( $BOARDLIST_URL eq '-' ) { $BOARDLIST_URL = "$PROGRAM?c=bl"; }
 
 # アイコンファイル相対URL
 $ICON_BLIST = "$ICON_DIR/blist.gif";		# 掲示板一覧へ
@@ -137,7 +138,11 @@ $SIG{'INT'} = $SIG{'HUP'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
 sub DoKill
 {
     local( $sig ) = @_;
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    if ( !$PC )
+    {
+	&cgi'unlock( $LOCK_FILE );
+	&cgi'unlock( $LOCK_FILE_B ) if $LOCK_FILE_B;
+    }
     &KbLog( $kinologue'SEV_WARN, "Caught a SIG$sig - shutting down..." );
     exit( 1 );
 }
@@ -172,7 +177,11 @@ MAIN:
     $com = $cgi'TAGS{'com'};
     $BOARD = $cgi'TAGS{'b'};
     if ( $c eq '' ) { $c = 'v'; $BOARD = 'test'; }
-    ( $BOARDNAME, $boardConfFileP ) = &GetBoardInfo( $BOARD ) if $BOARD;
+    if ( $BOARD )
+    {
+	( $BOARDNAME, $boardConfFileP ) = &GetBoardInfo( $BOARD );
+	$LOCK_FILE_B = $LOCK_FILE . ".$BOARD";
+    }
 
     # 掲示板固有セッティングを読み込む
     if ( $boardConfFileP )
@@ -289,9 +298,10 @@ MAIN:
 	}
     }
 
-    if ( $SYS_F_B && ( $c eq 'bl' ))
+    if ( $SYS_F_B && ( $c eq 'bl' ) && ( $BOARDLIST_URL eq '-' ))
     {
 	### BoardList - 掲示板一覧の表示
+	$BOARDLIST_URL = "$PROGRAM?c=bl";
 	require( &GetPath( $UI_DIR, 'BoardList.pl' ));
 	last;
     }
@@ -620,7 +630,7 @@ sub ThreadArticleMain
     elsif (( $Head ne '(' ) && ( $Head ne ')' ))
     {
 	# 元記事の表示(コマンド付き, 元記事なし)
-	&cgiprint'Cache( "<hr>\n" );
+	&cgiprint'Cache( "$H_HR\n" );
 	&ViewOriginalArticle( $Head, 1, 0 );
     }
 
@@ -933,7 +943,7 @@ __EOF__
     &cgiprint'Cache(<<__EOF__);
 ]</p>
 
-<hr>
+$H_HR
 
 __EOF__
 
@@ -963,7 +973,7 @@ sub MsgFooter {
     # やっぱりGPL2に違反することになっちゃうので気をつけてね．(^_^;
 
     &cgiprint'Cache(<<__EOF__);
-<hr>
+$H_HR
 <address>
 $addr
 </address>
@@ -1298,17 +1308,20 @@ sub SearchArticleKeyword {
 # - RETURN
 #	なし
 #
-sub CheckArticle {
+sub CheckArticle
+{
     local( $board, *name, *eMail, *url, *subject, *icon, *article ) = @_;
 
     local( $Tmp );
 
-    if ( $name =~ /^\#.*$/o ) {
+    if ( $name =~ /^\#.*$/o )
+    {
         ( $Tmp, $eMail, $url ) = &GetUserInfo( $name );
 	&Fatal( 6, $name ) if ( $Tmp eq '' );
 	$name = $Tmp;
     }
-    elsif ( $SYS_ALIAS == 2 ) {
+    elsif ( $SYS_ALIAS == 2 )
+    {
 	# 必須のはずなのに，指定されたエイリアスが登録されていない
 	&Fatal( 6, $name );
     }
@@ -1324,7 +1337,8 @@ sub CheckArticle {
     # アイコンのチェック; おかしけりゃ「無し」に設定．
     $icon = $H_NOICON if ( !&GetIconUrlFromTitle( $icon, $board ));
 
-    if ( $SYS_MAXARTSIZE != 0 ) {
+    if ( $SYS_MAXARTSIZE != 0 )
+    {
 	local( $length ) = length( $article );
 	&Fatal( 12, $length ) if ( $length > $SYS_MAXARTSIZE );
     }
@@ -1378,7 +1392,8 @@ sub AliasCheck {
 # - RETURN
 #	なし
 #
-sub CheckAlias {
+sub CheckAlias
+{
     local( *String ) = @_;
 
     &Fatal( 2, '' ) if ( !$String );
@@ -1387,6 +1402,7 @@ sub CheckAlias {
     # 1文字じゃだめ
     &Fatal( 7, $H_ALIAS ) if ( length( $String ) < 2 );
 
+    &Fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
 }
 
 
@@ -1407,11 +1423,22 @@ sub CheckAlias {
 # - RETURN
 #	なし
 #
-sub CheckSubject {
+sub CheckSubject
+{
     local( *String ) = @_;
 
-    &Fatal( 2, '' ) if ( !$String );
-    &Fatal( 4, '' ) if ( !$SYS_TAGINSUBJECT && ( $String =~ m/[<>\t\n]/o ));
+    &Fatal( 2, '' ) unless $String;
+
+    if ( $SYS_TAGINSUBJECT )
+    {
+	# secrurity check
+	&cgi'SecureHtml( *String );
+    }
+    else
+    {
+	&Fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
+	&Fatal( 4, '' ) if ( $String =~ m/[<>]/o );
+    }
 }
 
 
@@ -1432,11 +1459,12 @@ sub CheckSubject {
 # - RETURN
 #	なし
 #
-sub CheckName {
+sub CheckName
+{
     local( *String ) = @_;
 
     &Fatal( 2, '' ) if ( !$String );
-    &Fatal( 3, '' ) if ( $String =~ /[\t\n]/o );
+    &Fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
 }
 
 
@@ -1457,7 +1485,8 @@ sub CheckName {
 # - RETURN
 #	なし
 #
-sub CheckEmail {
+sub CheckEmail
+{
     local( *String ) = @_;
 
     if ( $SYS_POSTERMAIL ) {
@@ -1465,7 +1494,7 @@ sub CheckEmail {
 	# `@'が入ってなきゃアウト
 	&Fatal( 7, 'E-Mail' ) if ( $String !~ /@/ );
     }
-    &Fatal( 3, '' ) if ( $String =~ /[\t\n]/o );
+    &Fatal( 3, '' ) if ( $String =~ m/[\t\n]/o );
 }
 
 
@@ -1487,14 +1516,12 @@ sub CheckEmail {
 # - RETURN
 #	なし
 #
-sub CheckURL {
+sub CheckURL
+{
     local( *String ) = @_;
 
     # http://だけの場合は空にしてしまう．
-    if ( $String =~ m!^http://$!oi ) {
-	$String = '';
-    }
-
+    $String = '' if ( $String =~ m!^http://$!oi );
     &Fatal( 7, 'URL' ) if (( $String ne '' ) && ( !&IsUrl( $String )));
 }
 
@@ -1840,23 +1867,24 @@ sub TAGEncode {
 # - RETURN
 #	Encodeされた文字列
 #
-sub ArticleEncode {
+sub ArticleEncode
+{
     local( $Article ) = @_;
 
-    local( $Return, $Url, $UrlMatch, $Str, @Cache );
-
-    $Return = $Article;
-    while ( $Article =~ m/&lt;URL:([^>][^>]*)&gt;/gi ) {
+    local( $Return ) = $Article;
+    local( $Url, $UrlMatch, $Str, @Cache );
+    while ( $Article =~ m/<URL:([^>][^>]*)>/gi )
+    {
 	$Url = $1;
 	( $UrlMatch = $Url ) =~ s/([?+*^\\\[\]\|()])/\\$1/go;
 	next if ( grep( /^$UrlMatch$/, @Cache ));
 	push( @Cache, $Url );
-	if ( &IsUrl( $UrlMatch )) {
-	    $Str = &TagA( $Url, "&lt;URL:$Url&gt;" );
+	if ( &IsUrl( $UrlMatch ))
+	{
+	    $Str = &TagA( $Url, "<URL:$Url>" );
 	}
-	$Return =~ s/&lt;URL:$UrlMatch&gt;/$Str/gi;
+	$Return =~ s/<URL:$UrlMatch>/$Str/gi;
     }
-
     $Return;
 }
 
@@ -2565,40 +2593,46 @@ sub ReOrderArticleDb {
 # - RETURN
 #	なし
 #
-sub MakeArticleFile {
+sub MakeArticleFile
+{
     local( $TextType, $Article, $Id, $Board ) = @_;
 
     local( $File ) = &GetArticleFileName( $Id, $Board );
 
     # TextType用前処理
-    if ( !$SYS_TEXTTYPE ) {
+    if ( !$SYS_TEXTTYPE )
+    {
 	# pre-formatted
 	&PlainArticleToPreFormatted( *Article );
     }
-    elsif ( $TextType eq $H_TTLABEL[2] ) {
+    elsif ( $TextType eq $H_TTLABEL[2] )
+    {
+	# <URL:>の処理
+	$Article = &ArticleEncode( $Article );
 	# secrurity check
 	&cgi'SecureHtml( *Article );
     }
-    elsif ( $TextType eq $H_TTLABEL[1] ) {
+    elsif ( $TextType eq $H_TTLABEL[1] )
+    {
 	# convert to html
 	&PlainArticleToHtml( *Article );
+	# <URL:>の処理
+	$Article = &ArticleEncode( $Article );
 	# secrurity check
 	&cgi'SecureHtml( *Article );
     }
-    elsif ( $TextType eq $H_TTLABEL[0] ) {
+    elsif ( $TextType eq $H_TTLABEL[0] )
+    {
 	# pre-formatted
 	&PlainArticleToPreFormatted( *Article );
     }
-    else {
+    else
+    {
 	&Fatal( 0, 'must not be reached...MakeArticleFile' );
     }
 
     open( TMP, ">$File" ) || &Fatal( 1, $File );
     printf( TMP "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE);
-
-    # <URL:>の処理
-    $Article = &ArticleEncode( $Article );
-
     print( TMP "$Article\n" );
 
     close TMP;
