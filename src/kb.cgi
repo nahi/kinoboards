@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.79 2000-06-23 10:15:37 nakahiro Exp $
+# $Id: kb.cgi,v 5.80 2000-06-23 10:53:08 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -77,7 +77,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7.1-dev';		# release
+$KB_RELEASE = '7.1';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
