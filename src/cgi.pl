@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.22 1999-02-22 07:53:07 nakahiro Exp $
+# $Id: cgi.pl,v 2.23 1999-02-24 08:57:41 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -34,7 +34,7 @@ $SMTP_SERVER = 'localhost';
 # or $SMTP_SERVER = 'mailhost.foo.bar.baz.jp';
 # or $SMTP_SERVER = '123.123.123.123';
 
-$AF_INET = 2; $SOCK_STREAM = 1;	# depends type of OS.
+$AF_INET = 2; $SOCK_STREAM = ( $^O eq 'solaris' )? 2 : 1;
 # AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, IRIX, Linux, FreeBSD,
 #					WinNT, Mac
 # AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*(Solaris 2.*)
@@ -244,7 +244,7 @@ sub Decode
 
 	&jcode'convert( *value, 'euc', $encode, "z" ) if ( defined( $encode ));
 
-	if ( !grep( /^$key$/, @TAG_ALLOWED ))
+	if ( @TAG_ALLOWED && !grep( /^$key$/, @TAG_ALLOWED ))
 	{
 	    $value = 'Tags are not allowed here...' if ( $value =~ m/[<>]/o );
 	}
