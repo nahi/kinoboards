@@ -26,12 +26,12 @@ Thanks: {
     if ( $BOARD ) { &DbCash( $BOARD ); }
 
     # 入力された記事情報
-    $Supersede = $cgi'TAGS{'s'};
-    $Id = $cgi'TAGS{'id'};
-    $TextType = $cgi'TAGS{'texttype'};
     $Name = $cgi'TAGS{'name'};
     $Email = $cgi'TAGS{'mail'};
     $Url = $cgi'TAGS{'url'};
+    $Supersede = $cgi'TAGS{'s'};
+    $Id = $cgi'TAGS{'id'};
+    $TextType = $cgi'TAGS{'texttype'};
     $Icon = $cgi'TAGS{'icon'};
     $Subject = $cgi'TAGS{'subject'};
     $Article = $cgi'TAGS{'article'};

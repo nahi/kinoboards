@@ -60,8 +60,9 @@ Fatal: {
 
     } elsif ( $errno == 9 ) {
 
+	local( $board, $id ) = split( /\//, $errInfo, 2 );
 	$severity = $kinologue'SEV_CAUTION;
-	$msg = "メッセージは正しく書き込まれました（再度書き込みの必要はありません）．が，記事のメイルでの配信が失敗しました．お手数ですが，このエラーメッセージと，エラーが生じた状況を，" . &TagA( "mailto:$MAINT", $MAINT ) . "までお知らせください．";
+	$msg = "メッセージは正しく書き込まれました（再度書き込みの必要はありません）．が，記事のメイルでの配信が失敗しました（掲示板: $board，ID: $id）．お手数ですが，このエラーメッセージと，エラーが生じた状況を，" . &TagA( "mailto:$MAINT", $MAINT ) . "までお知らせください．";
 
     } elsif ( $errno == 10 ) {
 
@@ -87,11 +88,6 @@ Fatal: {
 
 	$severity = $kinologue'SEV_FATAL;
 	$msg = "管理者様へ: 次のrenameに失敗しました（$errInfo）．ファイルパーミッションの設定等をチェックしてみてください．";
-
-    } elsif ( $errno == 15 ) {
-
-	$severity = $kinologue'SEV_WARN;
-	$msg = "ユーザ認証に失敗しました．パスワードを間違えていませんか? [もう一度……（の画面はまだ作ってない）]";
 
     } elsif ( $errno == 50 ) {
 

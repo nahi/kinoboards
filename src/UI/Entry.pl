@@ -34,11 +34,19 @@ Entry: {
 	($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = &GetArticlesInfo($Id);
     }
     $Icon = $Icon || $H_NOICON;
-    $DefSubject = ($Supersede ? $Subject : (($QuoteFlag == 0) ? '' : &GetReplySubject($Id)));
-    $DefName = ($Supersede ? $Name : '');
-    $DefEmail = ($Supersede ? $Email : '');
-    $DefUrl = ($Supersede ? $Url : 'http://');
-    $DefFmail = ($Supersede ? $Fmail : '');
+
+    if ( $Supersede ) {
+	$DefSubject = $Subject;
+	$DefName = $Name;
+	$DefEmail = $Email;
+	$DefUrl = $Url;
+	$DefFmail = $Fmail;
+    }
+    else {
+	$DefSubject = (( $QuoteFlag == 0 ) ? '' : &GetReplySubject( $Id ));
+	$DefName = $DefEmail = $DefFmail = '';
+	$DefUrl = 'http://';
+    }
 
     # 表示画面の作成
     if ($Supersede && $SYS_F_D) {
@@ -67,16 +75,9 @@ Entry: {
 <input name="s" type="hidden" value="$Supersede">
 <p>
 __EOF__
-    if ($Supersede && $SYS_F_D) {
-	&cgiprint'Cache(<<__EOF__);
-上の$H_MESGと入れ換える$H_MESGを書き込んでください．
-__EOF__
-    } else {
-	&cgiprint'Cache(<<__EOF__);
-$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにウェブページをお持ちの方は，
-ホームページの$H_URLを書き込んでください(もちろん，なくても構いません)．
-__EOF__
-    }
+    
+    &cgiprint'Cache( "上の$H_MESGと入れ換える$H_MESGを書き込んでください．\n" )
+	if ( $Supersede && $SYS_F_D );
 
     $ttFlag = 0;
     $ttBit = 0;
