@@ -53,7 +53,7 @@ __EOF__
     }
     else
     {
-	&CacheIconDb;	# アイコンDBのキャッシュ
+	&CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
 	$msg .= <<__EOF__;
 <p>
 $H_BOARD「$BOARDNAME」では，各アイコンは次のような意味です．

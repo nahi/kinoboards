@@ -72,7 +72,7 @@ __EOF__
     $msg .= sprintf( "<input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // \n", $SearchIcon? 'CHECKED' : '' );
 
     # アイコンの選択
-    &CacheIconDb;	# アイコンDBのキャッシュ
+    &CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
     $msg .= sprintf( "<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' SELECTED' );
 
     local( $IconTitle );

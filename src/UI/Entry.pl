@@ -146,7 +146,7 @@ __EOF__
     # アイコンの選択
     if ( $SYS_ICON )
     {
-	&CacheIconDb;	# アイコンDBをキャッシュ
+	&CacheIconDb( $BOARD );	# アイコンDBをキャッシュ
 	$msg .= sprintf( "$H_ICON:\n<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", $DefIcon? '' : ' SELECTED' );
 	local( $IconTitle );
 	foreach $IconTitle ( @ICON_TITLE )
