@@ -1,76 +1,32 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.0 1996-04-05 12:04:25 nakahiro Exp $
+# $Id: kb.cgi,v 4.1 1996-04-09 03:22:55 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 4.0  1996-04-05 12:04:25  nakahiro
+# Revision 4.1  1996-04-09 03:22:55  nakahiro
+# A little bug(around " in articles) fixed.
+# Copyright message added to the head of source codes.
+# This program is free software(GPL ver.2).
+#
+# Revision 4.0  1996/04/05 12:04:25  nakahiro
 # KINOBOARDS works based on CGI. No html file now.
-#
-# Revision 3.5  1996/03/28 13:04:23  nakahiro
-# FIN like modification.
-#
-# Revision 3.4  1996/03/28 09:53:32  nakahiro
-# Modified articles DB structure. (Add list of articles followed)
-#
-# Revision 3.3  1996/02/11 06:53:43  nakahiro
-# the 1st test version for my homepage.
-#
-# Revision 3.2  1996/02/08 07:11:04  nakahiro
-# Bulletin board for KINOTROPE Inc.
-#
-# Revision 3.1  1996/01/26 07:33:18  nakahiro
-# release version for OOW96.
-#
-# Revision 3.0  1996/01/20 14:01:13  nakahiro
-# oow1
-#
-# Revision 2.1  1995/12/19 18:46:12  nakahiro
-# send mail
-#
-# Revision 2.0  1995/12/19 14:26:56  nakahiro
-# user writable alias file.
-#
-# Revision 1.11  1995/12/19 05:00:54  nakahiro
-# cgi and tag_secure packaging.
-#
-# Revision 1.10  1995/12/15 14:21:37  nakahiro
-# keyword search routine.
-#
-# Revision 1.9  1995/12/13 17:08:19  nakahiro
-# '(single-quote)-char escape routine.
-#
-# Revision 1.8  1995/12/04 11:44:31  nakahiro
-# articles can include ' char.
-#
-# Revision 1.7  1995/11/24 17:29:00  nakahiro
-# title list of picked articles.
-#
-# Revision 1.6  1995/11/22 13:01:39  nakahiro
-# partial sort by date.
-#
-# Revision 1.5  1995/11/15 11:39:16  nakahiro
-# show user-alias information when posting.
-#
-# Revision 1.4  1995/11/08 09:18:22  nakahiro
-# Add reference to Original File when Quoting local file.
-#
-# Revision 1.3  1995/11/02 05:50:48  nakahiro
-# New Feature: quote a local file.
-#
-# Revision 1.2  1995/11/02 04:59:44  nakahiro
-# A bug in SortArticle was fixed.
-#
-# Revision 1.1  1995/11/01 06:27:56  nakahiro
-# many many changes and fixed bugs from ver 1.0.
-#
-# Revision 1.0  1995/10/22  08:59:03  nakahiro
-# beta version.
-# released on MAGARI page in kinotrope.
-#
 
 
-# kinoBoards: Kinoboards Is Network Opened BOARD System
-# Copyright 1995-96 NAKAMURA Hiroshi. ALL RIGHTS RESERVED.
+# KINOBOARDS: Kinoboards Is Network Opened BOARD System
+# Copyright (C) 1995-96 NAKAMURA Hiroshi.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PRATICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
 #/////////////////////////////////////////////////////////////////////
@@ -187,6 +143,11 @@ $NO_QUOTE = 0;
 #
 $NULL_LINE = "__br__";
 
+#
+# ダブルクオート
+#
+$DOUBLE_QUOTE = "__dq__";
+
 
 ###
 ## インクルードファイルの読み込み
@@ -251,6 +212,8 @@ MAIN: {
     }
 
     # 値の抽出
+    local($User) = $cgi'TAGS{'u'};
+    local($Passwd) = $cgi'TAGS{'p'};
     local($Command) = $cgi'TAGS{'c'};
     local($Com) = $cgi'TAGS{'com'};
     local($Id) = $cgi'TAGS{'id'};
@@ -259,6 +222,12 @@ MAIN: {
     local($Name) = $cgi'TAGS{'name'};
     local($Email) = $cgi'TAGS{'email'};
     local($URL) = $cgi'TAGS{'url'};
+
+    # 設定が無ければゲストユーザ
+    $User = 'guest', $Passwd = '' unless ($User);
+
+    # 認証ルーチンへ(失敗するとここへは戻ってこない)
+#    &Logon($User, $Passwd, $BOARD);
 
     # コマンドタイプによる分岐
     if ($Command eq "v") {
@@ -270,7 +239,8 @@ MAIN: {
 
     } elsif ($Command eq "e") {
 	&ShowArticle($Id);
-    } elsif (($Command eq "m") && ($Com eq $H_NEXTARTICLE)) {
+    } elsif (($Command eq "en")
+	     || (($Command eq "m") && ($Com eq $H_NEXTARTICLE))) {
 	&ShowArticle($Id + 1);
     } elsif (($Command eq "t")
 	     || (($Command eq "m") && ($Com eq $H_READREPLYALL))) {
@@ -285,10 +255,10 @@ MAIN: {
     } elsif (($Command eq "q")
 	     || (($Command eq "m") && ($Com eq $H_REPLYTHISARTICLEQUOTE))) {
 	$Id ? &Entry($QUOTE_ON, $Id) : &URLEntry($QUOTE_ON, $URL);
-    } elsif (($Command eq "p") && ($Com ne $H_ENTRY)) {
+    } elsif (($Command eq "p") && ($Com ne "x")) {
 	&Preview();
     } elsif (($Command eq "x")
-	     || (($Command eq "p") && ($Com eq $H_ENTRY))) {
+	     || (($Command eq "p") && ($Com eq "x"))) {
 	&Thanks();
 
     } elsif ($Command eq "s") {
@@ -441,7 +411,7 @@ sub URLEntry {
     # お約束
     print("<form action=\"$PROGRAM\" method=\"POST\">\n");
     print("<input name=\"c\" type=\"hidden\" value=\"p\">\n");
-    print("<input name=\"c\" type=\"hidden\" value=\"$BOARD\">\n");
+    print("<input name=\"b\" type=\"hidden\" value=\"$BOARD\">\n");
 
     # 引用Id; 正規の引用でないので0。
     print("<input name=\"id\" type=\"hidden\" value=\"0\">\n");
@@ -544,9 +514,9 @@ sub EntryUserInformation {
 	if ($SYS_FOLLOWMAIL);
     
     if ($SYS_ALIAS) {
-	print("<p><a href=\"$PROGRAM?c=as\">$H_SEEALIAS</a> // \n");
-	print("<a href=\"$PROGRAM?c=an\">$H_ALIASENTRY</a></p>\n");
-	print("<p>$H_ALIASINFO</p>\n");
+	print("<p>$H_ALIASINFO\n");
+	print("(<a href=\"$PROGRAM?c=as\">$H_SEEALIAS</a> // \n");
+	print("<a href=\"$PROGRAM?c=an\">$H_ALIASENTRY</a>)</p>\n");
     }
 }
 
@@ -557,8 +527,9 @@ sub EntryUserInformation {
 sub EntrySubmitButton {
 
     print("<p>\n");
-    print("<input type=\"submit\" name=\"com\" value=\"$H_PREVIEW\">\n");
-    print("<input type=\"submit\" name=\"com\" value=\"$H_ENTRY\">\n");
+    print("<input type=\"radio\" name=\"com\" value=\"p\" CHECKED>: $H_PREVIEW<br>\n");
+    print("<input type=\"radio\" name=\"com\" value=\"x\">: $H_ENTRY<br>\n");
+    print("<input type=\"submit\" value=\"$H_PUSHHERE\">\n");
     print("</p>\n");
 
 }
@@ -771,8 +742,8 @@ sub Preview {
     }
 
     # 入力された記事情報のチェック
-    ($Name, $Email, $Url)
-	= &CheckArticle($Name, $Email, $Url, $Subject, $Article);
+    ($Name, $Email, $Url, $Icon, $Article)
+	= &CheckArticle($Name, $Email, $Url, $Subject, $Icon, $Article);
 
     # 確認画面の作成
     &MsgHeader($PREVIEW_MSG);
@@ -824,6 +795,7 @@ sub Preview {
     print("<pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
     # 記事
+    $Article = &DQDecode($Article);
     $Article = &tag_secure'decode($Article);
     print("$Article\n");
 
@@ -843,7 +815,7 @@ sub Preview {
 sub CheckArticle {
 
     # 記事情報いろいろ
-    local($Name, $Email, $Url, $Subject, $Article) = @_;
+    local($Name, $Email, $Url, $Subject, $Icon, $Article) = @_;
     local($Tmp) = '';
 
     # エイリアスチェック
@@ -867,8 +839,14 @@ sub CheckArticle {
     $_ = $Subject;
     &MyFatal(4, '') if (/</);
 
+    # アイコンのチェック; おかしけりゃ「無し」に設定。
+    $Icon = $H_NOICON unless (&GetIconURL($Icon));
+
+    # 記事中の"をエンコード
+    $Article = &DQEncode($Article);
+
     # 名前、e-mail、URLを返す。
-    return($Name, $Email, $Url);
+    return($Name, $Email, $Url, $Icon, $Article);
 }
 
 
@@ -894,8 +872,8 @@ sub Thanks {
 	print("<input name=\"c\" type=\"hidden\" value=\"v\">\n");
 	print("<input name=\"num\" type=\"hidden\" value=\"0\">\n");
     } else {
-	print("<input name=\"c\" type=\"hidden\" value=\"l\">\n");
-	print("<input name=\"num\" type=\"hidden\" value=\"1\">\n");
+	print("<input name=\"c\" type=\"hidden\" value=\"v\">\n");
+	print("<input name=\"num\" type=\"hidden\" value=\"40\">\n");
     }
     print("<input type=\"submit\" value=\"$H_BACK\">\n");
     print("</form>\n");
@@ -930,8 +908,8 @@ sub MakeNewArticle {
 	   $cgi'TAGS{'qurl'}, $cgi'TAGS{'fmail'});
 
     # 入力された記事情報のチェック
-    ($Name, $Email, $Url)
-	= &CheckArticle($Name, $Email, $Url, $Subject, $Article);
+    ($Name, $Email, $Url, $Icon, $Article)
+	= &CheckArticle($Name, $Email, $Url, $Subject, $Icon, $Article);
 
     # ロックをかける
     &lock();
@@ -983,7 +961,8 @@ sub MakeArticleFile {
     # TextType用前処理
     print(TMP "<pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
-    # 記事
+    # 記事; "をデコードし、セキュリティチェック
+    $Article = &DQDecode($Article);
     $Article = &tag_secure'decode($Article);
     print(TMP "$Article\n");
 
@@ -1531,14 +1510,13 @@ sub ShowArticle {
     print("<input name=\"id\" type=\"hidden\" value=\"$Id\">\n");
 
     # コマンド部分の表示
-    print("<input type=\"submit\" name=\"com\" value=\"$H_NEXTARTICLE\">\n");
-    print("<input type=\"submit\" name=\"com\" value=\"$H_POSTNEWARTICLE\">\n");
-    print("<input type=\"submit\" name=\"com\" value=\"$H_REPLYTHISARTICLE\">\n");
-    print("<input type=\"submit\" name=\"com\" value=\"$H_REPLYTHISARTICLEQUOTE\">\n");
-    print("<input type=\"submit\" name=\"com\" value=\"$H_READREPLYALL\">") unless ($SYS_FIN_LIKE);
-    print("</form>\n");
-
-#    print("<hr>\n");
+    print("<p>\n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=en&id=$Id\">$H_NEXTARTICLE</a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=n\">$H_POSTNEWARTICLE</a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=f&id=$Id\">$H_REPLYTHISARTICLE</a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=q&id=$Id\">$H_REPLYTHISARTICLEQUOTE</a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_READREPLYALL</a>\n");
+    print("</p>\n");
 
     # ボード名と記事番号、題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
@@ -1631,8 +1609,9 @@ sub ThreadArticle {
 	print("<ul>\n");
 	&ThreadArticleMain('subject only', $Id);
 	print("</ul>\n");
-	print("<hr>\n");
     }
+
+    print("<hr>\n");
 
     # メイン関数の呼び出し(記事)
     &ThreadArticleMain('', $Id);
@@ -1669,7 +1648,7 @@ sub ThreadArticleMain {
     foreach (@FollowIdList) {
 
 	# 区切り
-	print("<hr>\n");
+	print("<hr>\n") unless ($SubjectOnly);
 
 	# 記事概要なら箇条書
 	print("<ul>\n") if ($SubjectOnly);
@@ -2307,6 +2286,7 @@ sub DeleteEntry {
     print("<p>\n");
     print("<form action=\"$PROGRAM\" method=\"POST\">\n");
     print("<input name=\"c\" type=\"hidden\" value=\"dp\">\n");
+    print("<input name=\"b\" type=\"hidden\" value=\"$BOARD\">\n");
     print("$H_ID <input name=\"id\" type=\"text\" value=\"\" size=\"$ID_LENGTH\"><br>\n");
     print("<input type=\"submit\" value=\"$H_PUSHHERE\">\n");
     print("$H_DELETE_COM\n");
@@ -2377,6 +2357,22 @@ sub DeleteThanks {
 
 #/////////////////////////////////////////////////////////////////////
 # その他共通関数
+
+
+###
+## "のencode and decode
+#
+sub DQEncode {
+    local($_) = @_;
+    s/\"/$DOUBLE_QUOTE/g;
+    return($_);
+}
+
+sub DQDecode {
+    local($_) = @_;
+    s/$DOUBLE_QUOTE/\"/g;
+    return($_);
+}
 
 
 ###
@@ -2715,18 +2711,15 @@ sub ViewOriginalArticle {
     # コマンド表示?
     if ($Flag) {
 
-	# お約束
-	print("<form action=\"$PROGRAM\" method=\"POST\">\n");
-	print("<input name=\"c\" type=\"hidden\" value=\"m\">\n");
-	print("<input name=\"b\" type=\"hidden\" value=\"$BOARD\">\n");
-	print("<input name=\"id\" type=\"hidden\" value=\"$Id\">\n");
+	print("<p>\n");
 
-	# コマンド部分の表示
-	print("<input type=\"submit\" name=\"com\" value=\"$H_POSTNEWARTICLE\">\n");
-	print("<input type=\"submit\" name=\"com\" value=\"$H_REPLYTHISARTICLE\">\n");
-	print("<input type=\"submit\" name=\"com\" value=\"$H_REPLYTHISARTICLEQUOTE\">\n");
-	print("<input type=\"submit\" name=\"com\" value=\"$H_READREPLYALL\">\n") unless ($SYS_FIN_LIKE);
-	print("</form>\n");
+	# まとめ読み系なので、「次の記事」リンクは無し。
+	# print("<a href=\"$PROGRAM?b=$BOARD&c=en&id=$Id\">$H_NEXTARTICLE</a> // \n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=n\">$H_POSTNEWARTICLE</a> // \n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=f&id=$Id\">$H_REPLYTHISARTICLE</a> // \n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=q&id=$Id\">$H_REPLYTHISARTICLEQUOTE</a> // \n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_READREPLYALL</a>\n");
+	print("</p>\n");
 
     }
 
@@ -2881,8 +2874,7 @@ sub GetIconURL {
     # アイコン名
     local($Icon) = @_;
 
-    local($FileName, $Title);
-    local($TargetFile) = '';
+    local($FileName, $Title, $TargetFile) = ('', '', '');
 
     # 一つ一つ表示
     open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
@@ -2895,7 +2887,8 @@ sub GetIconURL {
     }
     close(ICON);
 
-    return("$ICON_DIR/$TargetFile");
+    return(($TargetFile) ? "$ICON_DIR/$TargetFile" : '');
+
 }
 
 

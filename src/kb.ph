@@ -1,52 +1,44 @@
-# $Id: kb.ph,v 4.0 1996-04-05 11:57:42 nakahiro Exp $
+# $Id: kb.ph,v 4.1 1996-04-09 03:22:55 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 4.0  1996-04-05 11:57:42  nakahiro
-# KINOBOARDS works based on CGI. No html file now.
+# Revision 4.1  1996-04-09 03:22:55  nakahiro
+# A little bug(around " in articles) fixed.
+# Copyright message added to the head of source codes.
+# This program is free software(GPL ver.2).
 #
 # Revision 3.4  1996/03/28 09:53:32  nakahiro
 # Modified articles DB structure. (Add list of articles followed)
-#
-# Revision 3.3  1996/02/11 06:54:09  nakahiro
-# the 1st test version for my homepage.
-#
-# Revision 3.2  1996/02/08 07:11:04  nakahiro
-# Bulletin board for KINOTROPE Inc.
-#
-# Revision 3.0  1996/01/20 14:01:35  nakahiro
-# oow1
-#
-# Revision 2.1  1995/12/19 18:46:21  nakahiro
-# send mail
-#
-# Revision 2.0  1995/12/19 14:27:25  nakahiro
-# user writable alias file.
-#
-# Revision 1.3  1995/12/19 07:24:49  nakahiro
-# MAINT
-#
-# Revision 1.1  1995/12/15 12:38:44  nakahiro
-# Initial revision
-#
 
 
-# kinoBoards: Kinoboards Is Network Opened BOARD System
-# Copyright 1995-96 NAKAMURA Hiroshi. ALL RIGHTS RESERVED.
+# KINOBOARDS: Kinoboards Is Network Opened BOARD System
+# Copyright (C) 1995-96 NAKAMURA Hiroshi.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PRATICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
 #/////////////////////////////////////////////////////////////////////
 
 
-###
-## ユーザが定義する宣言(動かす前に必ず変更する必要があります)
+# This file implements Site Specific Definitions.
+
+
 #
-
-
-##
 # 管理者のe-mail addr.
+#
 $MAINT = "nakahiro\@kinotrope.co.jp";
 
-##
+#
 # where is this program?
 # `relative' or the others (ex. `absolutive').
 #
@@ -54,21 +46,16 @@ $MAINT = "nakahiro\@kinotrope.co.jp";
 #
 $SYS_SCRIPTPATH = 'relative';
 
-##
+#
 # sendmailのパスとオプション
+#
 $MAIL2 = "/usr/lib/sendmail -oi -t";
 
-##
-# 著作権表示
-$ADDRESS = "Copyright 1995-96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>. ALL RIGHTS RESERVED.";
-
-
-#/////////////////////////////////////////////////////////////////////
-
-
-###
-## ユーザが定義する宣言(特に変更しないでもOK)
 #
+# 著作権表示
+#
+$ADDRESS = "KINOBOARDS: Copyright (C) 1995-96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
+
 
 #
 # システムの設定
@@ -134,7 +121,7 @@ $VLINK_COLOR = "#00AA00";
 #
 $SYSTEM_NAME = "きのぼーず";
 
-$ENTRY_MSG = "$SYSTEM_NAME への書き込み";
+$ENTRY_MSG = "記事の書き込み";
 $SHOWICON_MSG = "アイコンの説明";
 $PREVIEW_MSG = "書き込みの内容を確認して下さい";
 $THANKS_MSG = "書き込みありがとうございました";
@@ -152,7 +139,7 @@ $DELETE_PREVIEW_MSG = "削除する記事の確認";
 $DELETE_THANKS_MSG = "記事の削除";
 $ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
 
-$H_LINE = "------------------------:";
+$H_LINE = "------------------------------";
 $H_BOARD = "掲示板:";
 $H_ICON = "アイコン:";
 $H_SUBJECT = "　題　:";
@@ -179,7 +166,7 @@ $H_AORI = "題、記事、お名前、メールアドレス、さらにホームページをお持ちの方はURL
 $H_SEEICON = "アイコンを見る";
 $H_SEEALIAS = "エイリアスを見る";
 $H_ALIASENTRY = "登録する";
-$H_ALIASINFO = "エイリアスに登録されている方は、「$H_FROM」に「#...」と書くと、自動的に補完されます。";
+$H_ALIASINFO = "エイリアスに登録されている方は、「$H_FROM」に「#...」と書けば、名前やメール、URLを省略できます。";
 $H_PREVIEW_OR_ENTRY = "書き込んだ内容を、";
 $H_PREVIEW = "試しに表示してみる(まだ投稿しません)";
 $H_ENTRY = "記事として投稿する";
@@ -198,13 +185,21 @@ $H_READREPLYALL = "これまでの反応を見る";
 $H_ARTICLES = "記事数";
 $H_JUMPID = "↑の数字をクリックすると、そのIDの記事に飛びます。新しい記事ほど上の方にあります。";
 $H_KEYWORD = "キーワード";
-$H_INPUTKEYWORD = "$H_KEYWORD を入力したら、";
+$H_INPUTKEYWORD = "検索範囲を確認し、$H_KEYWORDを入力してください。";
+$H_SEARCHKEYWORD = "検索する";
+$H_RESETKEYWORD = "リセットする";
+$H_SEARCHTARGET = "検索範囲";
+$H_SEARCHTARGETSUBJECT = "タイトル";
+$H_SEARCHTARGETPERSON = "投稿者名";
+$H_SEARCHTARGETARTICLE = "本文";
 $H_NOTFOUND = "該当する記事は見つかりませんでした。";
 $H_ALIASTITLE = "新規登録/登録内容の変更";
-$H_ALIASNEWCOM = "エイリアスの新規登録/登録内容の変更が行なわれます。ただし変更は、登録の際と同じマシンでなければできません。変更できない場合は、<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします。";
+$H_ALIASNEWCOM = "エイリアスの新規登録/登録内容の変更を行ないます。ただし変更は、登録の際と同じマシンでなければできません。変更できない場合は、<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします。";
+$H_ALIASNEWPUSH = "登録/変更する";
 $H_ALIASDELETE = "削除";
-$H_ALIASDELETECOM = "上記エイリアスが削除されます。同じく登録の際と同じマシンでなければ削除できません。";
-$H_ALIASREFERCOM = "エイリアスを参照できます。";
+$H_ALIASDELETECOM = "上記エイリアスを削除します。同じく登録の際と同じマシンでなければ削除できません。";
+$H_ALIASDELETEPUSH = "削除する";
+$H_ALIASREFERPUSH = "エイリアスを参照する";
 $H_ALIASCHANGED = "変更しました。";
 $H_ALIASENTRIED = "登録しました。";
 $H_ALIASDELETED = "消去しました。";
