@@ -2,18 +2,20 @@
  * kbStyle.css: CSS style definition file for KINOBOARDS.
  */
 
-/* $Id: kbStyle.css,v 5.4 1999-09-03 10:55:24 nakahiro Exp $ */
+/* $Id: kbStyle.css,v 5.5 1999-09-22 14:14:24 nakahiro Exp $ */
 
 /* General definition */
 
 /* Definitions of colours around A element is derived from Modernist.css of W3C Stylesheet Core. */
 a:link
 {
+    background: #EEEEEE;
     color: #c00;
 }
 
 a:visited
 {
+    background: #EEEEEE;
     color: #999;
 }
 
@@ -31,6 +33,7 @@ a:hover
 
 a.offsite
 {
+    background: #EEEEEE;
     color: #c00;
 }
 
