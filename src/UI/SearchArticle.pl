@@ -50,8 +50,17 @@ SearchArticle:
 検索範囲を「YYYY/MM/DD」形式の日付で指定してください
 （例1999/01/01〜1999/12/31）．
 始点と終点のどちらかを省略してもかまいません．
+__EOF__
+
+    if ( $SYS_ICON )
+    {
+	$msg .=<<__EOF__;
 <li>$H_ICONで検索する場合は，
 「$H_ICON」をチェックした後，探す$H_MESGの$H_ICONを選んでください．
+__EOF__
+    }
+
+    $msg .=<<__EOF__;
 </ul>
 
 <p>
@@ -74,23 +83,28 @@ __EOF__
     }
     $msg .= sprintf( "<input name=\"searchposttimeto\" type=\"text\" size=\"11\" value=\"%s\">の間<br>\n", $SearchPostTimeTo || $nowStr );
 
-    $msg .= sprintf( "<input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // \n", $SearchIcon? 'CHECKED' : '' );
-
-    # アイコンの選択
-    &CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
-    $msg .= sprintf( "<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' SELECTED' );
-
-    local( $IconTitle );
-    foreach $IconTitle ( sort keys( %ICON_FILE ))
+    if ( $SYS_ICON )
     {
-	$msg .= sprintf( "<OPTION%s>$IconTitle\n", ( $Icon eq $IconTitle )? ' SELECTED' : '' );
-    }
-    $msg .= "</SELECT>\n";
+	$msg .= sprintf( "<input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // \n", $SearchIcon? 'CHECKED' : '' );
 
-    # アイコン一覧
-    $msg .= '(' . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "使えるアイコン一覧" ) . ")\n</p>\n";
+	# アイコンの選択
+	&CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
+	$msg .= sprintf( "<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' SELECTED' );
+
+	local( $IconTitle );
+	foreach $IconTitle ( sort keys( %ICON_FILE ))
+	{
+	    $msg .= sprintf( "<OPTION%s>$IconTitle\n", ( $Icon eq $IconTitle )? ' SELECTED' : '' );
+	}
+	$msg .= "</SELECT>\n";
+
+	# アイコン一覧
+	$msg .= '(' . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "使えるアイコン一覧" ) . ")\n";
+    }
 
     $msg .=<<__EOF__;
+</p>
+
 <p>
 キーワード:
 <input name="key" type="text" size="$KEYWORD_LENGTH" value="$Key">
