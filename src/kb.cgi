@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.17 1996-07-30 16:32:03 nakahiro Exp $
+# $Id: kb.cgi,v 4.18 1996-08-05 16:35:16 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -96,13 +96,13 @@ $LOCK_WAIT = 10;
 $ICON_DIR = "icons";
 
 # アイコンファイル
-$ICON_TLIST = "$ICON_DIR/tlist.gif";
-$ICON_NEXT = "$ICON_DIR/next.gif";
-$ICON_WRITENEW = "$ICON_DIR/writenew.gif";
-$ICON_FOLLOW = "$ICON_DIR/follow.gif";
-$ICON_QUOTE = "$ICON_DIR/quote.gif";
-$ICON_THREAD = "$ICON_DIR/thread.gif";
-$ICON_HELP = "$ICON_DIR/q.gif";
+$ICON_TLIST = &GetIconPath('tlist.gif');
+$ICON_NEXT = &GetIconPath('next.gif');
+$ICON_WRITENEW = &GetIconPath('writenew.gif');
+$ICON_FOLLOW = &GetIconPath('follow.gif');
+$ICON_QUOTE = &GetIconPath('quote.gif');
+$ICON_THREAD = &GetIconPath('thread.gif');
+$ICON_HELP = &GetIconPath('q.gif');
 
 #
 # アイコン定義ファイルのポストフィクス
@@ -280,9 +280,9 @@ __EOF__
 	print("<OPTION SELECTED>$H_NOICON\n");
 
 	# 一つ一つ表示
-	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
-	    || (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-		|| &Fatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+	open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
+	    || (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
+		|| &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
 	while(<ICON>) {
 	    chop;
 	    ($FileName, $Title) = split(/\t/, $_, 2);
@@ -1166,13 +1166,13 @@ __EOF__
 __EOF__
 
 	# 一つ一つ表示
-	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
-	    || (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-		|| &Fatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+	open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
+	    || (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
+		|| &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
 	while(<ICON>) {
 	    chop;
 	    ($FileName, $Title) = split(/\t/, $_, 2);
-	    print("<dt><img src=\"$ICON_DIR/$FileName\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $Title\n");
+	    print("<dt><img src=\"" . &GetIconPath($FileName) . "\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $Title\n");
 	}
 	close(ICON);
 
@@ -1539,9 +1539,9 @@ __EOF__
 	   (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED'));
 	
     # 一つ一つ表示
-    open(ICON, "$ICON_DIR/$BOARDDIR.$ICONDEF_POSTFIX")
-	|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-	    || &Fatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+    open(ICON, &GetIconPath("$BOARDDIR.$ICONDEF_POSTFIX"))
+	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
+	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
 	chop;
 	($FileName, $IconTitle) = split(/\t/, $_, 2);
@@ -1635,7 +1635,7 @@ sub SearchArticleList {
 	} else {
 
 	    # 無条件で一致
-	    $ArticleFlag = 1;
+	    $SubjectFlag = 1;
 
 	}
 
@@ -1657,7 +1657,7 @@ sub SearchArticleList {
     close(DB);
 
     # ヒットしなかったら
-    print("<li>$H_NOTFOUND\n") unless ($HitFlag = 1);
+    print("<li>$H_NOTFOUND\n") unless ($HitFlag == 1);
 
     # リスト閉じる
     print("</ul>\n");
@@ -2321,7 +2321,7 @@ __EOF__
     }
 
     # お名前
-    if (! $Url) {
+    if ((! $Url) || ($Url eq 'http://')) {
         # URLがない場合
         print("<strong>$H_FROM</strong> $Name<br>\n");
     } else {
@@ -2382,6 +2382,20 @@ sub GetPath {
 
 
 ###
+## アイコンファイル名から，そのファイルのパス名を作り出す．
+#
+sub GetIconPath {
+
+    # BoardとFile
+    local($File) = @_;
+
+    # 返す
+    return("$ICON_DIR/$File");
+
+}
+
+
+###
 ## アイコン名から，アイコンのURLを取得
 #
 sub GetIconURL {
@@ -2392,9 +2406,9 @@ sub GetIconURL {
     local($FileName, $Title, $TargetFile) = ('', '', '');
 
     # 一つ一つ表示
-    open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
-	|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-	    || &Fatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+    open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
+	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
+	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
 	chop;
 	($FileName, $Title) = split(/\t/, $_);
@@ -2402,7 +2416,7 @@ sub GetIconURL {
     }
     close(ICON);
 
-    return(($TargetFile) ? "$ICON_DIR/$TargetFile" : '');
+    return(($TargetFile) ? &GetIconPath($TargetFile) : '');
 
 }
 
