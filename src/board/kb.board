@@ -1,5 +1,5 @@
 <p>
-このページの見方については<kb:c_help var="titles" />を参照してください．
+このページの見方については<kb:c_help type="titles" />を参照してください．
 </p>
 
 <p>
@@ -9,6 +9,10 @@
 連絡無しに削除する場合がありますので御了承ください．
 </p>
 
-<p>
-<kb:c_anchor var="戻ります,./" />
-</p>
+<ul>
+<!-- 登録しないと書き込みできない場合は，そう明示したほうがいいでしょう -->
+<li><kb:c_command comment="オリジナルメッセージの書き込み" c="n" b="board" /></li>
+<li><kb:c_command comment="使えるアイコンの一覧" c="i" b="board" /></li>
+<li><kb:c_command comment="メッセージの検索" c="s" b="board" /></li>
+<li><kb:c_anchor url="./" comment="戻ります" /></li>
+</ul>
