@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 1.10 1995-12-15 14:21:37 nakahiro Exp $
+# $Id: kb.cgi,v 1.11 1995-12-19 05:00:54 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.10  1995-12-15 14:21:37  nakahiro
+# Revision 1.11  1995-12-19 05:00:54  nakahiro
+# cgi and tag_secure packaging.
+#
+# Revision 1.10  1995/12/15 14:21:37  nakahiro
 # keyword search routine.
 #
 # Revision 1.9  1995/12/13 17:08:19  nakahiro
@@ -82,36 +85,40 @@
 ## ヘッダファイルの読み込み
 #
 require('kb.ph');
+require('cgi.pl');
+require('tag_secure.pl');
 
 
 ###
 ## メイン
 #
 
-MAIN: {
+# コマンド表:
+#	新規投稿:		c=n
+#	引用つきフォロー:	c=q&id={[1-9][0-9]*}
+#	引用なしフォロー:	c=f&id={[1-9][0-9]*}
+#	ファイル引用フォロー:	c=q/f&file={filename}
+#	記事のプレビュー:	c=p&(空)....
+#	確認済み画面:		c=x&id={[1-9][0-9]*(引用でない時id=0)}
+#	日付順ソート:		c=r&type=all|new
+#	最新の記事n個:		c=l&num={[1-9][0-9]*}
+#	threadまとめ読み:	c=t&id={[1-9][0-9]*}
+#	検索:			c=s&type=all|new&key={keyword}
 
-	local($Command, $Id, $File, $Num, $Type, $Key);
+MAIN: {
 
 	# 標準入力(POST)または環境変数(GET)のデコード。
 	&cgi'decode;
-	$Command = $cgi'tags{'c'};
-	$Id = $cgi'tags{'id'};
-	$File = $cgi'tags{'file'};
-	$Num = $cgi'tags{'num'};
-	$Type = $cgi'tags{'type'};
-	$Key = $cgi'tags{'key'};
 
-	#	新規:			c=n
-	#	引用つきフォロー:	c=q&id={[1-9][0-9]*}
-	#	引用なしフォロー:	c=f&id={[1-9][0-9]*}
-	#	ファイル引用フォロー:	c=q/f&file={filename}
-	#	記事のプレビュー:	c=p&(空)....
-	#	確認済み画面:		c=x&id={[1-9][0-9]*(引用でない時id=0)}
-	#	日付順ソート:		c=r&type=all|new
-	#	最新の記事n個:		c=l&num={[1-9][0-9]*}
-	#	threadまとめ読み:	c=t&id={[1-9][0-9]*}
-	#	検索:			c=s&type=all|new&key={keyword}
+	# 値の抽出
+	local($Command) = $cgi'TAGS{'c'};
+	local($Id) = $cgi'TAGS{'id'};
+	local($File) = $cgi'TAGS{'file'};
+	local($Num) = $cgi'TAGS{'num'};
+	local($Type) = $cgi'TAGS{'type'};
+	local($Key) = $cgi'TAGS{'key'};
 
+	# コマンドタイプによる分岐
 	&Entry($NO_QUOTE, 0),			last MAIN if ($Command eq "n");
 	$Id ? &Entry($QUOTE_ON, $Id) : &FileEntry($QUOTE_ON, $File),
 						last MAIN if ($Command eq "q");
@@ -292,10 +299,10 @@ sub FileEntry {
 sub Preview {
 
 	# Boardの取得
-	local($Board) = $cgi'tags{'board'};
+	local($Board) = $cgi'TAGS{'board'};
 
 	# TextTypeの取得
-	local($TextType) = $cgi'tags{'texttype'};
+	local($TextType) = $cgi'TAGS{'texttype'};
 
 	# テンポラリファイルの作成
 	local($TmpFile) = &MakeTemporaryFile($Board, $TextType);
@@ -308,7 +315,7 @@ sub Preview {
 	print("<input name=\"file\" type=\"hidden\" value=\"$TmpFile\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"x\">\n");
 	printf("<input name=\"id\" type=\"hidden\" value=\"%d\">\n",
-		$cgi'tags{'id'});
+		$cgi'TAGS{'id'});
 
 	# あおり文
 	print("<p>以下の記事を確認したら、");
@@ -675,6 +682,8 @@ sub MakeTemporaryFile {
 		= localtime(time);
 	local($InputDate)
 		= sprintf("%d月%d日%02d時%02d分", $mon + 1, $mday, $hour, $min);
+	# Text
+	local($Text);
 
 	# ホスト名を取り出す。
 	local($RemoteHost) = $ENV{ 'REMOTE_HOST' };
@@ -683,20 +692,20 @@ sub MakeTemporaryFile {
 	local($ReplyArticleFile, $ReplyArticleSubject);
 
 	# もし引用なら引用ファイル名を取得
-	if ($cgi'tags{'id'} != 0) {
-		$ReplyArticleFile = &GetArticleFileName($cgi'tags{'id'}, '');
-		$ReplyArticleSubject = &GetSubject($cgi'tags{'id'}, $Board);
-	} elsif ($cgi'tags{'file'} ne '') {
-		$ReplyArticleFile = "../" . $cgi'tags{'file'};
-		$ReplyArticleSubject = &GetSubjectFromFile($cgi'tags{'file'});
+	if ($cgi'TAGS{'id'} != 0) {
+		$ReplyArticleFile = &GetArticleFileName($cgi'TAGS{'id'}, '');
+		$ReplyArticleSubject = &GetSubject($cgi'TAGS{'id'}, $Board);
+	} elsif ($cgi'TAGS{'file'} ne '') {
+		$ReplyArticleFile = "../" . $cgi'TAGS{'file'};
+		$ReplyArticleSubject = &GetSubjectFromFile($cgi'TAGS{'file'});
 	}
 
 	# エイリアスチェック
-	$_ = $cgi'tags{'name'};
+	$_ = $cgi'TAGS{'name'};
 	if (/^#.*$/) {
-		($cgi'tags{'name'}, $cgi'tags{'mail'}, $cgi'tags{'url'})
+		($cgi'TAGS{'name'}, $cgi'TAGS{'mail'}, $cgi'TAGS{'url'})
 			= &GetUserInfo($_);
-		if ($cgi'tags{'name'} eq "") {
+		if ($cgi'TAGS{'name'} eq "") {
 			&MsgHeader($ERROR_MSG);
 			print("<H2>$_はエイリアスに登録されていません</h2>");
 			print("<p>戻ってもう一度。</p>");
@@ -706,39 +715,39 @@ sub MakeTemporaryFile {
 	}
 
 	# 空チェック
-	&MyFatal(2, '') if ($cgi'tags{'subject'} eq "")
-		|| ($cgi'tags{'article'} eq "")
-		|| ($cgi'tags{'name'} eq "")
-		|| ($cgi'tags{'mail'} eq "");
+	&MyFatal(2, '') if ($cgi'TAGS{'subject'} eq "")
+		|| ($cgi'TAGS{'article'} eq "")
+		|| ($cgi'TAGS{'name'} eq "")
+		|| ($cgi'TAGS{'mail'} eq "");
 
 	# サブジェクトのタグチェック
-	$_ = $cgi'tags{'subject'};
+	$_ = $cgi'TAGS{'subject'};
 	&MyFatal(4, '') if (/</);
 
 	# テンポラリファイルに書き出す。
 	open(TMP, ">$TmpFile") || &MyFatal(1, $TmpFile);
 
 	# まずヘッダ。
-	printf(TMP "<strong>$H_SUBJECT</strong> %s<br>\n", $cgi'tags{'subject'});
+	printf(TMP "<strong>$H_SUBJECT</strong> %s<br>\n", $cgi'TAGS{'subject'});
 
-	if ($cgi'tags{'url'} eq "http://" || $cgi'tags{'url'} eq "") {
+	if ($cgi'TAGS{'url'} eq "http://" || $cgi'TAGS{'url'} eq "") {
 		# URLがない場合
-		printf(TMP "<strong>$H_FROM</strong> %s<br>\n", $cgi'tags{'name'});
+		printf(TMP "<strong>$H_FROM</strong> %s<br>\n", $cgi'TAGS{'name'});
 	} else {
 		# URLがある場合
-		printf(TMP "<strong>$H_FROM</strong> <a href=\"%s\">%s</a><br>\n", $cgi'tags{'url'}, $cgi'tags{'name'});
+		printf(TMP "<strong>$H_FROM</strong> <a href=\"%s\">%s</a><br>\n", $cgi'TAGS{'url'}, $cgi'TAGS{'name'});
 	}
 
 	printf(TMP "<strong>$H_MAIL</strong> <a href=\"mailto:%s\">&lt;%s&gt;</a><br>\n",
-		$cgi'tags{'mail'}, $cgi'tags{'mail'});
+		$cgi'TAGS{'mail'}, $cgi'TAGS{'mail'});
 #	print(TMP "<strong>$H_HOST</strong> $RemoteHost<br>\n");
 # kinotropeではgethostbyaddrも使えないようなので、現状でホスト名は省略
 	print(TMP "<strong>$H_DATE</strong> $InputDate<br>\n");
 
 	# 引用の場合
-	if ($cgi'tags{'id'} != 0) {
-		printf(TMP "<strong>$H_REPLY</strong> [$BoardName: %d] <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n", $cgi'tags{'id'});
-	} elsif ($cgi'tags{'file'} ne '') {
+	if ($cgi'TAGS{'id'} != 0) {
+		printf(TMP "<strong>$H_REPLY</strong> [$BoardName: %d] <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n", $cgi'TAGS{'id'});
+	} elsif ($cgi'TAGS{'file'} ne '') {
 		printf(TMP "<strong>$H_REPLY</strong> <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n");
 	}
 
@@ -751,7 +760,9 @@ sub MakeTemporaryFile {
 	print(TMP "<pre>\n") if ($TextType eq $H_PRE);
 
 	# 記事
-	printf(TMP "%s\n", $cgi'tags{'article'});
+	$Text = $cgi'TAGS{'article'};
+	$Text = &tag_secure'decode($Text);
+	printf(TMP "%s\n", $Text);
 
 	# TextType用後処理
 	print(TMP "</pre>\n") if ($TextType eq $H_PRE);
@@ -1516,44 +1527,6 @@ sub MyFatal {
 
 	&MsgFooter;
 	exit 0;
-}
-
-
-#/////////////////////////////////////////////////////////////////////
-
-
-###
-## cgi用パッケージ
-#
-package cgi;
-
-
-###
-## HTMLヘッダの生成
-#
-sub header {print "Content-type: text/html\n\n";}
-
-
-###
-## デコード
-#
-sub decode {
-        local($args, $n_read, *terms, $tag, $value);
-
-        $ENV{'REQUEST_METHOD'} eq "POST" ?
-        ($n_read = read(STDIN, $args, $ENV{'CONTENT_LENGTH'})):
-        ($args = $ENV{'QUERY_STRING'});
-
-        @terms = split('&', $args);
-
-        foreach (@terms) {
-                ($tag, $value) = split(/=/, $_, 2);
-                $value =~ tr/+/ /;
-                $value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack("C", hex($1))/ge;
-		$value =~ s/'/'\\''/go;
-		$tags{$tag} = `echo -n '$value' | /usr/local/bin/nkf -e`;
-		$tags{$tag} =~ s///ge;
-        }
 }
 
 
