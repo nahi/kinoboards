@@ -1,8 +1,8 @@
-# $Id: kb.ph,v 1.2 1995-12-15 14:20:24 nakahiro Exp $
+# $Id: kb.ph,v 1.3 1995-12-19 07:24:49 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 1.2  1995-12-15 14:20:24  nakahiro
-# String for Header of Search Module.
+# Revision 1.3  1995-12-19 07:24:49  nakahiro
+# MAINT
 #
 # Revision 1.1  1995/12/15 12:38:44  nakahiro
 # Initial revision
@@ -21,12 +21,17 @@
 #
 # 管理者のe-mail addr.
 #
-$Maint = "nakahiro@ohara.info.waseda.ac.jp";
+$MAINT = "nakahiro@ohara.info.waseda.ac.jp";
 
 #
 # プログラムが存在するディレクトリのURL表示
 #
 $PROGRAM_DIR_URL = "/~nakahiro";
+
+#
+# 漢字コードコンバータ(UJISへ)のパスとオプション
+#
+$KC2 = "/usr/local/bin/nkf -e";
 
 #
 # 著作権表示
@@ -72,6 +77,7 @@ $H_TEXTTYPE = "入力形式:";
 $H_HTML = "HTML文書";
 $H_PRE = "整形済み文書";
 
+# あおり文
 $H_AORI = "普通に書き込んで下さい。自動的な折り返しは行なわず、書いたまま表示されます。ただし、&lt; &gt; &amp; &quot; は、そのままでは使えません。代わりにそれぞれ、 &amp;lt; &amp;gt; &amp;amp; &amp;quot; と書くと、正しく表示されます。<br>HTMLのわかる方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
 
 #
@@ -100,31 +106,11 @@ $URL_LENGTH = 37;
 # 検索キーワード幅
 $KEYWORD_LENGTH = 40;
 
-
-#/////////////////////////////////////////////////////////////////////
-
-
-###
-## その他の宣言(ここから先は変更しないでね)
-#
-
-#
-# このプログラムの名前
-#
-$PROGRAM_NAME = "kb.cgi";
-#
-# このプログラムのURL
-#
-$PROGRAM = $PROGRAM_DIR_URL . "/" . $PROGRAM_NAME;
-
-#
-# Permission of Title File.
-#
-$TITLE_FILE_PERMISSION = "0666";
-
 #
 # ファイル
 #
+# このプログラム
+$PROGRAM_NAME = "kb.cgi";
 # ロックファイル
 $LOCK_FILE = ".lock.kb";
 # 記事番号ファイル
@@ -137,10 +123,29 @@ $ALL_FILE_NAME = "all.html";
 $TTMP_FILE_NAME = "index.tmp";
 # ユーザエイリアスファイル
 $USER_ALIAS_FILE = "kinousers";
-# ユーザエイリアスファイルURL
-$USER_ALIAS_FILE_URL = $PROGRAM_DIR_URL . "/" . $USER_ALIAS_FILE;
 # ボードエイリアスファイル
 $BOARD_ALIAS_FILE = "kinoboards";
+
+
+#/////////////////////////////////////////////////////////////////////
+
+
+###
+## その他の宣言(ここから先は変更しないでね)
+#
+
+#
+# URL
+#
+# このプログラム
+$PROGRAM = $PROGRAM_DIR_URL . "/" . $PROGRAM_NAME;
+# ユーザエイリアスファイル
+$USER_ALIAS_FILE_URL = $PROGRAM_DIR_URL . "/" . $USER_ALIAS_FILE;
+
+#
+# Permission of Title File.
+#
+$TITLE_FILE_PERMISSION = "0666";
 
 #
 # ロックのタイプ
@@ -153,8 +158,14 @@ $LOCK_UN = 8;
 #
 # 引用フラグ
 #
-$NO_QUOTE = 0;
 $QUOTE_ON = 1;
+$NO_QUOTE = 0;
+
+#
+# 配列のdefault
+#
+$[ = 0;
 
 
 #/////////////////////////////////////////////////////////////////////
+1;
