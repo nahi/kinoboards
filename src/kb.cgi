@@ -1,3 +1,4 @@
+#!/usr/local/bin/perl
 #!/usr/local/bin/perl4.036
 #!/usr/local/bin/perl5.00503-debug -d:DProf
 
@@ -9,8 +10,7 @@
 # 2. kbディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    !! KB/1.0R6.4以降，この設定は必須となりました !!
 #
-# $KBDIR_PATH = '';
-$KBDIR_PATH = '/home/achilles/nakahiro/apache/htdocs/kb';
+$KBDIR_PATH = '';
 # $KBDIR_PATH = '/home/nahi/public_html';
 # $KBDIR_PATH = 'd:\inetpub\wwwroot\kb';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb';			# Macの場合?
@@ -34,7 +34,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.45 1999-08-26 09:05:34 nakahiro Exp $
+# $Id: kb.cgi,v 5.46 1999-08-26 10:44:55 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -251,7 +251,7 @@ MAIN:
 
     # 全てのrequireが終わったあと．．．
     $cgiauth'GUEST = $GUEST;
-    $cgiauth'ADMIN = $MAINT_NAME;
+    $cgiauth'ADMIN = $ADMIN;
     $USER_AUTH_FILE = &GetPath( $AUTH_DIR, $USER_FILE );
 
     $POLICY = $GUEST_POLICY;	# Policy by default.
@@ -651,8 +651,7 @@ sub hgAdminConfigForm
 
     local( %tags, $msg );
     $msg = &TagLabel( $H_PASSWD, 'confP', 'P' ) . qq(: <input id="confP" name="confP" type="password" value="" size="$PASSWD_LENGTH"><br>\n);
-    $msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . qq(: <input id="confP2" name="confP2" type="password" value="" size="$PASSWD_LENGTH">（念のため，もう一度お願いします）\n);
-
+    $msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . qq(: <input id="confP2" name="confP2" type="password" value="" size="$PASSWD_LENGTH">（念のため，もう一度お願いします）<br>\n);
     %tags = ( 'c', 'acx' );
     &DumpForm( *tags, '設定', 'リセット', *msg );
 }
@@ -770,7 +769,7 @@ sub hgBoardConfigForm
     &Fatal( 18, "$_[0]/BoardConfigForm" ) if ( $_[0] ne 'BoardConfig.html' );
 
     local( %tags, $msg );
-    $msg = &TagLabel( "「$BOARD」$H_BOARDを利用", 'valid', 'V' ) . qq(: <input id="valid" name="valid" type="checkbox" value="yes" CHECKED><br><br>\n);
+    $msg = &TagLabel( "「$BOARD」$H_BOARDを利用", 'valid', 'V' ) . qq(: <input id="valid" name="valid" type="checkbox" value="yes" checked><br><br>\n);
     $msg .= &TagLabel( "「$BOARD」の説明", 'intro', 'N' ) . qq(: <input id="intro" name="intro" type="text" value="$BOARDNAME" size="$BOARDNAME_LENGTH"><br><br>\n);
     $msg .= &TagLabel( "「$BOARD」の自動メイル配信先", 'armail', 'M' ) . qq(<br>\n<textarea id="armail" name="armail" rows="$TEXT_ROWS" cols="$MAIL_LENGTH">\n);
     foreach ( @gArriveMail ) { $msg .= $_ . "\n"; }
@@ -927,7 +926,7 @@ sub hgSupersedeEntryButton
     &Fatal( 18, "$_[0]/PostEntryFormClose" ) if ( $_[0] ne 'SupersedeEntry.html' );
 
     $gHgStr .= "<p>\n";
-    $gHgStr .= qq(<input type="radio" id="com_p" name="com" value="p" CHECKED>:\n) . &TagLabel( "試しに表示してみる(まだ投稿しません)", 'com_p', 'P' ) . "<br>\n";
+    $gHgStr .= qq(<input type="radio" id="com_p" name="com" value="p" checked>:\n) . &TagLabel( "試しに表示してみる(まだ投稿しません)", 'com_p', 'P' ) . "<br>\n";
     $gHgStr .= qq(<input type="radio" id="com_x" name="com" value="x">:\n) . &TagLabel( "訂正する", 'com_x', 'X' ) . "<br>\n";
     local( %tags );
     local( $op ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
@@ -1016,7 +1015,7 @@ sub hgPostPreviewForm
 
     local( %tags, $msg );
     $msg = qq(<input type="radio" id="com_e" name="com" value="e">:\n) . &TagLabel( "戻ってやりなおす", 'com_e', 'B' ) . "<br>\n";
-    $msg .= qq(<input type="radio" id="com_x" name="com" value="x" CHECKED>:\n) . &TagLabel( "登録する", 'com_x', 'X' ) . "<br>\n";
+    $msg .= qq(<input type="radio" id="com_x" name="com" value="x" checked>:\n) . &TagLabel( "登録する", 'com_x', 'X' ) . "<br>\n";
     %tags = ( 'corig', $cgi'TAGS{'corig'}, 'c', 'x', 'b', $BOARD,
 	     'id', $gOrigId, 'texttype', $gTextType, 'name', $gName,
 	     'mail', $gEmail, 'url', $gUrl, 'icon', $gIcon,
@@ -2064,6 +2063,7 @@ sub hgFatalMsg
 sub hgsTitle
 {
     $gHgStr .=<<EOS;
+<meta http-equiv="Content-Type" content="text/html; charset=EUC-JP">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <base href="$BASE_URL">
 <link rev="MADE" href="mailto:$MAINT">
@@ -2083,7 +2083,7 @@ sub hgsAddress
 
 sub hgcStatus
 {
-    $gHgStr .= "<p class=\"kbStatus\">[";
+    $gHgStr .= qq(<p class="kbStatus">[);
     $gHgStr .= "$H_USER: $UNAME -- \n" if ( $UNAME && ( $UNAME ne $cgiauth'F_COOKIE_RESET ));
     $gHgStr .= "$H_BOARD: $BOARDNAME -- \n" if ( $BOARD && $BOARDNAME );
 
@@ -2103,21 +2103,21 @@ sub hgcTopMenu
 {
     local( $select );
     $select .= &TagLabel( "表示画面", 'c', 'W' ) . qq(: \n<select id="c" name="c">\n);
-    $select .= sprintf( "<option %s value=\"lo\">$H_LOGIN\n", ( $cgi'TAGS{'c'} eq 'lo' )? 'selected' : '' ) if $SYS_AUTH;
-    $select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' );
+    $select .= sprintf( qq(<option%s value="lo">$H_LOGIN\n), ( $cgi'TAGS{'c'} eq 'lo' )? ' selected' : '' ) if $SYS_AUTH;
+    $select .= sprintf( qq(<option%s value="bl">$H_BOARD一覧\n), ( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
 
     if ( $BOARD )
     {
-	$select .= sprintf( "<option %s value=\"v\">$H_SUBJECT一覧(スレッド)\n", ( $cgi'TAGS{'c'} eq 'v' )? 'selected' : '' );
-	$select .= sprintf( "<option %s value=\"r\">$H_SUBJECT一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'r' )? 'selected' : '' );
-	$select .= sprintf( "<option %s value=\"vt\">$H_MESG一覧(スレッド)\n", ( $cgi'TAGS{'c'} eq 'vt' )? 'selected' : '' );
-	$select .= sprintf( "<option %s value=\"l\">$H_MESG一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'l' )? 'selected' : '' );
-	$select .= sprintf( "<option %s value=\"s\">$H_MESGの検索\n", ( $cgi'TAGS{'c'} eq 's' )? 'selected' : '' ) if $SYS_F_S;
-	$select .= sprintf( "<option %s value=\"n\">$H_POSTNEWARTICLE\n", ( $cgi'TAGS{'c'} eq 'n' )? 'selected' : '' ) if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )));
-	$select .= sprintf( "<option %s value=\"i\">使える$H_ICON一覧\n", ( $cgi'TAGS{'c'} eq 'i' )? 'selected' : '' );
+	$select .= sprintf( qq[<option%s value="v">$H_SUBJECT一覧(スレッド)\n], ( $cgi'TAGS{'c'} eq 'v' )? ' selected' : '' );
+	$select .= sprintf( qq[<option%s value="r">$H_SUBJECT一覧(日付順)\n], ( $cgi'TAGS{'c'} eq 'r' )? ' selected' : '' );
+	$select .= sprintf( qq[<option%s value="vt">$H_MESG一覧(スレッド)\n], ( $cgi'TAGS{'c'} eq 'vt' )? ' selected' : '' );
+	$select .= sprintf( qq[<option%s value="l">$H_MESG一覧(日付順)\n], ( $cgi'TAGS{'c'} eq 'l' )? ' selected' : '' );
+	$select .= sprintf( qq(<option%s value="s">$H_MESGの検索\n), ( $cgi'TAGS{'c'} eq 's' )? ' selected' : '' ) if $SYS_F_S;
+	$select .= sprintf( qq(<option%s value="n">$H_POSTNEWARTICLE\n), ( $cgi'TAGS{'c'} eq 'n' )? ' selected' : '' ) if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )));
+	$select .= sprintf( qq(<option%s value="i">使える$H_ICON一覧\n), ( $cgi'TAGS{'c'} eq 'i' )? ' selected' : '' );
     }
 
-    $select .= "</select>\n // " . &TagLabel( "表示件数", 'num', 'Y' ) . qq(: <input id="num" name="num" type="text" size="3" value=") . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . "\"> ";
+    $select .= "</select>\n // " . &TagLabel( "表示件数", 'num', 'Y' ) . qq(: <input id="num" name="num" type="text" size="3" value=") . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . '"> ';
     local( %tags ) = ( 'b', $BOARD );
     &DumpForm( *tags, "表示", 0, *select );
 }
@@ -2273,11 +2273,11 @@ sub hgbSearchArticleForm
     $gHgStr .= "<p>\n";
 
     local( $msg );
-    $msg .= sprintf( "<input id=\"searchsubject\" name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: ", $SearchSubject? 'CHECKED' : '' ) . &TagLabel( $H_SUBJECT, 'searchsubject', 'T' ) . "<br>\n";
+    $msg .= sprintf( qq(<input id="searchsubject" name="searchsubject" type="checkbox" value="on"%s>: ), $SearchSubject? ' checked' : '' ) . &TagLabel( $H_SUBJECT, 'searchsubject', 'T' ) . "<br>\n";
 
-    $msg .= sprintf( "<input id=\"searchperson\" name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: ", $SearchPerson? 'CHECKED' : '' ) . &TagLabel( "名前", 'searchperson', 'N' ) . "<br>\n";
+    $msg .= sprintf( qq(<input id="searchperson" name="searchperson" type="checkbox" value="on"%s>: ), $SearchPerson? ' checked' : '' ) . &TagLabel( "名前", 'searchperson', 'N' ) . "<br>\n";
 
-    $msg .= sprintf( "<input id=\"searcharticle\" name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: ", $SearchArticle? 'CHECKED' : '' ) . &TagLabel( $H_MESG, 'searcharticle', 'A' ) . "<br>\n";
+    $msg .= sprintf( qq(<input id="searcharticle" name="searcharticle" type="checkbox" value="on"%s>: ), $SearchArticle? ' checked' : '' ) . &TagLabel( $H_MESG, 'searcharticle', 'A' ) . "<br>\n";
 
     local( $sec, $min, $hour, $mday, $mon, $year, $nowStr );
     if ( !$SearchPostTime )
@@ -2285,19 +2285,19 @@ sub hgbSearchArticleForm
 	( $sec, $min, $hour, $mday, $mon, $year, $nowStr ) = localtime( $^T );
 	$nowStr = sprintf( "%04d/%02d/%02d", $year+1900, $mon+1, $mday );
     }
-    $msg .= sprintf( "<input id=\"searchposttime\" name=\"searchposttime\" type=\"checkbox\" value=\"on\" %s>: ", $SearchPostTime? 'CHECKED' : '' ) . &TagLabel( $H_DATE, 'searchposttime', 'D' ) . " // \n";
-    $msg .= sprintf( "<input id=\"searchposttimefrom\" name=\"searchposttimefrom\" type=\"text\" size=\"11\" value=\"%s\"> ", $SearchPostTimeFrom || '' ) . &TagLabel( '〜', 'searchposttimefrom', 'S' ) . " \n";
-    $msg .= sprintf( "<input id=\"searchposttimeto\" name=\"searchposttimeto\" type=\"text\" size=\"11\" value=\"%s\">", $SearchPostTimeTo || $nowStr ) . &TagLabel( 'の間', 'searchposttimeto', 'E' ) . "<br>\n";
-    $msg .= sprintf( "<input id=\"searchicon\" name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: ", $SearchIcon? 'CHECKED' : '' ) . &TagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
+    $msg .= sprintf( qq(<input id="searchposttime" name="searchposttime" type="checkbox" value="on"%s>: ), $SearchPostTime? ' checked' : '' ) . &TagLabel( $H_DATE, 'searchposttime', 'D' ) . " // \n";
+    $msg .= sprintf( qq(<input id="searchposttimefrom" name="searchposttimefrom" type="text" size="11" value="%s"> ), $SearchPostTimeFrom || '' ) . &TagLabel( '〜', 'searchposttimefrom', 'S' ) . " \n";
+    $msg .= sprintf( qq(<input id="searchposttimeto" name="searchposttimeto" type="text" size="11" value="%s">), $SearchPostTimeTo || $nowStr ) . &TagLabel( 'の間', 'searchposttimeto', 'E' ) . "<br>\n";
+    $msg .= sprintf( qq(<input id="searchicon" name="searchicon" type="checkbox" value="on"%s>: ), $SearchIcon? ' checked' : '' ) . &TagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
 
     # アイコンの選択
     &CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
-    $msg .= sprintf( "<select id=\"icon\" name=\"icon\">\n<option%s>$H_NOICON\n", ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' SELECTED' );
+    $msg .= sprintf( qq(<select id="icon" name="icon">\n<option%s>$H_NOICON\n), ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' selected' );
 
     local( $IconTitle );
     foreach $IconTitle ( sort keys( %ICON_FILE ))
     {
-	$msg .= sprintf( "<option%s>$IconTitle\n", ( $Icon eq $IconTitle )? ' SELECTED' : '' );
+	$msg .= sprintf( "<option%s>$IconTitle\n", ( $Icon eq $IconTitle )? ' selected' : '' );
     }
     $msg .= "</select>\n";
 
@@ -2367,7 +2367,7 @@ sub hgbEntryTextType
     }
     else
     {
-	$gHgStr .= sprintf( "<input name=\"texttype\" type=\"hidden\" value=\"%s\">\n", $H_TTLABEL[(( log $SYS_TEXTTYPE ) / ( log 2 ))] );
+	$gHgStr .= sprintf( qq(<input name="texttype" type="hidden" value="%s">\n), $H_TTLABEL[(( log $SYS_TEXTTYPE ) / ( log 2 ))] );
     }
 }
 
@@ -2379,7 +2379,7 @@ sub hgbEntryIcon
     if ( $SYS_ICON )
     {
 	&CacheIconDb( $BOARD );	# アイコンDBをキャッシュ
-	$gHgStr .= &TagLabel( $H_ICON, 'icon', 'I' ) . sprintf( ":\n<select id=\"icon\" name=\"icon\">\n<option%s>$H_NOICON\n", $gDefIcon? '' : ' selected' );
+	$gHgStr .= &TagLabel( $H_ICON, 'icon', 'I' ) . sprintf( qq(:\n<select id="icon" name="icon">\n<option%s>$H_NOICON\n), $gDefIcon? '' : ' selected' );
 	foreach ( @ICON_TITLE )
 	{
 	    $gHgStr .= sprintf( "<option%s>$_\n", ( $_ eq $gDefIcon )? ' selected' : '' );
@@ -2440,7 +2440,7 @@ sub hgbEntryEmailNotation
 {
     if ( $SYS_MAIL & 2 )
     {
-	$gHgStr .= &TagLabel( 'リプライがあった時にメイルで連絡', 'fmail', 'F' ) . sprintf( ": <input id=\"fmail\" name=\"fmail\" type=\"checkbox\" value=\"on\"%s>\n", $gDefFmail? ' CHECKED' : '' );
+	$gHgStr .= &TagLabel( 'リプライがあった時にメイルで連絡', 'fmail', 'F' ) . sprintf( qq(: <input id="fmail" name="fmail" type="checkbox" value="on"%s>\n), $gDefFmail? ' checked' : '' );
     }
 }
 
@@ -2454,7 +2454,7 @@ sub hgbEntryButton
     return unless $BOARD;
 
     $gHgStr .= "<p>\n";
-    $gHgStr .= qq(<input type="radio" id="com_p" name="com" value="p" CHECKED>:\n) . &TagLabel( '試しに表示してみる(まだ投稿しません)', 'com_p', 'P' ) . "<br>\n";
+    $gHgStr .= qq(<input type="radio" id="com_p" name="com" value="p" checked>:\n) . &TagLabel( '試しに表示してみる(まだ投稿しません)', 'com_p', 'P' ) . "<br>\n";
     $gHgStr .= qq(<input type="radio" id="com_x" name="com" value="x">:\n) . &TagLabel( "$H_MESGを投稿する", 'com_x', 'X' ) . "<br>\n";
     local( %tags );
     local( $op ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
@@ -2511,8 +2511,7 @@ sub DumpArticle
     local( $PrevId ) = $DB_ID[$Num - 1] if ( $Num > 0 );
     local( $NextId ) = $DB_ID[$Num + 1];
 
-    $gHgStr .= "<p><a name=\"a$Id\"> </a>\n";
-    # $gHgStr .= "<p id=\"a$Id\">"; # NC/4.5 does not follows this style...
+    $gHgStr .= qq(<p><a name="a$Id"> </a>\n);
 
     if ( $CommandFlag && $SYS_COMMAND )
     {
@@ -3002,25 +3001,25 @@ sub DumpForm
     $gHgStr .= "<p>\n";
     foreach ( keys( %tags ))
     {
-	$gHgStr .= "<input name=\"$_\" type=\"hidden\" value=\"$tags{$_}\">\n";
+	$gHgStr .= qq(<input name="$_" type="hidden" value="$tags{$_}">\n);
     }
     if ( $SYS_AUTH == 3 )
     {
-	$gHgStr .= "<input name=\"kinoU\" type=\"hidden\" value=\"$UNAME\">\n";
-	$gHgStr .= "<input name=\"kinoP\" type=\"hidden\" value=\"$PASSWD\">\n";
+	$gHgStr .= qq(<input name="kinoU" type="hidden" value="$UNAME">\n);
+	$gHgStr .= qq(<input name="kinoP" type="hidden" value="$PASSWD">\n);
     }
     $gHgStr .=<<EOS;
 $contents
 <input type="submit" value="$submit" accesskey="G">
 EOS
-    $gHgStr .= "<input type=\"reset\" value=\"$reset\" accesskey=\"R\">\n" if $reset;
+    $gHgStr .= qq(<input type="reset" value="$reset" accesskey="R">\n) if $reset;
     $gHgStr .= "</p>\n";
     &DumpFormClose();
 }
 
 sub DumpFormOpen
 {
-    $gHgStr .= "<form action=\"$PROGRAM\" method=\"POST\">\n";
+    $gHgStr .= qq(<form action="$PROGRAM" method="POST">\n);
 }
 
 sub DumpFormButton
@@ -3028,15 +3027,15 @@ sub DumpFormButton
     local( *tags, $submit, $reset ) = @_;
     foreach ( keys( %tags ))
     {
-	$gHgStr .= "<input name=\"$_\" type=\"hidden\" value=\"$tags{$_}\">\n";
+	$gHgStr .= qq(<input name="$_" type="hidden" value="$tags{$_}">\n);
     }
     if ( $SYS_AUTH == 3 )
     {
-	$gHgStr .= "<input name=\"kinoU\" type=\"hidden\" value=\"$UNAME\">\n";
-	$gHgStr .= "<input name=\"kinoP\" type=\"hidden\" value=\"$PASSWD\">\n";
+	$gHgStr .= qq(<input name="kinoU" type="hidden" value="$UNAME">\n);
+	$gHgStr .= qq(<input name="kinoP" type="hidden" value="$PASSWD">\n);
     }
-    $gHgStr .= "<input type=\"submit\" value=\"$submit\" accesskey=\"G\">\n";
-    $gHgStr .= "<input type=\"reset\" value=\"$reset\" accesskey=\"R\">\n" if $reset;
+    $gHgStr .= qq(<input type="submit" value="$submit" accesskey="G">\n);
+    $gHgStr .= qq(<input type="reset" value="$reset" accesskey="R">\n) if $reset;
 }
 
 sub DumpFormClose
@@ -4953,11 +4952,11 @@ sub TagComImg
     local( $src, $alt, $type ) = @_;
     if ( $type == 1 )
     {
-	"<img src=\"$src\" alt=\"$alt\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">";
+	qq(<img src="$src" alt="$alt" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0">);
     }
     elsif ( $type == 2 )
     {
-	"<img src=\"$src\" alt=\"$alt\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">$alt";
+	qq(<img src="$src" alt="$alt" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0">$alt);
     }
     else
     {
@@ -4989,7 +4988,7 @@ sub TagMsgImg
     elsif ( $SYS_ICON )
     {
 	local( $src ) = &GetIconUrlFromTitle( $icon, $BOARD );
-	return "<img src=\"$src\" alt=\"[$icon]\" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\" BORDER=\"0\">";
+	qq(<img src="$src" alt="[$icon]" width="$MSGICON_WIDTH" height="$MSGICON_HEIGHT" BORDER="0">);
     }
     else
     {
@@ -5011,11 +5010,14 @@ sub TagMsgImg
 # - DESCRIPTION
 #	リンクをリンクタグにフォーマットする．
 #
+$gLinkNum = 0;
 sub TagA
 {
     local( $href, $markUp ) = @_;
     $href =~ s/&/&amp;/go;
-    "<a href=\"$href\">$markUp</a>";
+    local( $str ) = sprintf( qq(<a href="$href" accesskey="%d">$markUp</a>), $gLinkNum );
+    $gLinkNum = 0 if ( ++$gLinkNum > 9 );
+    $str;
 }
 
 
@@ -5033,7 +5035,7 @@ sub TagA
 sub TagLabel
 {
     local( $markUp, $label, $accessKey ) = @_;
-    "<label for=\"$label\" accesskey=\"$accessKey\">$markUp(<u>$accessKey</u>)</label>";
+    qq[<label for="$label" accesskey="$accessKey">$markUp(<span class="underline">$accessKey</span>)</label>];
 }
 
 
@@ -5056,8 +5058,9 @@ sub LinkP
     local( $comm, $markUp, $title ) = @_;
     $comm .= "&kinoU=$UNAME&kinoP=$PASSWD" if ( $SYS_AUTH == 3 );
     $comm =~ s/&/&amp;/go;
-    local( $str ) = "<a href=\"$PROGRAM?$comm\"";
-    $str .= " title=\"$title\"" if $title;
+    local( $str ) = sprintf( qq(<a href="$PROGRAM?$comm" accesskey="%d"), $gLinkNum );
+    $gLinkNum = 0 if ( ++$gLinkNum > 9 );
+    $str .= qq( title="$title") if $title;
     $str .= ">$markUp</a>";
     $str;
 }
