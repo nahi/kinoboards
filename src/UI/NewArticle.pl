@@ -72,11 +72,6 @@ NewArticle:
 
     &cgiprint'Cache( $pageLinkStr );
 
-    &cgiprint'Cache("$H_HR\n");
-
-    &PrintButtonToTitleList( $BOARD, $From );
-    &PrintButtonToBoardList if $SYS_F_B;
-
     &MsgFooter;
 
 }
