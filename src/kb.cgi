@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 4.25 1996-09-13 14:19:04 nakahiro Exp $
+# $Id: kb.cgi,v 4.26 1996-09-15 08:14:49 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -124,6 +124,11 @@ $GREATER_THAN = '__gt__';
 $LESSER_THAN = '__lt__';
 $AND_MARK = '__amp__';
 
+#
+# フラグ
+#
+$F_HEADITEM_REPLY = 2;
+$F_HEADITEM_LI = 1;
 
 # トラップ
 $SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
@@ -471,7 +476,7 @@ __EOF__
     print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
 
     # 反応元(引用の場合)
-    &ShowLinksToFollowedArticle($Id, split(/,/, $rFid)) if (defined($rFid));
+    &ShowLinksToFollowedArticle($F_HEADITEM_REPLY, $Id, split(/,/, $rFid)) if (defined($rFid));
 
     # 切れ目
     print("$H_LINE<br>\n");
@@ -762,11 +767,15 @@ sub ShowArticle {
 <a href="$PROGRAM?b=$BOARD&c=en&id=$Id"><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 <a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 <a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
-<a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
-<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="?" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
-</p>
-</form>
 __EOF__
+	if ($Aids) {
+	    print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>");
+	} else {
+	    print("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">");
+	}
+
+	print("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n</form>\n");
+
     }
 
     # ボード名と記事番号，題
@@ -795,7 +804,7 @@ __EOF__
     print("<strong>$H_DATE</strong>: $Date<br>\n");
 
     # 反応元(引用の場合)
-    &ShowLinksToFollowedArticle(split(/,/, $Fid)) if ($Fid);
+    &ShowLinksToFollowedArticle($F_HEADITEM_REPLY, split(/,/, $Fid)) if ($Fid);
 
     # 切れ目
     print("$H_LINE<br>\n");
@@ -850,6 +859,14 @@ sub ThreadArticle {
 
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $THREADARTICLE_MSG");
+
+    # 元記事の表示
+    local($Fid) = &GetArticlesInfo($Id);
+    if ($Fid) {
+	print("<ul>\n");
+	&ShowLinksToFollowedArticle($F_HEADITEM_LI, split(/,/, $Fid));
+	print("</ul>\n");
+    }
 
     # メイン関数の呼び出し(記事概要)
     print("<ul>\n");
@@ -2091,7 +2108,7 @@ sub GetFormattedTitle {
 #
 sub ShowLinksToFollowedArticle {
 
-    local(@IdList) = @_;
+    local($HeadItem, @IdList) = @_;
 
     local($Id);
     local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name);
@@ -2104,7 +2121,12 @@ sub ShowLinksToFollowedArticle {
 	($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
 
 	# トップから順に表示する
-	print("<strong>$H_ORIG</strong>: " . &GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date) . "<br>\n");
+	if ($HeadItem eq $F_HEADITEM_REPLY) {
+	    print("<strong>$H_ORIG</strong>: ");
+	} else {
+	    print("<li>");
+	}
+	print(&GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date) . "<br>\n");
     }
 }
 
@@ -2290,10 +2312,13 @@ sub ViewOriginalArticle {
 <p>
 <a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 <a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
-<a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
-<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="?" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
-</p>
 __EOF__
+	if ($Aids) {
+	    print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>");
+	} else {
+	    print("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">");
+	}
+	print("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n");
 
     }
 
@@ -2323,7 +2348,7 @@ __EOF__
     print("<strong>$H_DATE</strong>: $Date<br>\n");
 
     # 反応元(引用の場合)
-    &ShowLinksToFollowedArticle(split(/,/, $Fid)) if ($OriginalFlag && $Fid);
+    &ShowLinksToFollowedArticle($F_HEADITEM_REPLY, split(/,/, $Fid)) if ($OriginalFlag && $Fid);
 
     # 切れ目
     print("$H_LINE<br>\n");
