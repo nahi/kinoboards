@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl
+#!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.8 1996-04-30 17:40:18 nakahiro Exp $
+# $Id: kb.cgi,v 4.9 1996-05-21 19:21:36 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -105,32 +105,27 @@ $QUOTE_PREFIX = ".q";
 #
 $ICON_DIR = "icons";
 
+# アイコンファイル
+$ICON_TLIST = "$ICON_DIR/tlist.gif";
+$ICON_NEXT = "$ICON_DIR/next.gif";
+$ICON_WRITENEW = "$ICON_DIR/writenew.gif";
+$ICON_FOLLOW = "$ICON_DIR/follow.gif";
+$ICON_QUOTE = "$ICON_DIR/quote.gif";
+$ICON_THREAD = "$ICON_DIR/thread.gif";
+$ICON_HELP = "$ICON_DIR/q.gif";
+
 #
 # アイコン定義ファイルのポストフィクス
 # アイコン定義ファイル、「(ボードディレクトリ名).(指定した文字列)」になる。
-#
 $ICONDEF_POSTFIX = "idef";
+$ICON_HEIGHT = 20;
+$ICON_WIDTH = 20;
 
 #
 # 制御用コメント文
 #
 $COM_ARTICLE_BEGIN = "<!-- Article Begin -->";
 $COM_ARTICLE_END = "<!-- Article End -->";
-$COM_FMAIL_BEGIN = "<!-- Follow Mail Begin";
-$COM_FMAIL_END = "Follow Mail End -->";
-
-#
-# Permission of Title File.
-#
-$TITLE_FILE_PERMISSION = "0666";
-
-#
-# ロックのタイプ
-#
-$LOCK_SH = 1;
-$LOCK_EX = 2;
-$LOCK_NB = 4;
-$LOCK_UN = 8;
 
 #
 # 引用フラグ
@@ -139,13 +134,9 @@ $QUOTE_ON = 1;
 $NO_QUOTE = 0;
 
 #
-# 空行マーク
+# エスケープコード
 #
 $NULL_LINE = "__br__";
-
-#
-# ダブルクオート
-#
 $DOUBLE_QUOTE = "__dq__";
 $GREATER_THAN = '__gt__';
 $LESSER_THAN = '__lt__';
@@ -202,6 +193,9 @@ MAIN: {
     local($Email) = $cgi'TAGS{'email'};
     local($URL) = $cgi'TAGS{'url'};
 
+    # まずはロック
+    &lock;
+
     # コマンドタイプによる分岐
     if ($Command eq "e") {
 	&ShowArticle($Id);
@@ -251,6 +245,9 @@ MAIN: {
     } else {
 	print("illegal command was given.\n");
     }
+
+    # ロックを外す
+    &unlock;
 
 }
 
@@ -343,7 +340,7 @@ sub EntryHeader {
 	}
 	close(ICON);
 	print("</SELECT>\n");
-	print("(<a href=\"$PROGRAM?b=$BOARD&c=i\">$H_SEEICON</a>)<BR>\n");
+	print("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
     }
 
     # Subject(フォローなら自動的に文字列を入れる)
@@ -526,7 +523,7 @@ sub Preview {
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
         ? print("<strong>$H_SUBJECT</strong> $Subject<br>\n")
-            : printf("<strong>$H_SUBJECT</strong> <img src=\"%s\" alt=\"$Icon\"> $Subject<br>\n", &GetIconURL($Icon));
+            : printf("<strong>$H_SUBJECT</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"> $Subject<br>\n", &GetIconURL($Icon));
 
     # お名前
     if ($Url eq "http://" || $Url eq '') {
@@ -658,9 +655,6 @@ sub MakeNewArticle {
     ($Name, $Email, $Url, $Icon, $Article)
 	= &CheckArticle($Name, $Email, $Url, $Subject, $Icon, $Article);
 
-    # ロックをかける
-    &lock();
-
     # 新しい記事番号を取得(まだ記事番号は増えてない)
     local($ArticleId) = &GetNewArticleId();
 
@@ -684,9 +678,6 @@ sub MakeNewArticle {
 
     # 新しい記事番号を書き込む
     &AddArticleId();
-
-    # ロックを外す。
-    &unlock();
 
 }
 
@@ -875,23 +866,24 @@ sub ShowArticle {
 
     # コマンド部分の表示
     print("<p>\n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=v&num=40\">$H_TITLELIST</a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=en&id=$Id\">$H_NEXTARTICLE</a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=n\">$H_POSTNEWARTICLE</a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=f&id=$Id\">$H_REPLYTHISARTICLE</a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=q&id=$Id\">$H_REPLYTHISARTICLEQUOTE</a> // \n");
-    print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_READREPLYALL</a>\n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=v&num=40\"><img src=\"$ICON_TLIST\" alt=\"$H_TITLELIST\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=en&id=$Id\"><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=n\"><img src=\"$ICON_WRITENEW\" alt=\"$H_POSTNEWARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=f&id=$Id\"><img src=\"$ICON_FOLLOW\" alt=\"$H_REPLYTHISARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=q&id=$Id\"><img src=\"$ICON_QUOTE\" alt=\"$H_REPLYTHISARTICLEQUOTE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+    print("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$H_SEEICON</a>\n");
     print("</p>\n");
 
     # ボード名と記事番号、題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	print("<strong>$H_SUBJECT</strong> [$BoardName: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong> [$BoardName: $Id] <img src=\"%s\" alt=\"$Icon\">$Subject<br>\n", &GetIconURL($Icon));
+	printf("<strong>$H_SUBJECT</strong> [$BoardName: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURL($Icon));
     }
 
     # お名前
-    if (! $Url) {
+    if ((! $Url) || ($Url eq 'http://')) {
         # URLがない場合
         print("<strong>$H_FROM</strong> $Name<br>\n");
     } else {
@@ -1045,9 +1037,6 @@ sub GetFollowIdList {
 	  $dEmail, $dUrl, $dFmail)
 	= (0, '', '', '', '', '', '', '', '', '', '');
 
-    # lockをかける
-    &lock();
-
     # 取り込み
     open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
     while(<DB>) {
@@ -1063,9 +1052,6 @@ sub GetFollowIdList {
 
     }
     close(DB);
-
-    # lockをはずす
-    &unlock();
 
     # 返す
     return(@Result);
@@ -1104,9 +1090,6 @@ sub GetUserInfo {
     # エイリアス、名前、メール、ホスト、URL
     local($rN, $rE, $rU) = ('', '', '');
 
-    # lockをかける
-    &lock();
-
     # ファイルを開く
     open(ALIAS, "<$USER_ALIAS_FILE") || &MyFatal(1, $USER_ALIAS_FILE);
     
@@ -1128,9 +1111,6 @@ sub GetUserInfo {
     }
     close(ALIAS);
 
-    # lockをはずす
-    &unlock();
-    
     # 配列にして返す
     return($rN, $rE, $rU);
 }
@@ -1412,7 +1392,7 @@ sub HttpConnect {
     local($Name, $Aliases, $Type, $Len, $Hostaddr) = gethostbyname($Server);
     local($Sock) = pack($Sockaddr, 2, $HttpPort, $Hostaddr);
 
-    socket(S, 2, 1, $Proto) || die $!;
+    socket(S, 2, 1, $Proto) || &MyFatal(20, '');
     connect(S, $Sock) || return(0);
     select(S); $| = 1; select(STDOUT);
     print(S "GET $RemoteFile HTTP/1.0\n\n");
@@ -1422,6 +1402,8 @@ sub HttpConnect {
 
 	# コード変換
 	&jcode'convert(*_, 'euc');
+	s/\r\n/\n/go;
+	s/\r/\n/go;
 
 	# 書き込む
 	print(LOCAL $_);
@@ -1444,23 +1426,45 @@ sub ShowIcon {
     local($BoardName) = &GetBoardInfo($BOARD);
     local($FileName, $Title);
 
+    # タイプを拾う
+    local($Type) = $cgi'TAGS{'type'};
+
     # 表示画面の作成
     &MsgHeader($SHOWICON_MSG);
-    print("<p>\"$BoardName\"$H_ICONINTRO</p>\n");
-    print("<p><dl>\n");
 
-    # 一つ一つ表示
-    open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
-	|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-	    || &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
-    while(<ICON>) {
-	chop;
-	($FileName, $Title) = split(/\t/, $_);
-	print("<dt><img src=\"$ICON_DIR/$FileName\" alt=\"$Title\"> : $Title\n");
+    if ($Type eq 'article') {
+
+	print("<p>$H_ICONINTRO_ARTICLE</p>\n");
+	print("<p><dl>\n");
+
+	print("<dt><img src=\"$ICON_TLIST\" alt=\"$H_TITLELIST\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_TITLELIST\n");
+	print("<dt><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_NEXTARTICLE\n");
+	print("<dt><img src=\"$ICON_WRITENEW\" alt=\"$H_POSTNEWARTICLE\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_POSTNEWARTICLE\n");
+	print("<dt><img src=\"$ICON_FOLLOW\" alt=\"$H_REPLYTHISARTICLE\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_REPLYTHISARTICLE\n");
+	print("<dt><img src=\"$ICON_QUOTE\" alt=\"$H_REPLYTHISARTICLEQUOTE\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_REPLYTHISARTICLEQUOTE\n");
+	print("<dt><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $H_READREPLYALL\n");
+
+	print("</dl></p>\n");
+
+    } else {
+
+	print("<p>\"$BoardName\"$H_ICONINTRO_ENTRY</p>\n");
+	print("<p><dl>\n");
+
+	# 一つ一つ表示
+	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
+	    || (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
+		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+	while(<ICON>) {
+	    chop;
+	    ($FileName, $Title) = split(/\t/, $_, 2);
+	    print("<dt><img src=\"$ICON_DIR/$FileName\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : $Title\n");
+	}
+	close(ICON);
+
+	print("</dl></p>\n");
+
     }
-    close(ICON);
-
-    print("</dl></p>\n");
 
     &MsgFooter();
 
@@ -1508,9 +1512,6 @@ sub SortArticle {
 	$ArticleFromId = $ArticleToId - $Num + 1;
     }
 
-    # lockをかける
-    &lock();
-
     # 取り込み。DBファイルがなければ何も表示しない。
     open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
 
@@ -1531,9 +1532,6 @@ sub SortArticle {
 
     }
     close(DB);
-
-    # lockをはずす
-    &unlock();
 
     # 表示画面の作成
     &MsgHeader("$BoardName: $SORT_MSG");
@@ -1600,9 +1598,6 @@ sub ViewTitle {
 	$ArticleFromId = $ArticleToId - $Num + 1;
     }
 
-    # lockをかける
-    &lock();
-
     # 取り込み。DBファイルがなければ何も表示しない。
     open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
     while(<DB>) {
@@ -1629,9 +1624,6 @@ sub ViewTitle {
 	}
     }
     close(DB);
-
-    # lockをはずす。
-    &unlock();
 
     # 表示画面の作成
     &MsgHeader("$BoardName: $VIEW_MSG");
@@ -1902,9 +1894,6 @@ sub SearchArticleList {
     # リスト開く
     print("<ul>\n");
 
-    # lockをかける
-    &lock();
-
     # ファイルを開く。DBファイルがなければnot found.
     open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
     while(<DB>) {
@@ -1947,9 +1936,6 @@ sub SearchArticleList {
 	}
     }
     close(DB);
-
-    # lockをはずす
-    &unlock();
 
     # ヒットしなかったら
     print("<dt>$H_NOTFOUND\n") unless ($HitFlag = 1);
@@ -2200,9 +2186,6 @@ sub CashAliasData {
     
     local($A, $N, $E, $H, $U) = ('', '', '', '', '');
 
-    # lockをかける
-    &lock();
-
     # 放り込む。
     open(ALIAS, "<$File") || &MyFatal(1, $File);
     while(<ALIAS>) {
@@ -2218,9 +2201,6 @@ sub CashAliasData {
     }
     close(ALIAS);
 
-    # lockをはずす
-    &unlock();
-
 }
 
 
@@ -2235,9 +2215,6 @@ sub WriteAliasData {
     local($File) = @_;
     local($Alias);
 
-    # ロックをかける
-    &lock();
-
     # 書き出す
     open(ALIAS, ">$File") || &MyFatal(1, $File);
     foreach $Alias (sort keys(%Name)) {
@@ -2247,9 +2224,6 @@ sub WriteAliasData {
     }
     close(ALIAS);
     
-    # ロックを外す。
-    &unlock();
-
 }
 
 
@@ -2308,18 +2282,12 @@ sub GetArticleId {
     # 記事番号
     local($ArticleId);
 
-    # lockをかける
-    &lock();
-
     open(AID, "$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
     while(<AID>) {
 	chop;
 	$ArticleId = $_;
     }
     close(AID);
-
-    # lockをはずす
-    &unlock();
 
     # 記事番号を返す。
     return($ArticleId);
@@ -2364,7 +2332,7 @@ sub GetFormattedTitle {
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	$String = sprintf("<li><strong>$Id .</strong> <a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$Title</a> [$Name] $Date");
     } else {
-	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\"><a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$Title</a> [$Name] $Date", &GetIconURL($Icon));
+	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$Title</a> [$Name] $Date", &GetIconURL($Icon));
     }
 
     return($String);
@@ -2383,7 +2351,7 @@ sub GetFormattedAbstract {
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	$String = sprintf("<li><strong>$Id .</strong> $Title [$Name] $Date", &GetIconURL($Icon));
     } else {
-	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\">$Title [$Name] $Date", &GetIconURL($Icon));
+	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Title [$Name] $Date", &GetIconURL($Icon));
     }
 
     return($String);
@@ -2407,7 +2375,7 @@ sub ShowFormattedLinkToFollowedArticle {
 	if (($Icon eq $H_NOICON) || (! $Icon)) {
 	    print("<strong>$H_REPLY</strong> [$BoardName: $Src] <a href=\"$Link\">$Subject</a><br>\n");
 	} else {
-	    printf("<strong>$H_REPLY</strong> [$BoardName: $Src] <img src=\"%s\" alt=\"$Icon\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURL($Icon));
+	    printf("<strong>$H_REPLY</strong> [$BoardName: $Src] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURL($Icon));
 	}
     } elsif ($Src =~ /^http:/) {
 	print("<strong>$H_REPLY</strong> <a href=\"$Link\">$Link</a><br>\n");
@@ -2517,7 +2485,7 @@ sub lock {
 
     unlink($LOCK_ORG);
 
-    &MyFatal(80, $TimeOut) unless ($TimeOut < $LOCK_WAIT);
+    &MyFatal(999, $TimeOut) unless ($TimeOut < $LOCK_WAIT);
 
 }
 
@@ -2559,11 +2527,11 @@ sub ViewOriginalArticle {
 	print("<p>\n");
 
 	# まとめ読み系なので、「次の記事」リンクは無し。
-	# print("<a href=\"$PROGRAM?b=$BOARD&c=en&id=$Id\">$H_NEXTARTICLE</a> // \n");
-	print("<a href=\"$PROGRAM?b=$BOARD&c=n\">$H_POSTNEWARTICLE</a> // \n");
-	print("<a href=\"$PROGRAM?b=$BOARD&c=f&id=$Id\">$H_REPLYTHISARTICLE</a> // \n");
-	print("<a href=\"$PROGRAM?b=$BOARD&c=q&id=$Id\">$H_REPLYTHISARTICLEQUOTE</a> // \n");
-	print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_READREPLYALL</a>\n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=n\"><img src=\"$ICON_WRITENEW\" alt=\"$H_POSTNEWARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=f&id=$Id\"><img src=\"$ICON_FOLLOW\" alt=\"$H_REPLYTHISARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=q&id=$Id\"><img src=\"$ICON_QUOTE\" alt=\"$H_REPLYTHISARTICLEQUOTE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"></a> // \n");
+	print("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$H_SEEICON</a>\n");
 	print("</p>\n");
 
     }
@@ -2572,7 +2540,7 @@ sub ViewOriginalArticle {
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	print("<strong>$H_SUBJECT</strong> [$BoardName: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong> [$BoardName: $Id] <img src=\"%s\" alt=\"$Icon\">$Subject<br>\n", &GetIconURL($Icon));
+	printf("<strong>$H_SUBJECT</strong> [$BoardName: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURL($Icon));
     }
 
     # お名前
@@ -2681,9 +2649,6 @@ sub GetArticlesInfo {
 	  $rEmail, $rUrl, $rFmail)
 			 = ('', '', '', '', '', '', '', '', '', '');
 
-    # lockをかける
-    &lock();
-
     # 取り込み。DBファイルがなければ0/''を返す。
     open(DB, "<$DBFile");
     while(<DB>) {
@@ -2709,9 +2674,6 @@ sub GetArticlesInfo {
     }
     close(DB);
 
-    # lockをはずす
-    &unlock();
-
     return($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName,
 	   $rEmail, $rUrl, $rFmail);
 
@@ -2725,20 +2687,10 @@ sub MyFatal {
 
     # エラー番号とエラー情報の取得
     local($MyFatalNo, $MyFatalInfo) = @_;
-    #
-    # 1 ... File関連
-    # 2 ... 投稿の際の、必須項目の欠如
-    # 3 ... タイトルリストファイルのフォーマットがおかしい
-    # 4 ... タイトルにhtmlタグが入っている
-    # 5 ... プログラムの制御がおかしい
-    # 6 ... エイリアスかホストが一致せず、エイリアスの変更ができない
-    # 7 ... エイリアスが登録されていない。
-    # 8 ... エイリアスに登録する文字列が正しくない。
-    # 9 ... メールが送れなかった
-    # 10 ... cannot connect to specified URL.
 
-    # とりあえずアンロック
-    &unlock();
+    # 異常終了の可能性があるので、とりあえずlockを外す
+    # (ロックの失敗の時以外)
+    &unlock if ($MyFatalNo != 999);
 
     &MsgHeader($ERROR_MSG);
     
@@ -2784,7 +2736,9 @@ sub MyFatal {
 	print("Try later.</p>\n");
     } elsif ($MyFatalNo == 11) {
 	print("<p>次の記事はまだ投稿されていません。</p>\n");
-    } elsif ($MyFatalNo == 80) {
+    } elsif ($MyFatalNo == 20) {
+	print("<p>引用する記事にアクセスできません。</p>\n");
+    } elsif ($MyFatalNo == 999) {
 	print("<p>システムのロックに失敗しました。</p>\n");
 	print("<p>混み合っているようです。戻ってもう一度。</p>\n");
     } else {

@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.3 1996-04-25 11:58:51 nakahiro Exp $
+# $Id: kb.ph,v 4.4 1996-05-21 19:21:36 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -131,7 +131,7 @@ $H_NOICON = "なし";
 # あおり文
 $H_REPLYMSG = "上の記事に反応する";
 $H_AORI = "題、記事、お名前、メールアドレス、さらにホームページをお持ちの方はURL(省略可)を書き込んでください。<strong>記事はそのまま、メールと同じように書いてくださればOKです</strong>。<br>ただし、HTMLをご存じの方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
-$H_SEEICON = "アイコンを見る";
+$H_SEEICON = "アイコンの説明";
 $H_SEEALIAS = "エイリアスを見る";
 $H_ALIASENTRY = "登録する";
 $H_ALIASINFO = "エイリアスに登録されている方は、「$H_FROM」に「#...」と書けば、名前やメール、URLを省略できます。";
@@ -140,7 +140,8 @@ $H_PREVIEW = "試しに表示してみる(まだ投稿しません)";
 $H_ENTRY = "記事として投稿する";
 $H_PUSHHERE = "ここを押してください";
 $H_NOTHING = "ありません";
-$H_ICONINTRO = "では次のアイコンを使うことができます。";
+$H_ICONINTRO_ENTRY = "では、次の記事アイコンを使うことができます。";
+$H_ICONINTRO_ARTICLE = "各アイコンは次の機能を表しています。";
 $H_POSTINFO = "必要であれば、戻って書き込みを修正して下さい。よろしければボタンを押して書き込みましょう。";
 $H_THANKSMSG = "書き込みの訂正、取消などはメールでお願いいたします。";
 $H_BACK = "戻る";

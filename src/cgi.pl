@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.1 1996-04-24 18:00:43 nakahiro Exp $
+# $Id: cgi.pl,v 1.2 1996-05-21 19:21:36 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -55,7 +55,8 @@ sub decode {
 			($code) = &jcode'convert(*_, 'euc');
 			$TAGS{$tag} = $_;
 		}
-		$TAGS{$tag} =~ s/\r+//ge;
+		$TAGS{$tag} =~ s/\r\n/\n/go;
+		$TAGS{$tag} =~ s/\r/\n/go;
         }
 }
 
