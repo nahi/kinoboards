@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.20 1996-08-16 17:11:43 nakahiro Exp $
+# $Id: kb.cgi,v 4.21 1996-08-21 16:52:28 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -281,12 +281,12 @@ sub EntryHeader {
 <p>
 $H_AORI
 </p>
-$H_BOARD $BOARDNAME<br>
+$H_BOARD: $BOARDNAME<br>
 __EOF__
 
     # アイコンの選択
     if ($SYS_ICON) {
-	print("$H_ICON\n");
+	print("$H_ICON: \n");
 	print("<SELECT NAME=\"icon\">\n");
 	print("<OPTION SELECTED>$H_NOICON\n");
 
@@ -308,13 +308,12 @@ __EOF__
     }
 
     # Subject(フォローなら自動的に文字列を入れる)
-    printf("%s <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n",
-	   $H_SUBJECT, $Subject, $SUBJECT_LENGTH);
+    printf("%s: <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n", $H_SUBJECT, $Subject, $SUBJECT_LENGTH);
 
     # TextType
     if ($SYS_TEXTTYPE) {
 	print(<<__EOF__);
-$H_TEXTTYPE
+$H_TEXTTYPE:
 <SELECT NAME="texttype">
 <OPTION SELECTED>$H_PRE
 <OPTION>$H_HTML
@@ -333,9 +332,9 @@ sub EntryFooter {
 
     # 名前とメールアドレス，URL．
     print(<<__EOF__);
-$H_FROM <input name="name" type="text" size="$NAME_LENGTH"><br>
-$H_MAIL <input name="mail" type="text" size="$MAIL_LENGTH"><br>
-$H_URL <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
+$H_FROM: <input name="name" type="text" size="$NAME_LENGTH"><br>
+$H_MAIL: <input name="mail" type="text" size="$MAIL_LENGTH"><br>
+$H_URL: <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
 __EOF__
 
     ($SYS_FOLLOWMAIL) && print("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
@@ -355,7 +354,7 @@ __EOF__
     print(<<__EOF__);
 <input type="radio" name="com" value="p" CHECKED>: $H_PREVIEW<br>
 <input type="radio" name="com" value="x">: $H_ENTRY<br>
-<input type="submit" value="$H_PUSHHERE">
+<input type="submit" value="$H_PUSHHERE_POST">
 </p>
 </form>
 __EOF__
@@ -365,7 +364,7 @@ __EOF__
 
 
 ###
-## あるIdの記事からSubjectを取ってきて，先頭に「Re: 」を1つだけつけて返す．
+## あるIdの記事からSubjectを取ってきて，先頭に「Re:」を1つだけつけて返す．
 #
 sub GetReplySubject {
 
@@ -373,11 +372,10 @@ sub GetReplySubject {
     local($Id, $Board) = @_;
 
     # 記事情報
-    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName,
-	  $dEmail, $dUrl, $dFmail) = &GetArticlesInfo($Id);
+    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = &GetArticlesInfo($Id);
 
-    # 先頭に「Re: 」がくっついてたら取り除く．
-    $dSubject =~ s/^Re: //o;
+    # 先頭に「Re:」がくっついてたら取り除く．
+    $dSubject =~ s/^Re:\s*//o;
 
     # 先頭に「Re: 」をくっつけて返す．
     return("Re: $dSubject");
@@ -397,8 +395,7 @@ sub QuoteOriginalArticle {
     local($QuoteFile) = &GetArticleFileName($Id, $Board);
 
     # 元記事情報の取得
-    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name)
-	= &GetArticlesInfo($Id);
+    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
 
     # ファイルを開く
     open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
@@ -426,8 +423,7 @@ sub QuoteOriginalArticle {
 sub Preview {
 
     # 入力された記事情報
-    local($Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article,
-	  $Qurl, $Fmail)
+    local($Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Qurl, $Fmail)
 	= ($cgi'TAGS{'id'}, $cgi'TAGS{'texttype'}, $cgi'TAGS{'name'},
 	   $cgi'TAGS{'mail'}, $cgi'TAGS{'url'}, $cgi'TAGS{'icon'},
 	   $cgi'TAGS{'subject'}, $cgi'TAGS{'article'},
@@ -437,8 +433,7 @@ sub Preview {
     local($rFile) = '';
 
     # 引用記事の記事情報
-    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName,
-	  $rEmail, $rUrl, $rFmail) = ('', '', '', '', '', '', '', '', '', '');
+    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail) = ('', '', '', '', '', '', '', '', '', '');
 
     # もし引用なら……．
     if ($Id) {
@@ -477,26 +472,26 @@ sub Preview {
 
 <p>
 $H_POSTINFO
-<input type="submit" value="$H_PUSHHERE">
+<input type="submit" value="$H_PUSHHERE_PREVIEW">
 </p>
 __EOF__
 
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
-        ? print("<strong>$H_SUBJECT</strong> $Subject<br>\n")
-            : printf("<strong>$H_SUBJECT</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"> $Subject<br>\n", &GetIconURLFromTitle($Icon));
+        ? print("<strong>$H_SUBJECT</strong>: $Subject<br>\n")
+            : printf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"> $Subject<br>\n", &GetIconURLFromTitle($Icon));
 
     # お名前
     if ($Url eq "http://" || $Url eq '') {
         # URLがない場合
-        print("<strong>$H_FROM</strong> $Name<br>\n");
+        print("<strong>$H_FROM</strong>: $Name<br>\n");
     } else {
         # URLがある場合
-        print("<strong>$H_FROM</strong> <a href=\"$Url\">$Name</a><br>\n");
+        print("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
     }
 
     # メール
-    print("<strong>$H_MAIL</strong> <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
+    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
 
     # 反応元(引用の場合)
     &ShowFormattedLinkToFollowedArticle($Id, $rIcon, $rSubject);
@@ -809,28 +804,28 @@ __EOF__
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	print("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] $Subject<br>\n");
+	print("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+	printf("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
     }
 
     # お名前
     if ((! $Url) || ($Url eq 'http://')) {
         # URLがない場合
-        print("<strong>$H_FROM</strong> $Name<br>\n");
+        print("<strong>$H_FROM</strong>: $Name<br>\n");
     } else {
         # URLがある場合
-        print("<strong>$H_FROM</strong> <a href=\"$Url\">$Name</a><br>\n");
+        print("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
     }
 
     # メール
-    print("<strong>$H_MAIL</strong> <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
+    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
 
     # マシン
-    print("<strong>$H_HOST</strong> $RemoteHost<br>\n") if $SYS_SHOWHOST;
+    print("<strong>$H_HOST</strong>: $RemoteHost<br>\n") if $SYS_SHOWHOST;
 
     # 投稿日
-    print("<strong>$H_DATE</strong> $Date<br>\n");
+    print("<strong>$H_DATE</strong>: $Date<br>\n");
 
     # 反応元(引用の場合)
     &ShowFormattedLinkToFollowedArticle($Fid, $rIcon, $rSubject);
@@ -1022,6 +1017,7 @@ sub GetUserInfo {
     # 1つ1つチェック．
     while(<ALIAS>) {
 	
+	next if (/^$/);
 	chop;
 	
 	# 分割
@@ -1037,7 +1033,7 @@ sub GetUserInfo {
     }
     close(ALIAS);
 
-    # 配列にして返す
+    # リストにして返す
     return($rN, $rE, $rU);
 }
 
@@ -1769,10 +1765,10 @@ $H_ALIASTITLE
 <p>
 <form action="$PROGRAM" method="POST">
 <input name="c" type="hidden" value="am">
-$H_ALIAS <input name="alias" type="text" value="#" size="$NAME_LENGTH"><br>
-$H_FROM <input name="name" type="text" size="$NAME_LENGTH"><br>
-$H_MAIL <input name="email" type="text" size="$MAIL_LENGTH"><br>
-$H_URL <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
+$H_ALIAS: <input name="alias" type="text" value="#" size="$NAME_LENGTH"><br>
+$H_FROM: <input name="name" type="text" size="$NAME_LENGTH"><br>
+$H_MAIL: <input name="email" type="text" size="$MAIL_LENGTH"><br>
+$H_URL: <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
 $H_ALIASNEWCOM<br>
 <input type="submit" value="$H_ALIASNEWPUSH">
 </form>
@@ -1784,7 +1780,7 @@ $H_ALIASDELETE
 <p>
 <form action="$PROGRAM" method="POST">
 <input name="c" type="hidden" value="ad">
-$H_ALIAS <input name="alias" type="text" size="$NAME_LENGTH"><br>
+$H_ALIAS: <input name="alias" type="text" size="$NAME_LENGTH"><br>
 $H_ALIASDELETECOM<br>
 <input type="submit" value="$H_ALIASDELETEPUSH">
 </form>
@@ -1846,7 +1842,7 @@ sub AliasMod {
     
     # 表示画面の作成
     &MsgHeader($ALIASMOD_MSG);
-    print("<p>$H_ALIAS <strong>$A</strong>:\n");
+    print("<p>$H_ALIAS: <strong>$A</strong>:\n");
     if ($HitFlag == 2) {
 	print("$H_ALIASCHANGED</p>\n");
     } else {
@@ -1911,7 +1907,7 @@ sub AliasDel {
     
     # 表示画面の作成
     &MsgHeader($ALIASDEL_MSG);
-    print("<p>$H_ALIAS <strong>$A</strong>: $H_ALIASDELETED</p>\n");
+    print("<p>$H_ALIAS: <strong>$A</strong>: $H_ALIASDELETED</p>\n");
     &MsgFooter();
 
 }
@@ -1940,10 +1936,10 @@ sub AliasShow {
 	print(<<__EOF__);
 <p>
 <dt><strong>$Alias</strong>
-<dd>$H_FROM $Name{$Alias}
-<dd>$H_MAIL $Email{$Alias}
-<dd>$H_HOST $Host{$Alias}
-<dd>$H_URL $URL{$Alias}
+<dd>$H_FROM: $Name{$Alias}
+<dd>$H_MAIL: $Email{$Alias}
+<dd>$H_HOST: $Host{$Alias}
+<dd>$H_URL: $URL{$Alias}
 </p>
 __EOF__
 
@@ -1972,6 +1968,7 @@ sub CashAliasData {
     open(ALIAS, "<$File") || &Fatal(1, $File);
     while(<ALIAS>) {
 	
+	next if (/^$/);
 	chop;
 
 	($A, $N, $E, $H, $U) = split(/\t/, $_);
@@ -2085,22 +2082,21 @@ sub GetBoardInfo {
     local($Alias) = @_;
 
     # ボード名
-    local($BoardName);
+    local($BoardName) = '';
 
-    open(ALIAS, "<$BOARD_ALIAS_FILE")
-	|| &Fatal(1, $BOARD_ALIAS_FILE);
+    open(ALIAS, "<$BOARD_ALIAS_FILE") || &Fatal(1, $BOARD_ALIAS_FILE);
     while(<ALIAS>) {
-	
+	next if (/^\#/);
+	next if (/^$/);
 	chop;
 	next unless (/^$Alias\t(.*)$/);
-
 	$BoardName = $1;
-	return($BoardName);
     }
     close(ALIAS);
 
     # ヒットせず
-    return('');
+    return($BoardName);
+
 }
 
 
@@ -2159,12 +2155,12 @@ sub ShowFormattedLinkToFollowedArticle {
 
     if ($Src != 0) {
 	if (($Icon eq $H_NOICON) || (! $Icon)) {
-	    print("<strong>$H_REPLY</strong> [$BOARDNAME: $Src] <a href=\"$Link\">$Subject</a><br>\n");
+	    print("<strong>$H_ORIG</strong>: [$BOARDNAME: $Src] <a href=\"$Link\">$Subject</a><br>\n");
 	} else {
-	    printf("<strong>$H_REPLY</strong> [$BOARDNAME: $Src] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURLFromTitle($Icon));
+	    printf("<strong>$H_ORIG</strong>: [$BOARDNAME: $Src] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURLFromTitle($Icon));
 	}
     } elsif ($Src =~ /^http:/) {
-	print("<strong>$H_REPLY</strong> <a href=\"$Link\">$Link</a><br>\n");
+	print("<strong>$H_ORIG</strong>: <a href=\"$Link\">$Link</a><br>\n");
     }
 }
 
@@ -2363,28 +2359,28 @@ __EOF__
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	print("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] $Subject<br>\n");
+	print("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong> [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+	printf("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
     }
 
     # お名前
     if ((! $Url) || ($Url eq 'http://')) {
         # URLがない場合
-        print("<strong>$H_FROM</strong> $Name<br>\n");
+        print("<strong>$H_FROM</strong>: $Name<br>\n");
     } else {
         # URLがある場合
-        print("<strong>$H_FROM</strong> <a href=\"$Url\">$Name</a><br>\n");
+        print("<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a><br>\n");
     }
 
     # メール
-    print("<strong>$H_MAIL</strong> <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
+    print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n");
 
     # マシン
-    print("<strong>$H_HOST</strong> $RemoteHost<br>\n") if $SYS_SHOWHOST;
+    print("<strong>$H_HOST</strong>: $RemoteHost<br>\n") if $SYS_SHOWHOST;
 
     # 投稿日
-    print("<strong>$H_DATE</strong> $Date<br>\n");
+    print("<strong>$H_DATE</strong>: $Date<br>\n");
 
     # 反応元(引用の場合)
     &ShowFormattedLinkToFollowedArticle($Fid, $rIcon, $rSubject);

@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.8 1996-08-16 17:11:43 nakahiro Exp $
+# $Id: kb.ph,v 4.9 1996-08-21 16:52:28 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -126,108 +126,104 @@ $VLINK_COLOR = "#00AA00";
 #
 $SYSTEM_NAME = "きのぼーず";
 
-$ENTRY_MSG = "記事の書き込み";
+$H_BOARD = "掲示板";
+$H_ICON = "アイコン";
+$H_SUBJECT = "題";
+$H_MESG = "メッセージ";
+$H_ALIAS = "エイリアス";
+$H_FROM = "お名前";
+$H_MAIL = "メールアドレス";
+$H_HOST = "マシン";
+$H_URL = "URL(省略可)";
+$H_DATE = "投稿日";
+$H_ORIG = "元メッセージ";
+$H_REPLY = "リプライ";
+
+$ENTRY_MSG = "$H_MESGの書き込み";
 $SHOWICON_MSG = "アイコンの説明";
-$PREVIEW_MSG = "書き込みの内容を確認して下さい";
+$PREVIEW_MSG = "書き込みの内容を確認してください";
 $THANKS_MSG = "書き込みありがとうございました";
-$VIEW_MSG = "タイトル一覧(リプライ順)";
+$VIEW_MSG = "タイトル一覧($H_REPLY順)";
 $SORT_MSG = "タイトル一覧(日付順)";
-$NEWARTICLE_MSG = "記事をまとめて読む";
-$THREADARTICLE_MSG = "リプライをまとめて読む";
-$SEARCHARTICLE_MSG = "記事の検索";
+$NEWARTICLE_MSG = "最近の$H_MESGをまとめ読み";
+$THREADARTICLE_MSG = "$H_REPLYをまとめ読み";
+$SEARCHARTICLE_MSG = "$H_MESGの検索";
 $ALIASNEW_MSG = "エイリアスの登録/変更/削除";
 $ALIASMOD_MSG = "エイリアスが変更されました";
 $ALIASDEL_MSG = "エイリアスが削除されました";
 $ALIASSHOW_MSG = "エイリアスの参照";
-$DELETE_ENTRY_MSG = "記事の削除";
-$DELETE_PREVIEW_MSG = "削除する記事の確認";
-$DELETE_THANKS_MSG = "記事の削除";
 $ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
 
 $H_LINE = "------------------------------";
 $H_THREAD = "▼";
-$H_BOARD = "掲示板:";
-$H_ICON = "アイコン:";
-$H_SUBJECT = "　題　:";
-$H_ALIAS = "エイリアス:";
-$H_FROM = "お名前:";
-$H_MAIL = "メール:";
-$H_HOST = "マシン:";
-$H_URL = "URL(省略可):";
-$H_DATE = "投稿日:";
-$H_REPLY = "元記事:";
-$H_ID = "記事番号:";
-$H_FOLLOW = "▼リプライ";
-$H_FMAIL = "リプライがあった時にメールで知らせる:";
+$H_FOLLOW = "▼$H_REPLY";
+$H_FMAIL = "$H_REPLYがあった時にメールで知らせますか?";
 
-$H_TEXTTYPE = "表示形式:";
+$H_TEXTTYPE = "表示形式";
 $H_HTML = "HTMLとして表示する";
 $H_PRE = "そのまま表示する";
 
 $H_NOICON = "なし";
 
 # あおり文
-$H_REPLYMSG = "上の記事にリプライする";
-$H_AORI = "題，記事，お名前，メールアドレス，さらにホームページをお持ちの方はURL(省略可)を書き込んでください．<strong>記事はそのまま，メールと同じように書いてくださればOKです</strong>．<br>ただし，HTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと，HTML整形を行ないます．";
+$H_REPLYMSG = "上の$H_MESGへの$H_REPLYを書き込む";
+$H_AORI = ($SYS_TEXTTYPE)
+    ? "$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにホームページをお持ちの方は$H_URLを書き込んでください．<strong>$H_MESGはメールと同じように，そのまま書いてくださればOKです</strong>．<br>
+ただしHTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，$H_MESGをHTMLとして書いて頂くと，HTML整形を行ないます．"
+    : "$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにホームページをお持ちの方は$H_URLを書き込んでください．<strong>$H_MESGはメールと同じように，そのまま書いてくださればOKです</strong>．";
 $H_SEEICON = "アイコンの説明";
-$H_SEEALIAS = "エイリアスを見る";
+$H_SEEALIAS = "エイリアスの一覧";
 $H_ALIASENTRY = "登録する";
-$H_ALIASINFO = "エイリアスに登録されている方は，「$H_FROM」に「#...」と書けば，名前やメール，URLを省略できます．";
+$H_ALIASINFO = "「エイリアス」に，$H_FROMと$H_MAIL，$H_URLを登録なさっている方は，「$H_FROM」に「#...」という登録名を書いてください．自動的に$H_FROMと$H_MAIL，$H_URLが補われます．";
 $H_PREVIEW_OR_ENTRY = "書き込んだ内容を，";
 $H_PREVIEW = "試しに表示してみる(まだ投稿しません)";
-$H_ENTRY = "記事として投稿する";
-$H_PUSHHERE = "ここを押してください";
+$H_ENTRY = "$H_MESGを投稿する";
+$H_PUSHHERE_POST = "コマンド実行";
 $H_NOTHING = "ありません";
-$H_ICONINTRO_ENTRY = "では，次の記事アイコンを使うことができます．";
+$H_ICONINTRO_ENTRY = "では，次のアイコンを使うことができます．";
 $H_ICONINTRO_ARTICLE = "各アイコンは次の機能を表しています．";
-$H_POSTINFO = "必要であれば，戻って書き込みを修正して下さい．よろしければボタンを押して書き込みましょう．";
-$H_THANKSMSG = "書き込みの訂正，取消などはメールでお願いいたします．";
-$H_BACK = "戻る";
-$H_COMMAND = "実行";
-$H_TITLELIST = "記事一覧へ";
-$H_NEXTARTICLE = "次の記事へ";
+$H_POSTINFO = "必要であれば，戻って書き込みを修正してください．よろしければボタンを押して書き込みましょう．";
+$H_PUSHHERE_PREVIEW = "投稿する";
+$H_THANKSMSG = "書き込みの訂正，取消などは，メールで<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
+$H_BACK = "タイトル一覧に戻ります";
+$H_NEXTARTICLE = "次の$H_MESGへ";
 $H_POSTNEWARTICLE = "新規に投稿する";
-$H_REPLYTHISARTICLE = "リプライを書き込む";
-$H_REPLYTHISARTICLEQUOTE = "引用してリプライする";
-$H_READREPLYALL = "リプライをまとめて見る";
-$H_ARTICLES = "記事数";
-$H_JUMPID = "↑の数字をクリックすると，そのIDの記事に飛びます．新しい記事ほど上の方にあります．";
+$H_REPLYTHISARTICLE = "$H_REPLYを書き込む";
+$H_REPLYTHISARTICLEQUOTE = "引用して$H_REPLYを書き込む";
+$H_READREPLYALL = "$H_REPLYをまとめ読み";
+$H_ARTICLES = "$H_MESG数";
 $H_KEYWORD = "キーワード";
-$H_INPUTKEYWORD = "<p>
-<ul>
-<li>「題」，「名前」，「本文」の中から，検索する範囲をチェックしてください．
-指定された範囲で，$H_KEYWORDを含む記事を一覧表示します．
-<li>$H_KEYWORDには，大文字小文字の区別はありません．
-<li>$H_KEYWORDを半角スペースで区切って，複数の$H_KEYWORDを指定すると，
-それら全てを含む記事のみを検索することができます．
-<li>アイコンで検索する場合は，
-「アイコン」をチェックした後，探したい記事のアイコンを選んでください．
-</ul>
-</p>";
 $H_SEARCHKEYWORD = "検索する";
 $H_RESETKEYWORD = "リセットする";
 $H_SEARCHTARGET = "検索範囲";
 $H_SEARCHTARGETSUBJECT = "題";
 $H_SEARCHTARGETPERSON = "名前";
-$H_SEARCHTARGETARTICLE = "本文";
-$H_NOTFOUND = "該当する記事は見つかりませんでした．";
+$H_SEARCHTARGETARTICLE = "メッセージ";
+$H_INPUTKEYWORD = "<p>
+<ul>
+<li>「$H_SEARCHTARGETSUBJECT」，「$H_SEARCHTARGETPERSON」，「$H_SEARCHTARGETARTICLE」の中から，検索する範囲をチェックしてください．
+指定された範囲で，$H_KEYWORDを含む$H_MESGを一覧表示します．
+<li>$H_KEYWORDには，大文字小文字の区別はありません．
+<li>$H_KEYWORDを半角スペースで区切って，複数の$H_KEYWORDを指定すると，
+それら全てを含む$H_MESGのみを検索することができます．
+<li>アイコンで検索する場合は，
+「アイコン」をチェックした後，探したい$H_MESGのアイコンを選んでください．
+</ul>
+</p>";
+$H_NOTFOUND = "該当する$H_MESGは見つかりませんでした．";
 $H_ALIASTITLE = "新規登録/登録内容の変更";
-$H_ALIASNEWCOM = "エイリアスの新規登録/登録内容の変更を行ないます．ただし変更は，登録の際と同じマシンでなければできません．変更できない場合は，<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします．";
+$H_ALIASNEWCOM = "エイリアスの新規登録/登録内容の変更を行ないます．ただし悪戯防止のため，変更は，登録の際と同じマシンでなければできません．変更できない場合は，<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします．";
 $H_ALIASNEWPUSH = "登録/変更する";
 $H_ALIASDELETE = "削除";
 $H_ALIASDELETECOM = "上記エイリアスを削除します．同じく登録の際と同じマシンでなければ削除できません．";
 $H_ALIASDELETEPUSH = "削除する";
-$H_ALIASREFERPUSH = "エイリアスを参照する";
+$H_ALIASREFERPUSH = "エイリアス一覧を参照する";
 $H_ALIASCHANGED = "変更しました．";
 $H_ALIASENTRIED = "登録しました．";
 $H_ALIASDELETED = "消去しました．";
-$H_DELETE_ENTRY_TITLE = "削除する記事の記事番号を入力して下さい";
-$H_DELETE_COM = "記事の削除は，投稿したマシンと同じマシンからでないとできません．";
-$H_DELETE_PREVIEW_COM = "削除する記事を確認して下さい．ボタンを押すと削除します．";
-$H_AORI_ALIAS = "投稿の際，「お名前」の部分に以下の「#....」を入力すると，登録されているお名前とe-mail addr.，URLが自動的に補われます．";
-$H_CANNOTQUOTE = "指定された記事は引用できません．";
-$H_BACKART = "以前に書き込まれた記事へ";
-$H_NEXTART = "以降に書き込まれた記事へ";
+$H_AORI_ALIAS = "投稿の際，「$H_FROM」の部分に以下の登録名(「#....」)を入力すると，登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．";
+$H_BACKART = "以前に書き込まれた$H_MESGへ";
+$H_NEXTART = "以降に書き込まれた$H_MESGへ";
 $H_TOP = "↑";
 $H_BOTTOM = "↓";
 $H_NOARTICLE = "該当する記事がありません．";
