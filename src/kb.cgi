@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.36 1997-02-08 03:19:28 nakahiro Exp $
+# $Id: kb.cgi,v 4.37 1997-02-08 21:24:56 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -62,7 +62,7 @@ $| = 1;
 # VersionとRelease番号
 #
 $KB_VERSION = '1.0';
-$KB_RELEASE = '3.2';
+$KB_RELEASE = '3.3pre';
 
 #
 # 著作権表示
@@ -185,6 +185,9 @@ MAIN: {
     local($BoardConfFile) = &GetPath($BOARD, $CONF_FILE_NAME);
     require("$BoardConfFile") if (-s "$BoardConfFile");
 
+    # DBを大域変数にキャッシュ
+    &DbCash;
+
     # 値の抽出
     local($Command) = $cgi'TAGS{'c'};
     local($Com) = $cgi'TAGS{'com'};
@@ -220,6 +223,61 @@ MAIN: {
 #
 &unlock;
 exit(0);
+
+
+###
+## DBのキャッシュ
+#
+sub DbCash {
+
+    # 起動時，記事DBの内容を大域変数にキャッシュする．
+    @DB_ID = ();
+    %DB_FID = ();
+    %DB_AIDS = ();
+    %DB_DATE = ();
+    %DB_TITLE = ();
+    %DB_ICON = ();
+    %DB_REMOTEHOST = ();
+    %DB_NAME = ();
+    %DB_EMAIN = ();
+    %DB_URL = ();
+    %DB_FMAIL = ();
+
+    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
+
+    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
+    local($Count) = 0;
+
+    # 取り込み．
+    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
+    while(<DB>) {
+
+	# Version Check
+	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+
+	next if (/^\#/o);
+	next if (/^$/o);
+	chop;
+
+	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_, 11);
+	next if ($dId eq '');
+
+	$DB_ID[$Count++] = $dId;
+	$DB_FID{$dId} = $dFid;
+	$DB_AIDS{$dId} = $dAids;
+	$DB_DATE{$dId} = $dDate || &GetModifiedTime($dId);
+	$DB_TITLE{$dId} = $dTitle || $dId;
+	$DB_ICON{$dId} = $dIcon;
+	$DB_REMOTEHOST{$dId} = $dRemoteHost;
+	$DB_NAME{$dId} = $dName || $MAINT_NAME;
+	$DB_EMAIL{$dId} = $dEmail;
+	$DB_URL{$dId} = $dUrl;
+	$DB_FMAIL{$dId} = $dFmail;
+
+    }
+    close(DB);
+
+}
 
 
 ###
@@ -897,35 +955,14 @@ sub NextArticle {
 
     local($Id) = @_;
 
-    # DBファイル
-    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
+    local($Num) = '';
+    local($Key, $Value);
 
-    local($NextId) = '';
-    local($dId);
-
-    # 取り込み
-    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
-    while(<DB>) {
-
-	# Version Check
-	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
-
-	# コメント文はキャンセル
-	next if (/^\#/o);
-	next if (/^$/o);
-	($dId) = split(/\t/, $_, 2);
-
-	if ($Id eq $dId) {
-	    $_ = <DB>;
-	    ($dId) = split(/\t/, $_, 2);
-	    $NextId = $dId;
-	    last;
-	}
-
+    foreach ($[ .. $#DB_ID) {
+	$Num = $_, last if ($DB_ID[$_] eq $Id);
     }
-    close(DB);
 
-    &ShowArticle($NextId);
+    &ShowArticle($DB_ID[++$Num]);
 
 }
 
@@ -1007,39 +1044,8 @@ sub GetFollowIdTree {
     # Id
     local($Id) = @_;
 
-    # DBファイル
-    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
-
-    # リプライ記事情報(効率化のため大域変数; 汚いなぁ)
-    %AIDLIST = ();
-
-    # 取り込み
-    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
-    while(<DB>) {
-
-	# Version Check
-	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
-
-	# コメント文はキャンセル
-	next if (/^\#/o);
-	next if (/^$/o);
-	chop;
-
-	($dId, $dFid, $dAids) = split(/\t/, $_, 4);
-
-	# 取り込み
-	$AIDLIST{$dId} = $dAids if ($dId ne '');
-
-    }
-
-    # で，再帰的に木構造を取り出す．
-    local(@Result) = ('(', &GetFollowIdTreeMain($Id), ')');
-
-    # 開放
-    undef(%AIDLIST);
-
-    # 返す
-    return(@Result);
+    # 再帰的に木構造を取り出す．
+    return('(', &GetFollowIdTreeMain($Id), ')');
 
 }
 
@@ -1052,7 +1058,7 @@ sub GetFollowIdTreeMain {
     return() if ($Id eq '');
 
     # フォロー記事取り出し
-    local(@AidList) = split(/,/, $AIDLIST{$Id});
+    local(@AidList) = split(/,/, $DB_AIDS{$Id});
 
     # なけりゃ停止
     return($Id) unless @AidList;
@@ -1311,13 +1317,11 @@ sub SortArticle {
     local($Num, $Old) = ($cgi'TAGS{'num'}, $cgi'TAGS{'old'});
     local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
     local($BackOld) = ($Old + $Num);
-
-    # 表示する分だけ取り出す
-    local(@Lines) = ();
-    &GetTitle($Num, $Old, *Lines);
-
+    local($To) = $#DB_ID - $Old;
+    local($From) = $To - $Num + 1; $From = 0 if ($From < 0);
+    
     # 記事情報
-    local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
+    local($IdNum, $Id);
 
     # 表示画面の作成
     &MsgHeader('Title view (sorted)', "$BOARDNAME: $SORT_MSG", $TIME);
@@ -1327,7 +1331,7 @@ sub SortArticle {
     print("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     } else {
 	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
@@ -1335,20 +1339,23 @@ sub SortArticle {
     print("<p><ul>\n");
 
     # 記事の表示
-    if (! @Lines) {
+    if ($#DB_ID == -1) {
 
 	# 空だった……
 	&cgi'KPrint("<li>$H_NOARTICLE\n");
 
     } else {
 
-	@Lines = reverse(@Lines) unless ($SYS_BOTTOMTITLE);
-
-	foreach (@Lines) {
-
-	    # 記事情報の取り出し
-	    ($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = split(/\t/, $_, 11);
-	    &cgi'KPrint("<li>" . &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date) . "\n");
+	if ($SYS_BOTTOMTITLE) {
+	    for ($IdNum = $From; $IdNum <= $To; $IdNum++) {
+		$Id = $DB_ID[$IdNum];
+		&cgi'KPrint("<li>" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
+	    }
+	} else {
+	    for ($IdNum = $To; $IdNum >= $From; $IdNum--) {
+		$Id = $DB_ID[$IdNum];
+		&cgi'KPrint("<li>" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
+	    }
 	}
     }
 
@@ -1357,62 +1364,11 @@ sub SortArticle {
     if ($SYS_BOTTOMTITLE) {
 	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     }
 
     &MsgFooter;
 
-}
-
-
-###
-## 記事n個をDBから取り出し，DBの行をそのままリストにして返す．
-#
-sub GetTitle {
-
-    # 記事数
-    local($Num, $Old, *Lines) = @_;
-
-    # DBファイル
-    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
-
-    # 記事情報
-    local($Id, $Fid) = ();
-
-    # 取り込み．DBファイルがなければ何も表示しない．
-    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
-
-    while(<DB>) {
-
-	# Version Check
-	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
-
-	# コメント文はキャンセル
-	next if (/^\#/o);
-	next if (/^$/o);
-	chop;
-
-	# 記事情報の取り出し
-	($Id, $Fid) = split(/\t/, $_, 3);
-
-	# 新規記事のみ表示，の場合はキャンセル．
-	push(Lines, $_) unless (($SYS_NEWARTICLEONLY) && ($Fid ne ''));
-
-    }
-
-    close(DB);
-
-    # 必要な部分だけ切り出す．
-    if ($Old) {
-	if (($#Lines + 1) > $Old) {
-	    splice(@Lines, -$Old);
-	} else {
-	    @Lines = ();
-	}
-    }
-    if ($Num && (($#Lines + 1) > $Num)) {
-	@Lines = splice(@Lines, -$Num);
-    }
 }
 
 
@@ -1425,32 +1381,27 @@ sub ViewTitle {
     local($Num, $Old) = ($cgi'TAGS{'num'}, $cgi'TAGS{'old'});
     local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
     local($BackOld) = ($Old + $Num);
+    local($To) = $#DB_ID - $Old;
+    local($From) = $To - $Num + 1; $From = 0 if ($From < 0);
 
-    # フォーマットしたタイトル
-    local($Line) = ();
+    # 記事情報
+    local($IdNum, $Id, $Line);
 
     # フォーマットしたタイトルを入れるリスト
     local(@NewLines) = ();
 
-    # 記事情報
-    local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
-
-    # 表示する分だけ取り出す
-    local(@Lines) = ();
-    &GetTitle($Num, $Old, *Lines);
-
     # 応答をインデントする．
-    foreach (@Lines) {
+    for ($IdNum = $From; $IdNum <= $To; $IdNum++) {
     
 	# 記事情報を取り出す．
-	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = split(/\t/, $_);
+	$Id = $DB_ID[$IdNum];
 
 	# タイトルをフォーマット
-	$Line = "<!--$Id-->" . &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date);
+	$Line = "<!--$Id-->" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id});
 
 	# 追加
-	@NewLines = ($Fid)
-	    ? &AddTitleFollow((split(/,/, $Fid))[0], $Line, @NewLines)
+	@NewLines = $DB_FID{$Id}
+	    ? &AddTitleFollow((split(/,/, $DB_FID{$Id}))[0], $Line, @NewLines)
 		: &AddTitleNormal($Line, @NewLines);
 
     }
@@ -1463,7 +1414,7 @@ sub ViewTitle {
     print("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     } else {
 	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
@@ -1494,7 +1445,7 @@ sub ViewTitle {
     if ($SYS_BOTTOMTITLE) {
 	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     }
 
     &MsgFooter;
@@ -1606,10 +1557,8 @@ sub NewArticle {
     local($Num, $Old) = ($cgi'TAGS{'num'}, $cgi'TAGS{'old'});
     local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
     local($BackOld) = ($Old + $Num);
-
-    # 表示する分だけタイトルを取得
-    local(@Lines) = ();
-    &GetTitle($Num, $Old, *Lines);
+    local($To) = $#DB_ID - $Old;
+    local($From) = $To - $Num + 1; $From = 0 if ($From < 0);
 
     # 記事情報
     local($Id) = ();
@@ -1618,29 +1567,30 @@ sub NewArticle {
     &MsgHeader('Message view (sorted)', "$BOARDNAME: $NEWARTICLE_MSG", $TIME);
 
     if ($SYS_BOTTOMARTICLE) {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     } else {
 	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
 
-    if (! @Lines) {
+    if (! $#DB_ID == -1) {
 
 	# 空だった……
 	&cgi'KPrint("<p>$H_NOARTICLE</p>\n");
 
     } else {
 
-	@Lines = reverse(@Lines) unless ($SYS_BOTTOMARTICLE);
-
-	foreach (@Lines) {
-
-	    # 記事情報の取り出し
-	    ($Id) = split(/\t/, $_, 2);
-
-	    # 記事の表示(コマンド付き, 元記事あり)
-	    &ViewOriginalArticle($Id, $F_TRUE, $F_TRUE);
-	    print("<hr>\n");
-
+	if ($SYS_BOTTOMARTICLE) {
+	    for ($IdNum = $From; $IdNum <= $To; $IdNum++) {
+		$Id = $DB_ID[$IdNum];
+		&ViewOriginalArticle($Id, $F_TRUE, $F_TRUE);
+		print("<hr>\n");
+	    }
+	} else {
+	    for ($IdNum = $To; $IdNum >= $From; $IdNum--) {
+		$Id = $DB_ID[$IdNum];
+		&ViewOriginalArticle($Id, $F_TRUE, $F_TRUE);
+		print("<hr>\n");
+	    }
 	}
 
     }
@@ -1648,7 +1598,7 @@ sub NewArticle {
     if ($SYS_BOTTOMARTICLE) {
 	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     }
 
     &cgi'KPrint(<<__EOF__);
@@ -1752,35 +1702,31 @@ sub SearchArticleList {
     # キーワード，検索範囲
     local($Key, $Subject, $Person, $Article, $Icon, $IconType) = @_;
 
-    # DBファイル
-    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
-
-    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName);
+    local($dId, $dAids, $dDate, $dTitle, $dIcon, $dName, $dEmail);
 
     local($ArticleFile, $HitFlag) = ('', 0);
     local($Line) = ();
     local($SubjectFlag, $PersonFlag, $ArticleFlag);
     local(@KeyList) = split(/ +/, $Key);
+    local($Num);
 
     # リスト開く
     print("<p><ul>\n");
 
-    # ファイルを開く．DBファイルがなければnot found.
-    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
-    while(<DB>) {
+    foreach ($[ .. $#DB_ID) {
 
-	# Version Check
-	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
-
-	next if (/^\#/o);
-	next if (/^$/o);
+	# 記事情報
+	$dId = $DB_ID[$_];
+	$dIcon = $DB_ICON{$dId};
+	$dTitle = $DB_TITLE{$dId};
+	$dName = $DB_NAME{$dId};
+	$dEmail = $DB_EMAIL{$dId};
+	$dAids = $DB_AIDS{$dId};
+	$dDate = $DB_DATE{$dId};
 
 	# 変数のリセット
 	$SubjectFlag = $PersonFlag = $ArticleFlag = 0;
 	$Line = '';
-
-	# 記事情報
-	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName) = split(/\t/, $_, 9);
 
 	# URLチェック
 	next if (&IsUrl($dId));
@@ -1802,7 +1748,7 @@ sub SearchArticleList {
 	    if (($Person ne '') && ($dName ne '')) {
 		$PersonFlag = 1;
 		foreach (@KeyList) {
-		    $PersonFlag = 0 if ($dName !~ /$_/i);
+		    $PersonFlag = 0 if (($dName !~ /$_/i) && ($dEmail !~ /$_/i));
 		}
 	    }
 
@@ -1834,7 +1780,6 @@ sub SearchArticleList {
 	    }
 	}
     }
-    close(DB);
 
     # ヒットしなかったら
     &cgi'KPrint("<li>$H_NOTFOUND\n") if ($HitFlag != 1);
@@ -2740,42 +2685,7 @@ sub GetArticlesInfo {
     # 対象記事のID
     local($Id) = @_;
 
-    # DBファイル
-    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
-
-    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
-
-    local($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail) = ();
-
-    # 取り込み．
-    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
-    while(<DB>) {
-
-	# Version Check
-	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
-
-	next if (/^\#/o);
-	next if (/^$/o);
-	chop;
-
-	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_, 11);
-
-	if ($Id eq $dId) {
-	    $rFid = $dFid;
-	    $rAids = $dAids;
-	    $rDate = $dDate || &GetModifiedTime($dId);
-	    $rTitle = $dTitle || $dId;
-	    $rIcon = $dIcon;
-	    $rRemoteHost = $dRemoteHost;
-	    $rName = $dName || $MAINT_NAME;
-	    $rEmail = $dEmail;
-	    $rUrl = $dUrl;
-	    $rFmail = $dFmail;
-	}    
-    }
-    close(DB);
-
-    return($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail);
+    return($DB_FID{$Id}, $DB_AIDS{$Id}, $DB_DATE{$Id}, $DB_TITLE{$Id}, $DB_ICON{$Id}, $DB_REMOTEHOST{$Id}, $DB_NAME{$Id}, $DB_EMAIL{$Id}, $DB_URL{$Id}, $DB_FMAIL{$Id});
 
 }
 
