@@ -10,7 +10,7 @@
 # 2. kbdataディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    ブラウザからアクセス可能なディレクトリでなくてもかまいません．
 #
-$KBDIR_PATH = '/home/achilles/nakahiro/kb/tst/';
+$KBDIR_PATH = '';
 # $KBDIR_PATH = '/home/nahi/kbdata/';
 # $KBDIR_PATH = 'd:\securedata\kbdata\';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb:';			# Macの場合?
@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.71 2000-05-02 14:57:11 nakahiro Exp $
+# $Id: kb.cgi,v 5.72 2000-05-02 15:00:35 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
