@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.18 1997-06-24 15:42:06 nakahiro Exp $
+# $Id: kb.ph,v 5.0 1997-07-17 11:31:21 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -23,15 +23,21 @@
 
 
 #
-# 管理者の名前とe-mail addr.
-# メイル送信に使うため，「$MAINT_NAME」はアルファベットのみで指定してください．
+# 管理者の名前，E-Mailアドレス，システムの名前
+#
+# メイル送信にも使います．
+# 「$MAINT_NAME」はアルファベットのみで指定してください．
+# メイルが文字化けするようなら，
+# 「$SYSTEM_NAME」もアルファベットのみにしてください．
 #
 # 例:
 # $MAINT_NAME = 'KinoboardsAdmin';
 # $MAINT = 'nakahiro@kinotrope.co.jp';
+# $SYSTEM_NAME = "(c)KINOBOARDS";
 #
 $MAINT_NAME = 'YourName';
 $MAINT = 'yourname@your.e-mail.domain';
+$SYSTEM_NAME = "YourSystemName";
 
 #
 # サーバが動いているマシンはどれですか?
@@ -66,6 +72,22 @@ $MAIL2 = 'foo.bar.baz.co.jp'		if ($ARCH eq 'Mac');
 #
 
 #
+# タイムゾーン
+#
+#   'GMT', 'GMT+9'，'GMT-7'などを指定します．
+#
+#   Perlインストール時のデフォルトのタイムゾーンをそのまま使う場合は，
+#   このまま空('')を指定しておいてください．
+#
+#   サーバマシンが日本国内に置かれている場合，通常の設定であれば，
+#   デフォルトで日本時間用のタイムゾーンになっているはずです．
+#
+#   サーバマシンが海外にあり，しかし利用者のほとんどは国内ユーザ，
+#   のような場合には，'GMT+9'を指定して使うと便利でしょう．
+#
+$TIME_ZONE = '';
+
+#
 # システムの設定
 #
 # 入力文書タイプ(HTML or PRE)の選択を行うか否か(行なわないとPREのみ)
@@ -76,6 +98,7 @@ $SYS_TEXTTYPE = 1;
 # エイリアスを利用するか否か
 #   0: 利用しない
 #   1: 利用する
+#   2: エイリアスを登録しなければ，記事を投稿できないようにする
 $SYS_ALIAS = 1;
 
 # 記事アイコンを利用するか否か
@@ -114,11 +137,6 @@ $SYS_SHOWHOST = 0;
 #   1: 表示する
 $SYS_COMMAND = 1;
 
-# タイトルリストに新規投稿記事のみを表示するか否か
-#   0: リプライも含めてすべて
-#   1: 新規投稿記事のみ
-$SYS_NEWARTICLEONLY = 0;
-
 # ネットスケープ拡張に基づく字色とバックグラウンドイメージを使うか否か
 #   0: 使わない
 #   1: 使う
@@ -132,21 +150,40 @@ $SYS_POSTERMAIL = 1;
 # サーバのポート番号を表示するか否か
 #   0: 表示しない
 #   1: (必要ならば)表示する
-#      一般的なデフォルトである80番ポートの場合，1に設定しても表示しません
+#      HTTPのデフォルトである80番ポートの場合，1に設定しても表示しません
 $SYS_PORTNO = 1;
 
 # 各コマンドを実行可能とするか否か
 #   0: 実行できない
 #   1: 実行できる
-$SYS_F_E = 1;			# 記事の表示
 $SYS_F_T = 1;			# リプライ記事のまとめ読みの表示
-$SYS_F_N = 1;			# 新規記事の投稿
-$SYS_F_FQ = 1;			# リプライ記事の投稿
-$SYS_F_V = 1;			# タイトル一覧(リプライ順)の表示
+$SYS_F_N = 1;			# 記事の投稿
 $SYS_F_R = 1;			# タイトル一覧(日付順)の表示
 $SYS_F_L = 1;			# 最近の記事一覧の表示
 $SYS_F_S = 1;			# 記事の検索
-$SYS_F_I = 1;			# アイコンヘルプの表示
+$SYS_F_B = 1;			# 掲示板一覧の表示
+#
+# これ以下のコマンドは必ず，
+# 「正しくアクセス制限をかけた上で」利用してください．
+# でないと破壊的な悪戯を匿名でやられ放題ですからね．
+#
+# [注意] スクリプトの名前を変えたくらいじゃ絶対に駄目です．
+#
+$SYS_F_D = 0;			# 記事の削除，訂正
+$SYS_F_MV = 0;			# 記事の「前後順序/元記事-リプライ関係」の変更
+$SYS_F_AM = 0;			# 新着記事到着時のメイル送信先の設定
+
+#
+# 掲示板一覧の相対URL
+#
+#  「掲示板一覧へ」でリンクする先を，kbディレクトリからの相対URLで指定します．
+#  空ならkbディレクトリへ(よって，一般的にはindex.htmlやindex.shtmlへ)，
+#  '-'を指定すると，自分で用意したファイルでなくCGIが自動生成する掲示板一覧へ，
+#  それぞれリンクされます．
+#
+# $BOARDLIST_URL = '';			# kbディレクトリへ
+# $BOARDLIST_URL = '-';			# CGIが自動生成する掲示板一覧へ
+$BOARDLIST_URL = 'kb10.shtml';		# kb/kb10.shtmlへ
 
 #
 # 引用マーク
@@ -208,7 +245,6 @@ $VLINK_COLOR = "#00AA00";
 #
 # メッセージの宣言
 #
-$SYSTEM_NAME = "きのぼーず";
 $H_BOARD = "掲示板";
 $H_ICON = "アイコン";
 $H_SUBJECT = "タイトル";
@@ -217,6 +253,7 @@ $H_ALIAS = "エイリアス";
 $H_FROM = "お名前";
 $H_MAIL = "メイル";
 $H_HOST = "マシン";
+$H_USER = "投稿者";		# エイリアス登録でないと書き込みできない場合
 $H_URL = "URL";
 $H_URL_S = "URL(省略可)";
 $H_DATE = "投稿日";
@@ -229,6 +266,7 @@ $H_TEXTTYPE = "表示形式";
 $H_HTML = "HTMLとして表示する";
 $H_PRE = "そのまま表示する";
 $H_NOICON = "なし";
+$H_BACKBOARD = "$H_BOARD一覧へ";
 $H_BACKTITLE = "$H_SUBJECT一覧へ";
 $H_PREVARTICLE = "前の$H_MESGへ";
 $H_NEXTARTICLE = "次の$H_MESGへ";
@@ -236,11 +274,19 @@ $H_POSTNEWARTICLE = "新規に書き込む";
 $H_REPLYTHISARTICLE = "$H_REPLYを書き込む";
 $H_REPLYTHISARTICLEQUOTE = "引用して$H_REPLYを書き込む";
 $H_READREPLYALL = "$H_REPLYをまとめ読み";
+$H_DELETE_TITLE = "削除する";
+$H_SUPERSEDE_TITLE = "訂正する";
 $H_BACKART = "以前に書き込まれた$H_MESGへ";
 $H_NEXTART = "以降に書き込まれた$H_MESGへ";
 $H_TOP = "↑";
 $H_BOTTOM = "↓";
 $H_NOARTICLE = "該当する$H_MESGがありません．";
+$H_SUPERSEDE_ICON = "[※]";
+$H_DELETE_ICON = "[×]";
+$H_RELINKFROM_MARK = "[←]";
+$H_RELINKTO_MARK = "[◎]";
+$H_REORDERFROM_MARK = "[△]";
+$H_REORDERTO_MARK = "[▽]";
 
 
 #/////////////////////////////////////////////////////////////////////
