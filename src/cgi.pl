@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.30 1999-06-27 00:24:21 nakahiro Exp $
+# $Id: cgi.pl,v 2.31 1999-06-27 00:33:02 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -52,7 +52,7 @@ $SERVER_PORT = $ENV{'SERVER_PORT'};
 $REMOTE_HOST = $ENV{'REMOTE_HOST'};
 $REMOTE_ADDR = $ENV{'REMOTE_ADDR'};
 $REMOTE_USER = $ENV{'REMOTE_USER'};
-#$REQUEST_URI = $ENV{'REQUEST_URI'};
+$REQUEST_URI = $ENV{'REQUEST_URI'};
 $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $QUERY_STRING = $ENV{'QUERY_STRING'};
 $PATH_INFO = $ENV{'PATH_INFO'};
