@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.46 2000-05-12 15:27:08 nakahiro Exp $
+# $Id: cgi.pl,v 2.47 2000-06-14 14:41:21 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -918,14 +918,12 @@ sub checkUser
 	if ( $cgi'TAGS{'kinoU'} )
 	{
 	    # authentication data in TAGS.
-	    return &checkUserPasswd( $userdb, 0, $cgi'TAGS{'kinoU'},
-		$cgi'TAGS{'kinoP'} );
+	    return &checkUserPasswd( $userdb, 0, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} );
 	}
 	elsif ( $cgi'COOKIES{'kinoauth'} )
 	{
 	    # authentication succeed if HTTP-Cookie was set.
-	    local( $kinoU, $kinoP ) = split( /$COLSEP/,
-		$cgi'COOKIES{'kinoauth'}, 2 );
+	    local( $kinoU, $kinoP ) = split( /$COLSEP/, $cgi'COOKIES{'kinoauth'}, 2 );
 	    if ( $kinoU ne '' )
 	    {
 		return &checkUserPasswd( $userdb, 1, $kinoU, $kinoP );
@@ -944,8 +942,7 @@ sub checkUser
 	# with direct URL Authentication
 
 	# authentication data in TAGS.
-	return &checkUserPasswd( $userdb, ( $cgi'TAGS{'kinoT'} eq '' )? 1 : 0,
-	    $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} );
+	return &checkUserPasswd( $userdb, ( $cgi'TAGS{'kinoT'} eq '' )? 1 : 0, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} );
     }
 
     # default authentication.
@@ -1302,6 +1299,7 @@ sub checkUserPasswd
     local( $userdb, $checkType, $user, $passwd ) = @_;
 
     return ( 1 ) unless $user;
+    return ( 0 ) if ( $user eq $GUEST );
 
     return ( &updateUserPasswd( $userdb, $user, $passwd )) if ( $checkType == 0 );
 
