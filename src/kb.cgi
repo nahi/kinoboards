@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.31 1999-06-17 03:58:24 nakahiro Exp $
+# $Id: kb.cgi,v 5.32 1999-06-17 12:21:57 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -317,21 +317,27 @@ MAIN:
 
     if ( $c eq 'v' )
     {
-	### ViewTitle - スレッド別表示
+	### ThreadTitle - スレッド別タイトル一覧
 	$gVarComType = 0;
-	require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	require( &GetPath( $UI_DIR, 'ThreadTitle.pl' ));
+	last;
+    }
+    elsif ( $c eq 'vt' )
+    {
+	### ThreadExt - スレッド別タイトルおよび記事一覧
+	require( &GetPath( $UI_DIR, 'ThreadExt.pl' ));
 	last;
     }
     elsif ( $SYS_F_R && ( $c eq 'r' ))
     {
-	### SortArticle - 日付順にソート
-	require( &GetPath( $UI_DIR, 'SortArticle.pl' ));
+	### SortTitle - 日付順にソート
+	require( &GetPath( $UI_DIR, 'SortTitle.pl' ));
 	last;
     }
     elsif ( $SYS_F_L && ( $c eq 'l' ))
     {
-	### NewArticle - 新しい記事をまとめて表示
-	require( &GetPath( $UI_DIR, 'NewArticle.pl' ));
+	### SortArticle - 新しい記事をまとめて表示
+	require( &GetPath( $UI_DIR, 'SortArticle.pl' ));
 	last;
     }
     elsif ( $SYS_F_S && ( $c eq 's' ))
@@ -388,25 +394,25 @@ MAIN:
 	if  ( $c eq 'ct' )
 	{
 	    $gVarComType = 2;
-	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    require( &GetPath( $UI_DIR, 'ThreadTitle.pl' ));
 	    last;
 	}
 	elsif ( $c eq 'ce' )
 	{
 	    $gVarComType = 3;
-	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    require( &GetPath( $UI_DIR, 'ThreadTitle.pl' ));
 	    last;
 	}
 	elsif ( $c eq 'mvt' )
 	{
 	    $gVarComType = 4;
-	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    require( &GetPath( $UI_DIR, 'ThreadTitle.pl' ));
 	    last;
 	}
 	elsif ( $c eq 'mve' )
 	{
 	    $gVarComType = 5;
-	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    require( &GetPath( $UI_DIR, 'ThreadTitle.pl' ));
 	    last;
 	}
     }
@@ -533,13 +539,13 @@ sub ArriveMail
 {
     local( $Name, $Email, $Subject, $Icon, $Id, @To ) = @_;
 
-    local( $StrSubject ) = ( $Icon eq $H_NOICON )? $Subject : "($Icon) $Subject";
-    local( $MailSubject ) = $SYS_MAILHEADBRACKET? "[$BOARDNAME: $Id] " : '';
-    $MailSubject .= $StrSubject;
+    local( $StrSubject, $MailSubject, $StrFrom, $Message );
+    $StrSubject = ( $Icon eq $H_NOICON )? $Subject : "($Icon) $Subject";
+    $StrSubject =~ s/<[^>]*>//go;
+    $MailSubject = &GetMailSubjectPrefix( $BOARDNAME, $Id ) . $StrSubject;
+    $StrFrom = $Email? "$Name <$Email>" : "$Name";
 
-    local( $StrFrom ) = $Email? "$Name <$Email>" : "$Name";
-
-    local( $Message ) = "$SYSTEM_NAMEからのお知らせです．
+    $Message = "$SYSTEM_NAMEからのお知らせです．
 
 「$BOARDNAME」に対して「$StrFrom」さんから，
 「$StrSubject」という題での書き込みがありました．
@@ -585,17 +591,18 @@ sub FollowMail
 {
     local( $Name, $Email, $Date, $Subject, $Icon, $Id, $Fname, $Femail, $Fsubject, $Ficon, $Fid, @To ) = @_;
     
-    local( $InputDate ) = &GetDateTimeFormatFromUtc( $Date );
+    local( $InputDate, $StrSubject, $FstrSubject, $MailSubject, $StrFrom, $FstrFrom, $Message );
 
-    local( $StrSubject ) = ( $Icon eq $H_NOICON )? "$Subject" : "($Icon) $Subject";
-    local( $FstrSubject ) = ( $Ficon eq $H_NOICON )? $Fsubject : "($Ficon) $Fsubject";
-    local( $MailSubject ) = $SYS_MAILHEADBRACKET? "[$BOARDNAME: $Fid] " : '';
-    $MailSubject .= $FstrSubject;
+    $InputDate = &GetDateTimeFormatFromUtc( $Date );
+    $StrSubject = ( $Icon eq $H_NOICON )? "$Subject" : "($Icon) $Subject";
+    $StrSubject =~ s/<[^>]*>//go;
+    $FstrSubject = ( $Ficon eq $H_NOICON )? $Fsubject : "($Ficon) $Fsubject";
+    $FstrSubject =~ s/<[^>]*>//go;
+    $MailSubject = &GetMailSubjectPrefix( $BOARDNAME, $Fid ) . $FstrSubject;
+    $StrFrom = $Email? "$Name <$Email>" : "$Name";
+    $FstrFrom = $Femail? "$Fname <$Femail>" : "$Fname";
 
-    local( $StrFrom ) = $Email? "$Name <$Email>" : "$Name";
-    local( $FstrFrom ) = $Femail? "$Fname <$Femail>" : "$Fname";
-
-    local( $Message ) = "$SYSTEM_NAMEからのお知らせです．
+    $Message = "$SYSTEM_NAMEからのお知らせです．
 
 $InputDateに「$BOARDNAME」に対して「$StrFrom」さんが書いた，
 「$StrSubject」
@@ -1554,6 +1561,7 @@ sub GetFormattedTitle
 	$TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$id", $H_THREAD );
     }
 
+
     $TITLE_STR .= ' [' . ( $name || $MAINT_NAME ) . '] ' .
 	&GetDateTimeFormatFromUtc( $origDate || &GetModifiedTime( $id,$BOARD));
 
@@ -2398,6 +2406,30 @@ sub GetReplySubject
 
 
 ###
+## GetMailSubjectPrefix - メイル用Subjectのprefixを取得
+#
+# - SYNOPSIS
+#	GetMailSubjectPrefix( $board, $id );
+#
+# - ARGS
+#	$board	掲示板ID
+#	$id	記事ID
+#
+# - DESCRIPTION
+#	[foo: 1]を返す．
+#
+# - RETURN
+#	prefix文字列
+#
+sub GetMailSubjectPrefix
+{
+    local( $board, $id ) = @_;
+    return "[$board: $id] " if $SYS_MAILHEADBRACKET;
+    "";
+}
+
+
+###
 ## GetModifiedTime - ある記事の最終更新時刻(UTC)を取得
 #
 # - SYNOPSIS
@@ -2581,7 +2613,7 @@ sub HTMLDecode
 sub TAGEncode
 {
     local( *str ) = @_;
-    $str =~ s/[\&\"]//go;
+#    $str =~ s/[\&\"]//go;
     $str =~ s/<[^>]*>//go;
 }
 
