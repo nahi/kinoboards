@@ -24,7 +24,7 @@ $DEFAULT_PROGNAME = '_unknown_';
 $SHIFT_AGE = 3;			# 0 means 'no shifting.'
 $SHIFT_SIZE = 102400;		# byte(s)
 
-# must not change
+# must not be changed
 $[ = 0; $| = 1;
 
 # logfile format.
@@ -228,8 +228,8 @@ sub __KlgLogHtmlHeader {
 <html>
 <head>
 <TITLE>$logfile - kinologue log file</TITLE>
-</head
-<body bgcolor="#FFFFFF">
+</head>
+<body>
 <h1>$logfile - <a href="http://www.kinotrope.co.jp/~nakahiro/src/perl.shtml#kinologue.pl">kinologue</a> log file</h1>
 <p>
 created on $timeStr.
@@ -320,7 +320,7 @@ sub __KlgDateTimeFormatOfUtc {
 
 
 ###
-## ___KlgShiftLog - shift logfile
+## __KlgShiftLog - shift logfile
 #
 # - SYNOPSIS
 #	&__KlgShiftLog( $logfile );
@@ -363,7 +363,7 @@ sub __KlgShiftLog {
 1;
 
 
-# $Id: kinologue.pl,v 1.4 1998-02-05 13:23:12 nakahiro Rel $
+# $Id: kinologue.pl,v 1.5 1998-03-29 10:30:54 nakahiro Exp $
 
 
 # This program is free software; you can redistribute it and/or modify
