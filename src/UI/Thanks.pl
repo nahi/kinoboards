@@ -39,7 +39,8 @@ Thanks:
     local( $op ) = $cgi'TAGS{'op'};
 
     local( $base ) = ( -M $BOARD_ALIAS_FILE );
-    if (( $op == 0 ) || ( $base - $op > 1 ) || ( $op > $base ))
+    # ここ半日の間に生成されたフォームからしか投稿を許可しない．
+    if ( $SYS_DENY_FORM_OLD && (( $op == 0 ) || ( $base - $op > .5 ) || ( $op > $base )))
     {
 	&Fatal( 15, '' );
     }
