@@ -34,7 +34,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.52 1999-10-20 14:40:43 nakahiro Exp $
+# $Id: kb.cgi,v 5.53 1999-10-22 10:02:20 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -65,7 +65,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7β1';		# release
+$KB_RELEASE = '7β2';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -156,7 +156,23 @@ $HTML_TAGS_COREATTRS = 'ID/CLASS/STYLE/TITLE';
 $HTML_TAGS_I18NATTRS = 'LANG/DIR';
 $HTML_TAGS_GENATTRS = "$HTML_TAGS_COREATTRS/$HTML_TAGS_I18NATTRS";
 
-# アイコンファイル相対URL
+# 各種キャラクタアイコン
+$H_TOP = '&lt;&lt;最新';
+$H_BOTTOM = '先頭&gt;&gt;';
+$H_UP = '&lt;次';
+$H_DOWN = '前&gt;';
+$H_THREAD_ALL = '▲';
+$H_THREAD = '▼';
+@H_REVERSE = ( '△', '▽' );
+@H_EXPAND = ( '↓', '↑' );
+$H_SUPERSEDE_ICON = '[※]';
+$H_DELETE_ICON = '[×]';
+$H_RELINKFROM_MARK = '[←]';
+$H_RELINKTO_MARK = '[◎]';
+$H_REORDERFROM_MARK = '[△]';
+$H_REORDERTO_MARK = '[▽]';
+
+# 各種画像アイコンファイル相対URL
 $ICON_BLIST = "$ICON_DIR/blist.gif";		# 掲示板一覧へ
 $ICON_TLIST = "$ICON_DIR/tlist.gif";		# タイトル一覧へ
 $ICON_PREV = "$ICON_DIR/prev.gif";		# 前の記事へ
@@ -1547,7 +1563,7 @@ sub hgThreadArticleTree
 	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) ||
 		( $gADDFLAG{$Fid} == 2 ));
 	    # ノードを表示
-	    if ( !$gExapand )
+	    if ( $gFold )
 	    {
 		&ThreadTitleNodeNoThread( $Id, 3 );
 	    }
@@ -2447,7 +2463,7 @@ sub hgsAddress
     $gHgStr .= "<address>\nMaintenance: " .
 	&TagA( $MAINT_NAME, "mailto:$MAINT" ) . $HTML_BR .
 	&TagA( $PROGNAME, "http://www.jin.gr.jp/~nahi/kb/" ) .
-	": Copyright (C) 1995-99 " .
+	": Copyright &#169 1995-99 " .
 	&TagA( "NAKAMURA, Hiroshi", "http://www.jin.gr.jp/~nahi/" ) .
 	".\n</address>\n";
 }
@@ -2711,7 +2727,7 @@ sub hgbSearchArticleForm
 
 	# アイコン一覧
 	$msg .= '(' . &LinkP( "b=$BOARD&c=i", "使える$H_ICON一覧" .
-	    &TagAccessKey( 'H' ), 'H' ) . ')\n' . $HTML_BR . $HTML_BR;
+	    &TagAccessKey( 'H' ), 'H' ) . ')' . $HTML_BR . $HTML_BR;
     }
 
     $msg .= &TagLabel( 'キーワード', 'key', 'K' ) . ': ' . &TagInputText(
@@ -5621,7 +5637,7 @@ sub TagInputCheck
     }
     else
     {
-	qq(<input type="checkbox" id="$id" name="$id" value="$value" tabindex="$gTabIndex">);
+	qq(<input type="checkbox" id="$id" name="$id" value="on" tabindex="$gTabIndex">);
     }
 }
 
@@ -6998,10 +7014,10 @@ sub AddBoardDb
     $dest = &GetPath( $name, $ARTICLE_NUM_FILE_NAME );
     &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
 
-    # スタイルシートファイルの作成（コピー）
-    $src = &GetPath( $BOARDSRC_DIR, $CSS_FILE );
-    $dest = &GetPath( $name, $CSS_FILE );
-    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
+#    # スタイルシートファイルの作成（コピー）
+#    $src = &GetPath( $BOARDSRC_DIR, $CSS_FILE );
+#    $dest = &GetPath( $name, $CSS_FILE );
+#    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
 
     # 自動送信メイルDBの作成
     &UpdateArriveMailDb( $name, *arriveMail );
@@ -7102,7 +7118,7 @@ sub UpdateBoardDb
     rename( $tmpFile, $file ) || &Fatal( 14, "$tmpFile -&gt; $file" );
 
     # 自動送信メイルDBも更新する．
-    &UpdateArriveMailDb( $board, *arriveMail );
+    &UpdateArriveMailDb( $BOARD, *arriveMail );
 
     # ヘッダファイルも更新する．
     &UpdateHeaderDb( $name, *header );
