@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.40 2000-02-25 05:57:26 nakahiro Exp $
+# $Id: cgi.pl,v 2.41 2000-02-29 12:31:40 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -749,7 +749,7 @@ sub SecureXHTML
     {
 	$srcString = $string;
 	$string = '';
-	while ( $srcString =~ m!<$tag((\s*/)|(\s+(([^/]|/+[^/>])*/*)))?>! )
+	while ( $srcString =~ m!<$tag((\s*/)|(\s+([^>]*)))?>! )
 	{
 	    $srcString = $';
 	    $string .= $`;
