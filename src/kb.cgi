@@ -8,7 +8,7 @@
 # 1. ↑の先頭行で，Perlのパスを指定します．「#!」に続けて指定してください．
 
 # 2. kbディレクトリのフルパスを指定してください（URLではなく，パスです）．
-#    ウェブからアクセス可能なディレクトリでなくてもかまいません
+#    ブラウザからアクセス可能なディレクトリでなくてもかまいません
 #
 $KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst/';
 # $KBDIR_PATH = '/home/nahi/public_html';
@@ -21,10 +21,9 @@ $KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst/';
 $PC = 0;	# for UNIX / WinNT
 # $PC = 1;	# for Win95 / Mac
 
-# 4. アイコンおよびスタイルシートファイルを，
-#    本ファイルとは別のディレクトリに置く場合は，
-#    その別ディレクトリのURLを指定してください（パスではなく，URLです）．
-#    ウェブからアクセス可能なディレクトリでなければいけません．
+# 4. アイコンおよびスタイルシートファイルを，このファイルと別のディレクトリに
+#    置く場合は，その別ディレクトリのURLを指定してください（パスではなく，
+#    URLです）．指定するURLは，ブラウザからアクセス可能でなければいけません．
 #    本ファイルと同じディレクトリにicon，styleディレクトリを置く場合は，
 #    特に指定しなくてもかまいません（このままでOKです）．
 #
@@ -42,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.61 2000-03-02 12:48:42 nakahiro Exp $
+# $Id: kb.cgi,v 5.62 2000-03-03 07:09:42 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -117,10 +116,10 @@ if ( !$KBDIR_PATH || !chdir( $KBDIR_PATH ))
     print "エラー．管理者様へ:\n";
     print "$0の先頭部分に置かれている\$KBDIR_PATHが，\n";
     print "正しく設定されていません\n";
-    print "（R6.4以降，この変数の設定が必須となりました）．\n";
     print "設定してから再度試してみてください．";
     exit 0;
 }
+
 # chdir先のkb.phを読む．ただし上でrequire済みの場合は読まない（Perlの言語仕様）
 require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 
@@ -1990,7 +1989,10 @@ sub ThreadTitleNodeThread
     if ( $aids )
     {
 	$gHgStr .= "<ul>\n";
-	grep( &ThreadTitleNodeThread( $_, $flag, $addNum, $maint ), split( /,/, $aids ));
+	foreach ( split( /,/, $aids ))
+	{
+	    &ThreadTitleNodeThread( $_, $flag, $addNum, $maint );
+	}
 	$gHgStr .= "</ul>\n";
     }
     $gHgStr .= "</li>\n";
@@ -2017,7 +2019,10 @@ sub ThreadTitleNodeAllThread
     if ( $aids )
     {
 	$gHgStr .= "<ul>\n";
-	grep( &ThreadTitleNodeAllThread( $_, $flag, $addNum, $maint ), split( /,/, $aids ));
+	foreach ( split( /,/, $aids ))
+	{
+	    &ThreadTitleNodeAllThread( $_, $flag, $addNum, $maint );
+	}
 	$gHgStr .= "</ul>\n";
     }
     $gHgStr .= "</li>\n";
@@ -2116,7 +2121,7 @@ sub hg_sort_title_tree
     local( $IdNum, $Id, $fid, $aids, $date, $title, $icon, $host, $name );
 
     local( $nofMsg ) = &getNofMsg();
-    if ( &nofMsg == -1 )
+    if ( $nofMsg == -1 )
     {
 	# 空だった……
 	$gHgStr .= "<li>$H_NOARTICLE</li>\n";
@@ -2576,11 +2581,12 @@ sub hg_c_top_menu
 
     $formStr .= &TagSelect( 'c', $contents ) . "\n&nbsp;&nbsp;&nbsp;" .
 	&TagLabel( "表示件数", 'num', 'Y' ) . ': ' .
-	&TagInputText( 'text', 'num', ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ),
-	3 );
+	&TagInputText( 'text', 'num', (( $cgi'TAGS{'num'} ne '' )? $cgi'TAGS{'num'} : $DEF_TITLE_NUM ),	3 );
 
     local( %tags ) = ( 'b', $BOARD );
-    $tags{ 'old' } = $cgi'TAGS{'old'} if ( $cgi'TAGS{'old'} ne '' );
+    $tags{ 'old' } = $cgi'TAGS{'old'} if ( defined $cgi'TAGS{'old'} );
+    $tags{ 'rev' } = $cgi'TAGS{'rev'} if ( defined $cgi'TAGS{'rev'} );
+    $tags{ 'fold' } = $cgi'TAGS{'fold'} if ( defined $cgi'TAGS{'fold'} );
     &DumpForm( *tags, '表示(V)', '', *formStr );
     $gHgStr .= "</div>\n";
 }
@@ -2933,8 +2939,8 @@ sub DumpArtEntryNormal
 	    &TagAccessKey( 'H' ), 'H' ) . ')' . $HTML_BR;
     }
 
-    $msg .= &TagLabel( $H_SUBJECT, 'subject', 'T' ) . ': ' . &TagInputText(
-	'text', 'subject', $title, $SUBJECT_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_SUBJECT, 'subject', 'T' ) . ': ' .
+	&TagInputText( 'text', 'subject', $title, $SUBJECT_LENGTH ) . $HTML_BR;
     
     local( $ttFlag ) = 0;
     local( $ttBit ) = 0;
@@ -2976,7 +2982,7 @@ sub DumpArtEntryNormal
 		{
 		    $contents .= &TagInputRadio( 'texttype_' . $ttBit, 'texttype', $H_TTLABEL[$ttBit], 0 );
 		}
-		$contents .= $H_TTLABEL[$ttBit];
+		$contents .= &TagLabel( $H_TTLABEL[$ttBit], 'texttype_' . $ttBit, '' );
 	    }
 	    $ttBit++;
 	}
@@ -5594,7 +5600,6 @@ sub TagA
 {
     local( $markUp, $href, $key, $title, $name, $target ) = @_;
 
-#    $href =~ s/&/&amp;/go;
     if ( $key eq '' )
     {
 	$key = $gLinkNum;
@@ -5639,7 +5644,14 @@ sub TagAccessKey
 sub TagLabel
 {
     local( $markUp, $label, $accessKey ) = @_;
-    qq[<label for="$label" accesskey="$accessKey">$markUp] . &TagAccessKey( $accessKey ) . "</label>";
+    if ( $accessKey )
+    {
+	qq[<label for="$label" accesskey="$accessKey">$markUp] . &TagAccessKey( $accessKey ) . "</label>";
+    }
+    else
+    {
+	qq[<label for="$label">$markUp</label>];
+    }
 }
 
 
