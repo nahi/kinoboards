@@ -9,19 +9,19 @@ installation
 </h1>
 
 <p>
-Last Update: 8/22/96
+Last Update: 9/18/96
 </p>
 
 <hr>
 
 <p>
-インストール方法は，旧バージョン(R2.2)をインストール済みか，
+インストール方法は，旧バージョン(R2.3)をインストール済みか，
 それとも初めてのインストールなのか，
 また，あなたが利用するhttpサーバのCGIの稼働設定に応じ，
 以下の3種類にわかれています．
 
 <ul>
-<li><a href="#1">1. R2.2をインストール済み</a>
+<li><a href="#1">1. R2.3をインストール済み</a>
 <li>初めてのインストール
 <ul>
 <li><a href="#2">2. CGIを自分のディレクトリ内に持てる場合</a>
@@ -30,11 +30,11 @@ Last Update: 8/22/96
 </ul>
 </p>
 
-<h2><a name="1">1. R2.2からのバージョンアップ</a></h2>
+<h2><a name="1">1. R2.3からのバージョンアップ</a></h2>
 
 <p>
-release 2.2から変更のあったファイルで，
-今回のpatchファイル(kb10_23.patch)によってバージョンアップされるのは，
+release 2.3から変更のあったファイルで，
+今回のpatchファイル(kb10_24.patch)によってバージョンアップされるのは，
 以下のファイル群です．
 
 <ul>
@@ -42,16 +42,13 @@ release 2.2から変更のあったファイルで，
 <li>kb.ph
 <li>docディレクトリ以下のドキュメント
 <li>cgi.pl
-<li>cgi.pl.jcode
-<li>cgi.pl.outcom
-<li>test/.board
-<li>test/.board.cgi-bin
+<li>tag_secure.pl
 </ul>
 
 <ol>
-<li>patchファイル(kb10_23.patch)をダウンロードしてください．
+<li>patchファイル(kb10_24.patch)をダウンロードしてください．
 
-<li>release 2.2のkbディレクトリへ行き，システムを止め，
+<li>release 2.3のkbディレクトリへ行き，システムを止め，
 念のためバックアップを取ってください．
 もし記事が消えたり，設定が変わって動かなくなっても，責任は取れません(^_^;．
 バックアップは必ず取っておいてくださいね．
@@ -71,7 +68,7 @@ tar cvfp kb.tar kb<br>
 <code>
 cd ~/public_html/kb<br>
 cd ..<br>
-patch < kb10_23.patch<br>
+patch < kb10_24.patch<br>
 </code>
 </blockquote>
 
@@ -96,7 +93,7 @@ rm .lock.kb<br>
 
 <blockquote>
 <code>
-gzip -dc kb10_23.tar.gz | tar xvfp -
+gzip -dc kb10_24.tar.gz | tar xvfp -
 </code>
 </blockquote>
 
@@ -154,7 +151,7 @@ index.htmlにアクセスしてみてください．
 
 <blockquote>
 <code>
-gzip -dc kb10_23.tar.gz | tar xvfp -
+gzip -dc kb10_24.tar.gz | tar xvfp -
 </code>
 </blockquote>
 

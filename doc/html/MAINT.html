@@ -17,11 +17,11 @@ Last Update: 8/22/96
 <h2><a name="addboard">1. 掲示板の増やし方</a></h2>
 
 <p>
-掲示板用directoryの作成と，掲示板DBへのエントリが必要です．
+掲示板用ディレクトリの作成と，掲示板DBへのエントリが必要です．
 </p>
 <p>
 <ol>
-<li>新規に作成する掲示板の，directory名と掲示板名を決めます．
+<li>新規に作成する掲示板の，ディレクトリ名と掲示板名を決めます．
 
 <blockquote>
 <code>
@@ -29,57 +29,28 @@ e.g.) forum/フォーラム
 </code>
 </blockquote>
 
-<li>directoryを作ります．モードは777にしてください．
+<li>boardディレクトリをコピーして，新規掲示板用ディレクトリを作ります．
 
 <blockquote>
 <code>
-mkdir forum<br>
-chmod 777 forum
+cp -pr board forum<br>
 </code>
 </blockquote>
 
-<li>記事DBのファイルを作ります．モードは666にしてください．
+<li>記事一覧のヘッダ部分に表示するコメントを，適当に変更します
+(そのままでも構いません)．漢字コードは日本語EUCにしてください．
 
-<blockquote>
-<code>
-touch forum/.db<br>
-chmod 666 forum/.db
-</code>
-</blockquote>
-
-<li>記事IDのDBファイルを作ります．モードは666にしてください．
-
-<blockquote>
-<code>
-touch forum/.articleid<br>
-chmod 666  forum/.articleid
-</code>
-</blockquote>
-
-<li>記事一覧のヘッダ部分に挿入するファイルを作ります．
-モードは644にしてください．
-.boardファイルは自由に書き換えて構いません．
-ただし漢字コードは日本語EUCにしてください．
-
-<blockquote>
-<code>
-cp -p test/.board forum/.board<br>
-chmod 644 forum/.board
-</code>
-</blockquote>
-
-<li>そのファイルの，掲示板のdirectoryを指定している部分を，
+<li>そのファイルの，掲示板のディレクトリを指定している部分を，
 全て新しい掲示板のものに書き換えます．
 
 <blockquote>
 <code>
-vi forum/.board<br>
 ...&<strong>b=test</strong>&... → ...&<strong>b=forum</strong>&...
 </code>
 </blockquote>
 
 <li>掲示板DBであるkinoboardsというファイルに，
-directory名と掲示板名を，TAB文字(必ず1つ)で区切って追加します．
+ディレクトリ名と掲示板名を，TAB文字(必ず1つ)で区切って追加します．
 漢字コードは日本語EUCで，
 追加した行の行末には，必ず改行コードを入れてください．
 
@@ -93,7 +64,6 @@ forum	フォーラム
 
 <blockquote>
 <code>
-vi index.html<br>
 &lt;a href=&quot;kb.cgi?<strong>b=forum</strong>&amp;c=v&amp;num=40&quot;&gt;フォーラム&lt;/a&gt;<br>
 </code>
 </blockquote>
@@ -115,7 +85,7 @@ touch .lock.kb
 </code>
 </blockquote>
 
-<li>kb.phファイルを，掲示板directoryにコピーします．
+<li>kb.phファイルを，掲示板ディレクトリにコピーします．
 「.kbconf」という名前でコピーしてください．
 
 <blockquote>
@@ -169,7 +139,7 @@ touch .lock.kb
 ただし20 dot×20 dotのアイコンに限ります．
 
 <li>iconsディレクトリの中のアイコン定義ファイル，all.idefファイルを，
-掲示板directory.idefという名前でコピーします．
+掲示板ディレクトリ.idefという名前でコピーします．
 
 <blockquote>
 <code>
@@ -214,7 +184,7 @@ touch .lock.kb
 </code>
 </blockquote>
 
-<li>掲示板directory内の該当記事のファイルのモードを変えて，
+<li>掲示板ディレクトリ内の該当記事のファイルのモードを変えて，
 書き換えられるようにします．
 
 <blockquote>
@@ -227,12 +197,6 @@ chmod 666 123
 </blockquote>
 
 <li>該当記事のファイルを書き換えます．
-
-<blockquote>
-<code>
-vi 123
-</code>
-</blockquote>
 
 <li>ロックファイルを消去し，システムを再び稼働可能にします．
 
@@ -259,7 +223,7 @@ touch .lock.kb
 </code>
 </blockquote>
 
-<li>掲示板directory内の記事DB(.db)のモードを変更し，
+<li>掲示板ディレクトリ内の記事DB(.db)のモードを変更し，
 書き換えられるようにします．
 
 <blockquote>
