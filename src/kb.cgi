@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.43 1997-06-24 15:57:35 nakahiro Exp $
+# $Id: kb.cgi,v 4.44 1997-06-24 16:04:39 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -3143,7 +3143,7 @@ sub MakeArticleFile {
 
     # 記事; "をデコードし，セキュリティチェック
     $Article = &DQDecode($Article);
-    $Article = &ArticleEncode($TextType, $Article);
+    $Article = &ArticleEncode($Article);
     print(TMP "$Article\n");
 
     # TextType用後処理
