@@ -22,7 +22,7 @@ Entry:
 {
     local( $entryType, $back ) = ( $gVarEntryType, $gVarBack );
 
-    &LockBoard;
+    &LockBoard();
     # cache article DB
     &DbCache( $BOARD ) if ( $BOARD && ( $entryType != 0 ));
 
@@ -93,7 +93,7 @@ Entry:
 	&QuoteOriginalArticleWithoutQMark( $Id, *DefArticle );
     }
 
-    &UnlockBoard;
+    &UnlockBoard();
 
     # 表示画面の作成
     if ( $entryType == 3 )
@@ -181,7 +181,7 @@ __EOF__
 	$msg .= "</select>\n";
 
 	$msg .= "(" . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry",
-	    "使えるアイコン一覧" ) . ")<br>\n";
+	    "使える$H_ICON一覧" ) . ")<br>\n";
     }
 
     # Subject(フォローなら自動的に文字列を入れる)
@@ -255,9 +255,9 @@ __EOF__
     {
 	# エイリアスを登録しなければ書き込みできない
 	# エイリアスの読み込み
-	&LockAll;
+	&LockAll();
 	&CacheAliasData;
-	&UnlockAll;
+	&UnlockAll();
 	$msg .=<<__EOF__;
 $H_USER:
 <select name="name">
@@ -310,7 +310,7 @@ __EOF__
 
     if ( $SYS_MAIL & 2 )
     {
-	$msg .= "この$H_MESGに$H_REPLYがあった時に，上の宛先にメイルで知らせますか? ";
+	$msg .= "この$H_MESGに$H_REPLYがあった時に，上の宛先に$H_MAILで知らせますか? ";
 	$msg .= sprintf( "<input name=\"fmail\" type=\"checkbox\" value=\"on\"%s></p>\n", $DefFmail? ' CHECKED' : '' );
     }
     

@@ -17,16 +17,16 @@ ArriveMailEntry:
 {
     local(@ArriveMail);
 
-    &LockBoard;
+    &LockBoard();
     &GetArriveMailTo(1, $BOARD, *ArriveMail); # 宛先とコメントを取り出す
-    &UnlockBoard;
+    &UnlockBoard();
 
-    &MsgHeader("ArriveMail Entry", "自動メイル配信先の設定");
+    &MsgHeader("ArriveMail Entry", "自動$H_MAIL配信先の設定");
     &cgiprint'Cache(<<__EOF__);
 <p>
 この$H_BOARDに$H_MESGが書き込まれた時に，
-自動でメイルを配信する宛先のメイルアドレスを設定します．
-1行に1メイルアドレスずつ書き込んでください．
+自動で$H_MAILを配信する宛先を設定します．
+1行に宛先を1つずつ書き込んでください．
 行頭に「#」をつけるとその行は無視されるので，
 #に続けてコメントを書き込むこともできます．
 </p><p>

@@ -17,8 +17,7 @@
 require( 'mimew.pl' );
 Preview:
 {
-    &LockAll;
-    &LockBoard;
+    &LockAll();
 
     # cache article DB
     &DbCache( $BOARD ) if $BOARD;
@@ -148,8 +147,7 @@ __EOF__
 
     &MsgFooter;
 
-    &UnlockBoard;
-    &UnlockAll;
+    &UnlockAll();
 }
 
 1;

@@ -32,7 +32,7 @@ Fatal:
     elsif ( $errno == 3 )
     {
 	$severity = $kinologue'SEV_INFO;
-	$msg = "題や名前，メイルアドレスに，タブ文字か改行が入ってしまっています．戻ってもう一度やり直してみてください．";
+	$msg = "題や名前，$H_MAILに，タブ文字か改行が入ってしまっています．戻ってもう一度やり直してみてください．";
     }
     elsif ( $errno == 4 )
     {
@@ -63,7 +63,7 @@ Fatal:
     {
 	local( $board, $id, $info ) = split( /\//, $errInfo, 3 );
 	$severity = $kinologue'SEV_CAUTION;
-	$msg = "ホストマシンの過剰負荷，メイルアドレスの誤記等の理由により，記事のメイルでの配信が失敗しました（掲示板: $board，ID: $id，原因: $info）．メッセージは正しく書き込まれましたので，再度書き込みの必要はありません．";
+	$msg = "ホストマシンの過剰負荷，$H_MAILの誤記等の理由により，記事の$H_MAILでの配信が失敗しました（掲示板: $board，ID: $id，原因: $info）．メッセージは正しく書き込まれましたので，再度書き込みの必要はありません．";
     }
     elsif ( $errno == 10 )
     {
@@ -103,7 +103,7 @@ Fatal:
     elsif ( $errno == 17 )
     {
 	$severity = $kinologue'SEV_ERROR;
-	$msg = "現在，アイコンが使える設定になっていません．アイコンを使える設定に変更してから再度やり直してください．";
+	$msg = "現在，$H_ICONが使える設定になっていません．$H_ICONを使える設定に変更してから再度やり直してください．";
     }
     elsif ( $errno == 50 )
     {
@@ -140,8 +140,7 @@ Fatal:
     # (ロックの失敗の時以外)
     if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ))
     {
-	&UnlockBoard;
-	&UnlockAll;
+	&UnlockAll();
     }
 
     # log a log(except logging failure).

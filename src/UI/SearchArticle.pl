@@ -16,10 +16,10 @@
 #
 SearchArticle:
 {
-    &LockBoard;
+    &LockBoard();
     # cache article DB
     &DbCache( $BOARD ) if $BOARD;
-    &UnlockBoard;
+    &UnlockBoard();
 
     local( $Key ) = $cgi'TAGS{'key'};
     local( $SearchSubject ) = $cgi'TAGS{'searchsubject'};
@@ -99,7 +99,7 @@ __EOF__
 	$msg .= "</SELECT>\n";
 
 	# アイコン一覧
-	$msg .= '(' . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "使えるアイコン一覧" ) . ")\n";
+	$msg .= '(' . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "使える$H_ICON一覧" ) . ")\n";
     }
 
     $msg .=<<__EOF__;

@@ -18,7 +18,7 @@ DeleteExec:
 {
     local( $ThreadFlag ) = $gVarThreadFlag;
 
-    &LockBoard;
+    &LockBoard();
     # cache article DB
     &DbCache( $BOARD ) if $BOARD;
 
@@ -27,7 +27,7 @@ DeleteExec:
     # 削除実行
     &DeleteArticle( $Id, $BOARD, $ThreadFlag );
 
-    &UnlockBoard;
+    &UnlockBoard();
 
     # 表示画面の作成
     &MsgHeader( 'Message deleted', "$H_MESGが削除されました" );

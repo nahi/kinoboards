@@ -19,8 +19,7 @@ Thanks:
 {
     local( $previewFlag ) = $gVarPreviewFlag;
 
-    &LockAll;
-    &LockBoard;
+    &LockAll();
 
     # cache article DB
     &DbCache( $BOARD ) if $BOARD;
@@ -40,14 +39,13 @@ Thanks:
 
     local( $base ) = ( -M $BOARD_ALIAS_FILE );
     # ここ半日の間に生成されたフォームからしか投稿を許可しない．
-    if ( $SYS_DENY_FORM_OLD && (( $op == 0 ) || ( $base - $op > .5 ) || ( $op > $base )))
+    if ( $SYS_DENY_FORM_OLD && (( $op == 0 ) || ( $base - $op > .5 ) ||
+	( $op > $base )))
     {
 	&Fatal( 15, '' );
     }
 
-    $Subject = &MIME'base64decode( $Subject ) if $previewFlag;
-    $Article = &MIME'base64decode( $Article ) if $previewFlag;
-
+    # フォームのリサイクル禁止
     if ( $SYS_DENY_FORM_RECYCLE )
     {
 	local( $dId, $dKey );
@@ -55,6 +53,8 @@ Thanks:
 	&Fatal( 16, '' ) if ( $dKey && ( $dKey == $op ));
     }
 
+    $Subject = &MIME'base64decode( $Subject ) if $previewFlag;
+    $Article = &MIME'base64decode( $Article ) if $previewFlag;
     &secureSubject( *Subject );
     &secureArticle( *Article, $TextType );
 
@@ -108,8 +108,7 @@ Thanks:
 
     &MsgFooter;
 
-    &UnlockBoard;
-    &UnlockAll;
+    &UnlockAll();
 }
 
 1;

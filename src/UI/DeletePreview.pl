@@ -16,10 +16,10 @@
 #
 DeletePreview:
 {
-    &LockBoard;
+    &LockBoard();
     # cache article DB
     &DbCache( $BOARD ) if $BOARD;
-    &UnlockBoard;
+    &UnlockBoard();
 
     local( $id ) = $cgi'TAGS{'id'};
     local( $fId, $aids, $date, $subject ) = &GetArticlesInfo( $id );

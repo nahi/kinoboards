@@ -27,7 +27,7 @@ AliasMod:
     #	2 ... マッチしてデータを変更した
     local( $hitFlag ) = 0;
 
-    &LockAll;
+    &LockAll();
 
     # 文字列チェック
     &AliasCheck( $alias, $name, $eMail, $url );
@@ -50,7 +50,7 @@ AliasMod:
     # エイリアスファイルに書き出し
     &WriteAliasData;
 
-    &UnlockAll;
+    &UnlockAll();
 
     # 表示画面の作成
     &MsgHeader( 'Alias modified', "$H_ALIASが設定されました" );

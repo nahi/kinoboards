@@ -54,7 +54,7 @@ ThreadTitle:
 
     %ADDFLAG = ();		# it's static.
 
-    &LockBoard;
+    &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
 
     if ($ComType == 3)
@@ -68,7 +68,7 @@ ThreadTitle:
 	&ReOrderExec($cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD);
     }
 
-    &UnlockBoard;
+    &UnlockBoard();
 
     # 表示する個数を取得
     local( $Num ) = $cgi'TAGS{'num'};
@@ -132,21 +132,24 @@ ThreadTitle:
 	}
 
 	&cgiprint'Cache(<<__EOF__);
-<p>各アイコンは，次のような意味を表しています．
-<dl compact>
-<dt>$H_RELINKFROM_MARK
-<dd>この$H_MESGの$H_REPLY先を変更します．$H_REPLY先を指定する画面に飛びます．
-<dt>$H_REORDERFROM_MARK
-<dd>この$H_MESGの順序を変更します．移動先を指定する画面に飛びます．
-<dt>$H_DELETE_ICON
-<dd>この$H_MESGを削除します．
-<dt>$H_SUPERSEDE_ICON
-<dd>この$H_MESGを訂正します．
-<dt>$H_RELINKTO_MARK
-<dd>先に指定した$H_MESGの$H_REPLY先を，この$H_MESGにします．
-<dt>$H_REORDERTO_MARK
-<dd>先に指定した$H_MESGを，この$H_MESGの下に移動します．
-</dl></p>
+<p>
+各$H_ICONは，次のような意味を表しています．
+</p>
+
+<ul>
+<li>$H_RELINKFROM_MARK:
+この$H_MESGの$H_REPLY先を変更します．$H_REPLY先を指定する画面に飛びます．
+<li>$H_REORDERFROM_MARK:
+この$H_MESGの順序を変更します．移動先を指定する画面に飛びます．
+<li>$H_DELETE_ICON:
+この$H_MESGを削除します．
+<li>$H_SUPERSEDE_ICON:
+この$H_MESGを訂正します．
+<li>$H_RELINKTO_MARK:
+先に指定した$H_MESGの$H_REPLY先を，この$H_MESGにします．
+<li>$H_REORDERTO_MARK:
+先に指定した$H_MESGを，この$H_MESGの下に移動します．
+</ul>
 __EOF__
 
 	if ($ComType == 2)

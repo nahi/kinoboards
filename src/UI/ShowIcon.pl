@@ -20,14 +20,14 @@ ShowIcon:
     local( $Type ) = $cgi'TAGS{'type'};
 
     # 表示画面の作成
-    &MsgHeader( 'Icon show', "アイコンの説明" );
+    &MsgHeader( 'Icon show', "$H_ICONの説明" );
 
     local( $msg );
     if ( $Type eq 'article' )
     {
 	$msg .= <<__EOF__;
 <p>
-各アイコンは次の機能を表しています．
+各$H_ICONは次の機能を表しています．
 </p>
 
 <ul>
@@ -56,7 +56,7 @@ __EOF__
 	&CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
 	$msg .= <<__EOF__;
 <p>
-$H_BOARD「$BOARDNAME」では，各アイコンは次のような意味です．
+$H_BOARD「$BOARDNAME」では，各$H_ICONは次のような意味です．
 </p>
 
 <ul>

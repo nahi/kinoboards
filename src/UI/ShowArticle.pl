@@ -16,7 +16,7 @@
 #
 ShowArticle:
 {
-    &LockBoard;
+    &LockBoard();
     # cache article DB
     &DbCache( $BOARD ) if $BOARD;
 
@@ -32,7 +32,7 @@ ShowArticle:
     &ReplyArticles( split( /,/, $aids ));
     &MsgFooter;
 
-    &UnlockBoard;
+    &UnlockBoard();
 }
 
 1;

@@ -15,9 +15,9 @@
 #
 AliasShow:
 {
-    &LockAll;
+    &LockAll();
     &CacheAliasData;
-    &UnlockAll;
+    &UnlockAll();
 
     # 表示画面の作成
     &MsgHeader( 'Alias view', "$H_ALIASの参照" );

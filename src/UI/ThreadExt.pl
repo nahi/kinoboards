@@ -21,9 +21,9 @@ ThreadExt:
     %ADDFLAG = ();		# these are static.
     @IDLIST = ();
 
-    &LockBoard;
+    &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
-    &UnlockBoard;
+    &UnlockBoard();
 
     # 表示する個数を取得
     local( $Num ) = $cgi'TAGS{'num'};

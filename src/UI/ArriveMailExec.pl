@@ -16,19 +16,19 @@
 #
 ArriveMailExec:
 {
-    &LockBoard;
+    &LockBoard();
 
     # 宛先リストを取り出す
     local( @ArriveMail ) = split(/\n/, $cgi'TAGS{'armail'});
     &UpdateArriveMailDb($BOARD, *ArriveMail); # DBを更新する
 
-    &UnlockBoard;
+    &UnlockBoard();
 
-    &MsgHeader( 'ArriveMail Changed', "自動メイル配信先を設定しました" );
+    &MsgHeader( 'ArriveMail Changed', "自動$H_MAIL配信先を設定しました" );
 
     &cgiprint'Cache(<<__EOF__);
 <p>
-この$H_BOARDに$H_MESGが書き込まれた時に，自動でメイルを配信する宛先を，
+この$H_BOARDに$H_MESGが書き込まれた時に，自動で$H_MAILを配信する宛先を，
 以下のように設定しました．
 </p><p>
 <pre>

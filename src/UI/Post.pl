@@ -68,8 +68,7 @@ POST_STDIN:
 
     if ( $force || ( $mailHeader{ 'x-kb-command' } eq 'POST' ))
     {
-        &LockAll;
-        &LockBoard;
+        &LockAll();
 
 	# cache article DB
 	&DbCache( $BOARD ) if $BOARD;
@@ -81,8 +80,7 @@ POST_STDIN:
 	local( $newArtId ) = &MakeNewArticle( $BOARD, $Id, $op, $TextType,
 	    $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, 0 );
 
-	&UnlockBoard;
-	&UnlockAll;
+	&UnlockAll();
     }
     else
     {

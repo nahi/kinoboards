@@ -16,9 +16,9 @@
 #
 ThreadArticle:
 {
-    &LockBoard;
+    &LockBoard();
     &DbCache( $BOARD ) if $BOARD;
-    &UnlockBoard;
+    &UnlockBoard();
 
     local( $Id ) = $cgi'TAGS{'id'};
 
