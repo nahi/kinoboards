@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.34 1997-02-06 17:25:27 nakahiro Exp $
+# $Id: kb.cgi,v 4.35 1997-02-08 03:09:13 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -62,7 +62,7 @@ $| = 1;
 # VersionとRelease番号
 #
 $KB_VERSION = '1.0';
-$KB_RELEASE = '3.2pre';
+$KB_RELEASE = '3.2';
 
 #
 # 著作権表示
@@ -900,8 +900,8 @@ sub NextArticle {
     # DBファイル
     local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
 
-    local($NextId);
-    local($dId);
+    local($NextId, $dId);
+    local($NextFlag) = 0;
 
     # 取り込み
     open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
@@ -914,7 +914,8 @@ sub NextArticle {
 	next if (/^\#/o);
 	next if (/^$/o);
 	($dId) = split(/\t/, $_, 2);
-	$NextId = $dId if ($Id eq $dId);
+	$NextId = $dId, last if ($NextFlag);
+	$NextFlag = 1 if ($Id eq $dId);
 
     }
     close(DB);
@@ -2496,7 +2497,7 @@ sub unlock {
 sub lock_UNIX {
     local($TimeOut) = 0;
     local($Flag) = 0;
-    srand(time|$$);
+    srand($TIME|$$);
     open(LOCKORG, ">$LOCK_ORG") || &Fatal($ERR_FILE, $LOCK_ORG);
     close(LOCKORG);
     for($TimeOut = 0; $TimeOut < $LOCK_WAIT; $TimeOut++) {
