@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.44 1997-06-24 16:04:39 nakahiro Exp $
+# $Id: kb.cgi,v 4.45 1997-06-30 17:11:07 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -25,7 +25,7 @@
 
 
 # 環境変数を拾う
-$TIME = time;			# プログラム起動時間
+$TIME = time;			# プログラム起動時間(UTC)
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
 $SERVER_PORT_STRING = (($SERVER_PORT == 80) || ($SYS_PORTNO == 0)) ? '' : ":$SERVER_PORT";
@@ -37,6 +37,9 @@ $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 $SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO/" : "$1");
 $SCRIPT_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$SCRIPT_NAME$PATH_INFO";
 $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : $CGIPROG_NAME);
+
+# 環境変数の設定
+if ($TIME_ZONE) { $ENV{'TZ'} = $TIME_ZONE; }
 
 # インクルードファイルの読み込み
 if ($PATH_INFO && (-s 'kb.ph')) { require('kb.ph'); }
@@ -50,7 +53,7 @@ $[ = 0; $| = 1;
 
 # VersionとRelease番号
 $KB_VERSION = '1.0';
-$KB_RELEASE = '4.0pre';
+$KB_RELEASE = '4.1pre';
 
 # 著作権表示文字列
 $ADDRESS = sprintf("Maintenance: <a href=\"mailto:%s\">%s</a><br><a href=\"http://www.kinotrope.co.jp/~nakahiro/kb10.shtml\">KINOBOARDS/%s R%s</a>: Copyright (C) 1995, 96, 97 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.", $MAINT, $MAINT_NAME, $KB_VERSION, $KB_RELEASE);
@@ -105,6 +108,8 @@ sub DoKill { &cgi'unlock($LOCK_FILE); exit(1); }
 #
 # - DESCRIPTION
 #	起動時に一度だけ参照される．
+#	引き数はないが，環境変数QUERY_STRINGとREQUEST_METHOD，
+#	もしくは標準入力経由で値を渡さないと，正しく動作しない．
 #
 # - RETURN
 #	なし
@@ -826,13 +831,15 @@ sub SortArticle {
 # - DESCRIPTION
 #	新しい記事のタイトルをスレッド別にソートして表示．
 #	大域変数である，CGI変数を参照する．
+#	大域変数ADDFLAG(既に表示してしまったか否かを表わすフラグ)を破壊する．
 #
 # - RETURN
 #	なし
 #
 sub ViewTitle {
 
-    local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id, $Fid, %AddFlag);
+    local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id, $Fid);
+    %ADDFLAG = ();		# it's static.
 
     # 表示する個数を取得
     $Num = $cgi'TAGS{'num'};
@@ -846,7 +853,7 @@ sub ViewTitle {
     # 0 ... 整形対象外
     # 1 ... 整形済み
     # 2 ... 未整形
-    for($IdNum = $From; $IdNum <= $To; $IdNum++) { $AddFlag{$DB_ID[$IdNum]} = 2; }
+    for($IdNum = $From; $IdNum <= $To; $IdNum++) { $ADDFLAG{$DB_ID[$IdNum]} = 2; }
 
     # 表示画面の作成
     &MsgHeader('Title view (threaded)', "$BOARDNAME: $H_SUBJECT一覧($H_REPLY順)");
@@ -877,9 +884,9 @@ sub ViewTitle {
 	    $Id = $DB_ID[$IdNum];
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
 	    # 後方参照は後回し．
-	    next if (($Fid ne '') && ($AddFlag{$Fid} == 2));
+	    next if (($Fid ne '') && ($ADDFLAG{$Fid} == 2));
 	    # ノードを表示
-	    &ViewTitleNode($Id, *AddFlag);
+	    &ViewTitleNode($Id);
 
 	}
     } else {
@@ -889,8 +896,8 @@ sub ViewTitle {
 	    # 後は同じ
 	    $Id = $DB_ID[$IdNum];
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
-	    next if (($Fid ne '') && ($AddFlag{$Fid} == 2));
-	    &ViewTitleNode($Id, *AddFlag);
+	    next if (($Fid ne '') && ($ADDFLAG{$Fid} == 2));
+	    &ViewTitleNode($Id);
 	}
     }
 
@@ -904,20 +911,22 @@ sub ViewTitle {
 
     &MsgFooter;
 
+    undef(%ADDFLAG);
+
 }
 
 sub ViewTitleNode {
-    local($Id, *AddFlag) = @_;
+    local($Id) = @_;
 
-    if ($AddFlag{$Id} != 2) { return; }
+    if ($ADDFLAG{$Id} != 2) { return; }
 
     &cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
-    $AddFlag{$Id} = 1;		# 整形済み
+    $ADDFLAG{$Id} = 1;		# 整形済み
 
     # 娘が居れば……
     if ($DB_AIDS{$Id}) {
 	&cgiprint'Cache("<ul>\n");
-	foreach (split(/,/, $DB_AIDS{$Id})) { &ViewTitleNode($_, *AddFlag); }
+	foreach (split(/,/, $DB_AIDS{$Id})) { &ViewTitleNode($_); }
 	&cgiprint'Cache("</ul>\n");
     }
 }
@@ -1920,11 +1929,17 @@ __EOF__
 #
 sub QuoteOriginalArticle {
     local($Id, $Board) = @_;
-    local($QuoteFile, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name);
+    local($QuoteFile, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $pFid, $pAids, $pDate, $pSubject, $pIcon, $pRemoteHost, $pName, $QMark);
 
     # 元記事情報の取得
     $QuoteFile = &GetArticleFileName($Id, $Board);
     ($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
+
+    # 元記事のさらに元記事情報
+    if ($Fid) {
+	$Fid =~ s/,.*$//o;
+	($pFid, $pAids, $pDate, $pSubject, $pIcon, $pRemoteHost, $pName) = &GetArticlesInfo($Fid);
+    }
 
     # ファイルを開く
     open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
@@ -1937,8 +1952,15 @@ sub QuoteOriginalArticle {
 	s/[\&\"]//go;
 	s/<[^>]*>//go;
 
+	# デフォルトの引用文字列は「名前」 + 「 ] 」
+	$QMark = "$Name:  $DEFAULT_QMARK";
+
+	# 元文のうち，引用部分には，新たに引用文字列を重ねない
+	# 空行にも要らない
+	if ((/^$/o) || (/^$pName\s*$DEFAULT_QMARK/)) { $QMark = ''; }
+
 	# 引用文字列の表示
-	&cgiprint'Cache(sprintf("%s%s%s", $Name, $DEFAULT_QMARK, $_));
+	&cgiprint'Cache(sprintf("%s%s", $QMark, $_));
 	
     }
 
