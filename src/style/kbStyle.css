@@ -2,7 +2,7 @@
  * kbStyle.css: CSS style definition file for KINOBOARDS.
  */
 
-/* $Id: kbStyle.css,v 1.1 2000-02-25 06:24:00 nakahiro Exp $ */
+/* $Id: kbStyle.css,v 1.2 2000-05-02 14:50:27 nakahiro Exp $ */
 
 /* General definition */
 
@@ -79,6 +79,7 @@ address
 
 span.kbAccessKey { text-decoration: underline; }
 
+img.kbImg { border-style: none; }
 img.kbComIcon { border-style: none; }
 img.kbMsgIcon { border-style: none; }
 
