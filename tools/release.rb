@@ -61,8 +61,8 @@ end
 `chmod 777 KB/kb KB/kb/test KB/kb/board KB/kb/log`
 `chmod 755 KB/kb/UI KB/kb/icons`
 `chmod 755 KB/kb/kb.cgi`
-`chmod 666 KB/kb/board/* KB/kb/test/* KB/kb/kinousers`
-`chmod 644 KB/kb/icons/* KB/kb/index* KB/kb/kb.ph KB/kb/kinoboards`
+`chmod 666 KB/kb/board/* KB/kb/test/* KB/kb/kb.user KB/kb/kinoboards`
+`chmod 644 KB/kb/icons/* KB/kb/index* KB/kb/kb.ph`
 `chmod 444 KB/kb/UI/* KB/kb/cgi.pl KB/kb/icons/*.gif KB/kb/kinologue.pl`
 `chmod 444 KB/kb/jcode.pl KB/kb/mimer.pl KB/kb/mimew.pl`
 
