@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.68 2000-04-21 13:19:37 nakahiro Exp $
+# $Id: kb.cgi,v 5.69 2000-04-21 15:25:02 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -248,7 +248,7 @@ MAIN:
 	local( $modTime ) = 0;
 	if ( &cgi'tag( 'b' ) ne '' )
 	{
-	    $modTime = &getBoardLastmod( &cgi'tag( 'b' ));
+	    $modTime = &getBoardLastmod( scalar( &cgi'tag( 'b' )));
 	}
 	&cgi'header( 1, $modTime, 0, (), 0 );
 	last;
@@ -338,7 +338,8 @@ MAIN:
 	if ( $err == 3 )
 	{
 	    # ユーザ名がみつからない
-	    &fatal( 40, &cgi'tag( 'kinoU' ));# 本当は41だけどセキュリティ優先
+	    # 本当は41だけどセキュリティ優先
+	    &fatal( 40, scalar( &cgi'tag( 'kinoU' )));
 	}
 	elsif ( $err == 4 )
 	{
@@ -467,7 +468,7 @@ MAIN:
 	{
 	    # previewからの戻りなので，コマンド書き換え．
 	    $varBack = 1;
-	    &cgi'setTag( 'c', &cgi'tag( 'corig' ));
+	    &cgi'setTag( 'c', scalar( &cgi'tag( 'corig' )));
 	    $c = &cgi'tag( 'c' );
 	}
 
@@ -1540,7 +1541,7 @@ sub uiPostNewEntry
 
     if ( $SYS_NEWART_ADMINONLY && !( $POLICY & 8 ))
     {
-	&fatal( 99, &cgi'tag( 'c' ));
+	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
 
     local( $back ) = @_;
@@ -1559,8 +1560,8 @@ sub uiPostNewEntry
     if ( $back )
     {
 	require( 'mimer.pl' );
-	$gDefSubject = &mimE'base64decode( $gDefSubject );
-	$gDefArticle = &mimE'base64decode( $gDefArticle );
+	$gDefSubject = &MIME'base64decode( $gDefSubject );
+	$gDefArticle = &MIME'base64decode( $gDefArticle );
     }
     else
     {
@@ -1592,8 +1593,8 @@ sub uiPostReplyEntry
     if ( $back )
     {
 	require( 'mimer.pl' );
-	$gDefSubject = &mimE'base64decode( $gDefSubject );
-	$gDefArticle = &mimE'base64decode( $gDefArticle );
+	$gDefSubject = &MIME'base64decode( $gDefSubject );
+	$gDefArticle = &MIME'base64decode( $gDefArticle );
     }
     elsif ( $quoteFlag == 0 )
     {
@@ -1631,7 +1632,7 @@ sub uiSupersedeEntry
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
-	&fatal( 99, &cgi'tag( 'c' ));
+	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
 
     $gId = &cgi'tag( 'id' );
@@ -1648,8 +1649,8 @@ sub uiSupersedeEntry
     if ( $back )
     {
 	require( 'mimer.pl' );
-	$gDefSubject = &mimE'base64decode( $gDefSubject );
-	$gDefArticle = &mimE'base64decode( $gDefArticle );
+	$gDefSubject = &MIME'base64decode( $gDefSubject );
+	$gDefArticle = &MIME'base64decode( $gDefArticle );
     }
     else
     {
@@ -1703,7 +1704,7 @@ sub uiSupersedePreview
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
-	&fatal( 99, &cgi'tag( 'c' ));
+	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
 
     &uiPostPreviewMain( 'supersede' );
@@ -1751,8 +1752,8 @@ sub uiPostPreviewMain
 	$gUrl = &cgi'tag( 'url' );
     }
 
-    $gEncSubject = &mimE'base64encode( $gSubject );
-    $gEncArticle = &mimE'base64encode( $gArticle );
+    $gEncSubject = &MIME'base64encode( $gSubject );
+    $gEncArticle = &MIME'base64encode( $gArticle );
 
     &secureSubject( *gSubject );
     &secureArticle( *gArticle, $gTextType );
@@ -1776,12 +1777,12 @@ sub hg_post_preview_form
     $contents = &tagInputRadio( 'com_e', 'com', 'e', 0 ) . ":\n" . &tagLabel( '戻ってやりなおす', 'com_e', 'P' ) . $HTML_BR;
     $contents .= &tagInputRadio( 'com_x', 'com', 'x', 1 ) . "\n" . &tagLabel( '登録する', 'com_x', 'X' ) . $HTML_BR;
     $msg = &tagFieldset( "コマンド:$HTML_BR", $contents );
-    %tags = ( 'corig', &cgi'tag( 'corig' ), 'c', 'x', 'b', $BOARD,
+    %tags = ( 'corig', scalar( &cgi'tag( 'corig' )), 'c', 'x', 'b', $BOARD,
 	     'id', $gOrigId, 'postdate', $gPostDateStr, 'texttype', $gTextType,
 	     'name', $gName, 'mail', $gEmail, 'url', $gUrl, 'icon', $gIcon,
 	     'subject', $gEncSubject, 'article', $gEncArticle,
-	     'fmail', &cgi'tag( 'fmail' ), 's', $supersede,
-	     'op', &cgi'tag( 'op' ));
+	     'fmail', scalar( &cgi'tag( 'fmail' )), 's', $supersede,
+	     'op', scalar( &cgi'tag( 'op' )));
 
     &dumpForm( *tags, '実行', '', *msg );
 }
@@ -1845,7 +1846,7 @@ sub uiSupersedeExec
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
-	&fatal( 99, &cgi'tag( 'c' ));
+	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
 
     local( $previewFlag ) = @_;
@@ -1920,8 +1921,8 @@ sub uiPostExecMain
 	$Url = &cgi'tag( 'url' );
     }
 
-    $Subject = &mimE'base64decode( $Subject ) if $previewFlag;
-    $Article = &mimE'base64decode( $Article ) if $previewFlag;
+    $Subject = &MIME'base64decode( $Subject ) if $previewFlag;
+    $Article = &MIME'base64decode( $Article ) if $previewFlag;
     &secureSubject( *Subject );
     &secureArticle( *Article, $TextType );
 
@@ -2126,12 +2127,12 @@ sub uiThreadTitle
     if ( $gComType == 3 )
     {
 	# リンクかけかえの実施
-	&reLinkExec( &cgi'tag( 'rfid' ), &cgi'tag( 'rtid' ), $BOARD );
+	&reLinkExec( scalar( &cgi'tag( 'rfid' )), scalar( &cgi'tag( 'rtid' )), $BOARD );
     }
     elsif ( $gComType == 5 )
     {
 	# 移動の実施
-	&reOrderExec( &cgi'tag( 'rfid' ), &cgi'tag( 'rtid' ), $BOARD );
+	&reOrderExec( scalar( &cgi'tag( 'rfid' )), scalar( &cgi'tag( 'rtid' )), $BOARD );
     }
 
     &unlockBoard();
@@ -2273,7 +2274,7 @@ sub hg_thread_title_tree
     elsif ( $gVRev )
     {
 	# 古いのから処理
-	if (( $gComType == 2 ) && ( &getArtParents( &cgi'tag( 'rfid' )) ne '' ))
+	if (( $gComType == 2 ) && ( &getArtParents( scalar( &cgi'tag( 'rfid' ))) ne '' ))
 	{
 	    $gHgStr .= '<ul><li>' . &linkP( "b=$BOARD_ESC&c=ce&rtid=&rfid=" .
 		&cgi'tag( 'rfid' ) . '&roid=' . &cgi'tag( 'roid' ) . $AddNum,
@@ -2325,7 +2326,7 @@ sub hg_thread_title_tree
     else
     {
 	# 新しいのから処理
-	if (( $gComType == 2 ) && ( &getArtParents( &cgi'tag( 'rfid' )) ne '' ))
+	if (( $gComType == 2 ) && ( &getArtParents( scalar( &cgi'tag( 'rfid' ))) ne '' ))
 	{
 	    $gHgStr .= '<ul><li>' . &linkP( "b=$BOARD_ESC&c=ce&rtid=&rfid=" .
 		&cgi'tag( 'rfid' ) . "&roid=" . &cgi'tag( 'roid' ) . $AddNum,
@@ -2789,7 +2790,7 @@ sub uiDeletePreview
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
-	&fatal( 99, &cgi'tag( 'c' ));
+	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
 
     $gId = &cgi'tag( 'id' );
@@ -2842,7 +2843,7 @@ sub uiDeleteExec
 
     if ( !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 0 ))
     {
-	&fatal( 99, &cgi'tag( 'c' ));
+	&fatal( 99, scalar( &cgi'tag( 'c' )));
     }
 
     local( $threadFlag ) = @_;
@@ -3024,7 +3025,7 @@ sub hg_c_top_menu
 
     $formStr .= "\n&nbsp;&nbsp;&nbsp;" .
 	&tagLabel( "表示件数", 'num', 'Y' ) . ': ' .
-	&tagInputText( 'text', 'num', (( &cgi'tag( 'num' ) ne '' )? &cgi'tag( 'num' ) : $DEF_TITLE_NUM ),	3 );
+	&tagInputText( 'text', 'num', (( &cgi'tag( 'num' ) ne '' )? scalar( &cgi'tag( 'num' )) : $DEF_TITLE_NUM ),	3 );
 
     $tags{ 'old' } = &cgi'tag( 'old' ) if ( defined &cgi'tag( 'old' ));
     $tags{ 'rev' } = &cgi'tag( 'rev' ) if ( defined &cgi'tag( 'rev' ));
@@ -3497,8 +3498,7 @@ sub dumpArtEntryNormal
     $msg .= &tagFieldset( "コマンド$HTML_BR", $contents );
 
     local( $op ) = ( -M &getPath( $SYS_DIR, $BOARD_FILE ));
-    local( %tags ) = ( 'corig', &cgi'tag( 'c' ), 'b', $BOARD, 'c', 'p',
-	'id', $id, 's', ( $type eq 'supersede' ), 'op', $op );
+    local( %tags ) = ( 'corig', scalar( &cgi'tag( 'c' )), 'b', $BOARD, 'c', 'p', 'id', $id, 's', ( $type eq 'supersede' ), 'op', $op );
 
     &dumpForm( *tags, '実行', '', *msg );
 }
@@ -5397,8 +5397,8 @@ sub reLinkExec
 	&setArtDaughters( $dId, join( ',', grep(( !/^$FromId$/o ), split( /,/, &getArtDaughters( $dId )))));
     }
 
-    # スレッドの途中を切る場合は，後で娘たちの書き換えも必要になる．
-    @Daughters = split( /,/, &getArtDaughters( $FromId )) if ( &getArtParents( $FromId ) ne '' );
+    # 後で娘たちの書き換えも必要になる．
+    @Daughters = split( /,/, &getArtDaughters( $FromId ));
 
     # 該当記事のリプライ先を変更する
     if ( $ToId eq '' )
@@ -5414,19 +5414,18 @@ sub reLinkExec
 	&setArtParents( $FromId, "$ToId," . &getArtParents( $ToId ));
     }
 
-    # 該当記事の娘についても，リプライ先を変更する
+    # 上で変更した「該当記事のリプライ先」を，娘に反映させる
     while ( $DaughterId = shift( @Daughters ))
     {
 	# 孫娘も……
 	push( @Daughters, split( /,/, &getArtDaughters( $DaughterId )));
+
 	# 書き換え
-	if (( &getArtParents( $DaughterId ) eq $FromId )
-	    || ( &getArtParents( $DaughterId ) =~ /^$FromId,/ ))
+	if (( &getArtParents( $DaughterId ) eq $FromId ) || ( &getArtParents( $DaughterId ) =~ /^$FromId,/ ))
 	{
 	    &setArtParents( $DaughterId, ( &getArtParents( $FromId ) ne '' )? "$FromId," . &getArtParents( $FromId ) : "$FromId" );
 	}
-	elsif (( &getArtParents( $DaughterId ) =~ /^(.*),$FromId$/ )
-	       || ( &getArtParents( $DaughterId ) =~ /^(.*),$FromId,/ ))
+	elsif (( &getArtParents( $DaughterId ) =~ /^(.*),$FromId$/ ) || ( &getArtParents( $DaughterId ) =~ /^(.*),$FromId,/ ))
 	{
 	    &setArtParents( $DaughterId, ( &getArtParents( $FromId ) ne '' )? "$1,$FromId," . &getArtParents( $FromId ) : "$1,$FromId" );
 	}
@@ -7505,7 +7504,7 @@ sub insertArt
     &makeArtFile( $TextType, $Article, $newArtId, $Board );
 
     # 掲示板状態DBの更新
-    &updateBoardStatus( $newArtId, $Board, $artKey );
+    &updateBoardStatus( $Board, $newArtId, $artKey );
 
     local( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $FidList, @FollowMailTo, @FFid );
 
