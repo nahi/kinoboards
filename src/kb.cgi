@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.42 1999-06-26 14:15:31 nakahiro Exp $
+# $Id: kb.cgi,v 5.43 1999-06-26 14:55:40 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -1500,16 +1500,18 @@ __EOF__
     {
 	local( $select );
 	$select .= "表示画面: \n<select name=\"c\">\n";
-	$select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n<option value=\"v\">\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' ) if $SYS_F_B;
-	$select .= sprintf( "<option %s value=\"v\">$H_SUBJECT一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'v' )? 'selected' : '' );
-	$select .= sprintf( "<option %s value=\"r\">$H_SUBJECT一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'r' )? 'selected' : '' ) if $SYS_F_R;
-	$select .= sprintf( "<option %s value=\"vt\">$H_MESG一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'vt' )? 'selected' : '' );
-	$select .= sprintf( "<option %s value=\"l\">$H_MESG一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'l' )? 'selected' : '' ) if $SYS_F_L;
-	$select .= sprintf( "<option %s value=\"s\">$H_MESGの検索\n", ( $cgi'TAGS{'c'} eq 's' )? 'selected' : '' ) if $SYS_F_S;
-	$select .= "<option value=\"v\">\n";
-	$select .= sprintf( "<option %s value=\"n\">新規書き込み\n", ( $cgi'TAGS{'c'} eq 'n' )? 'selected' : '' ) if $SYS_F_N;
-	$select .= sprintf( "<option %s value=\"i\">使えるアイコン一覧\n", ( $cgi'TAGS{'c'} eq 'i' )? 'selected' : '' );
-	$select .= "</select>\n // 表示件数: <input name=\"num\" type=\"text\" size=\"3\" value=\"" . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . "\"> ";
+	$select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' ) if $SYS_F_B;
+	if ( $BOARD )
+	{
+	    $select .= sprintf( "<option %s value=\"v\">$H_SUBJECT一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'v' )? 'selected' : '' );
+	    $select .= sprintf( "<option %s value=\"r\">$H_SUBJECT一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'r' )? 'selected' : '' ) if $SYS_F_R;
+	    $select .= sprintf( "<option %s value=\"vt\">$H_MESG一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'vt' )? 'selected' : '' );
+	    $select .= sprintf( "<option %s value=\"l\">$H_MESG一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'l' )? 'selected' : '' ) if $SYS_F_L;
+	    $select .= sprintf( "<option %s value=\"s\">$H_MESGの検索\n", ( $cgi'TAGS{'c'} eq 's' )? 'selected' : '' ) if $SYS_F_S;
+	    $select .= sprintf( "<option %s value=\"n\">新規書き込み\n", ( $cgi'TAGS{'c'} eq 'n' )? 'selected' : '' ) if $SYS_F_N;
+	    $select .= sprintf( "<option %s value=\"i\">使えるアイコン一覧\n", ( $cgi'TAGS{'c'} eq 'i' )? 'selected' : '' );
+	    $select .= "</select>\n // 表示件数: <input name=\"num\" type=\"text\" size=\"3\" value=\"" . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . "\"> ";
+	}
 	local( %tags ) = ( 'b', $BOARD );
 	local( $str );
 	&TagForm( *str, *tags, "表示", 0, *select );
