@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.23 1999-02-24 08:57:41 nakahiro Exp $
+# $Id: cgi.pl,v 2.24 1999-03-04 16:55:39 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -481,7 +481,7 @@ sub smtpHeader
 	$header .= $CRLF;
     }
     $header .= "From: $from$CRLF";
-    $header .= "Reply-To: $sender$CRLF";
+    $header .= "Reply-To: $from$CRLF";
     $header .= "Sender: $sender$CRLF";
     $header .= "Subject: $subject$CRLF";
     $header .= "Content-type: text/plain; charset=ISO-2022-JP$CRLF";
