@@ -253,7 +253,6 @@ __EOF__
 
     print( LOG <<__EOF__);
 <title>$logfile - kinologue log file</title>
-<link rev="MADE" href="mailto:$MAINT">
 </head>
 <body>
 
@@ -396,7 +395,7 @@ sub __KlgShiftLog
 1;
 
 
-# $Id: kinologue.pl,v 1.8 1999-06-21 13:55:24 nakahiro Exp $
+# $Id: kinologue.pl,v 1.9 1999-07-01 10:19:27 nakahiro Exp $
 
 
 # This program is free software; you can redistribute it and/or modify
