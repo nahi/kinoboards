@@ -146,20 +146,9 @@ __EOF__
 
     $note .=<<__EOF__;
 <p>
-$H_MESG中に関連ウェブページへのリンクを張る場合は，
-「&lt;URL:http://〜&gt;」のように，URLを「&lt;URL:」と「&gt;」で囲んで
-書き込んでください．自動的にリンクが張られます．
-この$H_BOARDの中の$H_MESGにリンクを張る場合は，「&lt;URL:kb:71&gt;」のように，
-$H_MESGのIDを「&lt;URL:kb:」と「&gt;」で囲みます．
+$H_URLを入力すると，$H_FROMからリンクを張ります．省略しても構いません．
+</p>
 __EOF__
-
-    if ( $SYS_F_S )
-    {
-	$note .= "この$H_BOARDの中の$H_MESGは\n";
-	$note .= &TagA( "$PROGRAM?b=$BOARD&c=s", "キーワードで検索する" );
-	$note.= "ことができます．\n";
-    }
-    $note .= "</p>\n";
 
     local( $msg );
     # &TagForm()により，FORMタグの内側に<p>が自動付加されるため，
@@ -225,9 +214,8 @@ __EOF__
 	# エイリアスは使わない
 	$msg .=<<__EOF__;
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
-$H_URL_S:<br>
-<input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
 $H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
+$H_URL: <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
 __EOF__
     }
     elsif ( $SYS_ALIAS == 1 )
@@ -235,9 +223,8 @@ __EOF__
 	# エイリアスを使う
 	$msg .=<<__EOF__;
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
-$H_URL_S:<br>
-<input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
 $H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
+$H_URL: <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
 __EOF__
 
 	$note .=<<__EOF__;
@@ -292,9 +279,8 @@ __EOF__
 	$msg .=<<__EOF__;
 <input name="cookies" type="hidden" value="on">
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
-$H_URL_S:<br>
-<input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
 $H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
+$H_URL: <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
 __EOF__
 
 	$note .=<<__EOF__;
@@ -334,6 +320,23 @@ __EOF__
     &TagForm( *str, *tags, "実行", '', *msg );
 
     # 注意書きいろいろ
+    $note .=<<__EOF__;
+<p>
+$H_MESG中に関連ウェブページへのリンクを張る場合は，
+「&lt;URL:http://〜&gt;」のように，URLを「&lt;URL:」と「&gt;」で囲んで
+書き込んでください．自動的にリンクが張られます．
+この$H_BOARDの中の$H_MESGにリンクを張る場合は，「&lt;URL:kb:71&gt;」のように，
+$H_MESGのIDを「&lt;URL:kb:」と「&gt;」で囲みます．
+__EOF__
+
+    if ( $SYS_F_S )
+    {
+	$note .= "この$H_BOARDの中の$H_MESGは\n";
+	$note .= &TagA( "$PROGRAM?b=$BOARD&c=s", "キーワードで検索する" );
+	$note .= "ことができます．\n";
+    }
+    $note .= "</p>\n";
+
     $str .= "$H_HR\n$note" if $note;
 
     &cgiprint'Cache( $str );
