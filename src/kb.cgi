@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.17 1998-11-05 22:03:59 nakahiro Exp $
+# $Id: kb.cgi,v 5.18 1998-12-10 11:29:11 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -57,7 +57,7 @@ $COLSEP = "\376";
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.1';		# release
+$KB_RELEASE = '6.2';		# release
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
@@ -391,7 +391,7 @@ MAIN:
     }
 
     # どのコマンドでもない．エラー．
-    &Fatal( 99, '' );
+    &Fatal( 99, $c );
 }
 
 exit( 0 );
@@ -479,11 +479,14 @@ sub ViewOriginalArticle
 	    $DlmtL = "";
 	}
 
+	local( $Old ) = $#DB_ID - int( $Id + $DEF_TITLE_NUM/2 );
+	$Old = 0 if ( $Old < 0 );
+
 	&cgiprint'Cache( "<p>\n" );
 
 	&cgiprint'Cache( &TagA( $BOARDLIST_URL, &TagComImg( $ICON_BLIST, $H_BACKBOARD, $SYS_COMICON )), "\n" ) if $SYS_F_B;
 
-	&cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM", &TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY, $SYS_COMICON )), "\n" );
+	&cgiprint'Cache( $DlmtS, &TagA( "$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM&old=$Old", &TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY, $SYS_COMICON )), "\n" );
 	
 	local( $TagTmp ) = &TagComImg( $ICON_PREV, $H_PREVARTICLE, $SYS_COMICON );
 	if ( $PrevId ne '' )
@@ -561,7 +564,8 @@ sub ViewOriginalArticle
     }
 
     # メイル
-    &cgiprint'Cache( " ", &TagA( "mailto:$Email" , "&lt;$Email&gt;" )) if $Email;
+    &cgiprint'Cache( " ", &TagA( "mailto:$Email" , "&lt;$Email&gt;" ))
+	if ( $SYS_SHOWMAIL && $Email );
 
     # マシン
     &cgiprint'Cache( "<br>\n<strong>$H_HOST</strong>: $RemoteHost" )
@@ -632,7 +636,7 @@ sub ThreadArticleMain
     {
 	# 元記事の表示(コマンド付き, 元記事なし)
 	&cgiprint'Cache( "$H_HR\n" );
-	&ViewOriginalArticle( $Head, 1, 0 );
+	&ViewOriginalArticle( $Head, $SYS_COMMAND_EACH, 0 );
     }
 
     # tail recuresive.
@@ -682,7 +686,10 @@ sub QuoteOriginalArticle
 
 	# 元文のうち，引用部分には，新たに引用文字列を重ねない
 	# 空行にも要らない
-	$QMark = '' if (( $line =~ /^$/o ) || ( $line =~ /^$pName\s*$DEFAULT_QMARK/ ));
+	if (( $line =~ /^$/o ) || ( $line =~ /^$pName\s*$DEFAULT_QMARK/ ))
+	{
+	    $QMark = '';
+	}
 
 	# 引用文字列の表示
 	$msg .= "$QMark$line";
@@ -713,7 +720,14 @@ sub QuoteOriginalArticleWithoutQMark
     &GetArticleBody( $Id, $BOARD, *ArticleBody );
     foreach $line ( @ArticleBody )
     {
-	&TAGEncode( *line );
+	if ( $SYS_TAGINSUPERSEDE )
+	{
+	    $line = &HTMLEncode( $line );
+	}
+	else
+	{
+	    &TAGEncode( *line );
+	}
 	$msg .= $line;
     }
 }
@@ -813,16 +827,24 @@ sub PrintButtonToTitleList
 {
     local( $Board ) = @_;
 
-    local( %tags ) = ( 'b', $Board, 'c', 'v', 'num', $DEF_TITLE_NUM );
-    local( $str );
-    &TagForm( *str, *tags, "$H_BACKTITLEREPLY", '', '' );
-    &cgiprint'Cache( $str );
-
-    if ( $H_BACKTITLEDATE )
+    if  ( $SYS_COMMAND_BUTTON )
     {
-	%tags = ( 'b', $Board, 'c', 'r', 'num', $DEF_TITLE_NUM );
-	&TagForm( *str, *tags, "$H_BACKTITLEDATE", '', '' );
+	local( %tags ) = ( 'b', $Board, 'c', 'v', 'num', $DEF_TITLE_NUM );
+	local( $str );
+	&TagForm( *str, *tags, "$H_BACKTITLEREPLY", '', '' );
 	&cgiprint'Cache( $str );
+
+	if ( $SYS_F_R )
+	{
+	    %tags = ( 'b', $Board, 'c', 'r', 'num', $DEF_TITLE_NUM );
+	    &TagForm( *str, *tags, "$H_BACKTITLEDATE", '', '' );
+	    &cgiprint'Cache( $str );
+	}
+    }
+    else
+    {
+	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$Board&c=v&num=$DEF_TITLE_NUM\">$H_BACKTITLEREPLY</a></p>\n" );
+	&cgiprint'Cache( "<p><a href=\"$PROGRAM?b=$Board&c=r&num=$DEF_TITLE_NUM\">$H_BACKTITLEDATE</a></p>\n" ) if ( $SYS_F_R );
     }
 }
 
@@ -844,7 +866,7 @@ sub PrintButtonToTitleList
 #
 sub PrintButtonToBoardList
 {
-    if ( $BOARDLIST_URL =~ /$PROGRAM/ )
+    if ( $SYS_COMMAND_BUTTON && $BOARDLIST_URL =~ /$PROGRAM/ )
     {
 	local( %tags ) = ( 'c', 'bl' );
 	local( $str );
@@ -1216,7 +1238,12 @@ sub KbLog
 {
     local( $severity, $msg ) = @_;
 
-    &kinologue'KlgLog( $severity, $msg, $PROGNAME, $LOGFILE, $FF_LOG ) || &Fatal( 1000, '' ) if $SYS_LOG;
+    if ( $SYS_LOG )
+    {
+	$msg .= '(Remote host:' . $cgi'REMOTE_HOST . ')' if ( $SYS_LOGHOST );
+	&kinologue'KlgLog( $severity, $msg, $PROGNAME, $LOGFILE, $FF_LOG )
+	    || &Fatal( 1000, '' );
+    }
 }
 
 
@@ -1228,11 +1255,12 @@ sub KbLog
 ## MakeNewArticle - 新たに投稿された記事の生成
 #
 # - SYNOPSIS
-#	MakeNewArticle($Board, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
+#	MakeNewArticle($Board, $Id, $artKey, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
 #
 # - ARGS
 #	$Board		作成する記事が入る掲示板のID
 #	$Id		リプライ元記事のID
+#	$artKey		多重書き込み防止用キー
 #	$TextType	文書タイプ
 #	$Name		投稿者名
 #	$Email		投稿者E-Mail addr.
@@ -1250,7 +1278,7 @@ sub KbLog
 #
 sub MakeNewArticle
 {
-    local( $Board, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail ) = @_;
+    local( $Board, $Id, $artKey, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail ) = @_;
 
     local( $ArticleId );
 
@@ -1263,11 +1291,11 @@ sub MakeNewArticle
     &MakeArticleFile( $TextType, $Article, $ArticleId, $Board );
 
     # 新しい記事番号を書き込む
-    &WriteArticleId( $ArticleId, $Board );
+    &WriteArticleId( $ArticleId, $Board, $artKey );
 
     # DBファイルに投稿された記事を追加
     # 通常の記事引用ならID
-    &AddDBFile( $ArticleId, $Board, $Id, $^T, $Subject, $Icon, $cgi'REMOTE_HOST, $Name, $Email, $Url, $Fmail );
+    &AddDBFile( $ArticleId, $Board, $Id, $^T, $Subject, $Icon, ( $SYS_LOGHOST? $cgi'REMOTE_HOST : '' ), $Name, $Email, $Url, $Fmail );
 
     $ArticleId;
 }
@@ -1781,39 +1809,19 @@ sub IsUrl
 #
 sub GetFollowIdTree
 {
-    local( $Id, *Time ) = @_;
-    # 再帰的に木構造を取り出す．
-    return( '(', &GetFollowIdTreeMain( $Id, *Time ), ')' );
-}
+    local( $id, *tree ) = @_;
 
-sub GetFollowIdTreeMain
-{
-    local( $Id, *Time ) = @_;
-    local( @AidList, @Result, @ChildResult, $lastFollowMsgFid, $lastFollowMsgAids, $lastFollowMsgDate );
+    # 安全のため，再帰停止条件（データが正常ならここは通らない）
+    return if ( $id eq '' );
 
-    # 再帰停止条件
-    return if ( $Id eq '' );
+    local( @aidList ) = split( /,/, $DB_AIDS{$id} );
 
-    # フォロー記事取り出し
-    @AidList = split( /,/, $DB_AIDS{$Id} );
-
-    # なけりゃ停止
-    return $Id if ( !@AidList );
-
-    # 再帰
-    @Result = ( $Id, '(' );
-    @ChildResult = ();
-    foreach ( @AidList )
+    push( @tree, '(', $id );
+    foreach ( @aidList )
     {
-	@ChildResult = &GetFollowIdTreeMain( $_, *Time );
-	push( @Result, @ChildResult ) if @ChildResult;
+	&GetFollowIdTree( $_, *tree );
     }
-
-    # 最後のフォロー記事のタイムスタンプを見る
-    ( $lastFollowMsgFid, $lastFollowMsgAids, $lastFollowMsgDate ) = &GetArticlesInfo( $AidList[ $#AidList ] );
-    $Time = $lastFollowMsgDate if ( $Time < $lastFollowMsgDate );
-
-    return( @Result, ')' );
+    push( @tree, ')' );
 }
 
 
@@ -2038,8 +2046,8 @@ sub HTMLDecode
 sub TAGEncode
 {
     local( *str ) = @_;
-    $str =~ s/[\&\"]//go;		# 引用のための変換
-    $str =~ s/<[^>]*>//go;		# 引用のための変換
+    $str =~ s/[\&\"]//go;
+    $str =~ s/<[^>]*>//go;
 }
 
 
@@ -2214,7 +2222,7 @@ sub SupersedeArticle
     &CheckArticle( $Board, *Name, *Email, *Url, *Subject, *Icon, *Article );
 
     # DBファイルを訂正
-    $SupersedeId = &SupersedeDbFile( $Board, $Id, $^T, $Subject, $Icon, $cgi'REMOTE_HOST, $Name, $Email, $Url, $Fmail );
+    $SupersedeId = &SupersedeDbFile( $Board, $Id, $^T, $Subject, $Icon, ( $SYS_LOGHOST? $cgi'REMOTE_HOST : '' ), $Name, $Email, $Url, $Fmail );
 
     # ex. 「100」→「100_5」
     $File = &GetArticleFileName( $Id, $Board );
@@ -2389,7 +2397,9 @@ sub CollectDaughters
 sub GetNewArticleId
 {
     local( $Board ) = @_;
-    &GetArticleId( $Board ) + 1;
+    local( $id );
+    &GetArticleId( $Board, *id );
+    $id + 1;
 }
 
 
@@ -2445,13 +2455,22 @@ sub DbCache
 	$DB_EMAIL{$dId} = $dEmail;
 	$DB_URL{$dId} = $dUrl;
 	$DB_FMAIL{$dId} = $dFmail;
+
+	if ( $SYS_NEWICON == 2 )
+	{
+	    # 86400 = 24 * 60 * 60
+	    if (( $^T - $DB_DATE{$dId} ) < $SYS_NEWICON_VALUE * 86400 )
+	    {
+		$DB_NEW{ $dId } = 1;
+	    }
+	}
     }
     close DB;
 
-    if ( $SYS_NEWICON )
+    if ( $SYS_NEWICON == 1 )
     {
-	local( $from ) = ( $#DB_ID >= $SYS_NEWICON )?
-	    $#DB_ID - $SYS_NEWICON + 1 : 0;
+	local( $from ) = ( $#DB_ID >= $SYS_NEWICON_VALUE )?
+	    $#DB_ID - $SYS_NEWICON_VALUE + 1 : 0;
 	foreach ( $from .. $#DB_ID ) { $DB_NEW{ $DB_ID[$_] } = 1; }
     }
 
@@ -2538,7 +2557,12 @@ sub AddDBFile
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
     {
-	print( DBTMP "$_" ), next if ( /^\#/o || /^$/o );
+	if ( /^\#/o || /^$/o )
+	{
+	    print( DBTMP "$_" ) || &Fatal( 13, $TmpFile );
+	    next;
+	}
+
 	chop;
 
 	( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_ );
@@ -2577,7 +2601,9 @@ sub AddDBFile
 	}
 
 	# DBに書き加える
-	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
+	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId,
+	    $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost,
+	    $dName, $dEmail, $dUrl, $dFmail ) || &Fatal( 13, $TmpFile );
 
 	# リプライ元のリプライ元，かつメイル送信の必要があれば，宛先を保存
 	if (( $SYS_MAIL & 2 ) && @FFid && $dFmail && $dEmail && ( grep( /^$dId$/, @FFid )) && ( !grep( /^$dEmail$/, @FollowMailTo ))) {
@@ -2586,7 +2612,9 @@ sub AddDBFile
     }
 
     # 新しい記事のデータを書き加える．
-    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $Id, $FidList, '', $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail );
+    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $Id,
+	$FidList, '', $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email,
+	$Url, $Fmail ) || &Fatal( 13, $TmpFile );
 
     # close Files.
     close DB;
@@ -2638,14 +2666,22 @@ sub UpdateArticleDb
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
     {
-	print( DBTMP "$_" ), next if ( /^\#/o || /^$/o );
+	if ( /^\#/o || /^$/o )
+	{
+	    print( DBTMP "$_" ) || &Fatal( 13, $TmpFile );
+	    next;
+	}
 
 	# Idを取り出す
 	chop;
 	( $dId = $_ ) =~ s/\t.*$//;
 
 	# DBに書き加える
-	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId}, $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId}, $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} );
+	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId,
+	    $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId},
+	    $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId},
+	    $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} )
+	    || &Fatal( 13, $TmpFile );
     }
 
     # close Files.
@@ -2685,16 +2721,27 @@ sub DeleteArticleFromDbFile
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
     {
-	print( DBTMP "$_" ), next if ( /^\#/o || /^$/o );
+	if ( /^\#/o || /^$/o )
+	{
+	    print( DBTMP "$_" ) || &Fatal( 13, $TmpFile );
+	    next;
+	}
 
 	# Idを取り出す
 	chop;
 	( $dId = $_ ) =~ s/\t.*$//;
 
 	# 該当記事はコメントアウト
-	print( DBTMP "#" ) if ( grep( /^$dId$/, @Target ));
-	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId}, $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId}, $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} );
+	if ( grep( /^$dId$/, @Target ))
+	{
+	    print( DBTMP "#" ) || &Fatal( 13, $TmpFile );
+	}
 
+	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId,
+	    $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId},
+	    $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId},
+	    $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} )
+	    || &Fatal( 13, $TmpFile );
     }
 
     # close Files.
@@ -2739,8 +2786,11 @@ sub ReOrderArticleDb
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
     {
-	print( DBTMP "$_" ), next if ( /^\#/o );
-	print( DBTMP "$_" ), next if ( /^$/o );
+	if ( /^\#/o || /^$/o )
+	{
+	    print( DBTMP "$_" ) || &Fatal( 13, $TmpFile );
+	    next;
+	}
 
 	# Idを取り出す
 	chop;
@@ -2755,7 +2805,11 @@ sub ReOrderArticleDb
 	    $TopFlag = 0;
 	    foreach ( @Move )
 	    {
-		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_}, $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} );
+		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		    $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_},
+		    $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_},
+		    $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} )
+		    || &Fatal( 13, $TmpFile );
 	    }
 	}
 
@@ -2764,19 +2818,31 @@ sub ReOrderArticleDb
 	{
 	    foreach ( @Move )
 	    {
-		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_}, $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} );
+		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		    $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_},
+		    $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_},
+		    $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} )
+		    || &Fatal( 13, $TmpFile );
 	    }
 	}
 
 	# DBに書き加える
-	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId}, $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId}, $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} );
+	printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId,
+	    $DB_FID{$dId}, $DB_AIDS{$dId}, $DB_DATE{$dId}, $DB_TITLE{$dId},
+	    $DB_ICON{$dId}, $DB_REMOTEHOST{$dId}, $DB_NAME{$dId},
+	    $DB_EMAIL{$dId}, $DB_URL{$dId}, $DB_FMAIL{$dId} )
+	    || &Fatal( 13, $TmpFile );
 
 	# 移動先がきたら，続けて書き込む(新着が下，の場合)
 	if (( $SYS_BOTTOMTITLE == 1 ) && ( $dId eq $Id ))
 	{
 	    foreach ( @Move )
 	    {
-		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_}, $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} );
+		printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		    $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_},
+		    $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_},
+		    $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} )
+		    || &Fatal( 13, $TmpFile );
 	    }
 	}
     }
@@ -2786,7 +2852,10 @@ sub ReOrderArticleDb
     {
 	foreach ( @Move )
 	{
-	    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $_, $DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_}, $DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_}, $DB_URL{$_}, $DB_FMAIL{$_} );
+	    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $_,
+		$DB_FID{$_}, $DB_AIDS{$_}, $DB_DATE{$_}, $DB_TITLE{$_},
+		$DB_ICON{$_}, $DB_REMOTEHOST{$_}, $DB_NAME{$_}, $DB_EMAIL{$_},
+		$DB_URL{$_}, $DB_FMAIL{$_} ) || &Fatal( 13, $TmpFile );
 	}
     }
 
@@ -2825,8 +2894,9 @@ sub MakeArticleFile
     local( $File ) = &GetArticleFileName( $Id, $Board );
 
     open( TMP, ">$File" ) || &Fatal( 1, $File );
-    printf( TMP "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE);
-    print( TMP "$Article\n" );
+    printf( TMP "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE)
+	|| &Fatal( 13, $File );
+    print( TMP "$Article\n" ) || &Fatal( 13, $File );
     close TMP;
 }
 
@@ -2880,15 +2950,13 @@ sub GetArticleBody
 #
 sub GetArticleId
 {
-    local( $Board ) = @_;
+    local( $Board, *id, *artKey ) = @_;
 
     local( $ArticleNumFile ) = &GetPath( $Board, $ARTICLE_NUM_FILE_NAME );
-    local( $ArticleId );
     open( AID, "<$ArticleNumFile" ) || &Fatal( 1, $ArticleNumFile );
-    chop( $ArticleId = <AID> );
+    chop( $id = <AID> );
+    chop( $artKey = <AID> );
     close AID;
-
-    $ArticleId;
 }
 
 
@@ -2896,11 +2964,12 @@ sub GetArticleId
 ## WriteArticleId - 記事番号DBの更新
 #
 # - SYNOPSIS
-#	WriteArticleId($Id, $Board);
+#	WriteArticleId($Id, $Board, $artKey);
 #
 # - ARGS
 #	$Id		新規に書き込む記事番号
 #	$Board		掲示板ID
+#	$artKey		多重書き込み防止用キー
 #
 # - DESCRIPTION
 #	記事番号DBの更新
@@ -2910,7 +2979,7 @@ sub GetArticleId
 #
 sub WriteArticleId
 {
-    local( $Id, $Board ) = @_;
+    local( $Id, $Board, $artKey ) = @_;
 
     local( $File, $TmpFile, $OldArticleId );
     
@@ -2921,7 +2990,8 @@ sub WriteArticleId
     $File = &GetPath( $Board, $ARTICLE_NUM_FILE_NAME );
     $TmpFile = &GetPath( $Board, "$ARTICLE_NUM_FILE_NAME.$TMPFILE_SUFFIX$$" );
     open( AID, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
-    print( AID "$Id\n" );
+    print( AID "$Id\n" )  || &Fatal( 13, $TmpFile );
+    print( AID "$artKey\n" )  || &Fatal( 13, $TmpFile );
     close AID;
 
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
@@ -2991,7 +3061,7 @@ sub UpdateArriveMailDb
     open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
     foreach ( @ArriveMail )
     {
-	print( DBTMP "$_\n" );
+	print( DBTMP "$_\n" ) || &Fatal( 13, $TmpFile );
     }
     close DBTMP;
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
@@ -3101,14 +3171,21 @@ sub WriteAliasData
     local( $Alias );
 
     open( ALIAS, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
-    printf( ALIAS "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE );
+    printf( ALIAS "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE )
+	|| &Fatal( 13, $TmpFile );
     foreach $Alias ( sort keys( %Name ))
     {
-	printf(ALIAS "%s\t%s\t%s\t%s\t%s\n", $Alias, $Name{$Alias}, $Email{$Alias}, $Host{$Alias}, $URL{$Alias}) if $Name{$Alias};
+	if ( $Name{$Alias} )
+	{
+	    printf(ALIAS "%s\t%s\t%s\t%s\t%s\n", $Alias, $Name{$Alias},
+		$Email{$Alias}, $Host{$Alias}, $URL{$Alias})
+		|| &Fatal( 13, $TmpFile );
+	}
     }
     close ALIAS;
 
-    rename( $TmpFile, $USER_ALIAS_FILE ) || &Fatal( 14, "$TmpFile -&gt; $USER_ALIAS_FILE" );
+    rename( $TmpFile, $USER_ALIAS_FILE )
+	|| &Fatal( 14, "$TmpFile -&gt; $USER_ALIAS_FILE" );
 }
 
 
@@ -3438,27 +3515,40 @@ sub SupersedeDbFile
     open( DB, "<$File" ) || &Fatal( 1, $File );
     while ( <DB> )
     {
-	print( DBTMP "$_" ), next if ( /^\#/o || /^$/o );
+	if ( /^\#/o || /^$/o )
+	{
+	    print( DBTMP "$_" ) || &Fatal( 13, $TmpFile );
+	    next;
+	}
+
 	chop;
 
 	( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_ );
 
 	# later versionが見つかったら，versionを先読みしておく．
-	$SupersedeId++ if ( "$dId" eq ( sprintf( "#-%s_%s", $Id, $SupersedeId )));
+	if ( "$dId" eq ( sprintf( "#-%s_%s", $Id, $SupersedeId )))
+	{
+	    $SupersedeId++;
+	}
 
 	# 訂正記事の最新版が見つかったら，
 	if ( $dId eq $Id )
 	{
 	    # agingしてしまう
-	    printf( DBTMP "#-%s_%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $SupersedeId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
+	    printf( DBTMP "#-%s_%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		$dId, $SupersedeId, $dFid, $dAids, $dInputDate, $dSubject,
+		$dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail )
+		|| &Fatal( 13, $TmpFile );
 
 	    # 続いて新しい記事を書き加える
-	    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $Id, $dFid, $dAids, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail );
+	    printf( DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $Id,
+		$dFid, $dAids, $InputDate, $Subject, $Icon, $RemoteHost, $Name,
+		$Email, $Url, $Fmail ) || &Fatal( 13, $TmpFile );
 	}
 	else
 	{
 	    # DBに書き加える
-	    print( DBTMP "$_\n" );
+	    print( DBTMP "$_\n" ) || &Fatal( 13, $TmpFile );
 	}
     }
 
