@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.78 2000-06-22 13:22:08 nakahiro Exp $
+# $Id: kb.cgi,v 5.79 2000-06-23 10:15:37 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -2667,8 +2667,8 @@ sub hg_search_article_result
     local( $SearchSubject ) = &cgi'tag( 'searchsubject' );
     local( $SearchPerson ) = &cgi'tag( 'searchperson' );
     local( $SearchArticle ) = &cgi'tag( 'searcharticle' );
-    local( $SearchPostTimeFrom ) = &cgi'tag( 'searchposttimefrom' );
-    local( $SearchPostTimeTo ) = &cgi'tag( 'searchposttimeto' );
+    local( $SearchPostTimeFrom ) = &cgi'tag( 'tpi' ) || &cgi'tag( 'searchposttimefrom' ) || &cgi'tag( 'tpf' );
+    local( $SearchPostTimeTo ) = &cgi'tag( 'tpi' ) || &cgi'tag( 'searchposttimeto' ) || &cgi'tag( 'tpt' );
     local( $SearchIcon ) = &cgi'tag( 'searchicon' );
 
     local( %iconHash );
@@ -3124,8 +3124,8 @@ sub hg_b_search_article_form
     local( $SearchSubject ) = &cgi'tag( 'searchsubject' );
     local( $SearchPerson ) = &cgi'tag( 'searchperson' );
     local( $SearchArticle ) = &cgi'tag( 'searcharticle' );
-    local( $SearchPostTimeFrom ) = &cgi'tag( 'searchposttimefrom' );
-    local( $SearchPostTimeTo ) = &cgi'tag( 'searchposttimeto' );
+    local( $SearchPostTimeFrom ) = &cgi'tag( 'tpi' ) || &cgi'tag( 'searchposttimefrom' ) || &cgi'tag( 'tpf' );
+    local( $SearchPostTimeTo ) = &cgi'tag( 'tpi' ) || &cgi'tag( 'searchposttimeto' ) || &cgi'tag( 'tpt' );
     local( $SearchIcon ) = &cgi'tag( 'searchicon' );
 
     local( %iconHash );
@@ -3144,10 +3144,8 @@ sub hg_b_search_article_form
 
     $contents .= &tagLabel( 'キーワード', 'key', 'K' ) . ': ' . &tagInputText( 'text', 'key', $Key, $KEYWORD_LENGTH ) . $HTML_BR . $HTML_BR;
 
-    $contents .= $H_DATE . ': ' . &tagInputText( 'text', 'searchposttimefrom', ( $SearchPostTimeFrom || '' ), 11 ) . ' ' .
-	&tagLabel( 'から', 'searchposttimefrom', 'S' ) .
-	"&nbsp;&nbsp;&nbsp;\n" .
-	&tagInputText( 'text', 'searchposttimeto', ( $SearchPostTimeTo || '' ), 11 ) . &tagLabel( 'の間', 'searchposttimeto', 'E' ) .
+    $contents .= $H_DATE . ': ' . &tagInputText( 'text', 'tpf', ( $SearchPostTimeFrom || '' ), 11 ) . ' ' . &tagLabel( 'から', 'tpf', 'S' ) . "&nbsp;&nbsp;&nbsp;\n" .
+	&tagInputText( 'text', 'tpt', ( $SearchPostTimeTo || '' ), 11 ) . &tagLabel( 'の間', 'tpt', 'E' ) .
 	"&nbsp;&nbsp;&nbsp;（yyyy/mm/dd形式で指定）\n" . $HTML_BR;
 
     if ( $SYS_ICON )
@@ -4188,7 +4186,7 @@ sub dumpArtSummary
 	(( $flag&2 )? &tagA( $subject, "$cgi'REQUEST_URI#a$id" ) :
 	&linkP( "b=$BOARD_ESC&c=e&id=$id", $subject ));
 
-    if ( $aids && ( $flag&1 || $flag&4 ))
+    if ( $aids )
     {
 	$gHgStr .= ' ' . &linkP( "b=$BOARD_ESC&c=t&id=$id", $H_THREAD, '', $H_THREAD_L );
     }

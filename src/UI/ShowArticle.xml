@@ -20,7 +20,7 @@
 
 <kb:show_article_body />
 
-<p>--------------------</p>
+<hr />
 
 <kb:show_article_original />
 
