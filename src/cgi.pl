@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.20 1997-10-21 00:28:08 nakahiro Exp $
+# $Id: cgi.pl,v 1.21 1997-11-26 07:54:46 nakahiro Rel $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -77,7 +77,10 @@
 #		WinNT	flockによるロック
 #		Win95	flockによるロック
 #		Mac	ロックの必要がないので（ほんと?）なにもしません
-#	ロックが無事行えれば1を，なんらかの理由で行えなければ0を返します．
+#	メンテナンスロック中なら
+#	（実行ユーザで削除できないロックファイルが既に存在するなら），
+#	2を，通常のロックが無事行えれば1を，
+#	なんらかの理由で行えなければ0を返します．
 #
 # &cgi'unlock( $file );
 #	$fileで指定されたファイル名を使ってかけられた排他ロックを外します．
@@ -119,15 +122,15 @@
 #		$extension: メイルのextension header文字列
 #		$message: 本文である文字列
 #		@to: 宛先のE-Mail addr.のリスト
-#	$main'ARCHの値に応じ，用いるメイル送信手法が異なります．
-#		UNIX	$main'MAIL2で指定したsendmailコマンド
+#	$ARCHの値に応じ，用いるメイル送信手法が異なります．
+#		UNIX	$MAIL2で指定したsendmailコマンド
 #			(例えば'/usr/lib/sendmail -oi -t')を使って送信します．
-#		WinNT	UNIX以外ではメイル送信はできません．$main'MAIL2で
+#		WinNT	UNIX以外ではメイル送信はできません．$MAIL2で
 #		Win95	指定したファイルに書き出します．
 #		Mac	perl5専用のcgi.pl.libnetを使い，
 #			MacPerl5とlibnet for Macの組み合わせで，
-#			メイル送信を行います．$main'SERVER_NAMEにCGIを起動した
-#			ホスト名を，$main'MAIL2にメイルサーバのホスト名を
+#			メイル送信を行います．$SERVER_NAMEにCGIを起動した
+#			ホスト名を，$MAIL2にメイルサーバのホスト名を
 #			指定してください．
 #	送信が無事行えれば1を，なんらかの理由で行えなければ0を返します．
 #
@@ -163,10 +166,10 @@ require('jcode.pl');
 package cgi;
 
 
-$ARCH = $main'ARCH;
-$MAIL2 = $main'MAIL2;
-$JPOUT_SCHEME = ($main'JPOUT_SCHEME || 'jis');
-$WAITPID_BLOCK = 0;	# OS dependent?
+$ARCH = 'UNIX';
+$MAIL2 = '/usr/lib/sendmail -oi -t';
+$JPOUT_SCHEME = 'jis';
+$WAITPID_BLOCK = 0;	# OS dependent.
 
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
@@ -186,8 +189,13 @@ $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME");
 
 # ロック
 sub lock {
-    return( &lock_link( @_ )) if ( $ARCH eq 'UNIX' );
-    return( &lock_flock( @_ )) if ( $ARCH eq 'WinNT' || $ARCH eq 'Win95' );
+    local( $lockFile ) = @_;
+
+    # locked for maintenance by admin.
+    return( 2 ) if (( -e $lockFile ) && ( ! -w $lockFile ));
+
+    return( &lock_link( $lockFile )) if ( $ARCH eq 'UNIX' );
+    return( &lock_flock( $lockFile )) if ( $ARCH eq 'WinNT' || $ARCH eq 'Win95' );
     return( 1 ) if ( $ARCH eq 'Mac' );
 }
 
@@ -210,10 +218,8 @@ sub lock_link {
     if ( -M "$lockFile" > $lockFileTimeout ) { unlink( $lockFile ); }
     open( LOCKORG, ">$lockFile.org" ) || &Fatal( 1 );
     for( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
-	if ( link( "$lockFile.org", $lockFile )) {
-	    $lockFlag = 1, last;
-	}
-	select( undef, undef, undef, ( rand( 6 ) + 5 ) / 10 );
+	$lockFlag = 1, last if ( link( "$lockFile.org", $lockFile ));
+	sleep( 1 );
     }
     unlink( "$lockFile.org" );
     close( LOCKORG );
@@ -221,22 +227,22 @@ sub lock_link {
 }
 
 sub unlock_link {
-    local($LockFile) = @_;
-    unlink($LockFile);
+    local( $lockFile ) = @_;
+    unlink( $lockFile );
 }
 
 # lock with flock.
 sub lock_flock {
-    local($LockFile) = @_;
-    local($LockEx, $LockUn) = (2, 8);
-    open(LOCK, "$LockFile") || return(0);
-    flock(LOCK, $LockEx);
+    local( $lockFile ) = @_;
+    local( $LockEx, $LockUn ) = ( 2, 8 );
+    open( LOCK, "$lockFile" ) || return( 0 );
+    flock( LOCK, $LockEx );
     1;
 }
 sub unlock_flock {
-    local($LockEx, $LockUn) = (2, 8);
-    flock(LOCK, $LockUn);
-    close(LOCK);
+    local( $LockEx, $LockUn ) = ( 2, 8 );
+    flock( LOCK, $LockUn );
+    close( LOCK );
 }
 
 
@@ -269,9 +275,10 @@ sub Header {
 ## format as HTTP Date/Time
 #
 sub GetHttpDateTimeFromUtc {
-    local($Utc) = @_;
-    local($Sec, $Min, $Hour, $Mday, $Mon, $Year, $Wday, $Yday, $Isdst) = gmtime($Utc);
-    return(sprintf("%s, %02d-%s-%02d %02d:%02d:%02d GMT", ('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday')[$Wday], $Mday, ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')[$Mon], $Year, $Hour, $Min, $Sec));
+    local( $utc ) = @_;
+    local( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime( $utc );
+
+    sprintf( "%s, %02d-%s-%02d %02d:%02d:%02d GMT", ( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' )[ $wday ], $mday, ( 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' )[ $mon ], $year, $hour, $min, $sec );
 }
 
 
@@ -280,33 +287,34 @@ sub GetHttpDateTimeFromUtc {
 ## CAUTION! functioon decode sets global variable, TAGS.
 #
 sub Decode {
+    local( $args, $readSize, $key, $term, $value, $encode );
 
-    local($Args, $Nread, $Tag, $Term, $Value, $Code) = ();
+    if ( $ENV{ 'REQUEST_METHOD' } eq "POST" ) {
+	$readSize = read( STDIN, $args, $ENV{ 'CONTENT_LENGTH' } );
+    } else {
+	$args = $ENV{ 'QUERY_STRING' };
+    }
 
-    ($ENV{'REQUEST_METHOD'} eq "POST")
-	? ($Nread = read(STDIN, $Args, $ENV{'CONTENT_LENGTH'}))
-	    : ($Args = $ENV{'QUERY_STRING'});
+    foreach $term ( split( '&', $args )) {
+	( $key, $value ) = split( /=/, $term, 2 );
+	$value =~ tr/+/ /;
+	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack( "C", hex( $1 ))/ge;
+	$encode = &jcode'getcode( *value );
 
-    foreach $Term (split('&', $Args)) {
-	($Tag, $Value) = split(/=/, $Term, 2);
-	$Value =~ tr/+/ /;
-	$Value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack("C", hex($1))/ge;
-	$Code = &jcode'getcode(*Value);
-	if ($Code eq 'undef') {
-	    $TAGS{$Tag} = $Value;
+	if ( $encode eq 'undef' ) {
+	    $TAGS{ $key } = $value;
 	} else {
-	    &jcode'convert(*Value, 'euc', $Code, "z");
-	    $TAGS{$Tag} = $Value;
+	    &jcode'convert( *value, 'euc', $encode, "z" );
+	    $TAGS{ $key } = $value;
 	}
 
-        if ($ARCH eq 'Mac') {
-            $TAGS{$Tag} =~ s/\xd\xa/\n/go;
-            $TAGS{$Tag} =~ s/\xa/\n/go;
+        if ( $ARCH eq 'Mac' ) {
+            $TAGS{ $key } =~ s/\xd\xa/\n/go;
+            $TAGS{ $key } =~ s/\xa/\n/go;
         } else {
-	    $TAGS{$Tag} =~ s/\r\n/\n/go;
-	    $TAGS{$Tag} =~ s/\r/\n/go;
+	    $TAGS{ $key } =~ s/\r\n/\n/go;
+	    $TAGS{ $key } =~ s/\r/\n/go;
 	}
-
     }
 }
 
@@ -315,10 +323,10 @@ sub Decode {
 ## HTTP Cookiesのデコード
 #
 sub Cookie {
-    local($Term, $Tag, $Value);
-    foreach $Term (split(";\s*", $ENV{'HTTP_COOKIE'})) {
-	($Tag, $Value) = split(/=/, $Term, 2);
-	$COOKIES{$Tag} = $Value;
+    local( $key, $value, $term );
+    foreach $term ( split( ";\s*", $ENV{ 'HTTP_COOKIE' })) {
+	( $key, $value ) = split( /=/, $term, 2 );
+	$COOKIES{ $key } = $value;
     }
 }
 
@@ -328,10 +336,10 @@ sub Cookie {
 #
 sub SendMail {
 
-    return(&SendMailSendmail(@_)) if ($ARCH eq 'UNIX');
-    return(&SendMailFile(@_)) if ($ARCH eq 'WinNT');
-    return(&SendMailFile(@_)) if ($ARCH eq 'Win95');
-    return(&SendMailFile(@_)) if ($ARCH eq 'Mac');
+    return( &SendMailSendmail( @_ )) if ( $ARCH eq 'UNIX' );
+    return( &SendMailFile( @_ )) if ( $ARCH eq 'WinNT' );
+    return( &SendMailFile( @_ )) if ( $ARCH eq 'Win95' );
+    return( &SendMailFile( @_ )) if ( $ARCH eq 'Mac' );
 
 }
 
@@ -339,65 +347,59 @@ sub SendMail {
 ###
 ## メール送信(UNIX用)
 #
+# 本文以外には日本語を入れないように!
 sub SendMailSendmail {
-
-    # 送り主名前，送り主メイルアドレス，Subject，付加ヘッダ，
-    # 引用記事(0なら無し)，宛先リスト
-    # 本文以外には日本語を入れないように!
-    local($FromName, $FromEmail, $Subject, $Extension, $Message, @To) = @_;
-    local($Pid);
+    local( $fromName, $fromEmail, $subject, $extension, $message, @to ) = @_;
+    local( $pid );
+    local( $toFirst ) = 1;
+    local( $from ) = "$fromName <$fromEmail>";
 
     # 安全のため，forkする
-    unless ($Pid = fork()) {
+    unless ( $pid = fork() ) {
 
-	local($ToFirst) = 1;
-
-	# メール用ファイルを開く
-	open(MAIL, "| $MAIL2") || &Fatal(2);
+	open( MAIL, "| $MAIL2" ) || &Fatal( 2 );
 
 	# Toヘッダ
-	foreach (@To) {
-
-	    if ($ToFirst) {
-		print(MAIL "To: $_");
-		$ToFirst = 0;
+	foreach ( @to ) {
+	    if ( $toFirst ) {
+		print( MAIL "To: $_" );
+		$toFirst = 0;
 	    } else {
-		print(MAIL ",\n\t$_");
+		print( MAIL ",\n\t$_" );
 	    }
 
 	}
-	print(MAIL "\n");
+	print( MAIL "\n" );
 
 	# Fromヘッダ，Errors-Toヘッダ
-	$_ = "$FromName <$FromEmail>";
-	print(MAIL "From: $_\n");
-	print(MAIL "Errors-To: $_\n");
+	print( MAIL "From: $from\n" );
+	print( MAIL "Errors-To: $from\n" );
 
 	# Subjectヘッダ
-	print(MAIL "Subject: $Subject\n");
+	print( MAIL "Subject: $subject\n" );
 
 	# 付加ヘッダ
-	if ($Extension) {
-	    &jcode'convert(*Extension, 'jis');
-	    print(MAIL $Extension);
+	if ( $extension ) {
+	    &jcode'convert( *extension, 'jis' );
+	    print( MAIL $extension );
 	}
 
 	# ヘッダ終わり
-	print(MAIN "\n");
+	print( MAIN "\n" );
 
 	# 本文
-	&jcode'convert(*Message, 'jis');
-	print(MAIL "$Message\n");
+	&jcode'convert( *message, 'jis' );
+	print( MAIL "$message\n" );
 
 	# 送信する
-	close(MAIL);
-	exit(0);
+	close( MAIL );
+	exit( 0 );
 
     }
-    waitpid($Pid, $WAITPID_BLOCK);
+    waitpid( $pid, $WAITPID_BLOCK );
 
     # 送信した
-    return(! $?);
+    !$?;
 
 }
 
@@ -405,60 +407,55 @@ sub SendMailSendmail {
 ###
 ## メール送信(Mac, Win用)
 #
+# 本文以外には日本語を入れないように!
 sub SendMailFile {
-
-    # 送り主名前，送り主メイルアドレス，Subject，付加ヘッダ，
-    # 引用記事(0なら無し)，宛先リスト
-    # 本文以外には日本語を入れないように!
-    local($FromName, $FromEmail, $Subject, $Extension, $Message, @To) = @_;
-
-    local($ToFirst) = 1;
+    local( $fromName, $fromEmail, $subject, $extension, $message, @to) = @_;
+    local( $toFirst ) = 1;
+    local( $from ) = "$fromName <$fromEmail>";
 
     # メール用ファイルを開く
-    open(MAIL, ">> $MAIL2") || &Fatal(2);
+    &Fatal( 2 ) if ( $MAIL2 eq '' );
+    open( MAIL, ">> $MAIL2" ) || &Fatal( 2 );
 
     # Toヘッダ
-    foreach (@To) {
-
-	if ($ToFirst) {
-	    print(MAIL "To: $_");
-	    $ToFirst = 0;
+    foreach ( @to ) {
+	if ( $toFirst ) {
+	    print( MAIL "To: $_" );
+	    $toFirst = 0;
 	} else {
-	    print(MAIL ",\n\t$_");
+	    print( MAIL ",\n\t$_" );
 	}
-
     }
     print(MAIL "\n");
     
     # Fromヘッダ，Errors-Toヘッダ
-    $_ = "$FromName <$FromEmail>";
-    print(MAIL "From: $_\n");
-    print(MAIL "Errors-To: $_\n");
+    print( MAIL "From: $from\n" );
+    print( MAIL "Errors-To: $from\n" );
 
     # Subjectヘッダ
-    print(MAIL "Subject: $Subject\n");
+    print( MAIL "Subject: $subject\n" );
 
     # 付加ヘッダ
-    if ($Extension) {
-	&jcode'convert(*Extension, 'jis'); #'
-	print(MAIL $Extension);
+    if ( $extension ) {
+	&jcode'convert( *extension, 'jis' );
+	print( MAIL $extension );
     }
 
     # ヘッダ終わり
-    print(MAIN "\n");
+    print( MAIN "\n" );
 
     # 本文
-    &jcode'convert(*Message, 'jis'); #'
-    print(MAIL "$Message\n");
+    &jcode'convert( *message, 'jis' );
+    print( MAIL "$message\n" );
 
     # 区切り線
-    print(MAIL "-------------------------------------------------------------------------------\n");
+    print( MAIL "-------------------------------------------------------------------------------\n" );
 
     # 送信する
-    close(MAIL);
+    close( MAIL );
 
     # 送信した
-    return(1);
+    1;
 
 }
 
@@ -474,10 +471,10 @@ $F_HTML_TAGS_PARSED = 0;
 %NEED = %FEATURE = ();
 
 sub SecureHtml {
-    local( *String ) = @_;
-    local( $SrcString ) = '';
-    local( $Count, $BackupString, $Before, $After );
-    local( $Tag, $Need, $Feature, $Markuped );
+    local( *string ) = @_;
+    local( $srcString ) = '';
+    local( $count, $backupString, $before, $after );
+    local( $tag, $need, $feature, $markuped );
 
     # HTML_TAGSの解析（一度だけ実施）
     if ( $F_HTML_TAGS_PARSED != 1 ) {
@@ -520,55 +517,55 @@ sub SecureHtml {
 	     'VAR',		1,	'',
 	     'XMP',		1,	'',
 	     );
-	local($Tag);
+	local( $tag );
 	while( @htmlTags ) {
-	    $Tag = shift( @htmlTags );
-	    $NEED{$Tag} = shift( @htmlTags );
-	    $FEATURE{$Tag} = shift( @htmlTags );
+	    $tag = shift( @htmlTags );
+	    $NEED{ $tag } = shift( @htmlTags );
+	    $FEATURE{ $tag } = shift( @htmlTags );
 	}
 	$F_HTML_TAGS_PARSED = 1;
     }
 
-    $String =~ s/\\>/__EscapedGt\376__/go;
-    while (( $Tag, $Need ) = each( %NEED )) {
-	$SrcString = $String;
-	$String = '';
-	while (( $SrcString =~ m!<$Tag\s+([^>]*)>!i ) || ( $SrcString =~ m!<$Tag()>!i) ) {
-	    $SrcString = $';
-	    $String .= $`;
-	    $1 ? ( $Feature = " $1" ) =~ s/\\"/__EscapedQuote\376__/go : ( $Feature = '' );
-	    if ( &SecureFeature( $Tag, $FEATURE{$Tag}, $Feature )) {
-		if ( $SrcString =~ m!</$Tag>!i ) {
-		    $SrcString = $';
-		    $Markuped = $`;
-		    $Feature =~ s/&/__amp\377__/go;
-		    $Feature =~ s/"/__quot\378__/go;
-		    $String .= "__$Tag Open$Feature\376__" . $Markuped . "__$Tag Close\376__";
-		} elsif ( !$Need ) {
-		    $Feature =~ s/&/__amp\377__/go;
-		    $Feature =~ s/"/__quot\378__/go;
-		    $String .= "__$Tag Open$Feature\376__";
+    $string =~ s/\\>/__EscapedGt\376__/go;
+    while (( $tag, $need ) = each( %NEED )) {
+	$srcString = $string;
+	$string = '';
+	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~ m!<$tag()>!i) ) {
+	    $srcString = $';
+	    $string .= $`;
+	    $1 ? ( $feature = " $1" ) =~ s/\\"/__EscapedQuote\376__/go : ( $feature = '' );
+	    if ( &SecureFeature( $tag, $FEATURE{ $tag }, $feature )) {
+		if ( $srcString =~ m!</$tag>!i ) {
+		    $srcString = $';
+		    $markuped = $`;
+		    $feature =~ s/&/__amp\377__/go;
+		    $feature =~ s/"/__quot\378__/go;
+		    $string .= "__$tag Open$feature\376__" . $markuped . "__$tag Close\376__";
+		} elsif ( !$need ) {
+		    $feature =~ s/&/__amp\377__/go;
+		    $feature =~ s/"/__quot\378__/go;
+		    $string .= "__$tag Open$feature\376__";
 		} else {
-		    $String .= "<$Tag$Feature>" . $SrcString;
+		    $string .= "<$tag$feature>" . $srcString;
 		    last;
 		}
 	    } else {
-		$String .= "<$Tag$Feature>";
+		$string .= "<$tag$feature>";
 	    }
 	}
-	$String .= $SrcString;
+	$string .= $srcString;
     }
-    $String =~ s/__EscapedGt\376__/\\>/go;
-    $String =~ s/__EscapedQuote\376__/\\"/go;
-    $String =~ s/&/&amp;/g;
-    $String =~ s/"/&quot;/g;
-    $String =~ s/</&lt;/g;
-    $String =~ s/>/&gt;/g;
-    while (( $Tag, $Need ) = each( %NEED )) {
-        $String =~ s!__$Tag Open([^\376]*)\376__!<$Tag$1>!g;
-        $String =~ s!__$Tag Close\376__!</$Tag>!g;
-	$String =~ s!__amp\377__!&!go;
-	$String =~ s!__quot\378__!"!go;
+    $string =~ s/__EscapedGt\376__/\\>/go;
+    $string =~ s/__EscapedQuote\376__/\\"/go;
+    $string =~ s/&/&amp;/g;
+    $string =~ s/"/&quot;/g;
+    $string =~ s/</&lt;/g;
+    $string =~ s/>/&gt;/g;
+    while (( $tag, $need ) = each( %NEED )) {
+        $string =~ s!__$tag Open([^\376]*)\376__!<$tag$1>!g;
+        $string =~ s!__$tag Close\376__!</$tag>!g;
+	$string =~ s!__amp\377__!&!go;
+	$string =~ s!__quot\378__!"!go;
     }
 }
 
@@ -577,21 +574,20 @@ sub SecureHtml {
 ## Featureは安全か?
 #
 sub SecureFeature {
-
-    local( $Tag, $allowedFeatures, $Features ) = @_;
-    return( 1 ) unless ( $Features );
-    local( @Allowed ) = split( /\//, $allowedFeatures );
-    local( $Ret ) = 1;
-    while ( $Features ) {
-	$Features = &GetFeatureName(*Features);
-	$Value = &GetFeatureValue(*Features);
-	if ( !$Value ) {
-	    $Value = $Features;
-	    $Features = '';
+    local( $tag, $allowedFeatures, $features ) = @_;
+    return( 1 ) unless ( $features );
+    local( @allowed ) = split( /\//, $allowedFeatures );
+    local( $ret ) = 1;
+    while ( $features ) {
+	$features = &GetFeatureName( *features );
+	$value = &GetFeatureValue( *features );
+	if ( !$value ) {
+	    $value = $features;
+	    $features = '';
 	}
-	$Ret = 0 if ( !$Features ) || ( !grep( /$Features/i, @Allowed ));
+	$ret = 0 if ( !$features ) || ( !grep( /$features/i, @allowed ));
     }
-    $Ret;
+    $ret;
 }
 
 
@@ -599,8 +595,8 @@ sub SecureFeature {
 ## Feature名を取得
 #
 sub GetFeatureName {
-    local( *String ) = @_;
-    $String = '' unless ( $String =~ s/^\s*([^=\s]*)\s*=\s*"// );
+    local( *string ) = @_;
+    $string = '' unless ( $string =~ s/^\s*([^=\s]*)\s*=\s*"// );
     $1;
 }
 
@@ -609,8 +605,8 @@ sub GetFeatureName {
 ## Featureの値を取得
 #
 sub GetFeatureValue {
-    local( *String ) = @_;
-    $String = '' unless ( $String =~ s/^([^"]*)"// );
+    local( *string ) = @_;
+    $string = '' unless ( $string =~ s/^([^"]*)"// );
     $1;
 }
 
@@ -621,22 +617,22 @@ sub GetFeatureValue {
 sub Fatal {
 
     # エラー番号とエラー情報の取得
-    local( $FatalNo ) = @_;
+    local( $errno ) = @_;
 
     # エラーメッセージ
-    local( $ErrString );
+    local( $errString );
 
-    if ( $FatalNo == 1 ) {
+    if ( $errno == 1 ) {
 
-	$ErrString = "管理者様へ: File: $LOCK_ORGを作成することができません．システムディレクトリのパーミッションは777になっていますか?";
+	$errString = "管理者様へ: File: $LOCK_ORGを作成することができません．システムディレクトリのパーミッションは777になっていますか?";
 
-    } elsif ( $FatalNo == 2 ) {
+    } elsif ( $errno == 2 ) {
 
-	$ErrString = "管理者様へ: メイルを送信することができません．\$MAIL2の値(現在は「$MAIL2」)の設定がおかしくありませんか?";
+	$errString = "管理者様へ: メイルを送信することができません．\$MAIL2の値(現在は「$MAIL2」)の設定がおかしくありませんか?";
 
     } else {
 
-	$ErrString = 'エラー番号不定: お手数ですが，このエラーメッセージ(「エラー番号不定」)とこのページのURL，またエラーが生じた状況を，<a href="mailto:nakahiro@kinotrope.co.jp">nakahiro@kinotrope.co.jp</a>までお知らせください．';
+	$errString = 'エラー番号不定: お手数ですが，このエラーメッセージ(「エラー番号不定」)とこのページのURL，またエラーが生じた状況を，<a href="mailto:nakahiro@kinotrope.co.jp">nakahiro@kinotrope.co.jp</a>までお知らせください．';
 
     }
 
@@ -653,13 +649,13 @@ sub Fatal {
 <body>
 <h1>Error!</h1>
 <hr>
-<p>$ErrString</p>
+<p>$errString</p>
 </body>
 </html>
 __EOF__
 
     &cgiprint'Flush;
-    exit(0);
+    exit( 0 );
 }
 
 
