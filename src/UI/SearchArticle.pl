@@ -36,20 +36,25 @@ SearchArticle:
 
     local( %tags, $str, $msg );
     $msg =<<__EOF__;
+検索条件を指定することができます．
+</p>
+
 <ul>
 <li>「$H_SUBJECT」，「名前」，「$H_MESG」の中から，検索する範囲をチェックしてください．
 指定された範囲で，キーワードを含む$H_MESGを一覧表示します．
 <li>キーワードには，大文字小文字の区別はありません．
-<li>キーワードを半角スペースで区切って，複数のキーワードを指定すると，
+<li>空白で区切って複数のキーワードを指定すると，
 それら全てを含む$H_MESGのみを検索することができます．
 <li>$H_DATEで検索する場合は，
 「$H_DATE」をチェックした後，
 検索範囲を「YYYY/MM/DD」形式の日付で指定してください
 （例1999/01/01〜1999/12/31）．
-範囲の始点と終点は，どちらかを省略してもかまいません．
+始点と終点のどちらかを省略してもかまいません．
 <li>$H_ICONで検索する場合は，
-「$H_ICON」をチェックした後，探したい$H_MESGの$H_ICONを選んでください．
+「$H_ICON」をチェックした後，探す$H_MESGの$H_ICONを選んでください．
 </ul>
+
+<p>
 __EOF__
 
     $msg .= sprintf( "<input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SUBJECT<br>\n", $SearchSubject? 'CHECKED' : '' );
@@ -83,13 +88,12 @@ __EOF__
     $msg .= "</SELECT>\n";
 
     # アイコン一覧
-    $msg .= '(' . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "アイコンの説明" ) . ")\n</p>\n";
+    $msg .= '(' . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "使えるアイコン一覧" ) . ")\n</p>\n";
 
     $msg .=<<__EOF__;
 <p>
 キーワード:
 <input name="key" type="text" size="$KEYWORD_LENGTH" value="$Key">
-</p>
 __EOF__
 
     %tags = ( 'c', 's', 'b', $BOARD );
