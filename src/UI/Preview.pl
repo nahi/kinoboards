@@ -43,7 +43,7 @@ Preview:
     # 入力された記事情報のチェック
     &CheckArticle( $BOARD, *Name, *Email, *Url, *Subject, *Icon, *Article );
 
-    local( $eSubject ) = &DQEncode( $Subject );
+    local( $eSubject ) = &MIME'base64encode( $Subject );
     local( $eArticle ) = &MIME'base64encode( $Article );
 
     &secureSubject( *Subject );

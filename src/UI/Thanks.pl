@@ -45,6 +45,7 @@ Thanks:
 	&Fatal( 15, '' );
     }
 
+    $Subject = &MIME'base64decode( $Subject ) if $previewFlag;
     $Article = &MIME'base64decode( $Article ) if $previewFlag;
 
     if ( $SYS_DENY_FORM_RECYCLE )
@@ -53,10 +54,6 @@ Thanks:
 	&GetArticleId( $BOARD, *dId, *dKey );
 	&Fatal( 16, '' ) if ( $dKey && ( $dKey == $op ));
     }
-
-    # Preview経由でEncodeされているかもしれない
-    $Article = &DQDecode( $Article );
-    $Subject = &DQDecode( $Subject );
 
     &secureSubject( *Subject );
     &secureArticle( *Article, $TextType );

@@ -42,6 +42,7 @@ Entry:
 	$DefArticle = $cgi'TAGS{'article'};
 	$DefFmail = $cgi'TAGS{'fmail'};
 
+	$DefSubject = &MIME'base64decode( $DefSubject );
 	$DefArticle = &MIME'base64decode( $DefArticle );
     }
     elsif ( $entryType == 0 )
