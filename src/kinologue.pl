@@ -1,5 +1,5 @@
 # kinologue: KINO series LOGging Utility packagE
-# Copyright (C) 1997, 98 NAKAMURA Hiroshi.
+# Copyright (C) 1997-99 NAKAMURA Hiroshi.
 
 
 package kinologue;
@@ -248,7 +248,7 @@ sub __KlgLogHtmlHeader
 <TITLE>$logfile - kinologue log file</TITLE>
 </head>
 <body>
-<h1>$logfile - <a href="http://www.kinotrope.co.jp/~nakahiro/src/perl.shtml#kinologue.pl">kinologue</a> log file</h1>
+<h1>$logfile - <a href="http://www.jin.gr.jp/~nahi/src/perl.shtml#kinologue.pl">kinologue</a> log file</h1>
 <p>
 created on $timeStr.
 </p>
@@ -386,7 +386,7 @@ sub __KlgShiftLog
 1;
 
 
-# $Id: kinologue.pl,v 1.6 1998-11-13 03:37:26 nakahiro Exp $
+# $Id: kinologue.pl,v 1.7 1999-02-17 18:30:52 nakahiro Exp $
 
 
 # This program is free software; you can redistribute it and/or modify
