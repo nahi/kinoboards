@@ -1,7 +1,10 @@
-# $Id: kb.ph,v 3.2 1996-02-08 07:11:04 nakahiro Exp $
+# $Id: kb.ph,v 3.3 1996-02-11 06:54:09 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 3.2  1996-02-08 07:11:04  nakahiro
+# Revision 3.3  1996-02-11 06:54:09  nakahiro
+# the 1st test version for my homepage.
+#
+# Revision 3.2  1996/02/08 07:11:04  nakahiro
 # Bulletin board for KINOTROPE Inc.
 #
 # Revision 3.0  1996/01/20 14:01:35  nakahiro
@@ -39,6 +42,9 @@ $MAINT = "nakahiro\@kinotrope.co.jp";
 ##
 # where is this program?
 # `relative' or the others (ex. `absolutive').
+#
+# CAUTION: this option does not work now...
+#
 $SYS_SCRIPTPATH = 'relative';
 
 ##
@@ -47,7 +53,7 @@ $MAIL2 = "/usr/lib/sendmail -oi -t";
 
 ##
 # 著作権表示
-$ADDRESS = "Copyright 1996 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co., Ltd.</a> &amp; <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">nakahiro</a> // 禁無断転載";
+$ADDRESS = "Copyright 1996 <a href=\"http://www.kinotrope.co.jp/\">KINOTROPE Inc.</a> &amp; <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">HiNa</a> // 禁無断転載";
 
 
 #/////////////////////////////////////////////////////////////////////
@@ -60,15 +66,29 @@ $ADDRESS = "Copyright 1996 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co.
 #
 # システムの設定
 #
-# 入力文書タイプ(HTML or PRE)の選択を行うか否か(0: 行わない, 1: 行う)
+# 入力文書タイプ(HTML or PRE)の選択を行うか否か(行なわないとPREのみ)
+#   0: 行わない
+#   1: 行う
 $SYS_TEXTTYPE = 1;
-# エイリアスを利用するか否か(0: 利用しない, 1: 利用する)
+
+# エイリアスを利用するか否か
+#   0: 利用しない
+#   1: 利用する
 $SYS_ALIAS = 1;
-# 引用時にタグを残すか否か(0: 残さない, 1: 残す)
+
+# 引用時にタグを残すか否か
+#   0: 残さない
+#   1: 残す
 $SYS_TAGINQUOTE = 1;
-# 新規投稿記事が、上に増えていくか、下に増えていくか(0: 上, 1: 下)
-$SYS_BOTTOMTITLE = 1;
-# メール送信サービスを利用するか否か(0: 利用しない, 1: 利用する)
+
+# 新規投稿記事が、上に増えていくか、下に増えていくか
+#   0: 上
+#   1: 下
+$SYS_BOTTOMTITLE = 0;
+
+# メール送信サービスを利用するか否か(日本語のみ)
+#   0: 利用しない
+#   1: 利用する
 $SYS_FOLLOWMAIL = 1;
 
 #
@@ -86,11 +106,12 @@ $VLINK_COLOR = "#00AA00";
 $SYSTEM_NAME = "きのぼーず";
 
 $ENTRY_MSG = "$SYSTEM_NAME への書き込み";
-$SHOWICON_MSG = "アイコンの確認";
+$SHOWICON_MSG = "アイコンの説明";
 $PREVIEW_MSG = "書き込みの内容を確認して下さい";
 $THANKS_MSG = "書き込みありがとうございました";
-$SORT_MSG = "日付順ソート";
-$NEWARTICLE_MSG = "最近の記事";
+$VIEW_MSG = "タイトル一覧";
+$SORT_MSG = "タイトル一覧(日付順)";
+$NEWARTICLE_MSG = "記事をまとめて読む";
 $THREADARTICLE_MSG = "反応まとめ読み";
 $SEARCHARTICLE_MSG = "記事の検索";
 $ALIASNEW_MSG = "エイリアスの登録/変更/削除";
