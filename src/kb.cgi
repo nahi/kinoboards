@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 1.0 1995-10-22 08:59:03 nakahiro Exp $
+# $Id: kb.cgi,v 1.1 1995-11-01 06:27:56 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.0  1995-10-22 08:59:03  nakahiro
+# Revision 1.1  1995-11-01 06:27:56  nakahiro
+# many many changes and fixed bugs from ver 1.0.
+#
+# Revision 1.0  1995/10/22  08:59:03  nakahiro
 # beta version.
 # released on MAGARI page in kinotrope.
 #
@@ -16,16 +19,25 @@
 
 
 # ToDo:
-#	×SubjectをRe:にする
-#	×In-Reply-To:をつける
-#	×「〜にフォローされています」をつける。
-#	×user alias
-#	×board-name alias
-#	Boardを自由に選択する。
-#	×indent
-#	×indentの並べ替え
-#	×Error関数
-#	Subjectの先頭にIconを!
+#	×	SubjectをRe:にする
+#	×	In-Reply-To:をつける
+#	×	「〜にフォローされています」をつける。
+#	×	user alias
+#	×	board-name alias
+#	×	indent
+#	×	indentの並べ替え
+#	×	Error関数
+#	×	タイトルリストのフォーマット
+#	×	「上の記事に反応する」なんか変。
+#	×	HTML or Plain Text
+#	×	^Mを取り除く
+#	×	最新の記事n個!
+#	△	まとめ読み(thread)
+#		指定した日記を引用する。
+#		部分日付ソート
+#		aliasの登録機能
+#		Subjectの先頭にIconを!
+#		Boardを自由に選択する。
 
 
 ###
@@ -56,22 +68,32 @@ $ARTICLE_PREFIX = "kb";
 #
 # メッセージの宣言
 #
-$ENTRY_MSG   = "kinoBoardsへの書き込み";
+$ENTRY_MSG = "kinoBoardsへの書き込み";
 $PREVIEW_MSG = "書き込みの内容を確認して下さい";
-$THANKS_MSG  = "書き込みありがとうございました";
-$SORT_MSG    = "Sort Articles.";
+$THANKS_MSG = "書き込みありがとうございました";
+$SORT_MSG = "日付順ソート";
+$NEWARTICLE_MSG = "最近の記事";
+$THREADARTICLE_MSG = "フォローまとめ読み";
 $ERROR_MSG   = "ERROR!";
 
 $ADDRESS = "Copyright 1995 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co.,Ltd.</a> &amp; <a href=\"http://www.ohara.info.waseda.ac.jp/person/nakahiro/nakahiro.html\">nakahiro</a> // 禁無断転載";
 
 $H_BOARD = "ボード:";
 $H_SUBJECT = "　題　:";
-$H_FROM = "なまえ:";
+$H_FROM = "お名前:";
 $H_MAIL = "メール:";
 $H_HOST = "マシン:";
 $H_DATE = "投稿日:";
 $H_REPLY = "元記事:";
 $H_FOLLOW = "▼反応";
+
+$H_TEXTTYPE = "入力形式:";
+
+$H_AORI = "普通のテキストとして書き込んで下さい。ただし、&lt; &gt; &amp; &quot; は、そのままでは使えません。代わりにそれぞれ、 &amp;lt; &amp;gt; &amp;amp; &amp;quot; と書くと、正しく表示されます。HTMLのわかる方は、「入力形式」を「HTML整形を行なう」にして下さい。&lt;pre&gt;で囲まなくなり、普通のHTMLとして書けます。";
+$H_HTML = "HTML整形を行なう";
+$H_PRE = "整形は行なわない";
+
+$DEFAULT_QMARK = " ] ";
 
 #
 # 各入力項目の大きさ
@@ -151,7 +173,9 @@ MAIN: {
 	#	引用つきフォロー:	c=q&id=[1-9][0-9]*
 	#	引用なしフォロー:	c=f&id=[1-9][0-9]*
 	#	確認済み:		c=x&id=[1-9][0-9]*(引用でない場合はid=0)
-	#	Sort Articles:		c=r
+	#	日付順ソート:		c=r
+	#	最新の記事n個:		c=l&num=[1-9][0-9]*
+	#	threadまとめ読み:	c=t&id=[1-9][0-9]*
 	#
 
 	&Preview, last MAIN if ($ENV{'REQUEST_METHOD'} eq "POST");
@@ -164,6 +188,8 @@ MAIN: {
 	&Entry($NO_QUOTE, $Id),			last MAIN if ($Command eq "f");
 	&Thanks($cgi'tags{'file'}, $Id),	last MAIN if ($Command eq "x");
 	&SortArticle,				last MAIN if ($Command eq "r");
+	&NewArticle($cgi'tags{'num'}),		last MAIN if ($Command eq "l");
+	&ThreadArticle($cgi'tags{'id'}),	last MAIN if ($Command eq "t");
 
 	print("illegal\n");
 }
@@ -198,9 +224,8 @@ sub Entry {
 
 	# フォローの場合
 	if ($Id != 0) {
-		print("<pre>\n");
-		&Quote($Id, $Board);
-		print("</pre>\n<hr>\n");
+		&ViewOriginalArticle($Id, $Board);
+		print("<hr>\n");
 		print("<h2>上の記事に反応する</h2>");
 	}
 
@@ -212,7 +237,14 @@ sub Entry {
 	print("<input name=\"id\" type=\"hidden\" value=\"$Id\">\n");
 
 	# あおり文
-	print("<p>基本的にHTMLとして書き込んで下さい。HTMLがわからない場合は、普通の文章として打ち込んでみて下さい。段落わけ等はできませんが、まぁ伝言くらいなら何とかなると思います。^^;</p>\n");
+	print("<p>$H_AORI</p>\n");
+
+	# TextType
+	print("$H_TEXTTYPE\n");
+	print("<SELECT NAME=\"texttype\">\n");
+	print("<OPTION SELECTED>$H_PRE\n");
+	print("<OPTION>$H_HTML\n");
+	print("</SELECT><BR>\n");
 
 	# Board名; 本当は自由に選択できるようにしたい。
 	print("$H_BOARD $BoardName<br>\n");
@@ -226,7 +258,8 @@ sub Entry {
 
 	# 本文(引用ありなら元記事を挿入)
 	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">\n");
-	&Quote($Id, $Board) if ($Id != 0 && $QuoteFlag == $QUOTE_ON);
+	&QuoteOriginalArticle($Id, $Board)
+		if ($Id != 0 && $QuoteFlag == $QUOTE_ON);
 	print("</textarea><br>\n");
 
 	# 名前とメールアドレス、URL。
@@ -253,8 +286,11 @@ sub Preview {
 	# Boardの取得
 	local($Board) = $cgi'tags{'board'};
 
+	# TextTypeの取得
+	local($TextType) = $cgi'tags{'texttype'};
+
 	# テンポラリファイルの作成
-	local($TmpFile) = &MakeTemporaryFile($Board);
+	local($TmpFile) = &MakeTemporaryFile($Board, $TextType);
 
 	# 表示画面の作成
 	&MsgHeader($PREVIEW_MSG);
@@ -316,7 +352,7 @@ sub Thanks {
 
 
 ###
-## Sort Articles
+## 日付順にソート。新しいものが上。
 #
 sub SortArticle {
 
@@ -329,6 +365,7 @@ sub SortArticle {
 
 	open(ALL, "$AllFile") || &MyFatal(1, $AllFile);
 	while(<ALL>) {
+		s/href=\"/href=\"$PROGRAM_DIR_URL\/$Board\//;
 		push(@lines, $_);
 	}
 	close ALL;
@@ -345,12 +382,109 @@ sub SortArticle {
 
 
 ###
+## 新しい記事からn個を表示。
+#
+sub NewArticle {
+
+	# 表示する個数を取得
+	local($Num) = @_;
+
+	# 選択されたBoardの取得
+	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
+
+	# 記事番号を収めるファイル
+	local($ArticleNumFile) = $Board . "/" . $ARTICLE_NUM_FILE_NAME;
+
+	# 最新記事番号を取得
+	$ArticleToId = &GetArticleId($ArticleNumFile);
+
+	# 取ってくる最初の記事番号を取得
+	$ArticleFromId = $ArticleToId - $Num + 1;
+
+	local($i, $File);
+
+	# 表示画面の作成
+	&MsgHeader($NEWARTICLE_MSG);
+
+	print("<p>記事数: $Num ($ArticleToId 〜 $ArticleFromId)</p>");
+
+	# nameへのリンクを表示
+	print("<p> //\n");
+	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
+		print("<a href=\"\#$i\">$i</a> //\n");
+	}
+	print("</p>\n");
+
+	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
+		print("<br><hr><br>\n");
+		print("<strong><a name=\"$i\">ID = $i</a></strong><br>\n");
+		&ViewOriginalArticle($i, $Board);
+	}
+
+	&MsgFooter;
+}
+
+
+###
+## フォロー記事を全て表示。
+#
+sub ThreadArticle {
+
+	# 元記事のIdを取得
+	local($Id) = @_;
+
+	# 選択されたBoardの取得
+	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
+
+	# 表示画面の作成
+	&MsgHeader($THREADARTICLE_MSG);
+
+	# メイン関数の呼び出し(subject)
+#	&ThreadArticleMain('subject only', $Id, $Board);
+
+	# メイン関数の呼び出し
+	&ThreadArticleMain('', $Id, $Board);
+
+	&MsgFooter;
+}
+
+
+###
+## 再帰的にその記事のフォローを表示する。
+#
+sub ThreadArticleMain {
+
+	# IdとBoardの取得
+	local($SubjectOnly, $Id, $Board) = @_;
+
+	# フォロー記事のIdの取得
+	local(@FollowIdList) = &GetFollowIdList($Id, $Board);
+
+	# 区切り
+	print("<hr>\n");
+
+	if ($SubjectOnly) {
+		&MyFatal(999, 'unknown');
+	} else {
+		# 元記事の表示
+		&ViewOriginalArticle($Id, $Board);
+	}
+
+	# フォロー記事の表示
+	foreach (@FollowIdList) {
+		# 再帰
+		&ThreadArticleMain($SubjectOnly, $_, $Board);
+	}
+}
+
+
+###
 ## 確認用テンポラリファイルを作成してファイル名を返す。
 #
 sub MakeTemporaryFile {
 
-	# Boardの取得
-	local($Board) = @_;
+	# BoardとTextTypeの取得
+	local($Board, $TextType) = @_;
 
 	# Board名称の取得
 	local($BoardName) = &GetBoardInfo($Board);
@@ -396,37 +530,48 @@ sub MakeTemporaryFile {
 		|| ($cgi'tags{'name'} eq "")
 		|| ($cgi'tags{'mail'} eq "");
 
+	# サブジェクトのタグチェック
+	$_ = $cgi'tags{'subject'};
+	&MyFatal(4, '') if (/</);
+
 	# テンポラリファイルに書き出す。
 	open(TMP, ">$TmpFile") || &MyFatal(1, $TmpFile);
 
 	# まずヘッダ。
-	printf(TMP "<b>$H_SUBJECT</b> %s<br>\n", $cgi'tags{'subject'});
+	printf(TMP "<strong>$H_SUBJECT</strong> %s<br>\n", $cgi'tags{'subject'});
 
 	if ($cgi'tags{'url'} eq "http://" || $cgi'tags{'url'} eq "") {
 		# URLがない場合
-		printf(TMP "<b>$H_FROM</b> %s<br>\n", $cgi'tags{'name'});
+		printf(TMP "<strong>$H_FROM</strong> %s<br>\n", $cgi'tags{'name'});
 	} else {
 		# URLがある場合
-		printf(TMP "<b>$H_FROM</b> <a href=\"%s\">%s</a><br>\n", $cgi'tags{'url'}, $cgi'tags{'name'});
+		printf(TMP "<strong>$H_FROM</strong> <a href=\"%s\">%s</a><br>\n", $cgi'tags{'url'}, $cgi'tags{'name'});
 	}
 
-	printf(TMP "<b>$H_MAIL</b> <a href=\"mailto:%s\">&lt; %s &gt;</a><br>\n",
+	printf(TMP "<strong>$H_MAIL</strong> <a href=\"mailto:%s\">&lt;%s&gt;</a><br>\n",
 		$cgi'tags{'mail'}, $cgi'tags{'mail'});
-	print(TMP "<b>$H_HOST</b> $RemoteHost<br>\n");
-	print(TMP "<b>$H_DATE</b> $InputDate<br>\n");
+#	print(TMP "<strong>$H_HOST</strong> $RemoteHost<br>\n");
+# kinotropeではgethostbyaddrも使えないようなので、現状でホスト名は省略
+	print(TMP "<strong>$H_DATE</strong> $InputDate<br>\n");
 
 	# 引用の場合
 	if ($cgi'tags{'id'} != 0) {
-		printf(TMP "<b>$H_REPLY</b> [$BoardName: %d] <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n", $cgi'tags{'id'});
+		printf(TMP "<strong>$H_REPLY</strong> [$BoardName: %d] <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n", $cgi'tags{'id'});
 	}
 
-	print(TMP "----<br>\n");
+	print(TMP "------------------------<br>\n");
 
 	# article begin
 	print(TMP "<!-- Article Begin -->\n");
 
+	# TextType用前処理
+	print(TMP "<pre>\n") if ($TextType eq $H_PRE);
+
 	# 記事
 	printf(TMP "%s\n", $cgi'tags{'article'});
+
+	# TextType用後処理
+	print(TMP "</pre>\n") if ($TextType eq $H_PRE);
 
 	# article end
 	print(TMP "<!-- Article End -->\n");
@@ -463,13 +608,13 @@ sub MakeNewArticle {
 	while(<TMP>) {
 
 		# subjectを取り出す。
-		if (/^<b>$H_SUBJECT<\/b> (.*)<br>$/) {$Subject = $1; }
+		if (/^<strong>$H_SUBJECT<\/strong> (.*)<br>$/) {$Subject = $1; }
 		# 日付を取り出す。
-		if (/^<b>$H_DATE<\/b> (.*)<br>$/) {$InputDate = $1; }
+		if (/^<strong>$H_DATE<\/strong> (.*)<br>$/) {$InputDate = $1; }
 		# 名前を取り出す。
-		if (/^<b>$H_FROM<\/b> <a[^>]*>(.*)<\/a><br>$/) {
+		if (/^<strong>$H_FROM<\/strong> <a[^>]*>(.*)<\/a><br>$/) {
 			$Name = $1;
-		} elsif (/^<b>$H_FROM<\/b> (.*)<br>$/) {
+		} elsif (/^<strong>$H_FROM<\/strong> (.*)<br>$/) {
 			$Name = $1;
 		}
 
@@ -482,7 +627,7 @@ sub MakeNewArticle {
 	&lock();
 
 	# 記事番号を取得
-	$ArticleId = &GetArticleId($ArticleNumFile);
+	$ArticleId = &GetandAddArticleId($ArticleNumFile);
 
 	# 正規のファイル名を取得
 	$ArticleFile = &GetArticleFileName($ArticleId, $Board);
@@ -499,14 +644,22 @@ sub MakeNewArticle {
 	printf(ART "<a href=\"%s\">次へ</a> // ",
 		&GetArticleFileName(($ArticleId + 1), ''));
 	print(ART "反応 ( <a href=\"$PROGRAM/$Board?c=q&id=$ArticleId\">引用有り</a> / ");
-	print(ART "<a href=\"$PROGRAM/$Board?c=f&id=$ArticleId\">無し</a> )\n");
+	print(ART "<a href=\"$PROGRAM/$Board?c=f&id=$ArticleId\">無し</a> ) // ");
+	print(ART "<a href=\"$PROGRAM/$Board?c=t&id=$ArticleId\">まとめ読み</a>\n");
 	print(ART "<hr>\n");
 
-	# ボディの先頭にボード名と記事番号を入れる
-	printf(ART "<b>$H_BOARD</b> [$BoardName: %d]<br>\n", $ArticleId);
+	# 記事ヘッダの始まり
+	print(ART "<!-- Header Begin -->\n");
+
+	# ボディの先頭にボード名と記事番号、題を入れる
+	printf(ART "<strong>$H_SUBJECT</strong> [$BoardName: %d] $Subject<br>\n", $ArticleId);
 
 	# テンポラリファイルからの記事のコピー
 	open(TMP, "$TmpFile") || &MyFatal(1, $TmpFile);
+
+	# Subject行は挿入済みなので1行飛ばす。
+	$Dust = <TMP>;
+
 	while(<TMP>) {
 		print(ART $_)
 	}
@@ -562,7 +715,7 @@ sub AddAllFile {
 
 	# Add to 'All' file
 	open(ALL, ">>$File") || &MyFatal(1, $File);
-	printf(ALL "<li><i>$InputDate</i> <a href=\"%s\">$Subject</a> [$Name]\n\n", $ArticleFile);
+	printf(ALL "<li><strong>$Id .</strong> <a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile);
 	close TITLE;
 }
 ###
@@ -581,7 +734,7 @@ sub AddTitleNormal {
 
 	# タイトルファイルに追加
 	open(TITLE, ">>$File") || &MyFatal(1, $File);
-	printf(TITLE "<li><i>$InputDate</i> <a href=\"%s\">$Subject</a> [$Name]\n\n", $ArticleFile);
+	printf(TITLE "<li><strong>$Id .</strong> <a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile);
 	close TITLE;
 }
 
@@ -628,12 +781,13 @@ sub AddTitleFollow {
 					$Nest-- if (/^<\/ul>/);
 				} until ($Nest == 0);
 
-				printf(TTMP "<li><i>$InputDate</i> <a href=\"%s\">$Subject</a> [$Name]\n\n", $ArticleFile);
+				printf(TTMP "<li><strong>$Id .</strong> <a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile);
+				printf(TTMP $_);
 
 			} else {
 
 				print(TTMP "<ul>\n");
-				printf(TTMP "<li><i>$InputDate</i> <a href=\"%s\">$Subject</a> [$Name]\n\n", $ArticleFile);
+				printf(TTMP "<li><strong>$Id .</strong> <a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile);
 				print(TTMP "</ul>\n");
 
 			}
@@ -643,7 +797,7 @@ sub AddTitleFollow {
 	}
 
 	# If not found, followed Article must be old one.
-	printf(TTMP "<li><i>$InputDate</i> <a href=\"%s\">$Subject</a> [$Name]\n\n", $ArticleFile) if (! $AddFlag);
+	printf(TTMP "<li><strong>$Id .</strong> <a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile) if (! $AddFlag);
 
 	close TITLE;
 	close TTMP;
@@ -688,9 +842,80 @@ sub ArticleWasFollowed {
 
 
 ###
+## フォロー記事のIdの配列を取り出す。
+#
+sub GetFollowIdList {
+
+	# IdとBoard
+	local($Id, $Board) = @_;
+
+	# 元ファイル
+	local($File) = &GetArticleFileName($Id, $Board);
+
+	# フォロー部分を判断するフラグ
+	local($FollowFlag) = 0;
+
+	# リスト
+	local(@Result) = ();
+
+	open(TMP, "$File") || &MyFatal(1, $File);
+	while(<TMP>) {
+
+		# フォロー部分開始の判定
+		$QuoteFlag = 1 if (/^<!-- Article End -->$/);
+
+		# フォローIdの取得
+		if (($QuoteFlag == 1) &&
+		(/^<li><a href=\"$ARTICLE_PREFIX\.([^\.]*)\.html\">/)) {
+			push(@Result, $1);
+		}
+	}
+	close TMP;
+
+	return(@Result);
+}
+
+
+###
+## 元記事の表示
+#
+sub ViewOriginalArticle {
+
+	# IdとBoard
+	local($Id, $Board) = @_;
+
+	# 引用するファイル
+	local($QuoteFile) = &GetArticleFileName($Id, $Board);
+
+	# 引用部分を判断するフラグ
+	local($QuoteFlag) = 0;
+
+	open(TMP, "$QuoteFile") || &MyFatal(1, $QuoteFile);
+	while(<TMP>) {
+
+		# 引用終了の判定
+		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
+
+		# 引用文字列の表示
+		if ($QuoteFlag == 1) {
+			print($_);
+		}
+
+		# 引用開始の判定
+		$QuoteFlag = 1
+			if (/^<!-- Header Begin -->$/
+			 || /^<!-- Article Begin -->$/);
+
+	}
+	close TMP;
+
+}
+
+
+###
 ## 引用する
 #
-sub Quote {
+sub QuoteOriginalArticle {
 
 	# IdとBoard
 	local($Id, $Board) = @_;
@@ -713,7 +938,7 @@ sub Quote {
 			s/\"//go;
 			s/<//go;
 			s/>//go;
-			print(" ] ", $_);
+			print($DEFAULT_QMARK, $_);
 		}
 
 		# 引用開始の判定
@@ -728,7 +953,7 @@ sub Quote {
 ###
 ## 記事番号を取ってくる(番号は1増える)。
 #
-sub GetArticleId {
+sub GetandAddArticleId {
 
 	# ファイル名を取得
 	local($ArticleNumFile) = @_;
@@ -745,6 +970,29 @@ sub GetArticleId {
 
 	open(AID, ">$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
 	print(AID $ArticleId + 1, "\n");
+	close AID;
+
+	# 新しい記事番号を返す。
+	return($ArticleId + 1);
+}
+
+
+###
+## 記事番号を取ってくる(番号は増えない)。
+#
+sub GetArticleId {
+
+	# ファイル名を取得
+	local($ArticleNumFile) = @_;
+
+	# 記事番号
+	local($ArticleId);
+
+	open(AID, "$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
+	while(<AID>) {
+		chop;
+		$ArticleId = $_;
+	}
 	close AID;
 
 	# 記事番号を返す。
@@ -850,7 +1098,7 @@ sub GetSubject {
 	# 該当ファイルからSubject文字列を取り出す。
 	open(TMP, "$ArticleFile") || &MyFatal(1, $ArticleFile);
 	while(<TMP>) {
-		if (/^<b>$H_SUBJECT<\/b> (.*)<br>$/) {
+		if (/^<strong>$H_SUBJECT<\/strong> \[[^\]]*\] (.*)<br>$/) {
 			$Subject = $1;
 		}
 	}
@@ -950,6 +1198,9 @@ sub MyFatal {
 		print("<p>Title File is illegal.\n");
 		print("お手数ですが、<a href=\"$Maint\"</a>$Maint</a>まで\n");
 		print("お知らせ下さい。</p>\n");
+	} elsif ($MyFatalNo == 4) {
+		print("<p>ごめんなさい、題中にHTMLタグを入れることは\n");
+		print("禁じられています。戻ってもう一度。</a>\n");
 	} else {
 		print("<p>エラー番号不定: お手数ですが、");
 		print("このエラーが生じた状況を");
@@ -992,7 +1243,8 @@ sub decode {
                 $value =~ tr/+/ /;
                 $value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack("C", hex($1))/ge;
 		$tags{$tag} = `echo -n '$value' | /usr/local/bin/nkf -e`;
+		$tags{$tag} =~ s///ge;
         }
 }
 
-#/////////////////////////////////////////////////////////////////////0> 
+#/////////////////////////////////////////////////////////////////////
