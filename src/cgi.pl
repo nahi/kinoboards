@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.44 2000-04-18 13:24:38 nakahiro Exp $
+# $Id: cgi.pl,v 2.45 2000-04-21 12:01:39 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -39,6 +39,7 @@ $AF_INET = 2; $SOCK_STREAM = ( $^O eq 'solaris' )? 2 : 1;
 #					WinNT, Mac
 # AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*(Solaris 2.*)
 
+$COLSEP = "\377";
 $CRLF = "\x0d\x0a";		# cannot use \r\n
 				# because of MacPerl's !ox#*& behavior...
 
@@ -164,7 +165,7 @@ sub unlock_file_flock
 ###
 ## Creating HTML header
 #
-sub Header
+sub header
 {
     local( $utcFlag, $utcStr, $cookieFlag, *cookieList, $cookieExpire ) = @_;
     print( "Content-type: text/html; charset=" . $CHARSET_MAP{ $CHARSET } . $CRLF );
@@ -187,7 +188,7 @@ sub Header
 	    elsif ( $cookieExpire =~ /^\d+$/ )
 	    {
 		# called by UTC.
-		print( " expires=", &GetHttpDateTimeFromUtc( $cookieExpire ), ";" );
+		print( " expires=", &getHttpDateTimeFromUtc( $cookieExpire ), ";" );
 	    }
 	    else
 	    {
@@ -202,7 +203,7 @@ sub Header
     # Header for Last-Modified.
     if ( $utcFlag )
     {
-	print( "Last-Modified: ", &GetHttpDateTimeFromUtc( $utcStr || $^T ), $CRLF );
+	print( "Last-Modified: ", &getHttpDateTimeFromUtc( $utcStr || $^T ), $CRLF );
     }
 
     # now, the end of Head Block.
@@ -214,7 +215,7 @@ sub Header
 ###
 ## format as HTTP Date/Time
 #
-sub GetHttpDateTimeFromUtc
+sub getHttpDateTimeFromUtc
 {
     local( $utc ) = @_;
     local( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime( $utc );
@@ -231,7 +232,7 @@ sub GetHttpDateTimeFromUtc
 ## Decoding CGI variables
 ## CAUTION! function decode sets global variable, TAGS.
 #
-sub Decode
+sub decode
 {
     local( $args );
     if ( $ENV{ 'REQUEST_METHOD' } eq 'POST' )
@@ -262,15 +263,34 @@ sub Decode
 	$value =~ s/\x0d\x0a/\x0a/go;
 	$value =~ s/\x0d/\x0a/go;
 
-	$TAGS{ $key } = $value;
+	if ( defined( $TAGS{ $key } ))
+	{
+	    $TAGS{ $key } .= $COLSEP . $value;
+	}
+	else
+	{
+	    $TAGS{ $key } = $value;
+	}
     }
+}
+
+sub tag
+{
+    return undef unless defined( $TAGS{ $_[0] } );
+    return wantarray? split( /$COLSEP/, $TAGS{ $_[0] } ) : $TAGS{ $_[0] };
+}
+
+sub setTag
+{
+    local( $key, $value ) = @_;
+    $TAGS{ $key } = $value;
 }
 
 
 ###
 ## Decoding HTTP-Cookies
 #
-sub Cookie
+sub cookie
 {
     local( $key, $value );
     foreach ( split( /;\s*/, $ENV{ 'HTTP_COOKIE' }))
@@ -684,7 +704,7 @@ sub SecureHtmlEx
 	    {
 		$feature = '';
 	    }
-	    if ( &SecureFeature( $tag, $fVec{ $tag }, $feature ))
+	    if ( &secureFeature( $tag, $fVec{ $tag }, $feature ))
 	    {
 		if ( $srcString =~ m!</$tag>!i )
 		{
@@ -734,7 +754,7 @@ sub SecureHtmlEx
     }
 }
 
-sub SecureXHTML
+sub secureXHTML
 {
     local( *string, *nVec, *fVec ) = @_;
     local( $srcString, $tag, $need, $emptyElement, $feature, $markuped );
@@ -761,7 +781,7 @@ sub SecureXHTML
 	    {
 		$feature = '';
 	    }
-	    if ( &SecureFeature( $tag, $fVec{ $tag }, $feature ))
+	    if ( &secureFeature( $tag, $fVec{ $tag }, $feature ))
 	    {
 		if ( !$emptyElement && ( $srcString =~ m!</$tag>! ))
 		{
@@ -816,7 +836,7 @@ sub SecureXHTML
 ###
 ## Featureは安全か?
 #
-sub SecureFeature
+sub secureFeature
 {
     local( $tag, $allowedFeatures, $features ) = @_;
 
@@ -846,13 +866,13 @@ $COLSEP = "\377";
 
 
 ###
-## CheckUser - user authentication
+## checkUser - user authentication
 #
 # - SYNOPSIS
 #	with HTTP-Cookies,
 #		require( 'cgi.pl' );
-#		&cgi'Decode;
-#		&cgi'Cookie;
+#		&cgi'decode;
+#		&cgi'cookie;
 #		$cgiauth'AUTH_TYPE = 1;
 #		( $status, $uid, $passwd, @userInfo ) = &cgiauth'CheckUser( $userdb );
 #
@@ -863,7 +883,7 @@ $COLSEP = "\377";
 #
 #	with direct URL Authentication
 #		require( 'cgi.pl' );
-#		&cgi'Decode;
+#		&cgi'decode;
 #		$cgiauth'AUTH_TYPE = 3;
 #		$cgi'TAGS{'kinoT'} = 0 ... plain passwd / 1 ... encrypted
 #		$cgi'TAGS{'kinoU'} = user's name
@@ -888,7 +908,7 @@ $COLSEP = "\377";
 #		4 ... password incorrect.
 #		9 ... $ADMIN passwd is null.
 #
-sub CheckUser
+sub checkUser
 {
     local( $userdb ) = @_;
     if ( $AUTH_TYPE == 1 )
@@ -898,7 +918,7 @@ sub CheckUser
 	if ( $cgi'TAGS{'kinoU'} )
 	{
 	    # authentication data in TAGS.
-	    return &CheckUserPasswd( $userdb, 0, $cgi'TAGS{'kinoU'},
+	    return &checkUserPasswd( $userdb, 0, $cgi'TAGS{'kinoU'},
 		$cgi'TAGS{'kinoP'} );
 	}
 	elsif ( $cgi'COOKIES{'kinoauth'} )
@@ -908,7 +928,7 @@ sub CheckUser
 		$cgi'COOKIES{'kinoauth'}, 2 );
 	    if ( $kinoU ne '' )
 	    {
-		return &CheckUserPasswd( $userdb, 1, $kinoU, $kinoP );
+		return &checkUserPasswd( $userdb, 1, $kinoU, $kinoP );
 	    }
 	}
     }
@@ -917,27 +937,27 @@ sub CheckUser
 	# with Server Authentication
 
 	# authentication successes if REMOTE_USER was set.
-	return &CheckUserPasswd( $userdb, 2, $cgi'REMOTE_USER );
+	return &checkUserPasswd( $userdb, 2, $cgi'REMOTE_USER );
     }
     elsif (( $AUTH_TYPE == 3 ) && $cgi'TAGS{'kinoU'} )
     {
 	# with direct URL Authentication
 
 	# authentication data in TAGS.
-	return &CheckUserPasswd( $userdb, ( $cgi'TAGS{'kinoT'} eq '' )? 1 : 0,
+	return &checkUserPasswd( $userdb, ( $cgi'TAGS{'kinoT'} eq '' )? 1 : 0,
 	    $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} );
     }
 
     # default authentication.
-    return &CheckUserPasswd( $userdb, 2, $GUEST );
+    return &checkUserPasswd( $userdb, 2, $GUEST );
 }
 
 
 ###
-## CreateUserDb - create new user db.
+## createUserDb - create new user db.
 #
 # - SYNOPSIS
-#	&cgiauth'CreateUesrDb( $userdb );
+#	&cgiauth'createUserDb( $userdb );
 #
 # - ARGS
 #	$userdb		new user db.
@@ -948,7 +968,7 @@ sub CheckUser
 # - RETURN
 #	1 if succeed. 0 if failed.
 #
-sub CreateUserDb
+sub createUserDb
 {
     local( $userdb ) = @_;
 
@@ -960,8 +980,8 @@ sub CreateUserDb
     close USERDB;
 
     # add guest user with no passwd.
-    if ( !defined( &AddUser( $userdb, $ADMIN, '', ())) ||
-	!defined( &AddUser( $userdb, $GUEST, '', ())))
+    if ( !defined( &addUser( $userdb, $ADMIN, '', ())) ||
+	!defined( &addUser( $userdb, $GUEST, '', ())))
     {
 	unlink( $userdb );
 	return 0;
@@ -972,10 +992,10 @@ sub CreateUserDb
 
 
 ###
-## AddUser - add new user.
+## addUser - add new user.
 #
 # - SYNOPSIS
-#	&cgiauth'AddUser( $userdb, $user, $passwd, @userInfo );
+#	&cgiauth'addUser( $userdb, $user, $passwd, @userInfo );
 #
 # - ARGS
 #	$userdb		user db.
@@ -991,7 +1011,7 @@ sub CreateUserDb
 #	1 if failed ( user entry duplicated ).
 #	2 if failed ( unknown ).
 #
-sub AddUser
+sub addUser
 {
     local( $userdb, $user, $passwd, @userInfo ) = @_;
     local( $id, $newLine );
@@ -1009,8 +1029,8 @@ sub AddUser
     }
     close USERDB;
 
-    $id = &NewId( $userdb );
-    local( $salt ) = &NewSalt();
+    $id = &newId( $userdb );
+    local( $salt ) = &newSalt();
     $newLine = sprintf( "%s\t%s\t%s\t%s\t%s\t%s", $id, $user, $salt,
 	substr( crypt( $passwd, $salt ), 2 ), $^T,
 	( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR )); 
@@ -1024,10 +1044,10 @@ sub AddUser
 
 
 ###
-## SetUserPasswd - set user passwd.
+## setUserPasswd - set user passwd.
 #
 # - SYNOPSIS
-#	&cgiauth'SetUserPasswd( $userdb, $user, $passwd );
+#	&cgiauth'setUserPasswd( $userdb, $user, $passwd );
 #
 # - ARGS
 #	$userdb		user db.
@@ -1041,14 +1061,14 @@ sub AddUser
 #	returns 1 if succeed.
 #	0 if failed.
 #
-sub SetUserPasswd
+sub setUserPasswd
 {
     local( $userdb, $user, $passwd ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
     local( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo );
 
-    local( $salt ) = &NewSalt();
+    local( $salt ) = &newSalt();
     open( USERDBTMP, ">$tmpFile" ) || return 0;
     open( USERDB, "<$userdb" ) || return 0;
     while ( <USERDB> )
@@ -1083,10 +1103,10 @@ sub SetUserPasswd
 
 
 ###
-## SetUserInfo - set user info.
+## setUserInfo - set user info.
 #
 # - SYNOPSIS
-#	&cgiauth'SetUserInfo( $userdb, $user, @userInfo );
+#	&cgiauth'setUserInfo( $userdb, $user, @userInfo );
 #
 # - ARGS
 #	$userdb		user db.
@@ -1100,7 +1120,7 @@ sub SetUserPasswd
 #	returns 1 if succeed.
 #	0 if failed.
 #
-sub SetUserInfo
+sub setUserInfo
 {
     local( $userdb, $user, @userInfo ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
@@ -1142,10 +1162,10 @@ sub SetUserInfo
 
 
 ###
-## SearchUserInfo - serarch user info.
+## searchUserInfo - serarch user info.
 #
 # - SYNOPSIS
-#	&cgiauth'SearchUserInfo( $userdb, @userInfo );
+#	&cgiauth'searchUserInfo( $userdb, @userInfo );
 #
 # - ARGS
 #	$userdb		user db.
@@ -1159,7 +1179,7 @@ sub SetUserInfo
 #	returns the list of user info.
 #	nil if not found.
 #
-sub SearchUserInfo
+sub searchUserInfo
 {
     local( $userdb, @userInfo ) = @_;
     local( @dInfo ) = ();
@@ -1189,10 +1209,10 @@ sub SearchUserInfo
 
 
 ###
-## Header - header print
+## header - header print
 #
 # - SYNOPSIS
-#	&cgiauth'Header( $lastModifiedP, $lastModifiedTime, $type, $expire );
+#	&cgiauth'header( $lastModifiedP, $lastModifiedTime, $type, $expire );
 #
 # - ARGS
 #	$lastModifiedP		print last-modified header or not.
@@ -1209,7 +1229,7 @@ sub SearchUserInfo
 # - RETURN
 #	nothing.
 #
-sub Header
+sub header
 {
     local( $lastModifiedP, $lastModifiedTime, $type, $expire ) = @_;
 
@@ -1240,21 +1260,21 @@ sub Header
 	
     if ( $cookieFlag )
     {
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, *cookieList,
+	&cgi'header( $lastModifiedP, $lastModifiedTime, 1, *cookieList,
 	    $expire );
     }
     else
     {
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0, undef, 0 );
+	&cgi'header( $lastModifiedP, $lastModifiedTime, 0, undef, 0 );
     }
 }
 
 
 ###
-## CheckUserPasswd - check user's name and password.
+## checkUserPasswd - check user's name and password.
 #
 # - SYNOPSIS
-#	&CheckUserPasswd( $userdb, $user, $passwd );
+#	&checkUserPasswd( $userdb, $user, $passwd );
 #
 # - ARGS
 #	$userdb		user db.
@@ -1277,13 +1297,13 @@ sub Header
 #		4 ... password incorrect.
 #		9 ... $ADMIN passwd is null.
 #
-sub CheckUserPasswd
+sub checkUserPasswd
 {
     local( $userdb, $checkType, $user, $passwd ) = @_;
 
     return ( 1 ) unless $user;
 
-    return ( &UpdateUserPasswd( $userdb, $user, $passwd )) if ( $checkType == 0 );
+    return ( &updateUserPasswd( $userdb, $user, $passwd )) if ( $checkType == 0 );
 
     local( $retCode, $retUser, $retPasswd, $retRest );
     $retCode = 3;		# Means `not found'.
@@ -1340,10 +1360,10 @@ sub CheckUserPasswd
 
 
 ###
-## UpdateUserPasswd - update user's salt.
+## updateUserPasswd - update user's salt.
 #
 # - SYNOPSIS
-#	&UpdateUserPasswd( $userdb, $user, $passwd );
+#	&updateUserPasswd( $userdb, $user, $passwd );
 #
 # - ARGS
 #	$userdb		user db.
@@ -1364,7 +1384,7 @@ sub CheckUserPasswd
 #		4 ... password incorrect.
 #		9 ... $ADMIN passwd is null.
 #
-sub UpdateUserPasswd
+sub updateUserPasswd
 {
     local( $userdb, $user, $passwd ) = @_;
 
@@ -1402,7 +1422,7 @@ sub UpdateUserPasswd
 	{
 	    if ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dPasswd )
 	    {
-		$dSalt = &NewSalt();
+		$dSalt = &newSalt();
 		$dPasswd = substr( crypt( $passwd, $dSalt ), 2 );
 		$UID = $dUser;
 		$PASSWD = $dPasswd;
@@ -1435,10 +1455,10 @@ sub UpdateUserPasswd
 
 
 ###
-## NewId - get new user's id.
+## newId - get new user's id.
 #
 # - SYNOPSIS
-#	&NewId( $userdb );
+#	&newId( $userdb );
 #
 # - ARGS
 #	$userdb		user db.
@@ -1452,7 +1472,7 @@ sub UpdateUserPasswd
 #	returns generated new user id.
 #	undef if failed.
 #
-sub NewId
+sub newId
 {
     local( $userdb ) = @_;
     local( $dId, $maxId );
@@ -1471,10 +1491,10 @@ sub NewId
 
 
 ###
-## NewSalt - get new salt.
+## newSalt - get new salt.
 #
 # - SYNOPSIS
-#	&NewSalt();
+#	&newSalt();
 #
 # - DESCRIPTION
 #	get new salt.
@@ -1483,7 +1503,7 @@ sub NewId
 #	returns generated new salt.
 #
 @SALT_STR = ( 'a' .. 'z', 'A' .. 'Z', 0 .. 9, '.', '/' );
-sub NewSalt
+sub newSalt
 {
     $SALT_STR[ int( rand( $#SALT_STR + 1 ))] . 
 	$SALT_STR[ int( rand( $#SALT_STR + 1 ))];
@@ -1491,10 +1511,10 @@ sub NewSalt
 
 
 ###
-## CreateNewPasswd - create password
+## createNewPasswd - create password
 #
 # - SYNOPSIS
-#	&CreateNewPasswd();
+#	&createNewPasswd();
 #
 # - ARGS
 #	nothing
@@ -1505,7 +1525,7 @@ sub NewSalt
 # - RETURN
 #	returns created password.
 #
-sub CreateNewPasswd
+sub createNewPasswd
 {
     local( $passwd, $n );
     local( $i ) = $DEFAULT_PASSWD_LENGTH;
@@ -1530,19 +1550,19 @@ $STR = '';
 $BUFLIMIT = 4096;
 $CHARSET = 'euc';
 
-sub Init { $STR = ''; }
+sub init { $STR = ''; }
 
-sub Cache
+sub cache
 {
     for ( @_ ) { $STR .= $_; }
-    &Flush() if ( length( $STR ) > $BUFLIMIT );
+    &flush() if ( length( $STR ) > $BUFLIMIT );
 }
 
-sub Flush
+sub flush
 {
     &jcode'convert( *STR, $CHARSET ) if ( $CHARSET ne 'euc' );
     print( $STR );
-    &Init();
+    &init();
 }
 
 
