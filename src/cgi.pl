@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.62 1998-06-19 07:46:50 nakahiro Exp $
+# $Id: cgi.pl,v 2.0 1998-08-21 16:54:55 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -129,8 +129,8 @@
 #	もしくはIPアドレスを指定しておいてください．
 #	OSによっては，$AF_INETと$SOCK_STREAMの値も変更する必要があります．
 #	$AF_INET = 2, $SOCK_STREAM = 2	... SonOS 5.*(Solaris 2.*)
-#	$AF_INET = 2, $SOCK_STREAM = 1	... SunOS 4.*, HP-UX, AIX, Linux,
-#					    FreeBSD, IRIX, WinNT, Mac
+#	$AF_INET = 2, $SOCK_STREAM = 1	... SunOS 4.*, HP-UX, AIX, IRIX, Linux,
+#					    FreeBSD, WinNT, Mac
 #
 # &cgi'SecureHtml( *string );
 #	*stringで指定された文字列のうち，指定した安全なタグのみを残し，
@@ -173,9 +173,11 @@ $SMTP_SERVER = 'localhost';
 # $SMTP_SERVER = '123.123.123.123';
 
 $AF_INET = 2; $SOCK_STREAM = 1;
-# AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, Linux, FreeBSD,
-#					IRIX, WinNT, Mac
+# AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, IRIX, Linux, FreeBSD,
+#					WinNT, Mac
 # AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*(Solaris 2.*)
+
+$HTTP_COOKIES_NEVER_EXPIRED = 'Thu, 31-Dec-2029 23:59:59 GMT';
 
 @HTML_TAGS = (
      # タグ名, 閉じ必須か否か, 使用可能なfeature
@@ -319,17 +321,19 @@ sub unlock_flock {
 # $ENV{'SERVER_PROTOCOL'} 200 OK
 # Server: $ENV{'SERVER_SOFTWARE'}
 sub Header {
-    local( $utcFlag, $utcStr, $cookieFlag, $cookieStr ) = @_;
+    local( $utcFlag, $utcStr, $cookieFlag, $cookieStr, $cookieExpire ) = @_;
 
-    print( "Content-type: text/html\n" );
+    print( "Content-type: text/html; charset=ISO-2022-JP\n" );
 
     # Header for HTTP Cookies.
-    printf( "Set-Cookie: $cookieStr; domain=%s; path=%s\n", $SERVER_NAME,
-	$CGIDIR_NAME ) if ( $cookieFlag );
+    if ( $cookieFlag ) {
+	print( "Set-Cookie: $cookieStr;" );
+	print( " expires=$HTTP_COOKIES_NEVER_EXPIRED;" ) if ( !$cookieExpire );
+	print( "\n" );
+    }
 
     # Header for Last-Modified.
-    printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || $^T ))
-	if ( $utcFlag );
+    printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || $^T )) if ( $utcFlag );
 
     # now, the end of Head Block.
     print( "\n" );
@@ -823,6 +827,495 @@ sub GetFeatureValue {
 
 
 ###
+## CGI authentication package
+#
+package cgiauth;
+
+$GUEST = 'guest';
+$ADMIN = 'admin';
+$DEFAULT_PASSWD_LENGTH = 6;
+$AUTH_TYPE = 1;			# 1 ... use HTTP-Cookies
+				# 2 ... use Server Authentication
+				# 3 ... use direct URL Authentication
+$F_COOKIE_RESET = "CookieReset\376";
+
+
+###
+## CheckUser - user authentication
+#
+# - SYNOPSIS
+#	with HTTP-Cookies,
+#		require( 'cgi.pl' );
+#		&cgi'Decode;
+#		&cgi'Cookie;
+#		$cgiauth'AUTH_TYPE = 1;
+#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'CheckUser( $userdb );
+#
+#	with Server Authentication
+#		require( 'cgi.pl' );
+#		$cgiauth'AUTH_TYPE = 2;
+#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'CheckUser( $userdb );
+#
+#	with direct URL Authentication
+#		require( 'cgi.pl' );
+#		&cgi'Decode;
+#		$cgiauth'AUTH_TYPE = 3;
+#		( $status, $uid, $passwd, @userInfo ) = &cgiauth'CheckUser( $userdb );
+#
+# - ARGS
+#	$userdb		user db.
+#
+# - DESCRIPTION
+#	check user's name and password.
+#
+# - RETURN
+#	returns status, user entry, encrypted password,
+#	and listed user's info.
+#
+#	status:
+#		0 ... succeed authentication.
+#		1 ... $user is null.
+#		2 ... cannot open DB file.
+#		3 ... $user was not found in DB.
+#		4 ... password incorrect.
+#
+sub CheckUser {
+    local( $userdb ) = @_;
+
+    if ( $AUTH_TYPE == 1 ) {
+	# with HTTP-Cookies
+
+	if ( $cgi'TAGS{'kinoU'} ) {
+	    # authentication data in TAGS.
+	    return( &CheckUserPasswd( $userdb, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} ));
+	}
+	elsif ( $cgi'COOKIES{'kinoauth'} ) {
+	    # authentication succeed if HTTP-Cookie was set.
+	    return( &GetUserInfo( $userdb, $cgi'COOKIES{'kinoauth'} ));
+	}
+    }
+    elsif (( $AUTH_TYPE == 2 ) && $cgi'REMOTE_USER ) {
+	# with Server Authentication
+
+	# authentication successes if REMOTE_USER was set.
+	return( &GetUserInfo( $userdb, $cgi'REMOTE_USER ));
+    }
+    elsif ( $cgi'TAGS{'kinoU'} ) {
+	# with direct URL Authentication
+
+	# authentication data in TAGS.
+	return( &CheckUserPasswd( $userdb, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} ));
+    }
+
+    # default authentication.
+    return( &CheckUserPasswd( $userdb, $GUEST, '' ));
+}
+
+
+###
+## GetUserInfo - get user's info.
+#
+# - SYNOPSIS
+#	&GetUserInfo( $userdb, $uid );
+#
+# - ARGS
+#	$userdb		user db.
+#	$uid		user id / user entry.
+#
+# - DESCRIPTION
+#	get specified user's info.
+#
+# - RETURN
+#	returns status, user entry, encrypted password,
+#	and listed user's info.
+#
+#	status
+#		0 ... entry found.
+#		1 ... $uid is null.
+#		2 ... cannot open DB file.
+#		3 ... $uid was not found in DB.
+#
+sub GetUserInfo {
+    local( $userdb, $user ) = @_;
+
+    # no password check.
+    &CheckUserPasswd( $userdb, $user, undef );
+}
+
+
+###
+## CreateUserDb - create new user db.
+#
+# - SYNOPSIS
+#	&kinoauth'CreateUesrDb( $userdb );
+#
+# - ARGS
+#	$userdb		new user db.
+#
+# - DESCRIPTION
+#	create new user db.
+#
+# - RETURN
+#	1 if succeed. 0 if failed.
+#
+sub CreateUserDb {
+    local( $userdb ) = @_;
+
+    # already exists.
+    return( 0 ) if ( -e "$userdb" );
+
+    # create
+    open( USERDB, ">$userdb" ) || return( 0 );
+    close( USERDB );
+
+    # add guest user with no passwd.
+    if ( !defined( &AddUser( $userdb, $ADMIN, '', ())) ||
+	!defined( &AddUser( $userdb, $GUEST, '', ()))) {
+	unlink( $userdb );
+	return( 0 );
+    }
+
+    1;
+}
+
+
+###
+## AddUser - add new user.
+#
+# - SYNOPSIS
+#	&kinoauth'AddUser( $userdb, $user, $passwd, @userInfo );
+#
+# - ARGS
+#	$userdb		user db.
+#	$user		user entry.
+#	$passwd		password.
+#	@userInfo	user's info.
+#
+# - DESCRIPTION
+#	add new user to DB.
+#
+# - RETURN
+#	0 if succeed.
+#	1 if failed ( user entry duplicated ).
+#	2 if failed ( unknown ).
+#
+sub AddUser {
+    local( $userdb, $user, $passwd, @userInfo ) = @_;
+    local( $id, $newLine );
+    local( $dId, $dUser );
+
+    open( USERDB, "<$userdb" ) || return 2;
+    while( <USERDB> ) {
+	( $dId, $dUser ) = split( /\t/, $_, 3 );
+	if ( $dUser eq $user ) {
+	    close( USERDB );
+	    return 1;
+	}
+    }
+    close( USERDB );
+
+    $id = &NewId( $userdb );
+    $newLine = sprintf( "%s\t%s\t%s\t%s\t%s", $id, $user, $^T, $cgi'REMOTE_HOST, ( substr( crypt( $passwd, $id ), 2 )));
+    foreach ( @userInfo ) { $newLine .= "\t" . $_; }
+    open( USERDB, ">>$userdb" ) || return 2;
+    print( USERDB $newLine . "\n" );
+    close( USERDB );
+
+    0;
+}
+
+
+###
+## SetUserPasswd - set user passwd.
+#
+# - SYNOPSIS
+#	&kinoauth'SetUserPasswd( $userdb, $user, $passwd );
+#
+# - ARGS
+#	$userdb		user db.
+#	$user		user entry.
+#	$passwd		user's password.
+#
+# - DESCRIPTION
+#	set user's password.
+#
+# - RETURN
+#	returns 1 if succeed.
+#	0 if failed.
+#
+sub SetUserPasswd {
+    local( $userdb, $user, $passwd ) = @_;
+    local( $tmpFile ) = "$userdb.tmp.$$";
+    local( $found ) = 0;
+    local( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, $dInfo );
+
+    open( USERDBTMP, ">$tmpFile" ) || return( 0 );
+    open( USERDB, "<$userdb" ) || return( 0 );
+    while( <USERDB> ) {
+	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
+	chop;
+	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, $dInfo ) = split( /\t/, $_ );
+
+	if ( $dUser eq $user ) {
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dAddTime, $dAddHost, ( substr( crypt( $passwd, $dId ), 2 )), $dInfo );
+	    $found = 1;
+	}
+	else {
+	    print( USERDBTMP $_ . "\n" );
+	}
+    }
+    close( USERDB );
+    close( USERDBTMP );
+
+    rename( $tmpFile, $userdb ) || return( 0 );
+
+    $found;
+}
+
+
+###
+## SetUserInfo - set user info.
+#
+# - SYNOPSIS
+#	&kinoauth'SetUserInfo( $userdb, $user, @userInfo );
+#
+# - ARGS
+#	$userdb		user db.
+#	$user		user entry.
+#	@userInfo	user's info.
+#
+# - DESCRIPTION
+#	set user info.
+#
+# - RETURN
+#	returns 1 if succeed.
+#	0 if failed.
+#
+sub SetUserInfo {
+    local( $userdb, $user, @userInfo ) = @_;
+    local( $tmpFile ) = "$userdb.tmp.$$";
+    local( $found ) = 0;
+    local( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo, $newLine );
+
+    open( USERDBTMP, ">$tmpFile" ) || return( 0 );
+    open( USERDB, "<$userdb" ) || return( 0 );
+    while( <USERDB> ) {
+	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
+	chop;
+	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo ) = split( /\t/, $_ );
+
+	if ( $dUser eq $user ) {
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, join( "\t", @userInfo ));
+	    $found = 1;
+	}
+	else {
+	    print( USERDBTMP $_ . "\n" );
+	}
+    }
+    close( USERDB );
+    close( USERDBTMP );
+
+    rename( $tmpFile, $userdb ) || return( 0 );
+
+    $found;
+}
+
+
+###
+## Header - header print
+#
+# - SYNOPSIS
+#	&cgiauth'Header( $lastModifiedP, $lastModifiedTime, $user, $cookieExpire );
+#
+# - ARGS
+#	$lastModifiedP		print last-modified header or not.
+#	$lastModifiedTime	time for last-modified header.
+#				if null, now is the time for last-modified.
+#	$user			user id.
+#				does not send HTTP Cookies if $user is null.
+#				reset HTTP Cookies if $user is $cgiauth'F_COOKIE_RESET.
+#	$cookieExpire		expires HTTP Cookies or not.
+#
+# - DESCRIPTION
+#	exec cgi.pl's Header function to set HTTP-Cookies header.
+#
+# - RETURN
+#	nothing.
+#
+sub Header {
+    local( $lastModifiedP, $lastModifiedTime, $user, $cookieExpire ) = @_;
+
+    if ( $user eq '' ) {
+	# no cookies
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0 );
+    }
+    elsif ( $user eq $F_COOKIE_RESET ) {
+	# not numeric. reset.
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, "kinoauth=", $cookieExpire );
+    }
+    elsif ( $UID eq $cgi'COOKIES{'kinoauth'} ) {
+	# no cookies
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0 );
+    }
+    else {
+	# set
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, "kinoauth=$UID", $cookieExpire );
+    }
+}
+
+
+###
+## LinkTagWithAuth - create A tag format.
+#
+# - SYNOPSIS
+#	LinkTagWithAuth( $url, $markUp, $uid, $passwd );
+#
+# - ARGS
+#	$url		URL.
+#	$markUp		markup-ed text.
+#	$uid		user id; must be NUMERIC.
+#	$passwd		password; must be encrypted.
+#
+# - DESCRIPTION
+#	create A tag format from given data.
+#	for authentication, 'kinoU=$uid' and 'kinoP=$passwd' is added.
+#
+# - RETURN
+#	formatted string.
+#
+sub LinkTagWithAuth {
+    local( $url, $markUp, $uid, $passwd ) = @_;
+    local( $urlStr ) = $url . ( grep( /\?/, $url ) ? '&' : '?' ) .
+	"kinoU=$uid&kinoP=$passwd";
+    "<a href=\"$urlStr\">$markUp</a>";
+}
+
+
+###
+## CheckUserPasswd - check user's name and password.
+#
+# - SYNOPSIS
+#	&CheckUserPasswd( $userdb, $user, $passwd );
+#
+# - ARGS
+#	$userdb		user db.
+#	$user		user entry.
+#	$passwd		password.
+#
+# - DESCRIPTION
+#	check user's name and password.
+#	password will not be checked if undefined value.
+#
+# - RETURN
+#	returns status, user entry, encrypted password,
+#	and listed user's info.
+#
+#	status
+#		0 ... succeed authentication.
+#		1 ... $user is null.
+#		2 ... cannot open DB file.
+#		3 ... $user was not found in DB.
+#		4 ... password incorrect.
+#
+sub CheckUserPasswd {
+    local( $userdb, $user, $passwd ) = @_;
+    local( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo );
+
+    return( 1 ) if ( !$user );
+
+    open( USERDB, "<$userdb" ) || return( 2 );
+    while( <USERDB> ) {
+	next if ( /^\#/o || /^$/o );
+	chop;
+	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo ) = split( /\t/, $_ );
+
+	if ( $dUser eq $user ) {
+	    close( USERDB );
+	    if (( $passwd eq $dPasswd ) || ( substr( crypt( $passwd, $dId ), 2 ) eq $dPasswd )) {
+		$UID = $dId;
+		return( 0, $dUser, $dPasswd, @dInfo );
+	    }
+	    return( 4 );
+	}
+
+	if ( $dId eq $user ) {
+	    close( USERDB );
+	    if ( !defined( $passwd )) {
+		$UID = $dId;
+		return( 0, $dUser, $dPasswd, @dInfo );
+	    }
+	    return( 4 );
+	}
+    }
+    close( USERDB );
+    return( 3 );
+}
+
+
+###
+## NewId - get new user's id.
+#
+# - SYNOPSIS
+#	&NewId( $userdb );
+#
+# - ARGS
+#	$userdb		user db.
+#
+# - DESCRIPTION
+#	get new user id which is not used before.
+#	at first get maximum id from DB,
+#	increment it, then return as new id.
+#
+# - RETURN
+#	returns generated new user id.
+#	undef if failed.
+#
+sub NewId {
+    local( $userdb ) = @_;
+    local( $dId, $maxId );
+    $maxId = 0;
+    open( USERDB, "<$userdb" ) || return( undef );
+    while( <USERDB> ) {
+	next if ( /^\#/o || /^$/o );
+	chop;
+	( $dId = $_ ) =~ s/\t.*$//o;
+	$maxId = $dId if ( $dId > $maxId ) ;
+    }
+
+    ++$maxId;
+}
+
+
+###
+## CreateNewPasswd - create password
+#
+# - SYNOPSIS
+#	&CreateNewPasswd;
+#
+# - ARGS
+#	nothing
+#
+# - DESCRIPTION
+#	create new password for new user.
+#
+# - RETURN
+#	returns created password.
+#
+sub CreateNewPasswd {
+    local( $passwd, $n );
+    local( $i ) = $DEFAULT_PASSWD_LENGTH;
+
+    while( --$i >= 0 ) {
+	$n = 97 + int( rand( 36 ));
+	$n = $n - 75 if ( $n >= 123 );
+	$passwd .= sprintf( "%c", $n );
+    }
+    
+    $passwd;
+}
+
+
+###
 ## 日本語の表示パッケージ
 #
 package cgiprint;
@@ -846,3 +1339,4 @@ sub Flush {
 
 #/////////////////////////////////////////////////////////////////////
 1;
+
