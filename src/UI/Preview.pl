@@ -19,7 +19,7 @@ Preview: {
     local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $rFid, $eArticle, $eSubject);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
@@ -120,8 +120,23 @@ __EOF__
     &cgiprint'Cache("</p>\n$H_LINE\n");
 
     # TextType用前処理
-    if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PLAIN)) {
+    if ( !$SYS_TEXTTYPE ) {
+	# pre-formatted
+	&PlainArticleToPreFormatted( *Article );
+    }
+    elsif ( $TextType eq $H_TTLABEL[2] ) {
+	# nothing to do. it's HTML.
+    }
+    elsif ( $TextType eq $H_TTLABEL[1] ) {
+	# convert to html
 	&PlainArticleToHtml( *Article );
+    }
+    elsif ( $TextType eq $H_TTLABEL[0] ) {
+	# pre-formatted
+	&PlainArticleToPreFormatted( *Article );
+    }
+    else {
+	&Fatal( 0, 'must not be reached...MakeArticleFile' );
     }
 
     # 記事

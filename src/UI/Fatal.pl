@@ -61,7 +61,7 @@ Fatal: {
     } elsif ( $errno == 9 ) {
 
 	$severity = $kinologue'SEV_CAUTION;
-	$msg = "メイルが送信できませんでした．お手数ですが，このエラーメッセージと，エラーが生じた状況を，" . &TagA( "mailto:$MAINT", $MAINT ) . "までお知らせください．";
+	$msg = "メッセージは正しく書き込まれました（再度書き込みの必要はありません）．が，記事のメイルでの配信が失敗しました．お手数ですが，このエラーメッセージと，エラーが生じた状況を，" . &TagA( "mailto:$MAINT", $MAINT ) . "までお知らせください．";
 
     } elsif ( $errno == 10 ) {
 
@@ -127,7 +127,7 @@ Fatal: {
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    &cgi'unlock( $LOCK_FILE ) if (( !$PC ) && ( $errno != 999 ) && ( $errno != 1001 ));
+    &cgi'unlock( $LOCK_FILE ) if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ));
 
     # log a log(except logging failure).
     &KbLog( $severity, "$msg" ) if ( $errno != 1000 );

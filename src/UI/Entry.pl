@@ -17,11 +17,12 @@
 #	なし
 #
 Entry: {
-    local($QuoteFlag) = $gVarQuoteFlag;
-    local($Id, $Supersede, $IconTitle, $Key, $Value, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $DefSubject, $DefName, $DefEmail, $DefUrl, $DefFmail);
+    local( $QuoteFlag ) = $gVarQuoteFlag;
+
+    local( $Id, $Supersede, $IconTitle, $Key, $Value, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $DefSubject, $DefName, $DefEmail, $DefUrl, $DefFmail, $ttBit, $ttFlag );
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
@@ -77,12 +78,14 @@ $H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにウェブページをお持ちの方は，
 __EOF__
     }
 
-    # HTMLでも書ける場合
-    if ($SYS_TEXTTYPE) {
-	&cgiprint'Cache(<<__EOF__);
-HTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，
-$H_MESGをHTMLとして書いて頂くと，表示の時にHTML整形を行ないます．
-__EOF__
+    $ttFlag = 0;
+    $ttBit = 0;
+    foreach ( @H_TTMSG ) {
+	if (( $SYS_TEXTTYPE & ( 2**$ttBit )) && ( $SYS_TEXTTYPE ^ ( 2** $ttBit ))) {
+	    $ttFlag = 1;
+	    &cgiprint'Cache( $H_TTMSG[$ttBit] . "\n" );
+	}
+	$ttBit++;
     }
 
     &cgiprint'Cache(<<__EOF__);
@@ -108,16 +111,25 @@ __EOF__
     &cgiprint'Cache(sprintf("%s: <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n", $H_SUBJECT, $DefSubject, $SUBJECT_LENGTH));
 
     # TextType
-    if ($SYS_TEXTTYPE) {
-	&cgiprint'Cache(<<__EOF__);
-$H_TEXTTYPE:
-<SELECT NAME="texttype">
-<OPTION SELECTED>$H_PLAIN
-<OPTION>$H_HTML
-</SELECT>
-</p>
-__EOF__
-
+    if ( $ttFlag ) {
+	&cgiprint'Cache( "$H_TEXTTYPE:\n<SELECT NAME=\"texttype\">\n" );
+	$ttBit = 0;
+	foreach ( @H_TTLABEL ) {
+	    if ( $SYS_TEXTTYPE & ( 2 ** $ttBit )) {
+		if ( $ttFlag ) {
+		    $ttFlag = 0;	# now, using for a flag for the first.
+		    &cgiprint'Cache( "<OPTION SELECTED>" . $H_TTLABEL[$ttBit] . "\n" );
+		}
+		else {
+		    &cgiprint'Cache( "<OPTION>" . $H_TTLABEL[$ttBit] . "\n" );
+		}
+	    }
+	    $ttBit++;
+	}
+	&cgiprint'Cache( "</SELECT>\n</p>\n" );
+    }
+    else {
+	&cgiprint'Cache( sprintf( "<input name=\"texttype\" type=\"hidden\" value=\"%s\">\n", $H_TTLABEL[(( log $SYS_TEXTTYPE ) / ( log 2 ))] ));
     }
 
     # 本文(引用ありなら元記事を挿入)
@@ -137,8 +149,12 @@ __EOF__
 $H_MESG中に関連ウェブページへのリンクを張る場合は，
 「&lt;URL:http://〜&gt;」のように，URLを「&lt;URL:」と「&gt;」で囲んで
 書き込んでください．自動的にリンクが張られます．
-</p>
+この$H_BOARDの中の$H_MESGにリンクを張る場合は
 __EOF__
+
+    &cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=s", "検索機能を使う" ));
+
+    &cgiprint'Cache( "と便利です．探し出した$H_MESGのURLを，「&lt;URL:」と「&gt;」で囲んでください．\n</p>\n" );
 
     if ($SYS_ALIAS == 0) {
 
@@ -210,7 +226,7 @@ __EOF__
 
     }
 
-    if ($SYS_MAIL) {
+    if ( $SYS_MAIL & 2 ) {
 	&cgiprint'Cache("<p>$H_REPLYがあった時にメイルで知らせますか? <input name=\"fmail\" type=\"checkbox\" value=\"on\"></p>\n");
     }
     

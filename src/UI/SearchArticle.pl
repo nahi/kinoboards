@@ -19,7 +19,7 @@ SearchArticle: {
     local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon, $IconTitle);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
