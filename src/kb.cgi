@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 1.5 1995-11-15 11:39:16 nakahiro Exp $
+# $Id: kb.cgi,v 1.6 1995-11-22 13:01:39 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.5  1995-11-15 11:39:16  nakahiro
+# Revision 1.6  1995-11-22 13:01:39  nakahiro
+# partial sort by date.
+#
+# Revision 1.5  1995/11/15 11:39:16  nakahiro
 # show user-alias information when posting.
 #
 # Revision 1.4  1995/11/08 09:18:22  nakahiro
@@ -47,10 +50,11 @@
 #	×	まとめ読み(thread)
 #	×	指定した日記を引用する。
 #	×	指定した日記へのReferenceをつける
+#	×	部分日付ソート
+#		中身はEUC、ファイルはJISで。
 #		「上へ」「下へ」のリンク機能の追加(次/前は廃止?)
 #		まとめ読みの時、threadをわかりやすくする工夫を
 #		新しい記事n個にマークをつける
-#		部分日付ソート
 #		aliasの登録機能
 #		Subjectの先頭にIconをつけたい
 #		Boardを自由に選択する
@@ -188,7 +192,7 @@ $NO_QUOTE = 0;
 
 MAIN: {
 
-	local($Command, $Id, $File, $Num);
+	local($Command, $Id, $File, $Num, $Type);
 
 	# 標準入力(POST)または環境変数(GET)のデコード。
 	&cgi'decode;
@@ -203,7 +207,8 @@ MAIN: {
 	#
 	#	確認済み:		c=x&id=[1-9][0-9]*(引用でない時はid=0)
 	#
-	#	日付順ソート:		c=r
+	#	日付順ソート(全部):	c=r&type=all
+	#	日付順ソート(最新):	c=r&type=new
 	#	最新の記事n個:		c=l&num=[1-9][0-9]*
 	#	threadまとめ読み:	c=t&id=[1-9][0-9]*
 	#
@@ -214,6 +219,7 @@ MAIN: {
 	$Id = $cgi'tags{'id'};
 	$File = $cgi'tags{'file'};
 	$Num = $cgi'tags{'num'};
+	$Type = $cgi'tags{'type'};
 
 	&Entry($NO_QUOTE, 0),			last MAIN if ($Command eq "n");
 	$Id ? &Entry($QUOTE_ON, $Id) : &FileEntry($QUOTE_ON, $File),
@@ -221,7 +227,7 @@ MAIN: {
 	$Id ? &Entry($NO_QUOTE, $Id) : &FileEntry($NO_QUOTE, $File),
 						last MAIN if ($Command eq "f");
 	&Thanks($File, $Id),			last MAIN if ($Command eq "x");
-	&SortArticle,				last MAIN if ($Command eq "r");
+	&SortArticle($Type),			last MAIN if ($Command eq "r");
 	&NewArticle($Num),			last MAIN if ($Command eq "l");
 	&ThreadArticle($Id),			last MAIN if ($Command eq "t");
 
@@ -391,17 +397,22 @@ sub Thanks {
 #
 sub SortArticle {
 
+	# タイプ(all / new)
+	local($Type) = @_;
+
 	# 選択されたBoardの取得
 	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
-	# All file
-	local($AllFile) = "$Board/$ALL_FILE_NAME";
+	# file
+	local($File) = ($Type eq 'new')
+			? "$Board/$TITLE_FILE_NAME"
+			: "$Board/$ALL_FILE_NAME";
 
 	local(@lines);
 
-	open(ALL, "$AllFile") || &MyFatal(1, $AllFile);
+	open(ALL, "$File") || &MyFatal(1, $File);
 	while(<ALL>) {
-		s/href=\"/href=\"$PROGRAM_DIR_URL\/$Board\//;
-		push(@lines, $_);
+		(/^<li>/) && (s/href=\"/href=\"$PROGRAM_DIR_URL\/$Board\//)
+			&& push(@lines, $_);
 	}
 	close ALL;
 
@@ -1444,7 +1455,7 @@ sub GetSubjectFromFile {
 	# 取り出したSubject
 	local($Title) = '';
 
-	open(TMP, "$File") || &MyFatal(1, $File);
+	open(TMP, "cat $File | /usr/local/bin/nkf -e |") || &MyFatal(1, $File);
 	while(<TMP>) {
 
 		if (/^<[Tt][Ii][Tt][Ll][Ee]>(.*)<\/[Tt][Ii][Tt][Ll][Ee]>$/) {
