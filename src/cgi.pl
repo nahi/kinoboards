@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.51 2000-07-01 13:11:26 nakahiro Exp $
+# $Id: cgi.pl,v 2.52 2000-08-06 14:23:21 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -277,7 +277,8 @@ sub decode
 sub tag
 {
     return undef unless defined( $TAGS{ $_[0] } );
-    return wantarray? split( /$COLSEP/, $TAGS{ $_[0] } ) : $TAGS{ $_[0] };
+    local( @ary ) = split( /$COLSEP/, $TAGS{ $_[0] } );
+    return wantarray? @ary : $ary[0];
 }
 
 sub setTag
@@ -707,7 +708,7 @@ sub SecureHtmlEx
 	    {
 		$feature = '';
 	    }
-	    if ( &secureFeature( $tag, $fVec{ $tag }, $feature ))
+	    if ( &secureFeature( $feature, $fVec{ $tag } ))
 	    {
 		if ( $srcString =~ m!</$tag>!i )
 		{
@@ -790,7 +791,7 @@ sub secureXHTML
 	    {
 		$feature = '';
 	    }
-	    if ( &secureFeature( $tag, $fVec{ $tag }, $feature ))
+	    if ( &secureFeature( $feature, $fVec{ $tag } ))
 	    {
 		if ( !$emptyElement && ( $srcString =~ m!</$tag>! ))
 		{
@@ -850,16 +851,17 @@ sub secureXHTML
 #
 sub secureFeature
 {
-    local( $tag, $allowedFeatures, $features ) = @_;
+    local( $features, $allowedFeatures ) = @_;
 
-    return 1 unless $features;
+    $features =~ s/^\s+//o;
 
     local( @allowed ) = split( /\//, $allowedFeatures );
-    while ( $features =~ m/^\s*([^=\s]+)\s*=\s*('|")([^'"]*)\2/go )#'
+    while ( $features =~ s/([^=\s]+)\s*=\s*('|")([^'"]*)\2\s*//go )
     {
 	return 0 if (( !$3 ) || ( !grep( /^$1$/i, @allowed )));
     }
-    1;
+
+    return ( $features? 0 : 1 );
 }
 
 
@@ -897,9 +899,9 @@ $COLSEP = "\377";
 #		require( 'cgi.pl' );
 #		&cgi'decode;
 #		$cgiauth'AUTH_TYPE = 3;
-#		$cgi'TAGS{'kinoT'} = 0 ... plain passwd / 1 ... encrypted
-#		$cgi'TAGS{'kinoU'} = user's name
-#		$cgi'TAGS{'kinoP'} = user's passwd
+#		&cgi'tag( 'kinoT' ) = 0 ... plain passwd / 1 ... encrypted
+#		&cgi'tag( 'kinoU' ) = user's name
+#		&cgi'tag( 'kinoP' ) = user's passwd
 #		( $status, $uid, $sessKey, @userInfo ) = &cgiauth'checkUser( $userdb );
 #
 # - ARGS
@@ -926,10 +928,10 @@ sub checkUser
     {
 	# with HTTP-Cookies
 
-	if ( $cgi'TAGS{'kinoU'} )
+	if ( &cgi'tag( 'kinoU' ))
 	{
 	    # authentication data in TAGS.
-	    return &checkUserPasswd( $userdb, 0, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} );
+	    return &checkUserPasswd( $userdb, 0, scalar( &cgi'tag( 'kinoU' )), scalar( &cgi'tag( 'kinoP' )));
 	}
 	elsif ( $cgi'COOKIES{'kinoauth'} )
 	{
@@ -948,12 +950,12 @@ sub checkUser
 	# authentication successes if REMOTE_USER was set.
 	return &checkUserPasswd( $userdb, 2, $cgi'REMOTE_USER );
     }
-    elsif (( $AUTH_TYPE == 3 ) && $cgi'TAGS{'kinoU'} )
+    elsif (( $AUTH_TYPE == 3 ) && &cgi'tag( 'kinoU' ))
     {
 	# with direct URL Authentication
 
 	# authentication data in TAGS.
-	return &checkUserPasswd( $userdb, ( $cgi'TAGS{'kinoT'} eq '' )? 1 : 0, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} );
+	return &checkUserPasswd( $userdb, ( &cgi'tag( 'kinoT' ) eq '' )? 1 : 0, scalar( &cgi'tag( 'kinoU' )), scalar( &cgi'tag( 'kinoP' )));
     }
 
     # default authentication.
