@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.27 1999-06-24 14:24:34 nakahiro Exp $
+# $Id: cgi.pl,v 2.28 1999-06-25 16:35:37 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -54,29 +54,21 @@ $REMOTE_ADDR = $ENV{'REMOTE_ADDR'};
 $REMOTE_USER = $ENV{'REMOTE_USER'};
 $REQUEST_URI = $ENV{'REQUEST_URI'};
 $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
+$QUERY_STRING = $ENV{'QUERY_STRING'};
 $PATH_INFO = $ENV{'PATH_INFO'};
 
-# PROGRAM
-( $PROGRAM = $REQUEST_URI ) =~ s/\?.*$//o;
-
-# IIS ...
 if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO ))
 {
+    # for IIS...
     $PATH_INFO = '';
-}
-
-# BASE_URL
-if ( $PATH_INFO )
-{
-    $BASE_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$PATH_INFO/";
+    $PROGRAM = $REQUEST_URI = $SCRIPT_NAME;
+    $REQUEST_URI .= '?' . $QUERY_STRING if $QUERY_STRING;
 }
 else
 {
-    local( $cgidir ) = substr( $SCRIPT_NAME, 0, rindex( $SCRIPT_NAME, '/' ));
-    $BASE_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$cgidir/";
+    # for not IIS...
+    ( $PROGRAM = $REQUEST_URI ) =~ s/\?.*$//o;
 }
-
-
 
 # Locking
 sub lock_file
@@ -240,7 +232,7 @@ sub Decode
     }
     else			# GET, HEAD, PUT, OPTIONS, DELETE, TRACE?
     {
-	$args = $ENV{ 'QUERY_STRING' };
+	$args = $QUERY_STRING;
     }
 
     foreach $term ( split( '&', $args ))
