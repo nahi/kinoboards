@@ -57,7 +57,24 @@ $SYS_TEXTTYPE = 1 + 2 + 4;
 #   1: 利用する
 #   2: エイリアスを登録しなければ，記事を投稿できないようにする
 #   3: HTTP-Cookiesを使う（ユーザ情報をブラウザに覚えさせる）
-$SYS_ALIAS = 1;
+$SYS_ALIAS = 3;
+
+  # 上で「3: HTTP-Cookiesを使う」に設定した場合，以下も設定してください．
+  # HTTP-Cookiesの有効期間をどのように設定しますか?
+  #   0: ブラウザ終了時まで
+  #   1: 無制限（実際にはThursday, 31-Dec-2029 23:59:59 GMT）
+  #   2: n日後まで（nは下で設定します）．
+  #   3: 指定日まで（指定日は以下で設定します）．
+  $SYS_COOKIE_EXPIRE = 3;
+
+    # 上で「2: n日後まで」に設定した場合は日数を，
+    # 「3: 指定日まで」に設定した場合は指定日（時間も）を設定してください．
+    # 0もしくは1を選んだ場合はそのままで結構です（指定しても無視されます）．
+    $SYS_COOKIE_VALUE = 'Thursday, 31-Dec-98 23:59:59 GMT';
+    # 日数の場合．例えば30日間．
+    #   $SYS_COOKIE_VALUE = 30;
+    # 指定日の場合．例えば1998年年末まで．
+    #   $SYS_COOKIE_VALUE = 'Thursday, 31-Dec-98 23:59:59 GMT';
 
 # 記事アイコンを利用しますか?
 #   0: 利用しない
@@ -69,6 +86,10 @@ $SYS_ICON = 1;
 #   1: 利用する
 #   2: コマンドアイコンと同時にテキストも表示する
 $SYS_COMICON = 1;
+
+# 最新の記事いくつに，[new]アイコン（黄色の旗）をつけますか?
+# 0を指定すると，この機能を利用しません（[new]アイコンはつかない）
+$SYS_NEWICON = 10;		# [記事]
 
 # 新規投稿記事が，上に増えていくか，下に増えていくか(タイトル一覧の時)
 #   0: 上
@@ -114,15 +135,14 @@ $SYS_PORTNO = 1;
 #   0: 使わない
 #   1: 使う
 $SYS_NETSCAPE_EXTENSION = 1;
-#
-# 使う場合は以下も指定してください．
-#
-$BG_IMG = "";
-$BG_COLOR = "#CCCCCC";
-$TEXT_COLOR = "#000000";
-$LINK_COLOR = "#0000AA";
-$ALINK_COLOR = "#FF0000";
-$VLINK_COLOR = "#00AA00";
+
+  # 上で「1: 使う」に設定した場合は，以下も指定してください．
+  $BG_IMG = "";
+  $BG_COLOR = "#CCCCCC";
+  $TEXT_COLOR = "#000000";
+  $LINK_COLOR = "#0000AA";
+  $ALINK_COLOR = "#FF0000";
+  $VLINK_COLOR = "#00AA00";
 
 # 以下の各機能を利用可能としますか?
 #   0: 利用できない
@@ -133,17 +153,18 @@ $SYS_F_R = 1;	# タイトル一覧(日付順)の表示
 $SYS_F_L = 1;	# 最近の記事一覧の表示
 $SYS_F_S = 1;	# 記事の検索
 $SYS_F_B = 1;	# 掲示板一覧の表示
-#
-# これ以下のコマンドは必ず，
-# 「正しくアクセス制限をかけた上で」利用してください
-# （詳しくはインストレーションマニュアルを参照してください）．
-# でないと破壊的な悪戯を匿名でやられ放題ですからね．
-#
-# [注意] スクリプトの名前を変えたくらいじゃ駄目ですよ．(^_^;
-#
-$SYS_F_D = 0;	# 記事の削除，訂正
-$SYS_F_MV = 0;	# 記事の「前後順序/元記事-リプライ関係」の変更
-$SYS_F_AM = 0;	# 新着記事到着時のメイル送信先の設定
+  #
+  # これ以下のコマンドは必ず，
+  # 「正しくアクセス制限をかけた上で」利用してください
+  # （詳しくはインストレーションマニュアルを参照してください）．
+  # でないと破壊的な悪戯を匿名でやられ放題ですからね．
+  # [注意] スクリプトの名前を変えたくらいじゃ駄目ですよ．(^_^;
+  #
+  #   0: 利用できない
+  #   1: 利用できる
+  $SYS_F_D = 0;	# 記事の削除，訂正
+  $SYS_F_MV = 0;	# 記事の「前後順序/元記事-リプライ関係」の変更
+  $SYS_F_AM = 0;	# 新着記事到着時のメイル送信先の設定
 
 ###
 ## ○メイル回りの設定
@@ -155,52 +176,53 @@ $SYS_F_AM = 0;	# 新着記事到着時のメイル送信先の設定
 #   $SYS_MAIL = 1 + 2;		# 配信メイルとリプライメイルの両方を使う．
 $SYS_MAIL = 1 + 2;
 
-# ↑で「利用しない」を指定した場合は，以下は設定の必要はありません．
-# 「○掲示板一覧の相対URL」までジャンプしてください．
+  # ↑で「利用しない」を指定した場合は，以下は設定の必要はありません．
 
-# メイルサーバを指定してください．
-#   例: $SMTP_SERVER = 'mail.foo.bar.ne.jp';
-#       $SMTP_SERVER = '123.456.78.90';
-$SMTP_SERVER = 'localhost';
+  # メイルサーバを指定してください．
+  #   例: $SMTP_SERVER = 'mail.foo.bar.ne.jp';
+  #       $SMTP_SERVER = '123.456.78.90';
+  $SMTP_SERVER = 'localhost';
 
-# 送信するメイルのSubjectに「[掲示板: 番号]」を補いますか?
-#   0: 補わない → 「Subject: 題」（掲示板と記事番号はX-Kb-*ヘッダに入ります）
-#   1: 補う     → 「Subject: [掲示板: 記事番号] 題」
-$SYS_MAILHEADBRACKET = 1;
+  # 送信するメイルのSubjectに「[掲示板: 番号]」を補いますか?
+  #   0: 補わない → 「Subject: 題」（掲示板と記事番号はX-Kb-*に入ります）
+  #   1: 補う     → 「Subject: [掲示板: 記事番号] 題」
+  $SYS_MAILHEADBRACKET = 1;
 
-# 送信するメイルのヘッダ「To:」に書かれる宛先を指定してください．
-# 省略すると，送信する相手のメイルアドレスがずらずら並びます．
-# 自動配信機能をメイリングリストのようにして使うなら，
-# $MAILTO_LABEL = 'なひきのぼずユーザ <nakahiro@sarion.co.jp>';
-# などとするといいかもしれません．
-$MAILTO_LABEL = '';
+  # 送信するメイルのヘッダ「To:」に書かれる宛先を指定してください．
+  # 省略すると，送信する相手のメイルアドレスがずらずら並びます．
+  # 自動配信機能をメイリングリストのようにして使うなら，
+  # $MAILTO_LABEL = 'なひきのぼずユーザ <nakahiro@sarion.co.jp>';
+  # などとするといいかもしれません．
+  $MAILTO_LABEL = '';
 
-# 送信するメイルのヘッダ「From:」に書かれる名前を，
-# システム管理者の名前とは変えたい場合に指定してください．
-# 省略すると，このファイルの先頭で設定した$MAINT_NAMEが使われます．
-# $MAILFROM_LABEL = 'Kinoboards Mail Daemon';
-# など．
-$MAILFROM_LABEL = '';
+  # 送信するメイルのヘッダ「From:」に書かれる名前を，
+  # システム管理者の名前とは変えたい場合に指定してください．
+  # 省略すると，このファイルの先頭で設定した$MAINT_NAMEが使われます．
+  # $MAILFROM_LABEL = 'Kinoboards Mail Daemon';
+  # など．
+  $MAILFROM_LABEL = '';
 
-# 以下はとりあえずそのままで結構です．稼働後，
-#
-#	 「kb.phの中で，メイル送信用の追加設定を行なってください」
-#
-# というエラーメッセージが出た場合に，この作業を行なってください．
-#
-# CGIが動くサーバ（普通はWWWサーバです．メイルサーバじゃありません）
-# の，OSのタイプに合致する行だけ，先頭の「#」を取り除いてください．
-# OSのタイプは，telnetして「uname -sr」というコマンドを実行するとわかります．
-#
-# $AF_INET = 2; $SOCK_STREAM = 2;	# SunOS 5.*(Solaris 2.*)
-# $AF_INET = 2; $SOCK_STREAM = 1;	# SunOS 4.*
-# $AF_INET = 2; $SOCK_STREAM = 1;	# HP-UX
-# $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
-# $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
-# $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
-# $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
-# $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT/95
-# $AF_INET = 2; $SOCK_STREAM = 1;	# Mac
+  # CGIが動くサーバ（普通はWWWサーバです．メイルサーバじゃありません）
+  # の，OSのタイプに合致する行だけ，先頭の「#」を取り除いてください．
+  # OSのタイプは，telnetして「uname -sr」というコマンドでわかります．
+  # telnetできない場合，プロバイダもしくは管理者さんに問い合わせてください．
+  #
+  # 以下を見て頂ければわかる通り，
+  # 多くのOSで，$AF_INETを2，$SOCK_STREAMを1に設定します．
+  # サーバがSolaris/2.*の人だけ，$SOCK_STREMを2に設定してください．
+  #
+  $AF_INET = 2; $SOCK_STREAM = 1;	# SunOS 4.*
+  # $AF_INET = 2; $SOCK_STREAM = 2;	# SunOS 5.*(Solaris 2.*)
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# HP-UX
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT/95
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# Mac
+
+  # この他の組み合わせを御存知の方がありましたら，
+  # なひ(nakahiro@sarion.co.jp)まで御連絡ください．
 
 ###
 ## ○掲示板一覧の相対URL
@@ -229,14 +251,15 @@ $DEF_TITLE_NUM = 20;		# タイトル一覧に表示するタイトルの数
 ###
 ## ○出力ページの漢字コード
 #
-$CHARSET = 'jis';
-# $CHARSET = 'euc';
-#$CHARSET = 'sjis';
+$CHARSET = 'euc';		# 漢字コード変換を行ないません．きのぼずが
+				# coreを吐く時には，これに設定してください．
+# $CHARSET = 'jis';
+# $CHARSET = 'sjis';
 
 ###
 ## ○引用の形態
 #
-# 引用時，元記事の作者名をつけますか?のように）
+# 引用時，元記事の作者名をつけますか?
 #   0: つけない		「 ] 引用元記事．．．」
 #   1: つける		「なひ ] 引用元記事．．．」
 $SYS_QUOTENAME = 1;
@@ -250,7 +273,7 @@ $DEFAULT_QMARK = ' ] ';
 ## ○アイコンの大きさ
 #
 # 一部のブラウザでは，この数値を適当に指定すると，
-# 勝手にアイコンの拡大縮小を行なってくれるようです．
+# 勝手にアイコンの拡大縮小を行なってくれます．
 #
 # コマンドアイコン(次へ，等)
 $COMICON_HEIGHT = 20;		# 高さ[dot]
@@ -283,6 +306,7 @@ $H_ORIG = "$H_REPLY元";
 $H_ORIG_TOP = "オリジナル";
 $H_LINE = "<p>------------------------------</p>";
 $H_THREAD = "▼";
+$H_NEWARTICLE = "[new!]";
 
 $H_TEXTTYPE = "書き込み形式";
 @H_TTLABEL = ( "そのまま表示", "HTMLに変換", "HTMLで入力" );
@@ -317,7 +341,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.8 1998-09-14 19:39:59 nakahiro Exp $
+# $Id: kb.ph,v 5.9 1998-10-22 15:55:52 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
