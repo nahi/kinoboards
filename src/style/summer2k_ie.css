@@ -1,0 +1,48 @@
+/* U-Z custom CSS(summer2000 for KINOBOARDS) 2000/08/11 */
+/* fontサイズ訂正版 */
+
+/* @import対応UA専用 */
+/* 少しだけ見栄え良し */
+
+/* 全体の余白を設定.何故かNetscapeは解釈を間違えるのでこっちへ移動 */
+/* 現状ではfont-familyを正確に解釈するUA無し.not only NN but also IE */
+body {
+	margin: 0em 0em 0em 0em;
+	padding: 2% 5% 2% 5%;
+	/* font-family: Verdana, Osaka, sans-serif; */
+}
+
+/* Netscapeで駄目駄目になる設定を移動した */
+address {
+	border-style: solid;
+	border-width: 1px;
+	border-color: #fff;
+	color: #333333;
+	/* font-family: Verdana, Osaka, sans-serif; */
+	background: #fff;
+}
+
+/* 以下,人によって違うdefault設定を打消す. */
+/* 細かくidが振ってあるようので詳細設定も可能 */
+select {
+	border-style:inset;
+	border-color:#039;
+	border-width:2px;
+	color:#039;
+	background-color:#fff;
+}
+
+input {
+	border-color:#fff;
+	border-width:2px;
+	color:#039;
+	background-color:#fff;
+}
+
+textarea {
+	border-style:inset;
+	border-color:#039;
+	border-width:3px;
+	color:#039;
+	background-color:#fff;
+}

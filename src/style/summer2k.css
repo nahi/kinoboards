@@ -1,0 +1,184 @@
+/* U-Z custom CSS(summer2k for KINOBOARDS 1.0 R7.3) 2000/08/11 */
+/* fontサイズ訂正版 */
+/* まだNetscapeの表示に納得がいきません.未だ研究中. */
+
+/* 外部ファイルを読み込む */
+@import url("summer2k_ie.css");
+
+/* Netscapeで不具合有るmargin,padding,fontを逃がす */
+body {
+	/* font-size: medium; */
+	color: #039;
+	background-color: #99f;
+}
+
+/* Netscapeで継承されない要素(font-familyはヤバイ香り,保留) */
+p,pre,blockquote,ul,ol,dl,li,dt,dd,div,th,td,caption,strong,em {
+	/* font-family: Verdana, Osaka, sans-serif; */
+	/* font-size: medium; */
+	color: #039;
+	background-color: transparent;
+}
+
+/* anchor擬似class */
+/* Macintosh版IEの不具合は,この設定の順番が影響する?保留中 */
+a:link {
+	color: #039;
+	text-decoration: underline;
+	background-color: transparent;
+}
+
+a:visited {
+	color: #069;
+	text-decoration: underline;
+	background-color: transparent;
+}
+
+a:hover	{
+	text-decoration: none;
+	color: #039;
+	background-color: #cfc;
+}
+
+a:active {
+	color: #99c;
+	text-decoration: none;
+	background-color: transparent;
+}
+
+/* このclass不明 */
+a.offsite {
+	color: #c00;
+}
+
+/* anchor有りimageのhover背景色固定 */
+a img {
+	background-color: #99f;
+}
+
+/* hStyle.fontStyleはUA任せ.やはりfont-familyは危険か? */
+h1, h2, h3, h4, h5, h6 {
+	text-align: center;
+	color: #039;
+	border-style: solid none;
+	border-width: 2px 0;
+	border-color: #039;
+	background-color: #fff;
+	padding: 0;
+	/* font-family: Verdana, Osaka, sans-serif; */
+	/* font-size: large; */
+	font-style: normal;
+	font-weight: bold;
+	font-variant: normal;
+	margin: 0.2%;
+}
+
+/* 細いのが好み */
+hr {
+	height: 1px;
+	color: #fff;
+}
+
+/* Netscapeで変な表示になる部分は別ファイルへ */
+address {
+	padding:0.2em;
+	text-align: right;
+	/* font-size: medium; */
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+}
+
+/* KINOBOARDS specific definition */
+
+span.kbAccessKey { text-decoration: underline; }
+
+/* Netscape無効 */
+img.kbImg { border-style: none; }
+img.kbComIcon { border-style: none; }
+img.kbMsgIcon { border-style: none; }
+
+p.kbStatus {
+	text-align: right;
+	font-weight: bold;
+}    
+
+p.kbPageLink { text-align: center; }
+
+div.kbTopMenu {}
+
+/* MESSAGE全体を囲う */
+div.kbArticle {
+	border-style: solid;
+	border-width: 2px;
+	border-color: #039;
+	background-color: #fff;
+	margin: 1em 2em;
+	padding: 0;
+}
+
+/* コマンド(アイコン)部分着色 */
+div.kbArticle p.command {
+	margin: 0;
+	padding: 0.2em 2em;
+	background-color: #99c;
+	text-align: right;
+	border-style: none none solid none;
+	border-width: 1px;
+	boder-color: #039;
+}
+
+/* アイコン表示の場合hoverでも背景色固定 */
+div.kbArticle p.command a img {
+	background-color:#99c;
+}
+
+/* r7.2のheaderclassは消えた?class無指定部分設定 */
+div.header p {
+	border-width: 0 0 1px 0;
+	border-style: none none solid none;
+	border-color: #039;
+	background-color: #99c;
+	margin: 0;
+	padding: 0.2em 2em;
+}
+
+/* タイトル部分.文字はやや大きく */
+div.header p.title {
+    font-size: large;
+	font-weight: bold;
+	border-style: none none solid none;
+	border-width: 1px;
+	border-color: #039;
+	padding: 0.2em 1em;
+	margin: 0;
+	background-color: #ccf;
+}
+
+/* Netscapeが<a name="foo">とかに下線付けるお節介を断る */
+p.title a {
+	text-decoration: none;
+}
+
+/* 55行目を参照.背景色に同化.transparent可? */
+p.title a img {
+	background-color: #ccf;
+}
+
+/* MESSAGE本体 */
+div.body {
+	background-color: #fff;
+	margin: 0;
+	padding: 0.5em 2em 0.5em 2em;
+}
+
+/* MESSAGE部分の行間を広げる.コメントを外すと段落1行目字下げし文系の香り. */
+div.body p {
+	/* text-indent:1em; */
+	line-height: 1.5em;
+}
+
+/* セパレータを消す */
+p.bodySeparator {
+	display: none;
+}
