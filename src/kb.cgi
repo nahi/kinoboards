@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.35 1997-02-08 03:09:13 nakahiro Exp $
+# $Id: kb.cgi,v 4.36 1997-02-08 03:19:28 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -900,8 +900,8 @@ sub NextArticle {
     # DBファイル
     local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
 
-    local($NextId, $dId);
-    local($NextFlag) = 0;
+    local($NextId) = '';
+    local($dId);
 
     # 取り込み
     open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
@@ -914,8 +914,13 @@ sub NextArticle {
 	next if (/^\#/o);
 	next if (/^$/o);
 	($dId) = split(/\t/, $_, 2);
-	$NextId = $dId, last if ($NextFlag);
-	$NextFlag = 1 if ($Id eq $dId);
+
+	if ($Id eq $dId) {
+	    $_ = <DB>;
+	    ($dId) = split(/\t/, $_, 2);
+	    $NextId = $dId;
+	    last;
+	}
 
     }
     close(DB);
