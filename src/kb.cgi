@@ -10,29 +10,34 @@
 # 2. kbdataディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    ブラウザからアクセス可能なディレクトリでなくてもかまいません．
 #
-$KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst/';
+$KBDIR_PATH = '';
 # $KBDIR_PATH = '/home/nahi/kbdata/';
 # $KBDIR_PATH = 'd:\securedata\kbdata\';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb:';			# Macの場合?
 
-# 3. サーバが動いているマシンがWin95/Macの場合，
-#    $PCを1に設定してください．そうでない場合，この設定は不要です．
-#
-$PC = 0;	# for UNIX / WinNT
-# $PC = 1;	# for Win95 / Mac
-
-# 4. アイコンおよびスタイルシートファイルを，このファイルと別のディレクトリに
+# 3. アイコンおよびスタイルシートファイルを，このファイルと別のディレクトリに
 #    置く場合は，その別ディレクトリのURLを指定してください（パスではなく，
 #    URLです）．指定するURLは，ブラウザからアクセス可能でなければいけません．
 #    本ファイルと同じディレクトリにicon，styleディレクトリを置く場合は，
 #    特に指定しなくてもかまいません（このまま書き換えなくて構いません）．
 #
-#    指定したURL以下に置かれている，
+#    ただし，CGIWRAP環境にインストールする場合は，必ず指定しなければなりません
+#    （詳しくは，インストール手順ドキュメントを参照してください）．
+#
+#    ここで指定したURL以下に置かれている，
 #      icon/*がアイコンファイルとして，
 #      style/kbStyle.cssがスタイルシートファイルとして，
 #    それぞれ参照されます．
 #
+$KB_RESOURCE_URL = '';
 # $KB_RESOURCE_URL = '/~nahi/kb/';
+# $KB_RESOURCE_URL = 'http://kb.jin.gr.jp/';
+
+# 4. サーバが動いているマシンがWin95/Macの場合，
+#    $PCを1に設定してください．そうでない場合，0のままで構いません．
+#
+$PC = 0;	# for UNIX / WinNT
+# $PC = 1;	# for Win95 / Mac
 
 
 # 以下は書き換えの必要はありません．
@@ -41,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.73 2000-05-05 06:01:37 nakahiro Exp $
+# $Id: kb.cgi,v 5.74 2000-05-05 15:19:18 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -127,7 +132,6 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 # インクルードファイルの読み込み
 require( 'cgi.pl' );
 require( 'kinologue.pl' );
-$KB_RESOURCE_URL = $KB_RESOURCE_URL || $cgi'PATH_INFO;
 $REMOTE_INFO = $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR || '(unknown)';
 $REMOTE_INFO .= '-' . $cgi'REMOTE_USER if $cgi'REMOTE_USER; # in BasicAuth
 $PROGRAM = $cgi'PROGRAM;
@@ -3482,7 +3486,7 @@ sub dumpArtEntryNormal
 	    &tagInputText( 'text', 'url', ( $url || 'http://' ), $URL_LENGTH ) . $HTML_BR;
     }
 
-    if (( $SYS_MAIL & 2 ) && ( $UMAIL ne '' ))
+    if ( $SYS_MAIL & 2 )
     {
 	$msg .= &tagLabel( "リプライがあった時に$H_MAILで連絡", 'fmail', 'F' ) . ': ' . &tagInputCheck( 'fmail', $fMail ) . "\n";
     }
