@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 5.0 1997-07-17 11:31:21 nakahiro Exp $
+# $Id: kb.ph,v 5.1 1997-07-23 14:53:22 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -153,9 +153,9 @@ $SYS_POSTERMAIL = 1;
 #      HTTPのデフォルトである80番ポートの場合，1に設定しても表示しません
 $SYS_PORTNO = 1;
 
-# 各コマンドを実行可能とするか否か
-#   0: 実行できない
-#   1: 実行できる
+# 各機能を利用可能とするか否か
+#   0: 利用できない
+#   1: 利用できる
 $SYS_F_T = 1;			# リプライ記事のまとめ読みの表示
 $SYS_F_N = 1;			# 記事の投稿
 $SYS_F_R = 1;			# タイトル一覧(日付順)の表示
