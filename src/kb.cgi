@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.23 1996-09-11 08:33:42 nakahiro Exp $
+# $Id: kb.cgi,v 4.24 1996-09-11 10:27:51 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -61,7 +61,7 @@ $[ = 0;
 #
 # 著作権表示
 #
-$ADDRESS = "KINOBOARDS/1.0 R2.3: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
+$ADDRESS = "KINOBOARDS/1.0 R2.4: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
 
 #
 # ファイル
@@ -236,8 +236,8 @@ sub Entry {
 
     # フォローの場合
     if ($Id != 0) {
-	# 記事の表示(コマンド無し)
-	&ViewOriginalArticle($Id, 0);
+	# 記事の表示(コマンド無し, 元記事あり)
+	&ViewOriginalArticle($Id, '', 'original');
 	print("<hr>\n");
 	print("<h2>$H_REPLYMSG</h2>");
     }
@@ -365,7 +365,7 @@ sub GetReplySubject {
     local($Id) = @_;
 
     # 記事情報
-    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = &GetArticlesInfo($Id);
+    local($dFid, $dAids, $dDate, $dSubject) = &GetArticlesInfo($Id);
 
     # 先頭に「Re:」がくっついてたら取り除く．
     $dSubject =~ s/^Re:\s*//o;
@@ -422,23 +422,8 @@ sub Preview {
 	   $cgi'TAGS{'subject'}, $cgi'TAGS{'article'},
 	   $cgi'TAGS{'qurl'}, $cgi'TAGS{'fmail'});
 
-    # 引用記事のURL
-    local($rFile) = '';
-
     # 引用記事の記事情報
-    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail) = ('', '', '', '', '', '', '', '', '', '');
-
-    # もし引用なら……．
-    if ($Id) {
-
-	# 通常記事の引用なら……
-	$rFile = "$PROGRAM?b=$BOARD&c=e&id=$Id";
-
-	# 引用記事の記事情報を取得
-	($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName,
-	 $rEmail, $rUrl, $rFmail) = &GetArticlesInfo($Id);
-
-    }
+    local($rFid) = &GetArticlesInfo($Id) if ($Id);
 
     # 入力された記事情報のチェック
     ($Name, $Email, $Url, $Icon) = &CheckArticle($Name, $Email, $Url, $Subject, $Icon, *Article);
@@ -486,7 +471,7 @@ __EOF__
     print("<strong>$H_MAIL</strong>: <a href=\"mailto:$Email\">&lt;$Email&gt;</a><br>\n") if ($Email);
 
     # 反応元(引用の場合)
-    &ShowFormattedLinkToFollowedArticle($Id, $rIcon, $rSubject);
+    &ShowLinksToFollowedArticle($Id, split(/,/, $rFid)) if (defined($rFid));
 
     # 切れ目
     print("$H_LINE<br>\n");
@@ -599,8 +584,7 @@ sub MakeNewArticle {
 
     # DBファイルに投稿された記事を追加
     # 通常の記事引用ならID
-    &AddDBFile($ArticleId, $Id, $InputDate, $Subject, $Icon, $REMOTE_HOST,
-	       $Name, $Email, $Url, $Fmail);
+    &AddDBFile($ArticleId, $Id, $InputDate, $Subject, $Icon, $REMOTE_HOST, $Name, $Email, $Url, $Fmail);
 
     # 新しい記事番号を書き込む
     &AddArticleId();
@@ -689,7 +673,9 @@ sub AddDBFile {
 
     # 記事Id，名前，アイコン，題，日付
     local($Id, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = @_;
+
     local($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
+    local($FidList) = $Fid;
     
     # 登録ファイル
     local($File) = &GetPath($BOARD, $DB_FILE_NAME);
@@ -714,22 +700,21 @@ sub AddDBFile {
 	    # その記事のフォロー記事IDリストに加える(カンマ区切り)
 	    if ($dAids) {$dAids .= ",$Id";} else {$dAids = $Id;}
 
+	    # 元記事のフォロー先リストを取ってきて元記事を加え，
+	    # 新記事のフォロー先リストを作る
+	    $FidList = "$dId,$dFid" if ($dFid);
+
 	    # 必要なら反応があったことをメールする
-	    &FollowMail($dEmail, $dName, $dInputDate, $dSubject, $dId, $Name,
-			$Subject, $Id) if (($SYS_FOLLOWMAIL) && ($dFmail));
+	    &FollowMail($dEmail, $dName, $dInputDate, $dSubject, $dId, $Name, $Subject, $Id) if (($SYS_FOLLOWMAIL) && ($dFmail));
 
 	}
 
 	# DBに書き加える
-	printf(DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-	       $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon,
-	       $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
+	printf(DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
     }
 
     # 新しい記事のデータを書き加える．
-    printf(DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-	   $Id, $Fid, '', $InputDate, $Subject, $Icon,
-	   $RemoteHost, $Name, $Email, $Url, $Fmail);
+    printf(DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $Id, $FidList, '', $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
 
     # close Files.
     close(DB);
@@ -752,26 +737,19 @@ sub ShowArticle {
     # 記事のファイル名を取得
     local($File) = &GetArticleFileName($Id, $BOARD);
 
-    # 引用記事の情報
-    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail);
-
     # 反応記事の情報
-    local($aFid, $aAids, $aDate, $aSubject, $aIcon, $aRemoteHost, $aName, $aEmail, $aUrl, $aFmail);
+    local($aFid, $aAids, $aDate, $aSubject, $aIcon, $aRemoteHost, $aName);
 
     # 記事情報の取得
-    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = &GetArticlesInfo($Id);
+    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url) = &GetArticlesInfo($Id);
     local(@AidList) = split(/,/, $Aids);
     local($Aid) = '';
 
     # 未投稿記事は読めない
     &Fatal(11, '') unless ($Name);
 
-    # 引用記事情報の抽出
-    ($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail,
-     $rUrl, $rFmail) = &GetArticlesInfo($Fid) if ($Fid != 0);
-
     # 表示画面の作成
-    &MsgHeader("[$BOARDNAME: $Id] $Subject");
+    &MsgHeader("$Subject");
 
     # お約束
     if ($SYS_COMMAND) {
@@ -793,9 +771,9 @@ __EOF__
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	print("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] $Subject<br>\n");
+	print("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+	printf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
     }
 
     # お名前
@@ -817,7 +795,7 @@ __EOF__
     print("<strong>$H_DATE</strong>: $Date<br>\n");
 
     # 反応元(引用の場合)
-    &ShowFormattedLinkToFollowedArticle($Fid, $rIcon, $rSubject);
+    &ShowLinksToFollowedArticle(split(/,/, $Fid)) if ($Fid);
 
     # 切れ目
     print("$H_LINE<br>\n");
@@ -831,31 +809,30 @@ __EOF__
     print("<hr>\n");
 
     # 反応記事
-    print("$H_FOLLOW<br>\n");
+    print("$H_FOLLOW\n");
+
+    print("<ul>\n");
 
     if ($Aids) {
 
 	# 反応記事があるなら…
-	print("<ul>\n");
-
 	foreach $Aid (@AidList) {
 
 	    # 反応記事情報の抽出
-	    ($aFid, $aAids, $aDate, $aSubject, $aIcon, $aRemoteHost, $aName,
-	     $aEmail, $aUrl, $aFmail) = &GetArticlesInfo($Aid);
+	    ($aFid, $aAids, $aDate, $aSubject, $aIcon, $aRemoteHost, $aName) = &GetArticlesInfo($Aid);
 
 	    # 表示
 	    printf("<li>%s\n", &GetFormattedTitle($Aid, $aAids, $aIcon, $aSubject, $aName, $aDate));
 	}
 
-	print("</ul>\n");
-
     } else {
 
 	# 反応記事無し
-	print("$H_NOTHING\n");
+	print("<li>$H_NOTHING\n");
 
     }
+
+    print("</ul>\n");
 
     # お約束
     &MsgFooter();
@@ -907,8 +884,8 @@ sub ThreadArticleMain {
 
     } else {
 
-	# 元記事の表示(コマンド付き)
-	&ViewOriginalArticle($Id, 1);
+	# 元記事の表示(コマンド付き, 元記事なし)
+	&ViewOriginalArticle($Id, 'command', '');
 
     }
 
@@ -946,7 +923,7 @@ sub GetFollowIdList {
     local(@Result) = ();
 
     # 記事情報
-    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
+    local($dId, $dFid, $dAids);
 
     # 取り込み
     open(DB, "<$DBFile") || &Fatal(1, $DBFile);
@@ -955,9 +932,7 @@ sub GetFollowIdList {
 	next if (/^\#/);
 	next if (/^$/);
 	chop;
-
-	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
-	 $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
+	($dId, $dFid, $dAids) = split(/\t/, $_, 4);
 
 	# 見つかった!
 	@Result = split(/,/, $dAids) if ($Id == $dId);
@@ -979,10 +954,8 @@ sub PrintAbstract {
     local($Id) = @_;
 
     # 記事情報を取り出す．
-    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = &GetArticlesInfo($Id);
-
-    printf("%s\n", &GetFormattedAbstract($Id, $dIcon, $dSubject, $dName, $dDate));
-
+    local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName) = &GetArticlesInfo($Id);
+    printf("<li>" . &GetFormattedTitle($Id, $dAids, $dIcon, $dSubject, $dName, $dDate) . "\n");
 }
 
 
@@ -1237,9 +1210,6 @@ sub GetTitle {
     # 記事情報
     local($Id, $Fid) = (0, '');
 
-    # ユーザ情報
-    local($Name, $Passwd) = ('', '');
-
     # 取り込み．DBファイルがなければ何も表示しない．
     open(DB, "<$DBFile") || &Fatal(1, $DBFile);
 
@@ -1254,7 +1224,7 @@ sub GetTitle {
 	($Id, $Fid) = split(/\t/, $_, 3);
 
 	# 新規記事のみ表示，の場合はキャンセル．
-	push(Lines, $_) unless (($SYS_NEWARTICLEONLY) && ($Fid != 0));
+	push(Lines, $_) unless (($SYS_NEWARTICLEONLY) && $Fid);
 
     }
 
@@ -1308,7 +1278,7 @@ sub ViewTitle {
 
 	# 追加
 	@NewLines = ($Fid)
-	    ? &AddTitleFollow($Fid, $Line, @NewLines)
+	    ? &AddTitleFollow((split(/,/, $Fid))[0], $Line, @NewLines)
 		: &AddTitleNormal($Line, @NewLines);
 
     }
@@ -1495,8 +1465,8 @@ sub NewArticle {
 	    # 記事情報の取り出し
 	    ($Id) = split(/\t/, $_, 2);
 
-	    # 記事の表示(コマンド付き)
-	    &ViewOriginalArticle($Id, 'command');
+	    # 記事の表示(コマンド付き, 元記事あり)
+	    &ViewOriginalArticle($Id, 'command', 'original');
 	    print("<hr>\n");
 
 	}
@@ -1613,7 +1583,7 @@ sub SearchArticleList {
     # DBファイル
     local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
 
-    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
+    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName);
 
     local($ArticleFile, $HitFlag) = ('', 0);
     local($Line) = '';
@@ -1635,7 +1605,7 @@ sub SearchArticleList {
 	$Line = '';
 
 	# 記事情報
-	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
+	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName) = split(/\t/, $_, 9);
 
 	# アイコンチェック
 	next if (($Icon) && ($dIcon ne $IconType));
@@ -2113,41 +2083,24 @@ sub GetFormattedTitle {
 
 
 ###
-## タイトルリストのフォーマット(簡略版)
-#
-sub GetFormattedAbstract {
-
-    local($Id, $Icon, $Title, $Name, $Date) = @_;
-    local($String) = '';
-
-    if (($Icon eq $H_NOICON) || (! $Icon)) {
-	$String = sprintf("<li><strong>$Id .</strong> $Title [$Name] $Date", &GetIconURLFromTitle($Icon));
-    } else {
-	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Title [$Name] $Date", &GetIconURLFromTitle($Icon));
-    }
-
-    return($String);
-}
-
-
-###
 ## 元記事情報の表示
 #
-sub ShowFormattedLinkToFollowedArticle {
+sub ShowLinksToFollowedArticle {
 
-    local($Src, $Icon, $Subject) = @_;
+    local(@IdList) = @_;
 
-    # 参照先の取得
-    local($Link) = ($Src =~ /^http:/) ? $Src : "$PROGRAM?b=$BOARD&c=e&id=$Src";
+    local($Id);
+    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name);
 
-    if ($Src != 0) {
-	if (($Icon eq $H_NOICON) || (! $Icon)) {
-	    print("<strong>$H_ORIG</strong>: [$BOARDNAME: $Src] <a href=\"$Link\">$Subject</a><br>\n");
-	} else {
-	    printf("<strong>$H_ORIG</strong>: [$BOARDNAME: $Src] <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURLFromTitle($Icon));
-	}
-    } elsif ($Src =~ /^http:/) {
-	print("<strong>$H_ORIG</strong>: <a href=\"$Link\">$Link</a><br>\n");
+    foreach $Id (reverse(@IdList)) {
+
+	# $Id == 0ならキャンセル
+	next unless $Id;
+
+	($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
+
+	# トップから順に表示する
+	print("<strong>$H_ORIG</strong>: " . &GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date) . "<br>\n");
     }
 }
 
@@ -2317,23 +2270,17 @@ sub unlock { unlink($LOCK_FILE); }
 #
 sub ViewOriginalArticle {
 
-    # Id，コマンドを表示するか否か
-    local($Id, $Flag) = @_;
+    # Id，コマンドを表示するか否か，元記事を表示するか否か
+    local($Id, $CommandFlag, $OriginalFlag) = @_;
 
     # 引用するファイル
     local($QuoteFile) = &GetArticleFileName($Id, $BOARD);
 
-    # 引用記事の情報
-    local($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail);
-
     # 記事情報の取得
-    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = &GetArticlesInfo($Id);
-
-    # 引用記事情報の抽出
-    ($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail) = &GetArticlesInfo($Fid) if ($Fid != 0);
+    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url) = &GetArticlesInfo($Id);
 
     # コマンド表示?
-    if ($Flag && $SYS_COMMAND) {
+    if ($CommandFlag && $SYS_COMMAND) {
 
 	print(<<__EOF__);
 <p>
@@ -2348,9 +2295,9 @@ __EOF__
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	print("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] $Subject<br>\n");
+	print("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+	printf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
     }
 
     # お名前
@@ -2372,7 +2319,7 @@ __EOF__
     print("<strong>$H_DATE</strong>: $Date<br>\n");
 
     # 反応元(引用の場合)
-    &ShowFormattedLinkToFollowedArticle($Fid, $rIcon, $rSubject);
+    &ShowLinksToFollowedArticle(split(/,/, $Fid)) if ($OriginalFlag && $Fid);
 
     # 切れ目
     print("$H_LINE<br>\n");
@@ -2495,7 +2442,7 @@ sub GetArticlesInfo {
 	next if (/^$/);
 	chop;
 
-	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
+	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_, 11);
 
 	if ($Id == $dId) {
 	    $rFid = $dFid;
