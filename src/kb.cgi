@@ -42,7 +42,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.55 2000-02-25 06:19:41 nakahiro Exp $
+# $Id: kb.cgi,v 5.56 2000-02-25 12:53:55 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -275,6 +275,8 @@ MAIN:
 
     if ( $BOARD )
     {
+	$BOARD_ESC = &URIEscape( $BOARD );	# リンク用にescape
+
 	local( $boardConfFileP );
 	( $BOARDNAME, $boardConfFileP ) = &GetBoardInfo( $BOARD );
 	$LOCK_FILE_B = $LOCK_FILE . ".$BOARD";
@@ -328,8 +330,7 @@ MAIN:
 	&cgi'Cookie() if ( $SYS_AUTH == 1 );
 	    
 	local( $err, @userInfo );
-	( $err, $UNAME, $PASSWD, @userInfo ) = &cgiauth'CheckUser(
-	    $USER_AUTH_FILE );
+	( $err, $UNAME, $PASSWD, @userInfo ) = &cgiauth'CheckUser( $USER_AUTH_FILE );
 	    
 	if ( $err == 3 )
 	{
@@ -364,6 +365,7 @@ MAIN:
 	}
 	    
 	# 認証成功
+	$UNAME_ESC = &URIEscape( $UNAME ) if ( $SYS_AUTH == 3 );
 	$UMAIL = $userInfo[2];
 	$UURL = $userInfo[3];
 
@@ -569,7 +571,7 @@ MAIN:
     # 管理系
     if ( $POLICY & 8 )
     {
-	if  ( $c eq 'ct' )
+	if ( $c eq 'ct' )
 	{
 	    &UIThreadTitle( 2 );
 	    last;
@@ -696,12 +698,14 @@ sub hg_login_form
 	'password', 'kinoP', '', $PASSWD_LENGTH ) . $HTML_BR;
     if ( $SYS_AUTH_DEFAULT == 1 )
     {
-	$msg .= &TagInputRadio( 'kinoA_url', 'kinoA', '3', 1 ) . ":\n" .
+	local( $contents );
+	$contents = &TagInputRadio( 'kinoA_url', 'kinoA', '3', 0 ) . ":\n" .
 	    &TagLabel( 'クッキー(HTTP-Cookies)を使わずに認証する', 'kinoA_url',
 	    'U' ) . $HTML_BR;
-	$msg .= &TagInputRadio( 'kinoA_cookies', 'kinoA', '1', 0 ) . "\n" .
-	    &TagLabel( 'クッキーを使ってこのブラウザに情報を覚えさせる',
+	$contents .= &TagInputRadio( 'kinoA_cookies', 'kinoA', '1', 1 ) .
+	    "\n" . &TagLabel( 'クッキーを使ってこのブラウザに情報を覚えさせる',
 	   'kinoA_cookies', 'C' ) . $HTML_BR;
+	$msg .= &TagFieldset( "クッキー:$HTML_BR", $contents );
     }
 
     %tags = ( 'c', 'bl', 'kinoT', 'plain' );
@@ -822,7 +826,7 @@ sub UIUserEntryExec
     &LockAll();
 
     # 登録済みユーザの検索
-    if ( &cgiauth'SearchUserInfo( $USER_AUTH_FILE, $mail, undef ))
+    if ( $SYS_POSTERMAIL && &cgiauth'SearchUserInfo( $USER_AUTH_FILE, $mail, undef ))
     {
 	&Fatal( 6, $mail );
     }
@@ -1302,11 +1306,12 @@ sub hg_post_preview_form
 
     local( $supersede ) = $_[1];
 
-    local( %tags, $msg );
-    $msg = &TagInputRadio( 'com_e', 'com', 'e', 0 ) . ":\n" . &TagLabel(
+    local( %tags, $msg, $contents );
+    $contents = &TagInputRadio( 'com_e', 'com', 'e', 0 ) . ":\n" . &TagLabel(
 	'戻ってやりなおす', 'com_e', 'P' ) . $HTML_BR;
-    $msg .= &TagInputRadio( 'com_x', 'com', 'x', 1 ) . "\n" . &TagLabel(
+    $contents .= &TagInputRadio( 'com_x', 'com', 'x', 1 ) . "\n" . &TagLabel(
 	'登録する', 'com_x', 'X' ) . $HTML_BR;
+    $msg = &TagFieldset( "コマンド:$HTML_BR", $contents );
     %tags = ( 'corig', $cgi'TAGS{'corig'}, 'c', 'x', 'b', $BOARD,
 	     'id', $gOrigId, 'texttype', $gTextType, 'name', $gName,
 	     'mail', $gEmail, 'url', $gUrl, 'icon', $gIcon,
@@ -1771,7 +1776,7 @@ sub hg_thread_title_board_header
     {
 	if ( $gComType == 3 )
 	{
-	    $gHgStr .= "<ul>\n<li>" . &LinkP( "b=$BOARD&c=ce&rtid=" .
+	    $gHgStr .= "<ul>\n<li>" . &LinkP( "b=$BOARD_ESC&c=ce&rtid=" .
 		$cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'},
 		'今の変更を元に戻す' ) . "</li>\n</ul>\n";
 	}
@@ -1813,14 +1818,14 @@ sub hg_thread_title_tree
 	# 古いのから処理
 	if (( $gComType == 2 ) && ( $DB_FID{$cgi'TAGS{'rfid'}} ne '' ))
 	{
-	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD&c=ce&rtid=&rfid=" .
+	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD_ESC&c=ce&rtid=&rfid=" .
 		$cgi'TAGS{'rfid'} . '&roid=' . $cgi'TAGS{'roid'} . $AddNum,
 		"[どの$H_MESGへの$H_REPLYでもなく，新着$H_MESGにする]" ) .
 		"</li>\n";
 	}
 	elsif ( $gComType == 4 )
 	{
-	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD&c=mve&rtid=&rfid=" .
+	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD_ESC&c=mve&rtid=&rfid=" .
 		$cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum,
 		"[全記事の先頭に移動する(このページの，ではありません)]" ) .
 		"</li>\n";
@@ -1865,14 +1870,14 @@ sub hg_thread_title_tree
 	# 新しいのから処理
 	if (( $gComType == 2 ) && ( $DB_FID{$cgi'TAGS{'rfid'}} ne '' ))
 	{
-	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD&c=ce&rtid=&rfid=" .
+	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD_ESC&c=ce&rtid=&rfid=" .
 		$cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum,
 		"[どの$H_MESGへの$H_REPLYでもなく，新着$H_MESGにする]" ) .
 		"</li>\n";
 	}
 	elsif ( $gComType == 4 )
 	{
-	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD&c=mve&rtid=&rfid=" .
+	    $gHgStr .= '<li>' . &LinkP( "b=$BOARD_ESC&c=mve&rtid=&rfid=" .
 		$cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum,
 		"[全記事の先頭に移動する(このページの，ではありません)]" ) .
 		"</li>\n";
@@ -1995,26 +2000,28 @@ sub ThreadTitleMaintIcon
     local( $oldId ) = $cgi'TAGS{'roid'};
 
     # リンク先変更コマンド(From)
-    # 移動コマンド(From)
-    $gHgStr .= &LinkP( "b=$BOARD&c=ct&rfid=$id&roid=" . $DB_FID{$id} . $addNum,
-	$H_RELINKFROM_MARK, '', $H_RELINKFROM_MARK_L ) . "\n";
+    $gHgStr .= &LinkP( "b=$BOARD_ESC&c=ct&rfid=$id&roid=" . $DB_FID{$id} .
+	$addNum, $H_RELINKFROM_MARK, '', $H_RELINKFROM_MARK_L ) . "\n";
+
     if ( $DB_FID{$id} eq '' )
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=mvt&rfid=$id&roid=" . $DB_FID{$id} .
+	# 移動コマンド(From)
+	$gHgStr .= &LinkP( "b=$BOARD_ESC&c=mvt&rfid=$id&roid=" . $DB_FID{$id} .
 	    $addNum, $H_REORDERFROM_MARK, '', $H_REORDERFROM_MARK_L ) . "\n";
     }
 
-    # 削除コマンド
-    $gHgStr .= &LinkP( "b=$BOARD&c=dp&id=$id", $H_DELETE_ICON, '',
+    # 削除・訂正コマンド
+    $gHgStr .= &LinkP( "b=$BOARD_ESC&c=dp&id=$id", $H_DELETE_ICON, '',
 	$H_DELETE_ICON_L ) . "\n";
-    $gHgStr .= &LinkP( "b=$BOARD&c=f&s=on&id=$id", $H_SUPERSEDE_ICON, '',
+    $gHgStr .= &LinkP( "b=$BOARD_ESC&c=f&s=on&id=$id", $H_SUPERSEDE_ICON, '',
 	$H_SUPERSEDE_ICON_L ) . "\n";
 
     # 移動コマンド(To)
     if (( $gComType == 4 ) && ( $fromId ne $id ) && ( $DB_FID{$id} eq '' ) &&
 	( $fromId ne $id ))
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=mve&rtid=$id&rfid=$fromId&roid=$oldId" .
+	$gHgStr .= &LinkP(
+	    "b=$BOARD_ESC&c=mve&rtid=$id&rfid=$fromId&roid=$oldId" .
 	    $addNum, $H_REORDERTO_MARK, '', $H_REORDERTO_MARK_L ) . "\n";
     }
 
@@ -2023,7 +2030,8 @@ sub ThreadTitleMaintIcon
 	split( /,/, $DB_AIDS{$id} ))) && ( !grep( /^$fromId$/, split( /,/,
 	$DB_FID{$id} ))))
     {
-	$gHgStr .= &LinkP( "b=$BOARD&c=ce&rtid=$id&rfid=$fromId&roid=$oldId" .
+	$gHgStr .= &LinkP(
+	    "b=$BOARD_ESC&c=ce&rtid=$id&rfid=$fromId&roid=$oldId" .
 	    $addNum, $H_RELINKTO_MARK, '', $H_RELINKTO_MARK_L ) . "\n";
     }
 }
@@ -2457,9 +2465,9 @@ sub hg_s_address
 {
     $gHgStr .= "<address>\nMaintenance: " .
 	&TagA( $MAINT_NAME, "mailto:$MAINT" ) . $HTML_BR .
-	&TagA( $PROGNAME, "http://www.jin.gr.jp/~nahi/kb/" ) .
+	&TagA( $PROGNAME, 'http://www.jin.gr.jp/~nahi/kb/' ) .
 	": Copyright &copy; 1995-2000 " .
-	&TagA( "NAKAMURA, Hiroshi", "http://www.jin.gr.jp/~nahi/" ) .
+	&TagA( 'NAKAMURA, Hiroshi', 'http://www.jin.gr.jp/~nahi/' ) .
 	".\n</address>\n";
 }
 
@@ -2517,10 +2525,8 @@ sub hg_c_top_menu
 	$contents .= sprintf( qq(<option%s value="i">使える$H_ICON一覧</option>\n), ( $cgi'TAGS{'c'} eq 'i' )? ' selected' : '' ) if $SYS_ICON;
     }
 
-    $contents .= sprintf( qq(<option%s value="bl">$H_BOARD一覧</option>\n),
-	( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
-    $contents .= sprintf( qq(<option%s value="lo">$H_USER情報の呼び出し</option>\n),
-	( $cgi'TAGS{'c'} eq 'lo' )? ' selected' : '' ) if $SYS_AUTH;
+    $contents .= sprintf( qq(<option%s value="bl">$H_BOARD一覧</option>\n), ( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
+    $contents .= sprintf( qq(<option%s value="lo">$H_USER情報の呼び出し</option>\n), ( $cgi'TAGS{'c'} eq 'lo' )? ' selected' : '' ) if $SYS_AUTH;
 
     $select .= &TagSelect( 'c', $contents ) . "\n // " .
 	&TagLabel( "表示件数", 'num', 'Y' ) . ': ' .
@@ -2533,8 +2539,7 @@ sub hg_c_top_menu
 
 sub hg_c_help
 {
-    $gHgStr .= &LinkP( "b=$BOARD&c=h", &TagComImg( $ICON_HELP, 'ヘルプ' ), 'H',
-	'', '', $_[1] );
+    $gHgStr .= &LinkP( "b=$BOARD_ESC&c=h", &TagComImg( $ICON_HELP, 'ヘルプ' ), 'H', '', '', $_[1] );
 }
 
 sub hg_c_site_name
@@ -2589,7 +2594,7 @@ sub hg_c_board_link_all
 
     $gHgStr .= "<ul>\n";
 
-    local( $newIcon, $modTimeUtc, $modTime, $nofArticle );
+    local( $newIcon, $modTimeUtc, $modTime, $nofArticle, $boardEsc );
     foreach ( @board )
     {
 	$modTimeUtc = &GetModifiedTime( $DB_FILE_NAME, $_ );
@@ -2605,12 +2610,13 @@ sub hg_c_board_link_all
 	}
 	&GetArticleId( $_, *nofArticle ) || 0;
 
+	$boardEsc = &URIEscape( $_ );
 	$gHgStr .= '<li>' .
-	    &LinkP( "b=$_&c=v&num=$DEF_TITLE_NUM", $boardName{$_} ) .
+	    &LinkP( "b=$boardEsc&c=v&num=$DEF_TITLE_NUM", $boardName{$_} ) .
 	    "$newIcon\n[最新: $modTime, 最新${H_MESG}ID: $nofArticle]\n";
 	if ( $POLICY & 8 )
 	{
-	    $gHgStr .= &LinkP( "b=$_&c=bc", "←設定変更" ) . "\n";
+	    $gHgStr .= &LinkP( "b=$boardEsc&c=bc", "←設定変更" ) . "\n";
 	}
 
 	$gHgStr .= $HTML_BR . $HTML_BR . "</li>\n";
@@ -2668,10 +2674,12 @@ sub hg_c_board_link
     }
     &GetArticleId( $board, *nofArticle ) || 0;
 
-    $gHgStr .= &LinkP( "b=$board&c=$com&num=$num", $gBoardName{$board} ) . "$newIcon\n[最新: $modTime, 最新${H_MESG}ID: $nofArticle]\n";
+    local( $boardEsc ) = &URIEscape( $board );
+    $gHgStr .= &LinkP( "b=$boardEsc&c=$com&num=$num", $gBoardName{$board} ) .
+	"$newIcon\n[最新: $modTime, 最新${H_MESG}ID: $nofArticle]\n";
     if ( $POLICY & 8 )
     {
-	$gHgStr .= &LinkP( "b=$board&c=bc", "←設定変更" ) . "\n";
+	$gHgStr .= &LinkP( "b=$boardEsc&c=bc", "←設定変更" ) . "\n";
     }
 }
 
@@ -2712,12 +2720,12 @@ sub hg_b_search_article_form
     local( $SearchIcon ) = $cgi'TAGS{'searchicon'};
     local( $Icon ) = $cgi'TAGS{'icon'};
 
-    local( $msg );
-    $msg .= &TagInputCheck( 'searchsubject', $SearchSubject ) . ': ' . &TagLabel( $H_SUBJECT, 'searchsubject', 'T' ) . $HTML_BR;
+    local( $msg, $contents );
+    $contents = &TagInputCheck( 'searchsubject', $SearchSubject ) . ': ' . &TagLabel( $H_SUBJECT, 'searchsubject', 'T' ) . $HTML_BR;
 
-    $msg .= &TagInputCheck( 'searchperson', $SearchPerson ) . ': ' . &TagLabel( "名前", 'searchperson', 'N' ) . $HTML_BR;
+    $contents .= &TagInputCheck( 'searchperson', $SearchPerson ) . ': ' . &TagLabel( "名前", 'searchperson', 'N' ) . $HTML_BR;
 
-    $msg .= &TagInputCheck( 'searcharticle', $SearchArticle ) . ': ' . &TagLabel( $H_MESG, 'searcharticle', 'A' ) . $HTML_BR;
+    $contents .= &TagInputCheck( 'searcharticle', $SearchArticle ) . ': ' . &TagLabel( $H_MESG, 'searcharticle', 'A' ) . $HTML_BR;
 
     local( $sec, $min, $hour, $mday, $mon, $year, $nowStr );
     if ( !$SearchPostTime )
@@ -2725,32 +2733,34 @@ sub hg_b_search_article_form
 	( $sec, $min, $hour, $mday, $mon, $year, $nowStr ) = localtime( $^T );
 	$nowStr = sprintf( "%04d/%02d/%02d", $year+1900, $mon+1, $mday );
     }
-    $msg .= &TagInputCheck( 'searchposttime', $SearchPostTime ) . ': ' . &TagLabel( $H_DATE, 'searchposttime', 'D' ) . " // \n";
-    $msg .= &TagInputText( 'text', 'searchposttimefrom', ( $SearchPostTimeFrom || '' ), 11 ) . ' ' . &TagLabel( '〜', 'searchposttimefrom', 'S' ) . " \n";
-    $msg .= &TagInputText( 'text', 'searchposttimeto', ( $Searchposttimeto || '' ), 11 ) . &TagLabel( 'の間', 'searchposttimeto', 'E' ) . $HTML_BR;
+    $contents .= &TagInputCheck( 'searchposttime', $SearchPostTime ) . ': ' . &TagLabel( $H_DATE, 'searchposttime', 'D' ) . " // \n";
+    $contents .= &TagInputText( 'text', 'searchposttimefrom', ( $SearchPostTimeFrom || '' ), 11 ) . ' ' . &TagLabel( '〜', 'searchposttimefrom', 'S' ) . " \n";
+    $contents .= &TagInputText( 'text', 'searchposttimeto', ( $Searchposttimeto || '' ), 11 ) . &TagLabel( 'の間', 'searchposttimeto', 'E' ) . $HTML_BR;
 
     if ( $SYS_ICON )
     {
-	$msg .= &TagInputCheck( 'searchicon', $SearchIcon ) . ': ' . &TagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
+	$contents .= &TagInputCheck( 'searchicon', $SearchIcon ) . ': ' . &TagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
 
 	# アイコンの選択
-	local( $contents, $IconTitle );
-	$contents = sprintf( qq(<option%s>$H_NOICON</option>\n), ( $Icon &&
+	local( $selContents, $IconTitle );
+	$selContents = sprintf( qq(<option%s>$H_NOICON</option>\n), ( $Icon &&
 	    ( $Icon ne $H_NOICON ))? '' : ' selected' );
 	foreach $IconTitle ( sort keys( %ICON_FILE ))
 	{
-	    $contents .= sprintf( "<option%s>$IconTitle</option>\n",
+	    $selContents .= sprintf( "<option%s>$IconTitle</option>\n",
 	    	( $Icon eq $IconTitle )? ' selected' : '' );
 	}
-	$msg .= &TagSelect( 'icon', $contents ) . "\n";
+	$contents .= &TagSelect( 'icon', $selContents ) . "\n";
 
 	# アイコン一覧
-	$msg .= '(' . &LinkP( "b=$BOARD&c=i", "使える$H_ICON一覧" .
-	    &TagAccessKey( 'H' ), 'H' ) . ')' . $HTML_BR . $HTML_BR;
+	$contents .= '(' . &LinkP( "b=$BOARD_ESC&c=i", "使える$H_ICON一覧" .
+	    &TagAccessKey( 'H' ), 'H' ) . ')' . $HTML_BR;
     }
+    $msg .= &TagFieldset( "検索条件$HTML_BR", $contents ) . $HTML_BR;
 
     $msg .= &TagLabel( 'キーワード', 'key', 'K' ) . ': ' . &TagInputText(
 	'text', 'key', $Key, $KEYWORD_LENGTH ) . $HTML_BR;
+
     %tags = ( 'c', 's', 'b', $BOARD );
     &DumpForm( *tags, '検索', 'リセット', *msg );
 }
@@ -2847,12 +2857,12 @@ sub DumpArtEntryNormal
     $icon = $icon || $SYS_ICON_DEFAULT;
 
     local( $msg );
+    local( $contents ) = '';
 
     # アイコンの選択
     if ( $SYS_ICON )
     {
 	$msg .= &TagLabel( $H_ICON, 'icon', 'I' ) . " :\n";
-	local( $contents );
 	$contents = sprintf( "<option%s>$H_NOICON</option>\n",
 	    (( $icon eq $H_NOICON )? ' selected' : '' ));
 	foreach ( @ICON_TITLE )
@@ -2862,7 +2872,7 @@ sub DumpArtEntryNormal
 	}
 	$msg .= &TagSelect( 'icon', $contents ) . "\n";
 
-	$msg .= '(' . &LinkP( "b=$BOARD&c=i", "使える$H_ICON一覧" .
+	$msg .= '(' . &LinkP( "b=$BOARD_ESC&c=i", "使える$H_ICON一覧" .
 	    &TagAccessKey( 'H' ), 'H' ) . ')' . $HTML_BR;
     }
 
@@ -2885,10 +2895,10 @@ sub DumpArtEntryNormal
     # 書き込み形式
     if ( $ttFlag )
     {
-	local( $contents ) = '';
 	$ttBit = 0;
 	local( $firstFlag ) = 1;
 	local( $labelTarget );
+	$contents = '';
 	foreach ( @H_TTLABEL )
 	{
 	    if ( $SYS_TEXTTYPE & ( 2 ** $ttBit ))
@@ -2916,8 +2926,8 @@ sub DumpArtEntryNormal
 	    }
 	    $ttBit++;
 	}
-	$msg .= &TagLabel( $H_TEXTTYPE, $labelTarget, 'Z' ) . ":\n" .
-	    $contents . $HTML_BR;
+	$msg .= &TagFieldset( &TagLabel( $H_TEXTTYPE, $labelTarget, 'Z' ) .
+	    ': ', $contents );
     }
     else
     {
@@ -2950,7 +2960,7 @@ sub DumpArtEntryNormal
     }
     $msg .= "</p>\n<p>\n";
 
-    $msg .= &TagInputRadio( 'com_p', 'com', 'p', 1 ) . ":\n" . &TagLabel(
+    $contents = &TagInputRadio( 'com_p', 'com', 'p', 1 ) . ":\n" . &TagLabel(
 	'試しに表示してみる(まだ投稿しません)', 'com_p', 'P' ) . $HTML_BR;
     local( $doLabel );
     if ( $type eq 'supersede' )
@@ -2961,8 +2971,9 @@ sub DumpArtEntryNormal
     {
 	$doLabel = "$H_MESGを投稿する";
     }
-    $msg .= &TagInputRadio( 'com_x', 'com', 'x', 0 ) . ":\n" . &TagLabel(
+    $contents .= &TagInputRadio( 'com_x', 'com', 'x', 0 ) . ":\n" . &TagLabel(
 	$doLabel, 'com_x', 'X' ) . $HTML_BR;
+    $msg .= &TagFieldset( "コマンド$HTML_BR", $contents );
 
     local( $op ) = ( -M &GetPath( $BOARD, $DB_FILE_NAME ));
     local( %tags ) = ( 'corig', $cgi'TAGS{'c'}, 'b', $BOARD, 'c', 'p',
@@ -3363,15 +3374,14 @@ sub DumpArtCommand
 
     local( $old ) = &GetTitleOldIndex( $id );
 
-    $gHgStr .= &LinkP( 'c=bl', &TagComImg( $ICON_BLIST, $H_BACKBOARD ), 'B' ) .
-	"\n";
+    $gHgStr .= &LinkP( 'c=bl', &TagComImg( $ICON_BLIST, $H_BACKBOARD ), 'B' ) . "\n";
 
-    $gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=v&num=$DEF_TITLE_NUM&old=$old",
+    $gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=v&num=$DEF_TITLE_NUM&old=$old",
 	&TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY ), 'T' ) . "\n";
 	
     if ( $prevId ne '' )
     {
-	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=e&id=$prevId", &TagComImg(
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=e&id=$prevId", &TagComImg(
 	    $ICON_PREV, $H_PREVARTICLE ), 'P' ) . "\n";
     }
     else
@@ -3381,7 +3391,7 @@ sub DumpArtCommand
 	
     if ( $nextId ne '' )
     {
-	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=e&id=$nextId", &TagComImg(
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=e&id=$nextId", &TagComImg(
 	    $ICON_NEXT, $H_NEXTARTICLE ), 'N' ) . "\n";
     }
     else
@@ -3391,7 +3401,7 @@ sub DumpArtCommand
 
     if ( $reply )
     {
-	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=t&id=$id", &TagComImg(
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=t&id=$id", &TagComImg(
 	    $ICON_THREAD, $H_READREPLYALL ), 'M' ) . "\n";
     }
     else
@@ -3403,9 +3413,9 @@ sub DumpArtCommand
 
     if ( $POLICY & 2 )
     {
-	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=f&id=$id", &TagComImg(
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=f&id=$id", &TagComImg(
 	    $ICON_FOLLOW, $H_REPLYTHISARTICLE ), 'R' ) . "\n" . $dlmtS .
-	    &LinkP( "b=$BOARD&c=q&id=$id", &TagComImg( $ICON_QUOTE,
+	    &LinkP( "b=$BOARD_ESC&c=q&id=$id", &TagComImg( $ICON_QUOTE,
 	    $H_REPLYTHISARTICLEQUOTE ), 'Q' ) . "\n";
     }
     else
@@ -3421,10 +3431,10 @@ sub DumpArtCommand
 
 	if ( $delete )
 	{
-	    $gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=f&s=on&id=$id", &TagComImg(
-		$ICON_SUPERSEDE, $H_SUPERSEDE ), 'S' ) . "\n" . $dlmtS .
-		&LinkP( "b=$BOARD&c=dp&id=$id", &TagComImg( $ICON_DELETE,
-	    	$H_DELETE ), 'D' ) . "\n";
+	    $gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=f&s=on&id=$id",
+		&TagComImg( $ICON_SUPERSEDE, $H_SUPERSEDE ), 'S' ) . "\n" .
+		$dlmtS . &LinkP( "b=$BOARD&c=dp&id=$id", &TagComImg(
+		$ICON_DELETE, $H_DELETE ), 'D' ) . "\n";
 	}
 	else
 	{
@@ -3436,7 +3446,7 @@ sub DumpArtCommand
     if ( $SYS_COMICON == 1 )
     {
 	$gHgStr .= $dlmtL;
-	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD&c=h", &TagComImg( $ICON_HELP,
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=h", &TagComImg( $ICON_HELP,
 	    'ヘルプ' ), 'H', '', '', 'list' ) . "\n";
     }
     $gHgStr .= qq(</p>\n);
@@ -3543,10 +3553,13 @@ sub DumpButtonToTitleList
     }
     else
     {
-	$gHgStr .= "<p>" . &LinkP( "b=$board&c=v&num=$DEF_TITLE_NUM&old=$old",
-	    $H_BACKTITLEREPLY . &TagAccessKey( 'B' ), 'B' ) . "</p>\n";
-	$gHgStr .= "<p>" . &LinkP( "b=$board&c=r&num=$DEF_TITLE_NUM&old=$old",
-	    $H_BACKTITLEDATE ) . "</p>\n";
+	local( $boardEsc ) = &URIEscape( $board );
+	$gHgStr .= "<p>" . &LinkP(
+	    "b=$boardEsc&c=v&num=$DEF_TITLE_NUM&old=$old", $H_BACKTITLEREPLY .
+	    &TagAccessKey( 'B' ), 'B' ) . "</p>\n";
+	$gHgStr .= "<p>" . &LinkP(
+	    "b=$boardEsc&c=r&num=$DEF_TITLE_NUM&old=$old", $H_BACKTITLEDATE ) .
+	    "</p>\n";
     }
 }
 
@@ -3576,7 +3589,8 @@ sub DumpButtonToArticle
     }
     else
     {
-	$gHgStr .= "<p>" . &LinkP( "b=$board&c=e&id=$id", $msg .
+	local( $boardEsc ) = &URIEscape( $board );
+	$gHgStr .= "<p>" . &LinkP( "b=$boardEsc&c=e&id=$id", $msg .
 	    &TagAccessKey( 'N' ), 'N' ) . "</p>\n";
     }
 }
@@ -3675,17 +3689,18 @@ sub DumpArtSummary
     {
 	local( $fId ) = $DB_FID{$id};
 	$fId =~ s/^.*,//o;
-	$gHgStr .= ' ' . &LinkP( "b=$BOARD&c=t&id=$fId", $H_THREAD_ALL, '',
+	$gHgStr .= ' ' . &LinkP( "b=$BOARD_ESC&c=t&id=$fId", $H_THREAD_ALL, '',
 	    $H_THREAD_ALL_L ) . ' ';
     }
 
     $gHgStr .= &TagMsgImg( $icon ) . " <small>$id.</small> " .
 	(( $flag&2 )? &TagA( $title || $id, "$cgi'REQUEST_URI#a$id" ) :
-	&LinkP( "b=$BOARD&c=e&id=$id", $title || $id ));
+	&LinkP( "b=$BOARD_ESC&c=e&id=$id", $title || $id ));
 
     if ( $aids )
     {
-	$gHgStr .= ' ' . &LinkP( "b=$BOARD&c=t&id=$id", $H_THREAD, '', $H_THREAD_L );
+	$gHgStr .= ' ' . &LinkP( "b=$BOARD_ESC&c=t&id=$id", $H_THREAD, '',
+	    $H_THREAD_L );
     }
 
     $gHgStr .= ' [' . ( $name || $MAINT_NAME ) . '] ';
@@ -4943,43 +4958,6 @@ sub GetUtcFromYYYY_MM_DD
 
 
 ###
-## DQEncode/DQDecode - 特殊文字のEncodeとDecode
-#
-# - SYNOPSIS
-#	DQEncode($Str);
-#	DQDecode($Str);
-#
-# - ARGS
-#	$Str	Encode/Decodeする文字列
-#
-# - DESCRIPTION
-#	HTMLの特殊文字(", >, <, &)をEncode/Decodeする．
-#
-# - RETURN
-#	Encode/Decodeした文字列
-#
-sub DQEncode
-{
-    local( $Str ) = @_;
-    $Str =~ s/\"/__dq__/go;
-    $Str =~ s/\>/__gt__/go;
-    $Str =~ s/\</__lt__/go;
-    $Str =~ s/\&/__amp__/go;
-    $Str;
-}
-
-sub DQDecode
-{
-    local( $Str ) = @_;
-    $Str =~ s/__dq__/\"/go;
-    $Str =~ s/__gt__/\>/go;
-    $Str =~ s/__lt__/\</go;
-    $Str =~ s/__amp__/\&/go;
-    $Str;
-}
-
-
-###
 ## HTMLEncode/HTMLDecode - 特殊文字のHTML用EncodeとDecode
 #
 # - SYNOPSIS
@@ -5012,6 +4990,30 @@ sub HTMLDecode
     s/&gt;/\>/gio;
     s/&lt;/\</gio;
     s/&amp;/\&/gio;
+    $_;
+}
+
+
+###
+## URIEscape - URIのescape
+#
+# - SYNOPSIS
+#	URIEscape( $str );
+#
+# - ARGS
+#	$str	URI escapeする文字列
+#
+# - DESCRIPTION
+#	URI escapeを行なう．
+#
+# - RETURN
+#	URI escapeした文字列
+#
+sub URIEscape
+{
+    local( $_ ) = @_;
+    s/[^A-Za-z0-9\\\-_\.!~*'() ]/sprintf( "%%%02X", ord( $1 ))/eg;
+    s/ /+/go;
     $_;
 }
 
@@ -5082,12 +5084,12 @@ sub ArticleEncode
 	    }
 	    elsif ( $artStr =~ m!^([^/]+)/(.*)$! )
 	    {
-		local( $boardInfo ) = &GetBoardInfo( $1 );
-		$tagStr = &LinkP( "b=$1&c=e&id=$2", $quoteStr ) if $boardInfo;
+		local( $boardEsc ) = &GetBoardInfo( $1 );
+		$tagStr = &LinkP( "b=$boardEsc&c=e&id=$2", $quoteStr );
 	    }
 	    else
 	    {
-		$tagStr = &LinkP( "b=$BOARD&c=e&id=$artStr", $quoteStr );
+		$tagStr = &LinkP( "b=$BOARD_ESC&c=e&id=$artStr", $quoteStr );
 	    }
 	}
 	elsif ( &IsUrl( &HTMLDecode( $urlMatch )))
@@ -5285,10 +5287,10 @@ sub PageLink
     if ( $old )
     {
 	$str .= &LinkP(
-	    "b=$BOARD&c=$com&num=$num&old=0&fold=$fold&rev=$rev",
+	    "b=$BOARD_ESC&c=$com&num=$num&old=0&fold=$fold&rev=$rev",
 	    $H_TOP . &TagAccessKey( 'T' ), 'T' );
 	$str .= ' | ' . &LinkP(
-	    "b=$BOARD&c=$com&num=$num&old=$nextOld&fold=$fold&rev=$rev",
+	    "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&fold=$fold&rev=$rev",
 	    $H_UP . &TagAccessKey( 'N' ), 'N' );
     }
     else
@@ -5300,7 +5302,7 @@ sub PageLink
     if ( $SYS_REVERSE )
     {
 	$str .= ' | ' .
-	    &LinkP( "b=$BOARD&c=$com&num=$num&old=$old&fold=$fold&rev=" .
+	    &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&fold=$fold&rev=" .
 	    ( 1-$rev ), $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R',
 	    $H_REVERSE_L );
     }
@@ -5308,7 +5310,7 @@ sub PageLink
     if ( $SYS_EXPAND && ( $fold ne '' ))
     {
 	$str .= ' | ' .
-	    &LinkP( "b=$BOARD&c=$com&num=$num&old=$old&rev=$rev&fold=" .
+	    &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" .
 	    ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E',
 	    $H_EXPAND_L );
     }
@@ -5318,10 +5320,10 @@ sub PageLink
     if ( $num && ( $#DB_ID - $backOld >= 0 ))
     {
 	$str .= &LinkP(
-	    "b=$BOARD&c=$com&num=$num&old=$backOld&fold=$fold&rev=$rev",
+	    "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&fold=$fold&rev=$rev",
 	    $H_DOWN . &TagAccessKey( 'P' ), 'P' );
 	$str .= ' | ' . &LinkP(
-	    "b=$BOARD&c=$com&num=$num&old=" . ( $#DB_ID - $old + 1) .
+	    "b=$BOARD_ESC&c=$com&num=$num&old=" . ( $#DB_ID - $old + 1) .
 	    "&fold=$fold&rev=$rev", $H_BOTTOM . &TagAccessKey( 'B' ),
 	    'B' );
     }
@@ -5349,14 +5351,15 @@ sub ShowPageLinkEachPage	# not used.
 
     if ( $SYS_REVERSE )
     {
-	$str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ),
-	    $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R', $H_REVERSE_L ) .
-	    ' ';
+	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=" .
+	    ( 1-$rev ), $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R',
+	    $H_REVERSE_L ) . ' ';
     }
 
     if ( $SYS_EXPAND )
     {
-	$str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$old&rev=$rev&fold=" .
+	$str .= &LinkP(
+	    "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" .
 	    ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E',
 	    $H_EXPAND_L );
     }
@@ -5365,10 +5368,10 @@ sub ShowPageLinkEachPage	# not used.
     {
 	if ( $num && ( $#DB_ID - $backOld > 0 ))
 	{
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=0&rev=$rev",
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&rev=$rev",
 		$H_TOP );
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev",
-		$H_UP );
+	    $str .= &LinkP(
+		"b=$BOARD_ESC&c=$com&num=$num&old=$backOld&rev=$rev", $H_UP );
 	}
 	else
 	{
@@ -5381,8 +5384,8 @@ sub ShowPageLinkEachPage	# not used.
 	    $str .= ' ';
 	    if ( $old - $i * $num <= $#DB_ID )
 	    {
-		$str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=" . ( $i*$num ) .
-		    "&rev=$rev", $i );
+		$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=" .
+		    ( $i*$num ) . "&rev=$rev", $i );
 	    }
 	    else
 	    {
@@ -5393,8 +5396,7 @@ sub ShowPageLinkEachPage	# not used.
 
 	if ( $old )
 	{
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev",
-		$H_DOWN );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&rev=$rev", $H_DOWN );
 	}
 	else
 	{
@@ -5405,10 +5407,8 @@ sub ShowPageLinkEachPage	# not used.
     {
 	if ( $old )
 	{
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=0&rev=$rev",
-		$H_TOP );
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev",
-		$H_UP );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&rev=$rev", $H_TOP );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&rev=$rev", $H_UP );
 	}
 	else
 	{
@@ -5422,8 +5422,7 @@ sub ShowPageLinkEachPage	# not used.
 	    $str .= ' ';
 	    if ( $old - $i * $num <= $#DB_ID )
 	    {
-		$str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=" . ( $i*$num ) .
-		    "&rev=$rev", $i );
+		$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=" . ( $i*$num ) . "&rev=$rev", $i );
 	    }
 	    else
 	    {
@@ -5434,8 +5433,7 @@ sub ShowPageLinkEachPage	# not used.
 
 	if ( $num && ( $#DB_ID - $backOld > 0 ))
 	{
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev",
-		$H_DOWN );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&rev=$rev", $H_DOWN );
 	}
 	else
 	{
@@ -5461,8 +5459,7 @@ sub ShowPageLinkTop		# not used
     {
 	if ( $num && ( $#DB_ID - $backOld > 0 ))
 	{
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev",
-		$H_DOWN );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&rev=$rev", $H_DOWN );
 	}
 	else
 	{
@@ -5473,10 +5470,8 @@ sub ShowPageLinkTop		# not used
     {
 	if ( $old )
 	{
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=0&rev=$rev",
-		$H_TOP );
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev",
-		$H_UP );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&rev=$rev", $H_TOP );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&rev=$rev", $H_UP );
 	}
 	else
 	{
@@ -5486,16 +5481,13 @@ sub ShowPageLinkTop		# not used
 
     if ( $SYS_REVERSE )
     {
-	$str .= ' // ' . &LinkP( "b=$BOARD&c=$com&num=$num&old=$old&rev=" .
-		( 1-$rev ), $H_REVERSE[ 1-$rev ], &TagAccessKey( 'R' ), 'R',
+	$str .= ' // ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE[ 1-$rev ], &TagAccessKey( 'R' ), 'R',
 		$H_REVERSE_L );
     }
 
     if ( $SYS_EXPAND )
     {
-	$str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$old&rev=$rev&fold=" .
-	    ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E',
-	    $H_EXPAND_L );
+	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" . ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E', $H_EXPAND_L );
     }
 
     $str .= "</p>\n";
@@ -5514,14 +5506,13 @@ sub ShowPageLinkBottom		# not used.
 
     if ( $SYS_REVERSE )
     {
-	$str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ),
-	    $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R', $H_REVERSE_L );
+	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R', $H_REVERSE_L );
     }
 
     if ( $SYS_EXPAND )
     {
 	$str .= ' ' .
-	    &LinkP( "b=$BOARD&c=$com&num=$num&old=$old&rev=$rev&fold=" .
+	    &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" .
 	    ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E',
 	    $H_EXPAND_L ) . ' // ';
     }
@@ -5530,10 +5521,8 @@ sub ShowPageLinkBottom		# not used.
     {
 	if ( $old )
 	{
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=0&rev=$rev",
-		$H_TOP );
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$nextOld&rev=$rev",
-		$H_UP );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&rev=$rev", $H_TOP );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&rev=$rev", $H_UP );
 	}
 	else
 	{
@@ -5544,8 +5533,7 @@ sub ShowPageLinkBottom		# not used.
     {
 	if ( $num && ( $#DB_ID - $backOld > 0 ))
 	{
-	    $str .= &LinkP( "b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev",
-		$H_DOWN );
+	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&rev=$rev", $H_DOWN );
 	}
 	else
 	{
@@ -5648,10 +5636,9 @@ sub TagA
 {
     local( $markUp, $href, $key, $title, $name, $target ) = @_;
 
-    $href =~ s/&/&amp;/go;
+#    $href =~ s/&/&amp;/go;
     if ( $key eq '' )
     {
-#	$key = sprintf( "%d", $gLinkNum );
 	$key = $gLinkNum;
 	$gLinkNum = 0 if ( ++$gLinkNum > 9 );
     }
@@ -5838,6 +5825,23 @@ sub TagSelect
 
 
 ###
+## TagFieldset - fieldsetタグのフォーマット
+#
+# - SYNOPSIS
+#	TagFieldset( $title, $contents );
+#
+# - ARGS
+#	$title		legendに使われる
+#	$contents	fieldsetのコンテンツ
+#
+sub TagFieldset
+{
+    local( $title, $contents ) = @_;
+    qq(<fieldset>\n<legend>$title</legend>\n$contents</fieldset>\n);
+}
+
+
+###
 ## LinkP - 自プログラム向けリンクの生成
 #
 # - SYNOPSIS
@@ -5857,7 +5861,8 @@ sub TagSelect
 sub LinkP
 {
     local( $comm, $markUp, $key, $title, $name, $fragment ) = @_;
-    $comm .= "&kinoA=3&kinoU=$UNAME&kinoP=$PASSWD" if ( $SYS_AUTH == 3 );
+    $comm .= "&kinoA=3&kinoU=$UNAME_ESC&kinoP=$PASSWD" if ( $SYS_AUTH == 3 );
+    $comm =~ s/&/&amp;/go;
     $comm .= "#$fragment" if ( $fragment ne '' );
     &TagA( $markUp, "$PROGRAM?$comm", $key, $title, $name );
 }
@@ -7473,7 +7478,7 @@ sub GetIconPath
 sub GetStyleSheetURL
 {
     local( $name ) = @_;
-    $KB_RESOURCE_URL? "$KB_RESOURCE_URL$RESOURCE_STYLE/$name" : "$RESOURCE_STYLE/$hame";
+    $KB_RESOURCE_URL? "$KB_RESOURCE_URL$RESOURCE_STYLE/$name" : "$RESOURCE_STYLE/$name";
 }
 
 
