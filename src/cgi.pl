@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.6 1998-10-22 04:17:16 nakahiro Exp $
+# $Id: cgi.pl,v 2.7 1998-10-22 08:22:59 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -44,7 +44,8 @@ $AF_INET = 2; $SOCK_STREAM = 1;
 $CRLF = "\xd\xa";		# cannot use \r\n
 				# because of MacPerl's !ox#*& behavior...
 
-$HTTP_COOKIES_NEVER_EXPIRED = 'Thu, 31-Dec-2029 23:59:59 GMT';
+$HTTP_COOKIES_NEVER_EXPIRED = 1704067199;
+				# Thursday, 31-Dec-2029 23:59:59 GMT
 
 @HTML_TAGS = (
      # タグ名, 閉じ必須か否か, 使用可能なfeature
@@ -209,12 +210,19 @@ sub Header
     {
 	foreach ( @cookieStr )
 	{
-	    print( "Set-Cookie: $_; expires=", ( $cookieExpire || $HTTP_COOKIES_NEVER_EXPIRED ), ";\n" );
+	    print( "Set-Cookie: $_;" );
+	    if ( $cookieExpire )
+	    {
+		print( " expires=", &GetHttpDateTimeFromUtc( ( $cookieExpire == -1 )? $HTTP_COOKIES_NEVER_EXPIRED : $^T+$cookieExpire ), ";\n" );
+	    }
 	}
     }
 
     # Header for Last-Modified.
-    printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || $^T )) if ( $utcFlag );
+    if ( $utcFlag )
+    {
+	print( "Last-Modified: ", &GetHttpDateTimeFromUtc( $utcStr || $^T ), "\n" );
+    }
 
     # now, the end of Head Block.
     print( "\n" );
@@ -230,7 +238,7 @@ sub GetHttpDateTimeFromUtc
     local( $utc ) = @_;
     $utc = 0 if ( $utc !~ /^\d+$/ );
     local( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime( $utc );
-    sprintf( "%s, %02d-%s-%02d %02d:%02d:%02d GMT", ( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' )[ $wday ], $mday, ( 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' )[ $mon ], $year, $hour, $min, $sec );
+    sprintf( "%s, %02d-%s-%02d %02d:%02d:%02d GMT", ( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' )[ $wday ], $mday, ( 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' )[ $mon ], ( $year%100 ), $hour, $min, $sec );
 }
 
 
