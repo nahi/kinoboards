@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.26 1999-06-16 12:30:23 nakahiro Exp $
+# $Id: kb.cgi,v 5.27 1999-06-16 13:10:12 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -382,22 +382,6 @@ MAIN:
     }
 
     # 以下は管理用
-    if ( $SYS_F_MT )
-    {
-	if ( $c eq 'mtr' )
-	{
-	    $gVarComType = 1;
-	    require( &GetPath( $UI_DIR, 'View.pl' ));
-	    last;
-	}
-	elsif ( $c eq 'vm' )
-	{
-	    $gVarComType = 1;
-	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
-	    last;
-	}
-    }
-
     if ( $SYS_F_MV )
     {
 	if  ( $c eq 'ct' )
@@ -1018,12 +1002,10 @@ sub ReplyArticles
 ## BoardHeader - 掲示板ヘッダの表示
 #
 # - SYNOPSIS
-#	BoardHeader($Type);
+#	BoardHeader();
 #
 # - ARGS
-#	$Type	掲示板ヘッダのタイプ
-#			'normal' ... 通常
-#			'maint' .... 管理用
+#	なし
 #
 # - DESCRIPTION
 #	掲示板のヘッダを表示する．
@@ -1033,22 +1015,15 @@ sub ReplyArticles
 #
 sub BoardHeader
 {
-    local( $Type ) = @_;
-
     local( $msg );
     &GetBoardHeader( $BOARD, *msg );
     &cgiprint'Cache( $msg );
 
-    if ( $SYS_F_MT && ( $Type eq 'normal' ))
-    {
-	&cgiprint'Cache( "<p>\n<ul>\n" );
-	&cgiprint'Cache( "<li>", &TagA( "$PROGRAM?c=vm&b=$BOARD&num=$DEF_TITLE_NUM", "管理者用のタイトル一覧へ" ), "\n</ul>\n</p>\n" );
-    }
-    elsif ( $Type eq 'maint' )
+    if ( $SYS_F_MT )
     {
 	&cgiprint'Cache( "<p>\n<ul>\n" );
 	&cgiprint'Cache( "<li>", &TagA( "$PROGRAM?c=mp&b=$BOARD", "自動メイル配信先を設定する" ), "\n" ) if $SYS_F_AM;
-	&cgiprint'Cache( "<li>", &TagA( "$PROGRAM?c=v&b=$BOARD&num=$DEF_TITLE_NUM", "通常のタイトル一覧へ" ), "\n</ul>\n</p>\n" );
+	&cgiprint'Cache( "</ul>\n</p>\n" );
     }
 }
 

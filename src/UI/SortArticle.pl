@@ -44,7 +44,7 @@ SortArticle:
     # 表示画面の作成
     &MsgHeader( 'Sorted view', "$H_SUBJECT一覧(日付順)" );
 
-    &BoardHeader('normal');
+    &BoardHeader();
 
     &cgiprint'Cache("$H_HR\n");
 

@@ -7,7 +7,6 @@
 # - ARGS
 #	$ComType	表示画面のタイプ
 #				0 ... 記事参照画面
-#				1 ... 記事管理画面
 #				2 ... リンクかけかえ先指定画面
 #				3 ... リンクかけかえ実施
 #				4 ... 移動先指定画面
@@ -32,11 +31,6 @@ ViewTitle:
 	$vCom = 'v';
 	$vStr = '';
     }
-    elsif ( $ComType == 1 )
-    {
-	$vCom = 'vm';
-	$vStr = '';
-    }
     elsif ( $ComType == 2 )
     {
 	$vCom = 'ct';
@@ -44,7 +38,7 @@ ViewTitle:
     }
     elsif ( $ComType == 3 )
     {
-	$vCom = 'vm';
+	$vCom = 'v';
 	$vStr = '';
     }
     elsif ( $ComType == 4 )
@@ -54,7 +48,7 @@ ViewTitle:
     }
     elsif ( $ComType == 5 )
     {
-	$vCom = 'vm';
+	$vCom = 'v';
 	$vStr = '';
     }
 
@@ -127,14 +121,10 @@ ViewTitle:
 	&MsgHeader( 'Thread view', "$H_SUBJECT一覧($H_REPLY順)" );
     }
 
-    if ($ComType == 0)
-    {
-	&BoardHeader('normal');
-    }
-    else
-    {
-	&BoardHeader('maint');
+    &BoardHeader();
 
+    if ( $SYS_F_MT )
+    {
 	if ($ComType == 3)
 	{
 	    &cgiprint'Cache("<ul>\n<li>", &TagA( "$PROGRAM?b=$BOARD&c=ce&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'}, "今の変更を元に戻す" ), "\n</ul>\n");
@@ -201,7 +191,11 @@ __EOF__
 	    # 後方参照は後回し．
 	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
 	    # ノードを表示
-	    if ($ComType == 0)
+	    if ( $SYS_F_MT )
+	    {
+		&ViewTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
+	    }
+	    else
 	    {
 		if ( $SYS_THREAD_FORMAT == 1 )
 		{
@@ -215,10 +209,6 @@ __EOF__
 		{
 		    &ViewTitleNodeThread( $Id, 1 );
 		}
-	    }
-	    else
-	    {
-		&ViewTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
 	    }
 	}
     }
@@ -241,7 +231,11 @@ __EOF__
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
 	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
 
-	    if ($ComType == 0)
+	    if ( $SYS_F_MT )
+	    {
+		&ViewTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
+	    }
+	    else
 	    {
 		if ( $SYS_THREAD_FORMAT == 1 )
 		{
@@ -255,10 +249,6 @@ __EOF__
 		{
 		    &ViewTitleNodeThread( $Id, 1 );
 		}
-	    }
-	    else
-	    {
-		&ViewTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
 	    }
 	}
     }

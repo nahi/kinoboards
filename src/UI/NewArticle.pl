@@ -34,6 +34,10 @@ NewArticle:
     # 表示画面の作成
     &MsgHeader( 'Message view (sorted)', "最近の$H_MESGをまとめ読み" );
 
+    &BoardHeader();
+
+    &cgiprint'Cache("$H_HR\n");
+
     &cgiprint'Cache( $pageLinkStr );
 
     &cgiprint'Cache("$H_HR\n");
