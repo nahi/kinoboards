@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.1 1999-07-19 10:16:10 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.2 1999-09-24 14:44:09 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -61,7 +61,7 @@ $COLSEP = "\376";
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.6';		# release
+$KB_RELEASE = '6.7';		# release
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
@@ -574,7 +574,8 @@ sub ArriveMail
 
     local( $StrSubject, $MailSubject, $StrFrom, $Message );
     $StrSubject = ( $Icon eq $H_NOICON )? $Subject : "($Icon) $Subject";
-    $StrSubject =~ s/<[^>]*>//go;
+    $StrSubject =~ s/<[^>]*>//go;	# タグは要らない
+    $StrSubject = &HTMLDecode( $StrSubject );
     $MailSubject = &GetMailSubjectPrefix( $BOARDNAME, $Id ) . $StrSubject;
     $StrFrom = $Email? "$Name <$Email>" : "$Name";
 
@@ -628,9 +629,11 @@ sub FollowMail
 
     $InputDate = &GetDateTimeFormatFromUtc( $Date );
     $StrSubject = ( $Icon eq $H_NOICON )? "$Subject" : "($Icon) $Subject";
-    $StrSubject =~ s/<[^>]*>//go;
+    $StrSubject =~ s/<[^>]*>//go;	# タグは要らない
+    $StrSubject = &HTMLDecode( $StrSubject );
     $FstrSubject = ( $Ficon eq $H_NOICON )? $Fsubject : "($Ficon) $Fsubject";
-    $FstrSubject =~ s/<[^>]*>//go;
+    $FstrSubject =~ s/<[^>]*>//go;	# タグは要らない
+    $FstrSubject = &HTMLDecode( $FstrSubject );
     $MailSubject = &GetMailSubjectPrefix( $BOARDNAME, $Fid ) . $FstrSubject;
     $StrFrom = $Email? "$Name <$Email>" : "$Name";
     $FstrFrom = $Femail? "$Fname <$Femail>" : "$Fname";
@@ -2007,12 +2010,10 @@ sub CheckArticle
     &CheckEmail( *eMail );
     &CheckURL( *url );
     &CheckSubject( *subject );
+    &CheckIcon( *icon, $board );
 
     # 本文の空チェック．
     &Fatal( 2, '' ) if ( $article eq '' );
-
-    # アイコンのチェック; おかしけりゃ「無し」に設定．
-    $icon = $H_NOICON if ( !&GetIconUrlFromTitle( $icon, $board ));
 
     if ( $SYS_MAXARTSIZE != 0 )
     {
@@ -2265,6 +2266,31 @@ sub CheckSubject
     {
 	&Fatal( 4, '' ) if ( $String =~ m/[<>]/o );
     }
+}
+
+
+###
+## CheckIcon - 文字列チェック: Icon
+#
+# - SYNOPSIS
+#	CheckIcon( *str, $board );
+#
+# - ARGS
+#	*str		Icon文字列
+#	$board		掲示板ID
+#
+# - DESCRIPTION
+#	Iconの文字列チェックを行なう．
+#	不正な文字列だったらエラー表示ルーチンへ．
+#
+sub CheckIcon
+{
+    local( *str, $board ) = @_;
+
+    # アイコンのチェック; おかしけりゃ「無し」に設定．
+    $str = $H_NOICON if ( !&GetIconUrlFromTitle( $str, $board ));
+
+    &Fatal( 2, '' ) if ( !$SYS_ALLOWNOICON && ( $str eq $H_NOICON ));
 }
 
 
@@ -3395,7 +3421,7 @@ sub AddDBFile
 
     # close Files.
     close DB;
-    close DBTMP;
+    close DBTMP || &Fatal( 13, $TmpFile );
 
     # DBを更新する
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
@@ -3459,7 +3485,7 @@ sub UpdateArticleDb
 
     # close Files.
     close DB;
-    close DBTMP;
+    close DBTMP || &Fatal( 13, $TmpFile );
 
     # DBを更新する
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
@@ -3515,7 +3541,7 @@ sub DeleteArticleFromDbFile
 
     # close Files.
     close DB;
-    close DBTMP;
+    close DBTMP || &Fatal( 13, $TmpFile );
 
     # DBを更新する
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
@@ -3615,7 +3641,7 @@ sub ReOrderArticleDb
 
     # close Files.
     close DB;
-    close DBTMP;
+    close DBTMP || &Fatal( 13, $TmpFile );
 
     # DBを更新する
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
@@ -3651,7 +3677,7 @@ sub MakeArticleFile
     printf( TMP "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE)
 	|| &Fatal( 13, $File );
     print( TMP "$Article\n" ) || &Fatal( 13, $File );
-    close TMP;
+    close TMP || &Fatal( 13, $File );
 }
 
 
@@ -3744,9 +3770,9 @@ sub WriteArticleId
     $File = &GetPath( $Board, $ARTICLE_NUM_FILE_NAME );
     $TmpFile = &GetPath( $Board, "$ARTICLE_NUM_FILE_NAME.$TMPFILE_SUFFIX$$" );
     open( AID, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
-    print( AID "$Id\n" )  || &Fatal( 13, $TmpFile );
-    print( AID "$artKey\n" )  || &Fatal( 13, $TmpFile );
-    close AID;
+    print( AID "$Id\n" ) || &Fatal( 13, $TmpFile );
+    print( AID "$artKey\n" ) || &Fatal( 13, $TmpFile );
+    close AID || &Fatal( 13, $TmpFile );
 
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
 }
@@ -3817,7 +3843,7 @@ sub UpdateArriveMailDb
     {
 	print( DBTMP "$_\n" ) || &Fatal( 13, $TmpFile );
     }
-    close DBTMP;
+    close DBTMP || &Fatal( 13, $TmpFile );
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
 }
 
@@ -3936,7 +3962,7 @@ sub WriteAliasData
 	    print( ALIAS "$dbLine\n" ) || &Fatal( 13, $TmpFile );
 	}
     }
-    close ALIAS;
+    close ALIAS || &Fatal( 13, $TmpFile );
 
     rename( $TmpFile, $USER_ALIAS_FILE )
 	|| &Fatal( 14, "$TmpFile -&gt; $USER_ALIAS_FILE" );
@@ -4305,7 +4331,7 @@ sub SupersedeDbFile
 
     # close Files.
     close DB;
-    close DBTMP;
+    close DBTMP || &Fatal( 13, $TmpFile );
 
     # DBを更新する
     rename( $TmpFile, $File ) || &Fatal( 14, "$TmpFile -&gt; $File" );
