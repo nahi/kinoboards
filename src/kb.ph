@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.2 1996-04-24 18:00:43 nakahiro Exp $
+# $Id: kb.ph,v 4.3 1996-04-25 11:58:51 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -31,12 +31,6 @@ $MAINT = "nakahiro\@kinotrope.co.jp";
 # sendmailのパスとオプション
 #
 $MAIL2 = "/usr/lib/sendmail -oi -t";
-
-#
-# 著作権表示
-#
-$ADDRESS = "KINOBOARDS: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
-
 
 #
 # システムの設定

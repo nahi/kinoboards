@@ -1,6 +1,6 @@
-#!/usr/local/bin/GNU/perl
+#!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 4.4 1996-04-24 19:45:40 nakahiro Exp $
+# $Id: kb.cgi,v 4.5 1996-04-25 11:58:51 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -62,6 +62,11 @@ $[ = 0;
 # default http port
 #
 $DEFAULT_HTTP_PORT = 80;
+
+#
+# 著作権表示
+#
+$ADDRESS = "KINOBOARDS: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
 
 #
 # ファイル
@@ -140,6 +145,7 @@ $NULL_LINE = "__br__";
 $DOUBLE_QUOTE = "__dq__";
 $GREATER_THAN = '__gt__';
 $LESSER_THAN = '__lt__';
+$AND_MARK = '__amp__';
 
 
 ###
@@ -723,6 +729,7 @@ sub DQEncode {
     s/\"/$DOUBLE_QUOTE/g;
     s/\>/$GREATER_THAN/g;
     s/\</$LESSER_THAN/g;
+    s/\&/$AND_MARK/g;
     return($_);
 }
 
@@ -731,6 +738,7 @@ sub DQDecode {
     s/$DOUBLE_QUOTE/\"/g;
     s/$GREATER_THAN/\>/g;
     s/$LESSER_THAN/\</g;
+    s/$AND_MARK/\&/g;
     return($_);
 }
 
@@ -2286,8 +2294,7 @@ sub GetArticleId {
     # lockをかける
     &lock();
 
-    # なかったら0を返す(いいのか?)
-    open(AID, "$ArticleNumFile") || return(0);
+    open(AID, "$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
     while(<AID>) {
 	chop;
 	$ArticleId = $_;
