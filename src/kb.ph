@@ -151,6 +151,11 @@ $SYS_MAXARTSIZE = 51200;
 #   1: 禁止する
 $SYS_DENY_FORM_RECYCLE = 1;
 
+# 半日以上前に生成されたフォームからの書き込みを禁止しますか?
+#   0: 許可する
+#   1: 禁止する
+$SYS_DENY_FORM_OLD = 1;
+
 # サーバのポート番号を表示しますか?
 #   0: 表示しない
 #   1: (必要ならば)表示する
@@ -212,6 +217,11 @@ $SYS_NETSCAPE_EXTENSION = 1;
 #   2: リプライは一切表示せず，新着記事のみ表示する．
 #
 $SYS_THREAD_FORMAT = 0;
+
+# 全ページのヘッダに，プルダウンコンボ形式のジャンプメニューを表示しますか?
+#   0: 表示しない
+#   1: 表示する
+$SYS_HEADER_MENU = 1;
 
 # 以下の各機能を利用可能としますか?
 #   0: 利用できない
@@ -443,7 +453,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.18 1999-06-18 13:55:45 nakahiro Exp $
+# $Id: kb.ph,v 5.19 1999-06-21 13:08:13 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
