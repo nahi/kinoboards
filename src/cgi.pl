@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.37 1999-10-20 14:30:10 nakahiro Exp $
+# $Id: cgi.pl,v 2.38 1999-10-23 08:23:42 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -245,12 +245,13 @@ sub Decode
 	$args = $QUERY_STRING;
     }
 
+    local( $key, $value, $encode );
     foreach ( split( '&', $args ))
     {
-	local( $key, $value ) = split( /=/, $_, 2 );
+	( $key, $value ) = split( /=/, $_, 2 );
 	$value =~ tr/+/ /;
 	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack( "C", hex( $1 ))/ge;
-	local( $encode ) = &jcode'getcode( *value );
+	$encode = &jcode'getcode( *value );
 
 	&jcode'convert( *value, 'euc', $encode, "z" ) if ( defined( $encode ));
 
