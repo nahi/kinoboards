@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 3.0 1996-01-20 14:01:13 nakahiro Exp $
+# $Id: kb.cgi,v 3.1 1996-01-26 07:33:18 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 3.0  1996-01-20 14:01:13  nakahiro
+# Revision 3.1  1996-01-26 07:33:18  nakahiro
+# release version for OOW96.
+#
+# Revision 3.0  1996/01/20 14:01:13  nakahiro
 # oow1
 #
 # Revision 2.1  1995/12/19 18:46:12  nakahiro
@@ -73,7 +76,7 @@ require('tag_secure.pl');
 #	新規投稿:		c=n
 #	引用つきフォロー:	c=q&id={[1-9][0-9]*}
 #	引用なしフォロー:	c=f&id={[1-9][0-9]*}
-#	ファイル引用フォロー:	c=q/f&file={filename}
+#	URL引用フォロー:	c=q/f&url={URL}
 #	アイコン表示:		c=i
 #	記事のプレビュー:	c=p&(空)....
 #	確認済み画面:		c=x&id={[1-9][0-9]*(引用でない時id=0)}
@@ -94,20 +97,20 @@ MAIN: {
 	# 値の抽出
 	local($Command) = $cgi'TAGS{'c'};
 	local($Id) = $cgi'TAGS{'id'};
-	local($File) = $cgi'TAGS{'file'};
 	local($Num) = $cgi'TAGS{'num'};
 	local($Type) = $cgi'TAGS{'type'};
 	local($Key) = $cgi'TAGS{'key'};
 	local($Alias) = $cgi'TAGS{'alias'};
 	local($Name) = $cgi'TAGS{'name'};
 	local($Email) = $cgi'TAGS{'email'};
+	local($File) = $cgi'TAGS{'file'};
 	local($URL) = $cgi'TAGS{'url'};
 
 	# コマンドタイプによる分岐
 	&Entry($NO_QUOTE, 0),		last MAIN if ($Command eq "n");
-	$Id ? &Entry($QUOTE_ON, $Id) : &FileEntry($QUOTE_ON, $File),
+	$Id ? &Entry($QUOTE_ON, $Id) : &URLEntry($QUOTE_ON, $URL),
 					last MAIN if ($Command eq "q");
-	$Id ? &Entry($NO_QUOTE, $Id) : &FileEntry($NO_QUOTE, $File),
+	$Id ? &Entry($NO_QUOTE, $Id) : &URLEntry($NO_QUOTE, $URL),
 					last MAIN if ($Command eq "f");
 	&ShowIcon,			last MAIN if ($Command eq "i");
 	&Preview,			last MAIN if ($Command eq "p");
@@ -146,34 +149,30 @@ sub Entry {
 	# 引用あり/なしと、引用する場合はそのId(引用しない時は0)
 	local($QuoteFlag, $Id) = @_;
 
-	# 選択されたBoardの取得
-	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
-
 	# 表示画面の作成
-	&MsgHeader("$ENTRY_MSG");
+	&MsgHeader($ENTRY_MSG, $BOARD);
 
 	# フォローの場合
 	if ($Id != 0) {
-		&ViewOriginalArticle($Id, $Board);
+		&ViewOriginalArticle($Id);
 		print("<hr>\n");
 		print("<h2>$H_REPLYMSG</h2>");
 	}
 
 	# お約束
-	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
+	print("<form action=\"$PROGRAM_FROM_BOARD/$BOARD\" method =\"POST\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"p\">\n");
-	print("<input name=\"board\" type=\"hidden\" value=\"$Board\">\n");
 
 	# 引用Id; 引用でないなら0。
 	print("<input name=\"id\" type=\"hidden\" value=\"$Id\">\n");
 
 	# あおり文、Board名、アイコン
-	&EntryHeader($Board);
+	&EntryHeader;
 
 	# Subject(フォローなら自動的に文字列を入れる)
 	printf("%s <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n",
 		$H_SUBJECT,
-		(($Id !=0 ) ? &GetReplySubject($Id, $Board) : ""),
+		(($Id !=0 ) ? &GetReplySubject($Id, $BOARD) : ""),
 		$SUBJECT_LENGTH);
 
 	# TextType
@@ -187,7 +186,7 @@ sub Entry {
 
 	# 本文(引用ありなら元記事を挿入)
 	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
-	&QuoteOriginalArticle($Id, $Board)
+	&QuoteOriginalArticle($Id, $BOARD)
 		if ($Id != 0 && $QuoteFlag == $QUOTE_ON);
 	print("</textarea><br>\n");
 
@@ -205,18 +204,36 @@ sub Entry {
 
 
 ###
-## 書き込み画面(ファイルから引用)
+## 書き込み画面(URL)
 #
-sub FileEntry {
+sub URLEntry {
 
-	# 引用あり/なしと、引用するファイル(kb.cgiから相対)
-	local($QuoteFlag, $File) = @_;
+	# 引用あり/なしと、URL
+	local($QuoteFlag, $URL) = @_;
 
-	# 選択されたBoardの取得
-	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
+	# file
+	local($File) = &GetPath($BOARD, ".$QUOTE_PREFIX.$$");
+	local($Server, $HttpPort, $Resource);
+
+	# split
+	if ($URL =~ m#http://([^:]*):([0-9]*)(/.*)$#io) {
+	    $Server = $1;
+	    $HttpPort = $2;
+	    $Resource = $3;
+	} elsif ($URL =~ m#http://([^/]*)(/.*)$#io) {
+	    $Server = $1;
+	    $HttpPort = $DEFAULT_HTTP_PORT;
+	    $Resource = $2;
+	} else {
+	    &MyFatal(10, $URL);
+	}
+
+	# connect
+	&HttpConnect($Server, $HttpPort, $Resource, $File)
+	    || &MyFatal(10, $URL);
 
 	# 表示画面の作成
-	&MsgHeader("$ENTRY_MSG");
+	&MsgHeader($ENTRY_MSG, $BOARD);
 
 	# 引用ファイルの表示
 	&ViewOriginalFile($File);
@@ -224,18 +241,18 @@ sub FileEntry {
 	print("<h2>$H_REPLYMSG</h2>");
 
 	# お約束
-	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
+	print("<form action=\"$PROGRAM_FROM_BOARD/$BOARD\" method =\"POST\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"p\">\n");
-	print("<input name=\"board\" type=\"hidden\" value=\"$Board\">\n");
 
 	# 引用Id; 正規の引用でないので0。
 	print("<input name=\"id\" type=\"hidden\" value=\"0\">\n");
 
 	# 引用ファイル
+	print("<input name=\"qurl\" type=\"hidden\" value=\"$URL\">\n");
 	print("<input name=\"file\" type=\"hidden\" value=\"$File\">\n");
 
 	# あおり文、Board名、アイコン
-	&EntryHeader($Board);
+	&EntryHeader;
 
 	# Subject
 	printf("%s <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n",
@@ -273,19 +290,17 @@ sub FileEntry {
 #
 sub EntryHeader {
 
-	# ボード名
-	local($Board) = @_;
 	# Board名称の取得
-	local($BoardName) = &GetBoardInfo($Board);
+	local($BoardName) = &GetBoardInfo($BOARD);
 
 	# あおり文
 	print("<p>$H_AORI</p>\n");
 
 	# Board名; 本当は自由に選択できるようにしたい。
-	print("$H_BOARD <a href=\"$SYSTEM_DIR_URL/$Board/$TITLE_FILE_NAME\">$BoardName</a><br>\n");
+	print("$H_BOARD <a href=\"$TITLE_FILE_NAME\">$BoardName</a><br>\n");
 
 	# アイコンの選択
-	&EntryIcon($Board);
+	&EntryIcon;
 
 }
 
@@ -295,9 +310,6 @@ sub EntryHeader {
 #
 sub EntryIcon {
 
-	# ボード名
-	local($Board) = @_;
-
 	local($FileName, $Title);
 
 	print("$H_ICON\n");
@@ -305,7 +317,7 @@ sub EntryIcon {
 	print("<OPTION SELECTED>$H_NOICON\n");
 
 	# 一つ一つ表示
-	open(ICON, "$ICON_DIR/$Board.$ICONDEF_POSTFIX")
+	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
 		|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
 		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
@@ -315,7 +327,7 @@ sub EntryIcon {
 	}
 	close(ICON);
 	print("</SELECT>\n");
-	print("(<a href=\"$PROGRAM/$Board?c=i\">$H_SEEICON</a>)<BR>\n");
+	print("(<a href=\"$PROGRAM_FROM_BOARD/$BOARD?c=i\">$H_SEEICON</a>)<BR>\n");
 
 }
 
@@ -329,11 +341,12 @@ sub EntryUserInformation {
 	print("$H_FROM <input name=\"name\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
 	print("$H_MAIL <input name=\"mail\" type=\"text\" size=\"$MAIL_LENGTH\"><br>\n");
 	print("$H_URL <input name=\"url\" type=\"text\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
-	print("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
+	print("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n")
+		if ($SYS_FOLLOWMAIL);
 
 	if ($SYS_ALIAS) {
-		print("<p><a href=\"$PROGRAM?c=as\">$H_SEEALIAS</a> // \n");
-		print("<a href=\"$PROGRAM?c=an\">$H_ALIASENTRY</a></p>\n");
+		print("<p><a href=\"$PROGRAM_FROM_BOARD?c=as\">$H_SEEALIAS</a> // \n");
+		print("<a href=\"$PROGRAM_FROM_BOARD?c=an\">$H_ALIASENTRY</a></p>\n");
 		print("<p>$H_ALIASINFO</p>\n");
 	}
 }
@@ -410,7 +423,7 @@ sub QuoteOriginalArticle {
 		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
+		$QuoteFlag = 0 if (/$COM_ARTICLE_END/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -426,9 +439,10 @@ sub QuoteOriginalArticle {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^$COM_ARTICLE_BEGIN$/);
+		$QuoteFlag = 1 if (/$COM_ARTICLE_BEGIN/);
 
 	}
+
 	close(TMP);
 
 }
@@ -452,7 +466,7 @@ sub QuoteOriginalFile {
 		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
+		$QuoteFlag = 0 if (/$COM_ARTICLE_END/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -464,7 +478,7 @@ sub QuoteOriginalFile {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^$COM_ARTICLE_BEGIN$/);
+		$QuoteFlag = 1 if (/$COM_ARTICLE_BEGIN/);
 
 	}
 	close(TMP);
@@ -481,9 +495,7 @@ sub QuoteOriginalFile {
 #
 sub ShowIcon {
 
-	# 選択されたBoardの取得
-	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
-	local($BoardName) = &GetBoardInfo($Board);
+	local($BoardName) = &GetBoardInfo($BOARD);
 	local($FileName, $Title);
 
 	# 表示画面の作成
@@ -492,13 +504,13 @@ sub ShowIcon {
 	print("<p><dl>\n");
 
 	# 一つ一つ表示
-	open(ICON, "$ICON_DIR/$Board.$ICONDEF_POSTFIX")
+	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
 		|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
 		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
 		chop;
 		($FileName, $Title) = split(/\t/, $_);
-		print("<dt><img src=\"$ICON_DIR_URL/$FileName\"> : $Title\n");
+		print("<dt><img src=\"$ICON_DIR/$FileName\"> : $Title\n");
 	}
 	close(ICON);
 
@@ -519,20 +531,17 @@ sub ShowIcon {
 #
 sub Preview {
 
-	# Boardの取得
-	local($Board) = $cgi'TAGS{'board'};
-
 	# TextTypeの取得
 	local($TextType) = $cgi'TAGS{'texttype'};
 
 	# テンポラリファイルの作成
-	local($TmpFile) = &MakeTemporaryFile($Board, $TextType);
+	local($TmpFile) = &MakeTemporaryFile($TextType);
 
 	# 表示画面の作成
-	&MsgHeader("$PREVIEW_MSG");
+	&MsgHeader("$PREVIEW_MSG", $BOARD);
 
 	# お約束
-	print("<form action=\"$PROGRAM/$Board\" method =\"GET\">\n");
+	print("<form action=\"$PROGRAM_FROM_BOARD/$BOARD\" method =\"GET\">\n");
 	print("<input name=\"file\" type=\"hidden\" value=\"$TmpFile\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"x\">\n");
 	printf("<input name=\"id\" type=\"hidden\" value=\"%d\">\n",
@@ -545,7 +554,7 @@ sub Preview {
 	# 確認する記事の表示
 	open(TMP, "$TmpFile");
 	while(<TMP>) {
-		print(&URLConvert($Board, $_));
+		print("$_");
 	}
 
 	# お約束
@@ -561,25 +570,22 @@ sub Preview {
 #
 sub MakeTemporaryFile {
 
-	# BoardとTextTypeの取得
-	local($Board, $TextType) = @_;
+	# TextTypeの取得
+	local($TextType) = @_;
 
 	# Board名称の取得
-	local($BoardName) = &GetBoardInfo($Board);
+	local($BoardName) = &GetBoardInfo($BOARD);
 
 	# テンポラリファイル名の取得
-	local($TmpFile) = &GetPath($Board, ".$ARTICLE_PREFIX.$$");
+	local($TmpFile) = &GetPath($BOARD, ".$ARTICLE_PREFIX.$$");
 
 	# 日付を取り出す。
 	local($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
 		= localtime(time);
 	local($InputDate)
-		= sprintf("%d/%d %02d:%02d", $mon + 1, $mday, $hour, $min);
+		= sprintf("%d/%d(%02d:%02d)", $mon + 1, $mday, $hour, $min);
 	# 本文と名前
 	local($Text, $Name) = ($cgi'TAGS{'article'}, $cgi'TAGS{'name'});
-
-	# ホスト名を取り出す。
-	local($RemoteHost) = $ENV{ 'REMOTE_HOST' };
 
 	# 引用ファイル、そのSubject
 	local($ReplyArticleFile, $ReplyArticleIcon, $ReplyArticleSubject)
@@ -589,9 +595,9 @@ sub MakeTemporaryFile {
 	if ($cgi'TAGS{'id'} != 0) {
 		$ReplyArticleFile = &GetArticleFileName($cgi'TAGS{'id'}, '');
 		($ReplyArticleIcon, $ReplyArticleSubject)
-			= &GetSubject($cgi'TAGS{'id'}, $Board);
+			= &GetSubject($cgi'TAGS{'id'}, $BOARD);
 	} elsif ($cgi'TAGS{'file'} ne '') {
-		$ReplyArticleFile = "../" . $cgi'TAGS{'file'};
+		$ReplyArticleFile = $cgi'TAGS{'file'};
 		$ReplyArticleSubject = &GetSubjectFromFile($cgi'TAGS{'file'});
 	}
 
@@ -626,7 +632,7 @@ sub MakeTemporaryFile {
 	? printf(TMP "<strong>$H_SUBJECT</strong> %s<br>\n",
 		$cgi'TAGS{'subject'})
 	: printf(TMP "<strong>$H_SUBJECT</strong> <img src=\"%s\"> %s<br>\n",
-		&GetIconURL($Board, $cgi'TAGS{'icon'}),
+		&GetIconURL($cgi'TAGS{'icon'}),
 		$cgi'TAGS{'subject'});
 
 	# お名前
@@ -643,7 +649,7 @@ sub MakeTemporaryFile {
 		$cgi'TAGS{'mail'}, $cgi'TAGS{'mail'});
 
 	# マシン
-	print(TMP "<strong>$H_HOST</strong> $RemoteHost<br>\n");
+	print(TMP "<strong>$H_HOST</strong> $REMOTE_HOST<br>\n");
 
 	# 投稿日
 	print(TMP "<strong>$H_DATE</strong> $InputDate<br>\n");
@@ -651,8 +657,8 @@ sub MakeTemporaryFile {
 	# ▼反応(引用の場合)
 	if ($cgi'TAGS{'id'} != 0) {
 		printf(TMP "<strong>$H_REPLY</strong> [$BoardName: %d] $ReplyArticleIcon<a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n", $cgi'TAGS{'id'});
-	} elsif ($cgi'TAGS{'file'} ne '') {
-		printf(TMP "<strong>$H_REPLY</strong> $ReplyArticleIcon<a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n");
+	} elsif ($cgi'TAGS{'qurl'} ne '') {
+		printf(TMP "<strong>$H_REPLY</strong> <a href=\"%s\">$ReplyArticleSubject</a><br>\n", $cgi'TAGS{'qurl'});
 	}
 
 	# 反応があったらメール
@@ -698,14 +704,11 @@ sub Thanks {
 	# テンポラリファイル名と引用した記事のId
 	local($TmpFile, $Id) = @_;
 
-	# 選択されたBoardの取得
-	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
-
 	# 登録ファイルのURL
-	local($TitleFileURL) = &GetURL($Board, $TITLE_FILE_NAME);
+	local($TitleFileURL) = &GetURL($BOARD, $TITLE_FILE_NAME);
 
 	# 新たに記事を生成し、フォローされた記事にその旨書き込む。
-	&MakeNewArticle($TmpFile, $Board, $Id);
+	&MakeNewArticle($TmpFile, $Id);
 
 	# 表示画面の作成
 	&MsgHeader("$THANKS_MSG");
@@ -724,14 +727,14 @@ sub Thanks {
 #
 sub MakeNewArticle {
 
-	# テンポラリファイル名、Board、引用した記事のId
-	local($TmpFile, $Board, $Id) = @_;
+	# テンポラリファイル名、引用した記事のId
+	local($TmpFile, $Id) = @_;
 
 	# Board名称の取得
-	local($BoardName) = &GetBoardInfo($Board);
+	local($BoardName) = &GetBoardInfo($BOARD);
 
 	# 記事番号を収めるファイル
-	local($ArticleNumFile) = &GetPath($Board, $ARTICLE_NUM_FILE_NAME);
+	local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
 
 	# 新規の記事番号とファイル名
 	local($ArticleId, $ArticleFile);
@@ -749,20 +752,20 @@ sub MakeNewArticle {
 	$ArticleId = &GetandAddArticleId($ArticleNumFile);
 
 	# 正規のファイル名を取得
-	$ArticleFile = &GetArticleFileName($ArticleId, $Board);
+	$ArticleFile = &GetArticleFileName($ArticleId, $BOARD);
 
 	# 正規のファイルにヘッダ部分を書き込む
 	open(ART, ">$ArticleFile") || &MyFatal(1, $ArticleFile);
 
 	# 記事ヘッダの作成
 	printf(ART "<title>[$BoardName: %d] $Subject</title>\n", $ArticleId);
-	print(ART "<body bgcolor=\"$BG_COLOR\">\n");
+	print(ART "<body bgcolor=\"$BG_COLOR\" TEXT=\"$TEXT_COLOR\" LINK=\"$LINK_COLOR\" ALINK=\"$ALINK_COLOR\" VLINK=\"$VLINK_COLOR\">\n");
 	print(ART "<a href=\"$TITLE_FILE_NAME\">$H_BACK</a> // ");
 	printf(ART "<a href=\"%s\">$H_NEXTARTICLE</a> // ",
 		&GetArticleFileName(($ArticleId + 1), ''));
-	print(ART "<a href=\"$PROGRAM/$Board?c=f&id=$ArticleId\">$H_REPLYTHISARTICLE</a> // ");
-	print(ART "<a href=\"$PROGRAM/$Board?c=q&id=$ArticleId\">$H_REPLYTHISARTICLEQUOTE</a> // ");
-	print(ART "<a href=\"$PROGRAM/$Board?c=t&id=$ArticleId\">$H_READREPLYALL</a>\n");
+	print(ART "<a href=\"$PROGRAM_FROM_BOARD/$BOARD?c=f&id=$ArticleId\">$H_REPLYTHISARTICLE</a> // ");
+	print(ART "<a href=\"$PROGRAM_FROM_BOARD/$BOARD?c=q&id=$ArticleId\">$H_REPLYTHISARTICLEQUOTE</a> // ");
+	print(ART "<a href=\"$PROGRAM_FROM_BOARD/$BOARD?c=t&id=$ArticleId\">$H_READREPLYALL</a>\n");
 	print(ART "<hr>\n");
 
 	# 記事ヘッダの始まり
@@ -795,22 +798,19 @@ sub MakeNewArticle {
 		# フォローされた記事にフォローされたことを書き込む。
 		# フォローした記事ファイル名を直接渡さないのは、
 		# 相対の起点が異なるため。
-		&ArticleWasFollowed($Id, $Board, $ArticleId,
-			$Icon, $Subject, $Name);
+		&ArticleWasFollowed($Id, $ArticleId, $Icon, $Subject, $Name);
 
 		# タイトルファイルに投稿された記事を追加
-		&AddTitleFollow($ArticleId, $Board, $Id, $Name,
-			$Icon, $Subject, $InputDate);
+		&AddTitleFollow($ArticleId, $Id, $Name, $Icon, $Subject, $InputDate);
 	} else {
 		# フォローでなく、新規の場合
 
 		# タイトルファイルに投稿された記事を追加
-		&AddTitleNormal($ArticleId, $Board, $Name,
-			$Icon, $Subject, $InputDate);
+		&AddTitleNormal($ArticleId, $Name, $Icon, $Subject, $InputDate);
 	}
 
 	# allファイルに投稿された記事を追加
-	&AddAllFile($ArticleId, $Board, $Name, $Icon, $Subject, $InputDate);
+	&AddAllFile($ArticleId, $Name, $Icon, $Subject, $InputDate);
 
 	# ロックを外す。
 	&unlock;
@@ -868,10 +868,10 @@ sub ArticleWasFollowed {
 
 	# フォローされた記事のId、ボードの名称、
 	# フォローした記事のId、サブジェクト、名前
-	local($Id, $Board, $FollowArticleId, $Ficon, $Fsubject, $Fname) = @_;
+	local($Id, $FollowArticleId, $Ficon, $Fsubject, $Fname) = @_;
 
 	# フォローされた記事ファイル
-	local($ArticleFile) = &GetArticleFileName($Id, $Board);
+	local($ArticleFile) = &GetArticleFileName($Id, $BOARD);
 
 	# フォローした記事ファイル
 	local($FollowArticleFile) = &GetArticleFileName($FollowArticleId, '');
@@ -881,9 +881,9 @@ sub ArticleWasFollowed {
 		= &GetHeader($ArticleFile);
 
 	# 必要ならメールを送る。
-	&FollowMail($Board, $Name, $Date, $Subject, $Id, $Fname, $Fsubject,
+	&FollowMail($Name, $Date, $Subject, $Id, $Fname, $Fsubject,
 			$FollowArticleId, @Fmail)
-		if (@Fmail[0] ne "");
+		if (($SYS_FOLLOWMAIL) && (@Fmail[0] ne ""));
 
 	# 後ろにフォロー情報を追加
 	open(FART, ">>$ArticleFile") || &MyFatal(1, $ArticleFile);
@@ -897,17 +897,17 @@ sub ArticleWasFollowed {
 #
 sub AddTitleNormal {
 
-	# 記事Id、Board, 名前、アイコン、題、日付
-	local($Id, $Board, $Name, $Icon, $Subject, $InputDate) = @_;
+	# 記事Id、名前、アイコン、題、日付
+	local($Id, $Name, $Icon, $Subject, $InputDate) = @_;
 
 	# 登録ファイル
-	local($File) = &GetPath($Board, $TITLE_FILE_NAME);
+	local($File) = &GetPath($BOARD, $TITLE_FILE_NAME);
 
 	# 追加するファイルの名前
 	local($ArticleFile) = &GetArticleFileName($Id, '');
 
 	# TmpFile
-	local($TmpFile) = &GetPath($Board, $TTMP_FILE_NAME);
+	local($TmpFile) = &GetPath($BOARD, $TTMP_FILE_NAME);
 
 	# タイトルファイルに追加
 	open(TTMP, ">$TmpFile") || &MyFatal(1, $TmpFile);
@@ -955,11 +955,11 @@ sub AddTitleNormal {
 #
 sub AddTitleFollow {
 
-	# 記事Id、Board, フォロー記事Id、名前、アイコン、題、日付
-	local($Id, $Board, $Fid, $Name, $Icon, $Subject, $InputDate) = @_;
+	# 記事Id、フォロー記事Id、名前、アイコン、題、日付
+	local($Id, $Fid, $Name, $Icon, $Subject, $InputDate) = @_;
 
 	# 登録ファイル
-	local($File) = &GetPath($Board, $TITLE_FILE_NAME);
+	local($File) = &GetPath($BOARD, $TITLE_FILE_NAME);
 
 	# 追加するファイルの名前
 	local($ArticleFile) = &GetArticleFileName($Id, '');
@@ -968,7 +968,7 @@ sub AddTitleFollow {
 	local($FollowedArticleFile) = &GetArticleFileName($Fid, '');
 
 	# TmpFile
-	local($TmpFile) = &GetPath($Board, $TTMP_FILE_NAME);
+	local($TmpFile) = &GetPath($BOARD, $TTMP_FILE_NAME);
 
 	# Follow Flag
 	local($AddFlag, $Nest, $NextLine) = (0, 0, ''); 
@@ -1057,11 +1057,11 @@ sub AddTitleFollow {
 #
 sub AddAllFile {
 
-	# 記事Id、Board, 名前、アイコン、題、日付
-	local($Id, $Board, $Name, $Icon, $Subject, $InputDate) = @_;
+	# 記事Id、名前、アイコン、題、日付
+	local($Id, $Name, $Icon, $Subject, $InputDate) = @_;
 
 	# 登録ファイル
-	local($File) = &GetPath($Board, $ALL_FILE_NAME);
+	local($File) = &GetPath($BOARD, $ALL_FILE_NAME);
 
 	# 追加するファイルの名前
 	local($ArticleFile) = &GetArticleFileName($Id, '');
@@ -1085,10 +1085,8 @@ sub SortArticle {
 	# タイプ(all / new)
 	local($Type) = @_;
 
-	# 選択されたBoardの取得
-	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
 	# file
-	local($File) = &GetPath($Board,
+	local($File) = &GetPath($BOARD,
 			(($Type eq 'new')
 				? $TITLE_FILE_NAME
 				: $ALL_FILE_NAME));
@@ -1100,16 +1098,15 @@ sub SortArticle {
 		# コード変換
 		&jcode'convert(*_, 'euc');
 
-		(/^<li>/) && (s/href=\"/href=\"$SYSTEM_DIR_URL\/$Board\//)
-			&& push(@lines, $_);
+		(/^<li>/) && push(@lines, $_);
 	}
 	close(ALL);
 
 	# 表示画面の作成
-	&MsgHeader("$SORT_MSG");
+	&MsgHeader($SORT_MSG, $BOARD);
 	print("<ol>\n");
 	foreach (reverse sort MyArticleSort @lines) {
-		print $_;
+		print("$_");
 	}
 	print("</ol>\n");
 	&MsgFooter;
@@ -1139,11 +1136,8 @@ sub NewArticle {
 	# 表示する個数を取得
 	local($Num) = @_;
 
-	# 選択されたBoardの取得
-	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
-
 	# 記事番号を収めるファイル
-	local($ArticleNumFile) = &GetPath($Board, $ARTICLE_NUM_FILE_NAME);
+	local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
 
 	# 最新記事番号を取得
 	local($ArticleToId) = &GetArticleId($ArticleNumFile);
@@ -1156,9 +1150,9 @@ sub NewArticle {
 	local($i, $File);
 
 	# 表示画面の作成
-	&MsgHeader("$NEWARTICLE_MSG: $Num");
+	&MsgHeader("$NEWARTICLE_MSG: $Num ($ArticleToId - $ArticleFromId)", $BOARD);
 
-	print("<p>$H_ARTICLES: $Num ($ArticleToId - $ArticleFromId)</p>");
+	print("<p>$H_ARTICLES: $Num </p>");
 
 	# nameへのリンクを表示
 	print("<p> //\n");
@@ -1169,8 +1163,8 @@ sub NewArticle {
 
 	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
 		print("<a name=\"$i\">　</a><br>\n");
-		print("<hr>\n");
-		&ViewOriginalArticle($i, $Board);
+		&ViewOriginalArticle($i);
+ 		print("<hr>\n");
 	}
 
 	&MsgFooter;
@@ -1212,19 +1206,16 @@ sub ThreadArticle {
 	# 元記事のIdを取得
 	local($Id) = @_;
 
-	# 選択されたBoardの取得
-	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
-
 	# 表示画面の作成
-	&MsgHeader("$THREADARTICLE_MSG");
+	&MsgHeader($THREADARTICLE_MSG, $BOARD);
 
 	# メイン関数の呼び出し(記事概要)
 	print("<ul>\n");
-	&ThreadArticleMain('subject only', $Id, $Board);
+	&ThreadArticleMain('subject only', $Id);
 	print("</ul>\n");
 
 	# メイン関数の呼び出し(記事)
-	&ThreadArticleMain('', $Id, $Board);
+	&ThreadArticleMain('', $Id);
 
 	&MsgFooter;
 }
@@ -1235,24 +1226,24 @@ sub ThreadArticle {
 #
 sub ThreadArticleMain {
 
-	# IdとBoardの取得
-	local($SubjectOnly, $Id, $Board) = @_;
+	# Idの取得
+	local($SubjectOnly, $Id) = @_;
 
 	# フォロー記事のIdの取得
-	local(@FollowIdList) = &GetFollowIdList($Id, $Board);
+	local(@FollowIdList) = &GetFollowIdList($Id);
 
 	# 記事概要か、記事そのものか。
 	if ($SubjectOnly) {
 
 		# 記事概要の表示
-		&PrintAbstract($Id, $Board);
+		&PrintAbstract($Id);
 
 	} else {
 
 		# 元記事の表示
 		print("<a name=\"$Id\">　</a><br>\n");
 		print("<hr>\n");
-		&ViewOriginalArticle($Id, $Board);
+		&ViewOriginalArticle($Id);
 
 	}
 
@@ -1263,7 +1254,7 @@ sub ThreadArticleMain {
 		print("<ul>\n") if ($SubjectOnly);
 
 		# 再帰
-		&ThreadArticleMain($SubjectOnly, $_, $Board);
+		&ThreadArticleMain($SubjectOnly, $_, $BOARD);
 
 		# 記事概要なら箇条書閉じ
 		print("</ul>\n") if ($SubjectOnly);
@@ -1277,11 +1268,11 @@ sub ThreadArticleMain {
 #
 sub GetFollowIdList {
 
-	# IdとBoard
-	local($Id, $Board) = @_;
+	# Id
+	local($Id) = @_;
 
 	# 元ファイル
-	local($File) = &GetArticleFileName($Id, $Board);
+	local($File) = &GetArticleFileName($Id, $BOARD);
 
 	# フォロー部分を判断するフラグ
 	local($QuoteFlag) = 0;
@@ -1296,7 +1287,7 @@ sub GetFollowIdList {
 		&jcode'convert(*_, 'euc');
 
 		# フォロー部分開始の判定
-		$QuoteFlag = 1 if (/^$COM_ARTICLE_END$/);
+		$QuoteFlag = 1 if (/$COM_ARTICLE_END/);
 
 		# フォローIdの取得
 		($QuoteFlag == 1) || next;
@@ -1314,11 +1305,11 @@ sub GetFollowIdList {
 #
 sub PrintAbstract {
 
-	# IdとBoard
-	local($Id, $Board) = @_;
+	# Id
+	local($Id) = @_;
 
 	# 引用するファイル
-	local($File) = &GetArticleFileName($Id, $Board);
+	local($File) = &GetArticleFileName($Id, $BOARD);
 
 	# 題、日付、名前
 	local($Icon, $Subject, $InputDate, $Name);
@@ -1326,7 +1317,7 @@ sub PrintAbstract {
 	# 記事ファイルからSubject等を取り出す
 	($Icon, $Subject, $InputDate, $Name) = &GetHeader("$File");
 
-	print("<li><strong>$Id .</strong> $Icon<a href=\"\#$Id\">$Subject</a> [$Name] $InputDate\n");
+	printf("<li><strong>$Id .</strong> %s<a href=\"\#$Id\">$Subject</a> [$Name] $InputDate\n", $Icon);
 
 }
 
@@ -1343,14 +1334,11 @@ sub SearchArticle {
 	# all/new、キーワード
 	local($Type, $Key) = @_;
 
-	# 選択されたBoardの取得
-	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
-
 	# 表示画面の作成
-	&MsgHeader("$SEARCHARTICLE_MSG");
+	&MsgHeader($SEARCHARTICLE_MSG, $BOARD);
 
 	# お約束
-	print("<form action=\"$PROGRAM/$Board\" method =\"GET\">\n");
+	print("<form action=\"$PROGRAM_FROM_BOARD/$BOARD\" method =\"GET\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"s\">\n");
 	print("<input name=\"type\" type=\"hidden\" value=\"$Type\">\n");
 
@@ -1362,7 +1350,7 @@ sub SearchArticle {
 	print("<hr>\n");
 
 	# キーワードが空でなければ、そのキーワードを含む記事のリストを表示
-	&SearchArticleList($Board, $Type, $Key) unless ($Key eq "");
+	&SearchArticleList($Type, $Key) unless ($Key eq "");
 
 	&MsgFooter;
 }
@@ -1373,11 +1361,11 @@ sub SearchArticle {
 #
 sub SearchArticleList {
 
-	# ボード名、all/new、キーワード
-	local($Board, $Type, $Key) = @_;
+	# all/new、キーワード
+	local($Type, $Key) = @_;
 
 	# 検索対象ファイル
-	local($File) = &GetPath($Board,
+	local($File) = &GetPath($BOARD,
 			(($Type eq 'new')
 				? $TITLE_FILE_NAME
 				: $ALL_FILE_NAME));
@@ -1396,11 +1384,10 @@ sub SearchArticleList {
 
 		$Title = $_;
 		next unless (/^<li>.*href=\"([^\"]*)\"/);
-		$ArticleFile = &GetPath($Board, $1);
+		$ArticleFile = &GetPath($BOARD, $1);
 		$Line = &SearchArticleKeyword($ArticleFile, $Key);
 		if ($Line ne "") {
 			$Title =~ s/^<li>//go;
-			$Title =~ s/href=\"/href=\"$SYSTEM_DIR_URL\/$Board\//;
 			$Line =~ s/<[^>]*>//go;
 			$Line =~ s/&/&amp;/go;
 			$Line =~ s/\"/&quot;/go;
@@ -1434,6 +1421,9 @@ sub SearchArticleKeyword {
 
 		# コード変換
 		&jcode'convert(*_, 'euc');
+
+		# TAGを取り除く
+		s/<[^>]*>//go;
 
 		# ヒット?
 		(/$Key/) && return($_);
@@ -1505,9 +1495,6 @@ sub AliasMod {
 	# エイリアス、名前、メール、URL
 	local($A, $N, $E, $U) = @_;
 
-	# ホスト名を取り出す。
-	local($RemoteHost) = $ENV{ 'REMOTE_HOST' };
-
 	# ホストがマッチしたか
 	#	0 ... エイリアスがマッチしない
 	#	1 ... エイリアスはマッチしたがホスト名がマッチしない
@@ -1525,7 +1512,7 @@ sub AliasMod {
 		next unless ($A eq $Alias);
 
 		# ホスト名が合ったら2、合わなきゃ1。
-		$HitFlag = (($RemoteHost eq $Host{$Alias}) ? 2 : 1);
+		$HitFlag = (($REMOTE_HOST eq $Host{$Alias}) ? 2 : 1);
 	}
 
 	# ホスト名が合わない!
@@ -1534,7 +1521,7 @@ sub AliasMod {
 	# データの登録
 	$Name{$Alias} = $N;
 	$Email{$Alias} = $E;
-	$Host{$Alias} = $RemoteHost;
+	$Host{$Alias} = $REMOTE_HOST;
 	$URL{$Alias} = $U;
 
 	# エイリアスファイルに書き出し
@@ -1581,9 +1568,6 @@ sub AliasDel {
 	# エイリアス
 	local($A) = @_;
 
-	# ホスト名を取り出す。
-	local($RemoteHost) = $ENV{ 'REMOTE_HOST' };
-
 	# ホストがマッチしたか
 	#	0 ... エイリアスがマッチしない
 	#	1 ... エイリアスはマッチしたがホスト名がマッチしない
@@ -1598,7 +1582,7 @@ sub AliasDel {
 		next unless ($A eq $Alias);
 
 		# ホスト名が合ったら2、合わなきゃ1。
-		$HitFlag = (($RemoteHost eq $Host{$Alias}) ? 2 : 1);
+		$HitFlag = (($REMOTE_HOST eq $Host{$Alias}) ? 2 : 1);
 	}
 
 	# ホスト名が合わない!
@@ -1839,11 +1823,18 @@ sub CheckURL {
 ## 記事のヘッダの表示
 #
 sub MsgHeader {
-	local($Message) = @_;
+
+	# message and board
+	local($Message, $Board) = @_;
 
 	&cgi'header;
 	print("<title>$Message</title>", "\n");
-	print("<body bgcolor=\"$BG_COLOR\">\n");
+	if (! $Board) {
+		print("<base href=\"$SCRIPT_URL\">\n");
+	} else {
+		print("<base href=\"$DIR_URL$Board/\">\n");
+	}
+	print("<body bgcolor=\"$BG_COLOR\" TEXT=\"$TEXT_COLOR\" LINK=\"$LINK_COLOR\" ALINK=\"$ALINK_COLOR\" VLINK=\"$VLINK_COLOR\">\n");
 	print("<h1>$Message</h1>\n");
 	print("<hr>\n");
 }
@@ -1891,11 +1882,11 @@ sub unlock {
 #
 sub ViewOriginalArticle {
 
-	# IdとBoard
-	local($Id, $Board) = @_;
+	# Id
+	local($Id) = @_;
 
 	# 引用するファイル
-	local($QuoteFile) = &GetArticleFileName($Id, $Board);
+	local($QuoteFile) = &GetArticleFileName($Id, $BOARD);
 
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
@@ -1907,16 +1898,16 @@ sub ViewOriginalArticle {
 		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
+		$QuoteFlag = 0 if (/$COM_ARTICLE_END/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
-			print(&URLConvert($Board, $_));
+			print("$_");
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if ((/^$COM_HEADER_BEGIN$/) ||
-					(/^$COM_ARTICLE_BEGIN$/));
+		$QuoteFlag = 1 if ((/$COM_HEADER_BEGIN/) ||
+					(/$COM_ARTICLE_BEGIN/));
 
 	}
 	close(TMP);
@@ -1933,6 +1924,9 @@ sub ViewOriginalFile {
 	local($File) = @_;
 
 	# 引用部分を判断するフラグ
+	# 0 ... before
+	# 1 ... quote
+	# 2 ... after
 	local($QuoteFlag) = 0;
 
 	open(TMP, "<$File") || &MyFatal(1, $File);
@@ -1942,37 +1936,39 @@ sub ViewOriginalFile {
 		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
+		$QuoteFlag = 2 if (/$COM_ARTICLE_END/);
 
 		# 引用文字列の表示
-		if ($QuoteFlag == 1) {
-			print($_);
-		}
+		print($_) if ($QuoteFlag == 1);
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^$COM_ARTICLE_BEGIN$/);
+		$QuoteFlag = 1 if (/$COM_ARTICLE_BEGIN/);
 
 	}
 	close(TMP);
 
+	# cannot quote specified file.
+	print($H_CANNOTQUOTE) if ($QuoteFlag == 0);
 }
 
 
 ###
 ## 文字列中に<a href="$ARTICLE_PREFIX.??.html">があったら、
-## 相対を絶対URLに書き換えてから返す。
+## BoardNameをえてから返す。
 #
 sub URLConvert {
 
 	# string
-	local($Board, $String) = @_;
+	local($String) = @_;
 	local($File, $URL);
 
+	$String =~ s#href=\"../#href=\"#gio;
+	$String =~ s#src=\"../#src=\"#gio;
 	($String =~ m/<a href=\"($ARTICLE_PREFIX\.[^\.]*\.html)\">/)
 		|| return($String);
 
 	$File = $1;
-	$URL = &GetURL($Board, $File);
+	$URL = &GetURL($BOARD, $File);
 
 	$String =~ s/<a href=\"$File\">/<a href=\"$URL\">/g;
 
@@ -1987,11 +1983,11 @@ sub URLConvert {
 sub FollowMail {
 
 	# 宛先いろいろ
-	local($Board, $Name, $Date, $Subject, $Id, $Fname, $Fsubject, $Fid, @To) = @_;
+	local($Name, $Date, $Subject, $Id, $Fname, $Fsubject, $Fid, @To) = @_;
 
-	local($BoardName) = &GetBoardInfo($Board);
-	local($URL) = &GetURL($Board, &GetArticleFileName($Id, ''));
-	local($FURL) = &GetURL($Board, &GetArticleFileName($Fid, ''));
+	local($BoardName) = &GetBoardInfo($BOARD);
+	local($URL) = $DIR_URL . &GetURL($BOARD, &GetArticleFileName($Id, ''));
+	local($FURL) = $DIR_URL . &GetURL($BOARD, &GetArticleFileName($Fid, ''));
 
 	# Subject
 	local($MailSubject) = "The article was followed.";
@@ -2015,7 +2011,7 @@ sub GetArticleFileName {
 	# Boardが空ならBoardディレクトリ内から相対、
 	# 空でなければシステムから相対
 	$Board
-		? return("$SYSTEM_DIR/$Board/$ARTICLE_PREFIX.$Id.html")
+		? return("$Board/$ARTICLE_PREFIX.$Id.html")
 		: return("$ARTICLE_PREFIX.$Id.html");
 }
 
@@ -2029,7 +2025,7 @@ sub GetPath {
 	local($Board, $File) = @_;
 
 	# 返す
-	return("$SYSTEM_DIR/$Board/$File");
+	return("$Board/$File");
 
 }
 
@@ -2043,7 +2039,7 @@ sub GetURL {
 	local($Board, $File) = @_;
 
 	# 返す
-	return("$SYSTEM_DIR_URL/$Board/$File");
+	return("$Board/$File");
 
 }
 
@@ -2053,14 +2049,14 @@ sub GetURL {
 #
 sub GetIconURL {
 
-	# ボード名、アイコン名
-	local($Board, $Icon) = @_;
+	# アイコン名
+	local($Icon) = @_;
 
 	local($FileName, $Title);
 	local($TargetFile) = "";
 
 	# 一つ一つ表示
-	open(ICON, "$ICON_DIR/$Board.$ICONDEF_POSTFIX")
+	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
 		|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
 		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
@@ -2070,7 +2066,7 @@ sub GetIconURL {
 	}
 	close(ICON);
 
-	return("$ICON_DIR_URL/$TargetFile");
+	return("../$ICON_DIR/$TargetFile");
 }
 
 
@@ -2179,7 +2175,7 @@ sub GetSubjectFromFile {
 		# コード変換
 		&jcode'convert(*_, 'euc');
 
-		if (/^<[Tt][Ii][Tt][Ll][Ee]>(.*)<\/[Tt][Ii][Tt][Ll][Ee]>$/) {
+		if (/^<title>(.*)<\/title>$/i) {
 			$Title = $1;
 		}
 	}
@@ -2235,6 +2231,32 @@ sub SendMail {
 
 
 ###
+## http connectionを張ってリソースを取ってきて、ローカルのファイルに落す。
+#
+sub HttpConnect {
+
+    local($Server, $HttpPort, $RemoteFile, $LocalFile) = @_;
+    local($Sockaddr) = "S n a4 x8";
+    local($Name, $Aliases, $Proto) = getprotobyname('tcp');
+    local($Name, $Aliases, $Type, $Len, $Hostaddr) = gethostbyname($Server);
+    local($Sock) = pack($Sockaddr, 2, $HttpPort, $Hostaddr);
+
+    socket(S, 2, 1, $Proto) || die $!;
+    connect(S, $Sock) || return(0);
+    select(S); $| = 1; select(STDOUT);
+    print(S "GET $RemoteFile HTTP/1.0\n\n");
+
+    open(LOCAL, ">$LocalFile") || die "Can't open $LocalFile.\n";
+    while (<S>) {
+	print(LOCAL $_);
+    }
+    
+    close(LOCAL);
+    return(1);
+}
+
+
+###
 ## エラー表示
 #
 sub MyFatal {
@@ -2251,6 +2273,7 @@ sub MyFatal {
 	# 7 ... エイリアスが登録されていない。
 	# 8 ... エイリアスに登録する文字列が正しくない。
 	# 9 ... メールが送れなかった
+	# 10 ... cannot connect to specified URL.
 
 	&MsgHeader("$ERROR_MSG");
 
@@ -2291,6 +2314,9 @@ sub MyFatal {
 		print("このエラーが生じた状況を");
 		print("<a href=\"mailto:$MAINT\">$MAINT</a>まで");
 		print("お知らせ下さい。</p>\n");
+	} elsif ($MyFatalNo == 10) {
+		print("<p>Cannot Connect to $URL.\n");
+		print("Try later.</p>\n");
 	} else {
 		print("<p>エラー番号不定: お手数ですが、");
 		print("このエラーが生じた状況を");

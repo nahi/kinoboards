@@ -1,7 +1,10 @@
-# $Id: kb.ph,v 3.0 1996-01-20 14:01:35 nakahiro Exp $
+# $Id: kb.ph,v 3.1 1996-01-26 07:33:41 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 3.0  1996-01-20 14:01:35  nakahiro
+# Revision 3.1  1996-01-26 07:33:41  nakahiro
+# release version for OOW96.
+#
+# Revision 3.0  1996/01/20 14:01:35  nakahiro
 # oow1
 #
 # Revision 2.1  1995/12/19 18:46:21  nakahiro
@@ -31,48 +34,43 @@
 
 ##
 # 管理者のe-mail addr.
-#
 $MAINT = "nakahiro\@kinotrope.co.jp";
-### $MAINT = "nakahiro\@ohara.info.waseda.ac.jp";
+### $MAINT = "masa\@kinotrope.co.jp";
 
 
 ##
-# プログラムのURL表示
-#
-#	自分のディレクトリに置く場合
-#		ex.) http://www.foo.bar.jp/~baz/kb.cgi
-#	共用のディレクトリに置く(置かねばならない)場合
-#		ex.) http://www.foo.bar.jp/cgi-bin/kb.cgi
-#
-$PROGRAM = "http://www.kinotrope.co.jp/~nakahiro/kb.cgi";
-### $PROGRAM = "http://www.ohara.info.waseda.ac.jp/cgi-bin/kb.cgi";
-
-
-##
-# システムが存在するディレクトリのURL表示
-#
-$SYSTEM_DIR_URL = "http://www.kinotrope.co.jp/~nakahiro";
-### $SYSTEM_DIR_URL = "http://www.ohara.info.waseda.ac.jp/person/nakahiro/kb";
-
-
-##
-# システムが存在するディレクトリのパス名
-#
-$SYSTEM_DIR = "/home/nakahiro/public_html";
-### $SYSTEM_DIR = "/home/common/WWW/DocumentRoot/person/nakahiro/kb";
+# where is this program?
+# 'relative' or the others (ex. 'absolutive').
+$SYS_SCRIPTPATH = 'relative';
 
 
 ##
 # sendmailのパスとオプション
-#
 $MAIL2 = "/usr/lib/sendmail -oi -t";
 
 
 ##
 # 著作権表示
-#
-$ADDRESS = "Copyright 1995 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co.,Ltd.</a> &amp; <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">nakahiro</a> // 禁無断転載";
-### $ADDRESS = "Copyright 1995 <a href=\"http://www.ohara.info.waseda.ac.jp/person/nakahiro/nakahiro.html\">nakahiro</a> // 禁無断転載";
+$ADDRESS = "Copyright 1995 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co., Ltd.</a> &amp; <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">nakahiro</a> // 禁無断転載";
+### $ADDRESS = "<CENTER>
+### 		<I>
+### 			Find out more about Oracle Open World, e-mail to 
+### 			<STRONG>
+### 				<A HREF=\"mailto:OOW-info\@oracle.co.jp\">
+### 					OOW-info\@oracle.co.jp
+### 				</A>
+### 			</STRONG>
+### 			<BR>
+### 			Copyright 1996 <FONT COLOR=\"FF0000\">Oracle Corporation Japan</FONT>
+### 			<BR>
+### 			These Web pages are produced by 
+### 			<STRONG>
+### 				<A HREF=\"http://www.aspec.co.jp\">
+### 					Aspec Inc.</A> &amp; <A HREF=\"http://www.kinotrope.co.jp\">kinotrope Inc.
+### 				</A>
+### 			</STRONG>
+### 		</I>
+### 	</CENTER>";
 
 
 #/////////////////////////////////////////////////////////////////////
@@ -86,23 +84,30 @@ $ADDRESS = "Copyright 1995 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co.
 # システムの設定
 #
 # 入力文書タイプ(HTML or PRE)の選択を行うか否か(0: 行わない, 1: 行う)
-$SYS_TEXTTYPE = 1;
-# エイリアスを利用するか否か(0: 行わない, 1: 行う)
-$SYS_ALIAS = 1;
+$SYS_TEXTTYPE = 0;
+# エイリアスを利用するか否か(0: 利用しない, 1: 利用する)
+$SYS_ALIAS = 0;
 # 引用時にタグを残すか否か(0: 残さない, 1: 残す)
-$SYS_TAGINQUOTE = 1;
-# 新規投稿記事が、上に増えていくか、下に増えていくか(0: 上, 1: 下)。
+$SYS_TAGINQUOTE = 0;
+# 新規投稿記事が、上に増えていくか、下に増えていくか(0: 上, 1: 下)
 $SYS_BOTTOMTITLE = 1;
+# メール送信サービスを利用するか否か(0: 利用しない, 1: 利用する)
+$SYS_FOLLOWMAIL = 1;
 
 #
-# 背景色の指定
+# 色の指定
 #
-$BG_COLOR = "#FF.FF.FF";
+$BG_COLOR = "#66CCCC";
+$TEXT_COLOR = "#000000";
+$LINK_COLOR = "#0000AA";
+$ALINK_COLOR = "#FF0000";
+$VLINK_COLOR = "#00AA00";
 
 #
 # メッセージの宣言
 #
 $SYSTEM_NAME = "きのぼーず";
+### $SYSTEM_NAME = "伝言板";
 
 $ENTRY_MSG = "$SYSTEM_NAME への書き込み";
 $SHOWICON_MSG = "アイコンの確認";
@@ -118,7 +123,7 @@ $ALIASDEL_MSG = "エイリアスが削除されました";
 $ALIASSHOW_MSG = "エイリアスの参照";
 $ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
 
-$H_BOARD = "ボード:";
+$H_BOARD = "掲示板:";
 $H_ICON = "アイコン:";
 $H_SUBJECT = "　題　:";
 $H_ALIAS = "エイリアス:";
@@ -139,7 +144,8 @@ $H_NOICON = "なし";
 
 # あおり文
 $H_REPLYMSG = "上の記事に反応する";
-$H_AORI = "普通に書き込んで下さい。ブラウザの端での自動的な折り返しは行なわず、書いたまま表示されます。<br>HTMLのわかる方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
+$H_AORI = "題、記事、お名前、メールアドレス、さらにホームページをお持ちの方はURL(省略可)を書き込んでください。記事は、1行をあまり長くせず、適当に折り返して書いて頂くと読み易くなります。<br>HTMLをご存じの方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
+### $H_AORI = "題、記事、お名前、メールアドレス、さらにホームページをお持ちの方はURL(省略可)を書き込んでください。記事は、1行をあまり長くせず、適当に折り返して書いて頂くと読み易くなります。";
 $H_SEEICON = "アイコンを見る";
 $H_SEEALIAS = "エイリアスを見る";
 $H_ALIASENTRY = "登録する";
@@ -168,8 +174,8 @@ $H_ALIASREFERCOM = "エイリアスを参照できます。";
 $H_ALIASCHANGED = "変更しました。";
 $H_ALIASENTRIED = "登録しました。";
 $H_ALIASDELETED = "消去しました。";
-
 $H_AORI_ALIAS = "投稿の際、「お名前」の部分に以下の「#....」を入力すると、登録されているお名前とe-mail addr.、URLが自動的に補われます。";
+$H_CANNOTQUOTE = "cannot quote specified file";
 
 #
 # 引用マーク
@@ -178,29 +184,6 @@ $H_AORI_ALIAS = "投稿の際、「お名前」の部分に以下の「#....」を入力すると、登録さ
 #	トラブルを起こすブラウザが存在します。
 #
 $DEFAULT_QMARK = " ] ";
-
-#
-# 記事のプレフィクス
-# 記事ファイルが、「(指定した文字列).(記事番号).html」になる。
-#
-$ARTICLE_PREFIX = "kb";
-
-#
-# アイコンディレクトリ
-# アイコンとアイコン定義ファイルを入れるディレクトリ名
-#
-$ICON_DIR_NAME = "icons";
-
-#
-# アイコン定義ファイルのポストフィクス
-# アイコン定義ファイルが、「(ボードディレクトリ名).(指定した文字列)」になる。
-#
-$ICONDEF_POSTFIX = "idef";
-
-#
-# デフォルトのアイコン定義ファイル
-#
-$DEFAULT_ICONDEF = "all.idef";
 
 #
 # 各入力項目の大きさ
@@ -220,11 +203,32 @@ $URL_LENGTH = 37;
 # 検索キーワード幅
 $KEYWORD_LENGTH = 40;
 
+
+#/////////////////////////////////////////////////////////////////////
+
+
+###
+## その他の宣言(ここから先は基本的に変更しない下さい)
+#
+
+
+#
+# 配列のdefault
+#
+$[ = 0;
+
+
+#
+# default http port #
+#
+$DEFAULT_HTTP_PORT = 80;
+
+
 #
 # ファイル
 #
 # ロックファイル
-$LOCK_FILE_NAME = ".lock.kb";
+$LOCK_FILE = ".lock.kb";
 # 記事番号ファイル
 $ARTICLE_NUM_FILE_NAME = ".articleid";
 # タイトルファイル
@@ -234,37 +238,49 @@ $ALL_FILE_NAME = "all.html";
 # タイトルtmporaryファイル
 $TTMP_FILE_NAME = "index.tmp";
 # ユーザエイリアスファイル
-$USER_ALIAS_FILE_NAME = "kinousers";
+$USER_ALIAS_FILE = "kinousers";
 # ボードエイリアスファイル
-$BOARD_ALIAS_FILE_NAME = "kinoboards";
-
-
-#/////////////////////////////////////////////////////////////////////
-
-
-###
-## その他の宣言(ここから先は基本的に変更しない下さい)
-#
+$BOARD_ALIAS_FILE = "kinoboards";
+# デフォルトのアイコン定義ファイル
+$DEFAULT_ICONDEF = "all.idef";
 
 #
-# URL
+# 記事のプレフィクス
 #
-# ユーザエイリアスファイル
-$USER_ALIAS_FILE_URL = "$SYSTEM_DIR_URL/$USER_ALIAS_FILE_NAME";
+$ARTICLE_PREFIX = "kb";
+
+#
+# prefix of quote file.
+#
+$QUOTE_PREFIX = "q";
+
+#
 # アイコンディレクトリ
-$ICON_DIR_URL = "$SYSTEM_DIR_URL/$ICON_DIR_NAME";
+# アイコンとアイコン定義ファイルを入れるディレクトリ名
+#
+$ICON_DIR = "icons";
 
 #
-# ファイル
+# アイコン定義ファイルのポストフィクス
+# アイコン定義ファイルが、「(ボードディレクトリ名).(指定した文字列)」になる。
 #
-# ロックファイル
-$LOCK_FILE = "$SYSTEM_DIR/$LOCK_FILE_NAME";
-# ユーザエイリアスファイル
-$USER_ALIAS_FILE = "$SYSTEM_DIR/$USER_ALIAS_FILE_NAME";
-# ボードエイリアスファイル
-$BOARD_ALIAS_FILE = "$SYSTEM_DIR/$BOARD_ALIAS_FILE_NAME";
-# アイコンディレクトリ
-$ICON_DIR = "$SYSTEM_DIR/$ICON_DIR_NAME";
+$ICONDEF_POSTFIX = "idef";
+
+#
+# 環境変数を拾う
+#
+$SERVER_NAME = $ENV{'SERVER_NAME'};
+$SERVER_PORT = $ENV{'SERVER_PORT'};
+$SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
+$PATH_INFO   = $ENV{'PATH_INFO'};
+$REMOTE_HOST = $ENV{'REMOTE_HOST'};
+$BOARD       = substr($PATH_INFO, $[ + 1);
+($CGIPROG_NAME = $SCRIPT_NAME) =~ s#^(.*/)##;
+$CGIDIR_NAME = $1;
+$SCRIPT_URL  = "http://$SERVER_NAME:$SERVER_PORT$SCRIPT_NAME";
+$DIR_URL     = "http://$SERVER_NAME:$SERVER_PORT$CGIDIR_NAME";
+$PROGRAM = (($SYS_SCRIPTPATH == 'relative') ? $CGIPROG_NAME : $SCRIPT_NAME);
+$PROGRAM_FROM_BOARD = "../$PROGRAM";
 
 #
 # 制御用コメント文
@@ -295,11 +311,6 @@ $LOCK_UN = 8;
 #
 $QUOTE_ON = 1;
 $NO_QUOTE = 0;
-
-#
-# 配列のdefault
-#
-$[ = 0;
 
 
 #/////////////////////////////////////////////////////////////////////
