@@ -16,20 +16,21 @@
 #   'query' is a Hash of query except the key 'c'.
 #
 require 'application'
-require 'CGI'
+require 'cgi'
 class CGIApp < Application
   include Log::Severity
 
   private
   def initialize( appName )
     super( appName )
-    @query = CGI.new()
+    @cgi = CGI.new()
+    @query = @cgi.params
+    @os = @cgi
   end
 
   def run()
-    log( SEV_INFO, 'Accessed: ' << (( @query.remote_user != "" )?
-      @query.remote_user : 'anonymous' ) << '@' <<
-      (( @query.remote_host != "" )? @query.remote_host : @query.remote_addr ))
+    log( SEV_INFO, 'Accessed: ' << ( @cgi.remote_user || 'anonymous' ) <<
+	'@' << ( @cgi.remote_host || @cgi.remote_addr || 'unknown' ))
     if ( @query.has_key?( 'c' ))
       method = ( 'exec_proc_' << @query['c'][0] ).intern
       @query.delete( 'c' )
@@ -131,7 +132,7 @@ EOS
     html = CGI.new( 'html4' )
     checked = ( query.has_key?( 'checked' ))? true : nil
 
-    CGI::print( { 'charset' => 'EUC-JP' } ) {
+    @os.out( { 'charset' => 'EUC-JP' } ) {
       html.html( 'LANG' => 'ja' ) {
 	my_html_head( html ) <<
 	html.body {
@@ -161,7 +162,7 @@ EOS
 これらも自由に変更することができます．
 EOS
           } <<
-	  html.form( 'post', query.script_name ) {
+	  html.form( 'post', @cgi.script_name ) {
 	    html.ul {
     	      iconFileName = iconLabel = iconComment = ''
 	      idef.collect { |key|
@@ -194,16 +195,17 @@ EOS
 
   def exec_proc_view( query )
     idef = KbIconDefFile.new( IDEF_FILE )
-    selected = idef.find_all { |key| ( query[ 'i_' << key ] )? key : false }
+    selected = idef.find_all { |key| ( query[ 'i_' << key ][0] )? key : false }
+
     if ( selected.length == 0 )
       html = CGI.new( 'html4' )
-      CGI::print( { 'charset' => 'EUC-JP' } ) {
+      @os.out( { 'charset' => 'EUC-JP' } ) {
 	html.html( 'LANG' => 'ja' ) {
 	  my_html_head( html ) <<
 	  html.body {
 	    html.h1 { TITLE } << html.hr <<
 	    html.p { 'ひとつくらい指定してください．．．' } <<
-	    html.form( 'post', query.script_name ) {
+	    html.form( 'post', @cgi.script_name ) {
 	      html.p { html.hidden( 'c', 'entry' ) << html.submit( '戻る' ) }
 	    } <<
 	    html.hr << html.address { ADDRESS }
@@ -213,10 +215,10 @@ EOS
       return 1
     end
 
-    CGI::print( 'type' => 'text/plain', 'charset' => 'EUC-JP' ) {
+    @os.out( 'type' => 'text/plain', 'charset' => 'EUC-JP' ) {
       "\n" <<
       selected.collect { |key|
-        "#{ idef.getFileName( key ) }\t#{ query[ 'l_' << key ] }\t#{ query[ 'c_' << key ]}"
+        "#{ idef.getFileName( key ) }\t#{ query[ 'l_' << key ][0] }\t#{ query[ 'c_' << key ][0] }"
       }.join( "\n" ) << "\n"
     }
     0
