@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 5.3 1997-09-12 14:30:07 nakahiro Exp $
+# $Id: kb.cgi,v 5.4 1997-09-12 14:49:36 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -43,7 +43,7 @@ $SCRIPT_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$SCRIPT_NAME$PATH_INFO";
 $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME");
 $SERVER_PORT_STRING = '';
 $KB_VERSION = '1.0';
-$KB_RELEASE = '5.0';
+$KB_RELEASE = '5.1';
 
 # インクルードファイルの読み込み
 if ($PATH_INFO && (-s "$HEADER_FILE")) { require($HEADER_FILE); }
@@ -2675,7 +2675,7 @@ sub GetBoardInfo {
 #
 # - DESCRIPTION
 #	アイコンDBを読み込んで連想配列に放り込む．
-#	大域変数，%ICON_FILE，%ICON_HELPを破壊する．
+#	大域変数，@ICON_TITLE，%ICON_FILE，%ICON_HELPを破壊する．
 #
 # - RETURN
 #	なし
@@ -2689,7 +2689,7 @@ sub CashIconDb {
     local($FileName, $IconTitle, $IconHelp);
 
     # キャッシュのクリア
-    %ICON_FILE = %ICON_HELP = ();
+    @ICON_TITLE = %ICON_FILE = %ICON_HELP = ();
 
     # 一つ一つ表示
     open(ICON, &GetIconPath("$Board.$ICONDEF_POSTFIX"))
@@ -2704,6 +2704,7 @@ sub CashIconDb {
 	($FileName, $IconTitle, $IconHelp) = split(/\t/, $_, 3);
 
 	# 取り込み
+	push(@ICON_TITLE, $IconTitle);
 	$ICON_FILE{$IconTitle} = $FileName;
 	$ICON_HELP{$IconTitle} = $IconHelp;
     }
