@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.10 1996-09-09 07:43:50 nakahiro Exp $
+# $Id: kb.ph,v 4.11 1996-09-11 10:26:11 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -141,8 +141,8 @@ $H_MAIL = "メールアドレス";
 $H_HOST = "マシン";
 $H_URL = "URL(省略可)";
 $H_DATE = "投稿日";
-$H_ORIG = "元メッセージ";
 $H_REPLY = "リプライ";
+$H_ORIG = "$H_REPLY元";
 
 $ENTRY_MSG = "$H_MESGの書き込み";
 $SHOWICON_MSG = "アイコンの説明";
