@@ -14,21 +14,46 @@
 require( 'mimer.pl' );
 POST_STDIN:
 {
-    local( *postedBody ) = *gVarBody;
+    local( *postedBody, $force ) = ( *gVarBody, $gVarForce );
 
     local( %mailHeader, $mailBody );
-    &parseMail( *postedBody, *mailHeader, *mailBody );
+    &parseMail( *postedBody, *mailHeader, *mailBody, ( $force? 0 : 1 ));
 
     # 入力された記事情報
     local( $Name, $Email );
+
+    $mailHeader{ 'from' } =~ /^(\S+)/;
+    $Name = $Email = $1;
+
     if ( defined( $mailHeader{ 'from2' } ))
     {
-	$Email = $mailHeader{ 'from' };
-	( $Name ) = ( $mailHeader{ 'from2' } =~ /^(.*)\s*<.*>$/ );
-    }
-    else
-    {
-	( $Name, $Email ) = ( $mailHeader{ 'from' } =~ /^(.*)\s*<(.*)>$/ );
+	if ( $mailHeader{ 'from2' } =~ /^"([^"]*)"\s*<([^>][^>]*)>$/ )
+	{
+	    # From: "NaHi" <nahi@keynauts.com>
+	    $Name = $1, $Email = $2;
+	}
+	elsif ( $mailHeader{ 'from2' } =~ /^([^<]*)\s*<([^>][^>]*)>$/ )
+	{
+	    # From: NaHi <nahi@keynauts.com>
+	    $Name = $1, $Email = $2;
+	}
+	elsif ( $mailHeader{ 'from2' } =~ /^([^(][^(]*)\s*\(([^)]*)\)$/ )
+	{
+	    # From: nahi@keynauts.com (NaHi)
+	    $Name = $2, $Email = $1;
+	}
+	elsif ( $mailHeader{ 'from2' } =~ /^(\S+)$/ )
+	{
+	    # From: nahi@keynauts.com
+	    $Name = $Email = $1;
+	}
+	else
+	{
+	    # parsing failed...
+	    &KbLog( $kinologue'SEV_ERROR, "'From' header parsing failed: " .
+		$mainHeader{ 'from2' } );
+	    return;
+	}
     }
 
     local( $Url ) = '';
@@ -41,7 +66,7 @@ POST_STDIN:
     local( $Fmail ) = 0;
     local( $op ) = 0;
 
-    if ( $mailHeader{ 'x-kb-command' } eq 'POST' )
+    if ( $force || ( $mailHeader{ 'x-kb-command' } eq 'POST' ))
     {
         &LockAll;
         &LockBoard;
@@ -65,9 +90,25 @@ POST_STDIN:
     }
 }
 
+# SYNOPSIS
+#   &parseMain( *postedBody, *mailHeader, *mailBody, $flag );
+#
+# ARGS
+#   $postedBody		Posted Mail( header and body )
+#   $mailHeader		Hash buffer for parsed header.
+#   $mailBody		String buffer for parsed body.
+#   $flag		Control flag.
+#     2^0 ... parse 'x-kb-command: ...' in mail body, or not.
+#
+# DESCRIPTION
+#   May the source be with you! ^^;
+#
+# RETURN
+#   nothing
+#
 sub parseMail
 {
-    local( *postedBody, *mailHeader, *mailBody ) = @_;
+    local( *postedBody, *mailHeader, *mailBody, $flag ) = @_;
 
     local( $attr, $value );
     local( %nofHeader );
@@ -117,7 +158,7 @@ sub parseMail
 	}
 	elsif ( $status eq 'BODY' )
 	{
-	    if ( /^(x-kb-[^:][^:]*):\s*(.*)$/i )
+	    if ( $flag&1 && s/^(x-kb-[^:][^:]*):\s*(.*)$//i )
 	    {
 		( $attr = $1 ) =~ tr/A-Z/a-z/;
 		$value = $2;

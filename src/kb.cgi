@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.33 1999-06-18 10:16:35 nakahiro Exp $
+# $Id: kb.cgi,v 5.34 1999-06-18 13:55:43 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -88,7 +88,7 @@ $ICONDEF_POSTFIX = 'idef';			# アイコンDBファイルのSuffix
 require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 
 # メインのヘッダファイルの読み込み
-if ( !$KBDIR_PATH )
+if ( !$KBDIR_PATH || !chdir( $KBDIR_PATH ))
 {
     print "Content-Type: text/plain; charset=EUC-JP\n\n";
     print "エラー．管理者様へ:\n";
@@ -98,7 +98,6 @@ if ( !$KBDIR_PATH )
     print "設定してから再度試してみてください．";
     exit 0;
 }
-chdir( $KBDIR_PATH ) || die( "cannot chdir to `$KBDIR_PATH'" );
 # chdir先のkb.phを読む．ただし上でrequire済みの場合は読まない（Perlの言語仕様）
 require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 
@@ -466,18 +465,27 @@ MAIN:
 	    last if ( $SYS_MAXARTSIZE &&
 	        ( length( $body ) > $SYS_MAXARTSIZE ));
 	}
-
 	$code = &jcode'getcode( *body );
 	&jcode'convert( *body, 'euc', $code, 'z' ) if ( defined( $code ));
 	$body =~ s/\x0d\x0a/\x0a/go;
 	$body =~ s/\x0d/\x0a/go;
 
-	$SYS_F_N_STDIN = 1;		# temporary
-	if ( $SYS_F_N_STDIN && ( $c eq 'POST' ))
+	if ( $SYS_F_POST_STDIN )
 	{
-	    *gVarBody = *body;
-	    require( &GetPath( $UI_DIR, 'Post.pl' ));
-	    last;
+	    if ( $c eq 'POST' )
+	    {
+		*gVarBody = *body;
+		$gVarForce = 1;
+		do( &GetPath( $UI_DIR, 'Post.pl' ));
+		last;
+	    }
+	    elsif ( $c eq 'POST_IF' )
+	    {
+		*gVarBody = *body;
+		$gVarForce = 0;
+		do( &GetPath( $UI_DIR, 'Post.pl' ));
+		last;
+	    }
 	}
     }
 
