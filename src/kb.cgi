@@ -4,7 +4,7 @@
 #
 # 1. ↑の先頭行で，Perlのパスを指定します．「#!」に続けて指定してください．
 
-# 2. kbディレクトリのフルパスを指定してください．
+# 2. kbディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    !! KB/1.0R6.4以降，この設定は必須となりました !!
 #
 $KBDIR_PATH = '';
@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.39 1999-06-21 13:56:21 nakahiro Exp $
+# $Id: kb.cgi,v 5.40 1999-06-24 14:29:09 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -51,16 +51,11 @@ push( @INC, '.' );
 $[ = 0;				# zero origined
 $| = 1;				# pipe flushed
 $COLSEP = "\376";
-# umaskは特に設定しない．混乱の元なので．．．
-# umask( umask() | 070 );	# ユーザとnobodyが別グループの場合
-# umask( umask() | 007 );	# ユーザとnobodyが同グループの場合
-# umask( umask() & 0770 );
 
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
 $KB_RELEASE = '6.5';		# release
-$MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
@@ -84,7 +79,7 @@ $ERROR_LOG = 'error_log';			# エラーログファイル
 $TMPFILE_SUFFIX = 'tmp';			# DBテンポラリファイルのSuffix
 $ICONDEF_POSTFIX = 'idef';			# アイコンDBファイルのSuffix
 
-# PATH_INFOで指定されたディレクトリにあるヘッダファイルの読み込み
+# CGIと同一ディレクトリにあるヘッダファイルの読み込み
 require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 
 # メインのヘッダファイルの読み込み
@@ -106,8 +101,8 @@ require( 'cgi.pl' );
 require( 'kinologue.pl' );
 $REMOTE_INFO = $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR || '(unknown)';
 $REMOTE_INFO .= '-' . $cgi'REMOTE_USER if $cgi'REMOTE_USER; # in BasicAuth
-$PROGNAME = $cgi'CGIPROG_NAME;
 $PROGRAM = $cgi'PROGRAM;
+
 $kinologue'SEV_THRESHOLD = $SYS_LOGLEVEL;
 
 $cgi'SMTP_SERVER = $SMTP_SERVER;
@@ -123,9 +118,10 @@ else
 {
     $SERVER_PORT_STRING = '';
 }
-$SCRIPT_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgi'SCRIPT_NAME$cgi'PATH_INFO";
-$BASE_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgi'SYSDIR_NAME";
-if ( $TIME_ZONE ) { $ENV{'TZ'} = $TIME_ZONE; }
+$SCRIPT_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$PROGRAM";
+$MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
+$PROGNAME = "KINOBOARDS/$KB_VERSION R$KB_RELEASE";
+$ENV{'TZ'} = $TIME_ZONE if $TIME_ZONE;
 
 # 許可タグのベース
 $HTML_TAGS_COREATTRS = 'ID/CLASS/STYLE/TITLE';
@@ -1442,7 +1438,7 @@ sub MsgHeader
 <html>
 <head>
 <link rev="MADE" href="mailto:$MAINT">
-<base href="$BASE_URL">
+<base href="$cgi'BASE_URL">
 <title>$titleString</title>
 <LINK REV=MADE HREF="mailto:$MAINT">
 </head>
@@ -1519,7 +1515,7 @@ __EOF__
 sub MsgFooter
 {
     # ↓これを変更するのも「自由」です．消しても全く問題ありません．
-    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb10.shtml", "KINOBOARDS/$KB_VERSION R$KB_RELEASE" ) . ": Copyright (C) 1995-99 " . &TagA( "http://www.jin.gr.jp/~nahi/", "NAKAMURA Hiroshi" ) . ".";
+    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb10.shtml", $PROGNAME ) . ": Copyright (C) 1995-99 " . &TagA( "http://www.jin.gr.jp/~nahi/", "NAKAMURA Hiroshi" ) . ".";
     # ただし，「俺が全部作ったんだ!」とか書くと，なひの権利を侵害して，
     # やっぱりGPL2に違反することになっちゃうので気をつけてね．(^_^;
 
