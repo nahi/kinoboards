@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.39 2000-02-24 14:16:20 nakahiro Exp $
+# $Id: cgi.pl,v 2.40 2000-02-25 05:57:26 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -1178,7 +1178,7 @@ sub SearchUserInfo
 	$matchFlag = 1;
 	foreach ( @userInfo )
 	{
-	    shift( @dInfo ), next if defined( $_ );
+	    shift( @dInfo ), next unless defined( $_ );
 	    $matchFlag = 0, last if ( $_ ne shift( @dInfo ));
 	}
 	return $dUser if $matchFlag;
