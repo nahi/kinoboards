@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.18 1996-08-05 16:35:16 nakahiro Exp $
+# $Id: kb.cgi,v 4.19 1996-08-05 18:41:44 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -61,13 +61,15 @@ $[ = 0;
 #
 # 著作権表示
 #
-$ADDRESS = "KINOBOARDS/1.0: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
+$ADDRESS = "KINOBOARDS/1.0 R2.0: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
 
 #
 # ファイル
 #
 # 記事番号ファイル
 $ARTICLE_NUM_FILE_NAME = ".articleid";
+# 記事番号テンポラリファイル
+$ARTICLE_NUM_TMP_FILE_NAME = ".articleid.tmp";
 # 掲示板別configuratinファイル
 $CONF_FILE_NAME = ".kbconf";
 # タイトルリストヘッダファイル
@@ -78,6 +80,8 @@ $DB_FILE_NAME = ".db";
 $DB_TMP_FILE_NAME = ".db.tmp";
 # ユーザエイリアスファイル
 $USER_ALIAS_FILE = "kinousers";
+# ユーザエイリアステンポラリファイル
+$USER_ALIAS_TMP_FILE = "kinousers.tmp";
 # ボードエイリアスファイル
 $BOARD_ALIAS_FILE = "kinoboards";
 # デフォルトのアイコン定義ファイル
@@ -127,6 +131,14 @@ $LESSER_THAN = '__lt__';
 $AND_MARK = '__amp__';
 
 
+# トラップ
+$SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = $SIG{'STOP'} = 'DoKill';
+sub DoKill {
+    &unlock();			# unlock
+    exit(1);			# error exit.
+}
+
+
 ###
 ## メイン
 #
@@ -147,7 +159,6 @@ MAIN: {
     local($Command) = $cgi'TAGS{'c'};
     local($Com) = $cgi'TAGS{'com'};
     local($Id) = $cgi'TAGS{'id'};
-    local($Num) = $cgi'TAGS{'num'};
     local($Alias) = $cgi'TAGS{'alias'};
     local($Name) = $cgi'TAGS{'name'};
     local($Email) = $cgi'TAGS{'email'};
@@ -182,11 +193,11 @@ MAIN: {
 	&Thanks();
 
     } elsif ($Command eq "v") {
-	&ViewTitle($Num);
+	&ViewTitle();
     } elsif ($Command eq "r") {
-	&SortArticle($Num);
+	&SortArticle();
     } elsif ($Command eq "l") {
-	&NewArticle($Num);
+	&NewArticle();
 
     } elsif ($Command eq "s") {
 	&SearchArticle();
@@ -560,7 +571,7 @@ $H_THANKSMSG
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="v">
-<input name="num" type="hidden" value="40">
+<input name="num" type="hidden" value="$DEF_TITLE_NUM">
 <input type="submit" value="$H_BACK">
 </form>
 __EOF__
@@ -668,15 +679,19 @@ sub DQDecode {
 sub AddArticleId {
 
     # 記事番号を収めるファイル
-    local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
+    local($File) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
+    local($TmpFile) = &GetPath($BOARD, $ARTICLE_NUM_TMP_FILE_NAME);
 
     # 新しい記事番号
     local($ArticleId) = &GetNewArticleId();
 
-    # 書き込む．
-    open(AID, ">$ArticleNumFile") || &Fatal(1, $ArticleNumFile);
+    # Open Tmp File
+    open(AID, ">$TmpFile") || &Fatal(1, $TmpFile);
     print(AID $ArticleId, "\n");
     close(AID);
+
+    # 更新
+    rename($TmpFile, $File);
 
 }
 
@@ -780,7 +795,7 @@ sub ShowArticle {
 <input name="b" type="hidden" value="$BOARD">
 <input name="id" type="hidden" value="$Id">
 <p>
-<a href="$PROGRAM?b=$BOARD&c=v&num=40"><img src="$ICON_TLIST" alt="$H_TITLELIST" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
+<a href="$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM"><img src="$ICON_TLIST" alt="$H_TITLELIST" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
 <a href="$PROGRAM?b=$BOARD&c=en&id=$Id"><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
 <a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
 <a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
@@ -1054,64 +1069,32 @@ sub FollowMail {
 #
 sub SendMail {
 
-    # subject，メールのファイル名，宛先
-    local($Subject, $Message, $Id, $To) = @_;
-
-    # メール用ファイルを開く
-    open(MAIL, "| $MAIL2") || &Fatal(9, '');
-
-    # Toヘッダ
-    $_ = $To;
-    &jcode'convert(*_, 'jis');
-    print(MAIL "To: $_\n");
-    
-    # Fromヘッダ，Errors-Toヘッダ
-    $_ = $MAINT;
-    &jcode'convert(*_, 'jis');
-    print(MAIL "From: $_\n");
-    print(MAIL "Errors-To: $_\n");
-
-    # Subjectヘッダ
-    $_ = $Subject;
-    &jcode'convert(*_, 'jis');
-    print(MAIL "Subject: $_\n\n");
-
-    # 本文
-    $_ = $Message;
-    &jcode'convert(*_, 'jis');
-    print(MAIL "$_\n");
+    # subject，メールのファイル名，引用記事(0なら無し)，宛先
+    local($Subject, $Message, $Id, @To) = @_;
 
     # 引用記事
     if ($Id) {
 
 	# 引用するファイル
-	$QuoteFile = &GetArticleFileName($Id, $BOARD);
+	local($QuoteFile) = &GetArticleFileName($Id, $BOARD);
 
 	# 区切り線
-	print(MAIL "\n$H_LINE\n");
-
-	local($Body) = '';
+	$Message .= "\n$H_LINE\n";
 
 	# 引用
 	open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
 	while(<TMP>) {
-	    chop;
 	    s/<[^>]*>//go;	# タグは要らない
-	    if ($_) {
-		$Body = &HTMLDecode($_);
-		&jcode'convert(*Body, 'jis');
-	    }
-	    print(MAIL "$Body\n");
+	    $Message .= &HTMLDecode($_) if ($_);
 	}
 	close(TMP);
 
     }
 
     # 送信する
-    close(MAIL);
+    &Fatal(9, '') unless (&cgi'SendMail($MAINT_NAME, $MAINT, $Subject, $Message, @To));
 
 }
-
 
 sub HTMLDecode {
     local($_) = @_;
@@ -1191,53 +1174,15 @@ __EOF__
 sub SortArticle {
 
     # 表示する個数を取得
-    local($Num) = @_;
+    local($Num, $Old) = ($cgi'TAGS{'num'}, $cgi'TAGS{'old'});
+    local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
+    local($BackOld) = ($Old + $Num);
 
-    # DBファイル
-    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
+    # 表示する分だけ取り出す
+    local(@Lines) = &GetTitle($Num, $ReadList, $MarkList, $Old);
 
-    # 記事番号を収めるファイル
-    local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
-
-    # 最新記事番号を取得
-    local($ArticleToId) = &GetArticleId($ArticleNumFile);
-    local($ArticleFromId) = 0;
-
-    local($ListFlag) = 0;
-    local(@Lines) = ();
+    # 記事情報
     local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
-
-    # 数字が0なら最初から全て
-    if ($Num == 0) {
-	$ArticleFromId = 1;
-    } else {
-	# 記事数が足りない場合の調整
-	$Num = $ArticleToId if ($ArticleToId < $Num);
-
-	# 取ってくる最初の記事番号を取得
-	$ArticleFromId = $ArticleToId - $Num + 1;
-    }
-
-    # 取り込み．DBファイルがなければ何も表示しない．
-    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
-
-    while(<DB>) {
-
-	next if (/^\#/);
-	next if (/^$/);
-	chop;
-
-	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
-	 $Url, $Fmail) = split(/\t/, $_);
-	$ListFlag = 1 if ($ArticleFromId <= $Id);
-
-	# 新規記事のみ表示，の場合はキャンセル．
-	$ListFlag = 0 if ($SYS_NEWARTICLEONLY && ($Fid != 0));
-
-	push(Lines, &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date)) if ($ListFlag);
-
-    }
-    close(DB);
 
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $SORT_MSG");
@@ -1245,19 +1190,100 @@ sub SortArticle {
     &BoardHeader;
 
     print("<hr>\n");
+
+    if ($SYS_BOTTOMTITLE) {
+	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+    } else {
+	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+    }
+
     print("<ul>\n");
 
     # 記事の表示
-    if ($SYS_BOTTOMTITLE) {
-	# 新しい記事が下
-	foreach (@Lines) {print("$_\n");}
+    if (! @Lines) {
+
+	# 空だった……
+	print("<li>$H_NOARTICLE\n");
+
     } else {
-	# 新しい記事が上
-	foreach (reverse @Lines) {print("$_\n");}
+
+	@Lines = reverse(@Lines) unless ($SYS_BOTTOMTITLE);
+
+	foreach (@Lines) {
+
+	    # 記事情報の取り出し
+	    ($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = split(/\t/, $_, 11);
+	    print("<li>" . &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date) . "\n");
+	}
     }
 
     print("</ul>\n");
+
+    if ($SYS_BOTTOMTITLE) {
+	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+    } else {
+	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+    }
+
     &MsgFooter();
+
+}
+
+
+###
+## 記事n個をDBから取り出し，DBの行をそのままリストにして返す．
+#
+sub GetTitle {
+
+    # 記事数
+    local($Num, $Old) = @_;
+
+    # DBファイル
+    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
+
+    # フォーマットしたタイトルを放り込むリスト
+    local(@Lines) = ();
+
+    # 記事情報
+    local($Id, $Fid) = (0, '');
+
+    # ユーザ情報
+    local($Name, $Passwd) = ('', '');
+
+    # 取り込み．DBファイルがなければ何も表示しない．
+    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
+
+    while(<DB>) {
+
+	# コメント文はキャンセル
+	next if (/^\#/o);
+	next if (/^$/o);
+	chop;
+
+	# 記事情報の取り出し
+	($Id, $Fid) = split(/\t/, $_, 3);
+
+	# 新規記事のみ表示，の場合はキャンセル．
+	push(Lines, $_) unless (($SYS_NEWARTICLEONLY) && ($Fid != 0));
+
+    }
+
+    close(DB);
+
+    # 必要な部分だけ切り出す．
+    if ($Old) {
+	if (($#Lines + 1) > $Old) {
+	    splice(@Lines, -$Old);
+	} else {
+	    @Lines = ();
+	}
+    }
+    if ($Num && (($#Lines + 1) > $Num)) {
+	@Lines = splice(@Lines, -$Num);
+    }
+
+    # 返す
+    return(@Lines);
 
 }
 
@@ -1268,61 +1294,37 @@ sub SortArticle {
 sub ViewTitle {
 
     # 表示する個数を取得
-    local($Num) = @_;
+    local($Num, $Old) = ($cgi'TAGS{'num'}, $cgi'TAGS{'old'});
+    local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
+    local($BackOld) = ($Old + $Num);
 
-    # DBファイル
-    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
-
-    # 記事番号を収めるファイル
-    local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
-
-    # 最新記事番号を取得
-    local($ArticleToId) = &GetArticleId($ArticleNumFile);
-    local($ArticleFromId) = 0;
-
-    local($ListFlag) = 0;
-    local(@Lines) = ();
+    # フォーマットしたタイトル
     local($Line) = '';
+
+    # フォーマットしたタイトルを入れるリスト
+    local(@NewLines) = ();
+
+    # 記事情報
     local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail);
 
-    # 数字が0なら最初から全て
-    if ($Num == 0) {
-	$ArticleFromId = 1;
-    } else {
-	# 記事数が足りない場合の調整
-	$Num = $ArticleToId if ($ArticleToId < $Num);
+    # 表示する分だけ取り出す
+    local(@Lines) = &GetTitle($Num, $Old);
 
-	# 取ってくる最初の記事番号を取得
-	$ArticleFromId = $ArticleToId - $Num + 1;
+    # 応答をインデントする．
+    foreach (@Lines) {
+    
+	# 記事情報を取り出す．
+	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = split(/\t/, $_);
+
+	# タイトルをフォーマット
+	$Line = "<!--$Id-->" . &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date);
+
+	# 追加
+	@NewLines = ($Fid)
+	    ? &AddTitleFollow($Fid, $Line, @NewLines)
+		: &AddTitleNormal($Line, @NewLines);
+
     }
-
-    # 取り込み．DBファイルがなければ何も表示しない．
-    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
-    while(<DB>) {
-
-	next if (/^\#/);
-	next if (/^$/);
-	chop;
-
-	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
-	 $Url, $Fmail) = split(/\t/, $_);
-	$ListFlag = 1 if ($ArticleFromId <= $Id);
-
-	# 新規記事のみ表示，の場合はキャンセル．
-	$ListFlag = 0 if ($SYS_NEWARTICLEONLY && ($Fid != 0));
-
-	if ($ListFlag) {
-
-	    # 追加する行
-	    $Line = "<!--$Id-->" . &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date);
-
-	    # 追加
-	    @Lines = ($Fid)
-		? &AddTitleFollow($Fid, $Line, @Lines)
-		    : &AddTitleNormal($Line, @Lines);
-	}
-    }
-    close(DB);
 
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $VIEW_MSG");
@@ -1330,16 +1332,41 @@ sub ViewTitle {
     &BoardHeader;
 
     print("<hr>\n");
+
+    if ($SYS_BOTTOMTITLE) {
+	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+    } else {
+	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+    }
+
     print("<ul>\n");
 
     # 記事の表示
-    foreach (@Lines) {
-	if (! /^$NULL_LINE$/) {
-	    print("$_\n");
+    if (! @NewLines) {
+
+	# 空だった……
+	print("<li>$H_NOARTICLE\n");
+
+    } else {
+
+	foreach (@NewLines) {
+	    if (! /^${NULL_LINE}$/o) {
+		if ((m!^<ul>$!io) || (m!^</ul>$!io)) {
+		    print("$_\n");
+		} else {
+		    print("<li>$_");
+		}
+	    }
 	}
     }
 
     print("</ul>\n");
+
+    if ($SYS_BOTTOMTITLE) {
+	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+    } else {
+	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+    }
 
     &MsgFooter();
 
@@ -1447,49 +1474,61 @@ sub AddTitleFollow {
 sub NewArticle {
 
     # 表示する個数を取得
-    local($Num) = @_;
+    local($Num, $Old) = ($cgi'TAGS{'num'}, $cgi'TAGS{'old'});
+    local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
+    local($BackOld) = ($Old + $Num);
 
-    # 記事番号を収めるファイル
-    local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
+    # 表示する分だけタイトルを取得
+    local(@Lines) = &GetTitle($Num, $ReadList, $MarkList, $Old);
 
-    # 最新記事番号を取得
-    local($ArticleToId) = &GetArticleId($ArticleNumFile);
-    local($ArticleFromId) = 0;
-    local($i, $File);
-
-    # 数字が0なら最初から全て
-    if ($Num == 0) {
-	$ArticleFromId = 1;
-    } else {
-	# 記事数が足りない場合の調整
-	$Num = $ArticleToId if ($ArticleToId < $Num);
-
-	# 取ってくる最初の記事番号を取得
-	$ArticleFromId = $ArticleToId - $Num + 1;
-    }
+    # 記事情報
+    local($Id) = (0);
 
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $NEWARTICLE_MSG");
 
-    &BoardHeader;
-
     if ($SYS_BOTTOMARTICLE) {
+	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+    } else {
+	print("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+    }
 
-	# 下へ
-	for ($i = $ArticleFromId; ($i <= $ArticleToId); $i++) {
-	    print("<hr>\n");
-	    &ViewOriginalArticle($i, 1);
-	}
+    if (! @Lines) {
+
+	# 空だった……
+	print("<p>$H_NOARTICLE</p>\n");
 
     } else {
 
-	# 上へ
-	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
+	@Lines = reverse(@Lines) unless ($SYS_BOTTOMARTICLE);
+
+	foreach (@Lines) {
+
+	    # 記事情報の取り出し
+	    ($Id) = split(/\t/, $_, 2);
+
+	    # 記事の表示(コマンド付き)
+	    &ViewOriginalArticle($Id, 'command');
 	    print("<hr>\n");
-	    &ViewOriginalArticle($i, 1);
+
 	}
 
     }
+
+    if ($SYS_BOTTOMARTICLE) {
+	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+    } else {
+	print("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
+    }
+
+    print(<<__EOF__);
+<form action="$PROGRAM" method="POST">
+<input name="b" type="hidden" value="$BOARD">
+<input name="c" type="hidden" value="v">
+<input name="num" type="hidden" value="$DEF_TITLE_NUM">
+<input type="submit" value="$H_BACK">
+</form>
+__EOF__
 
     &MsgFooter();
 
@@ -1951,15 +1990,19 @@ sub WriteAliasData {
     # ファイル
     local($File) = @_;
     local($Alias);
+    local($TmpFile) = $USER_ALIAS_TMP_FILE;
 
     # 書き出す
-    open(ALIAS, ">$File") || &Fatal(1, $File);
+    open(ALIAS, ">$TmpFile") || &Fatal(1, $TmpFile);
     foreach $Alias (sort keys(%Name)) {
 	($Name{$Alias}) && printf(ALIAS "%s\t%s\t%s\t%s\t%s\n",
 				  $Alias, $Name{$Alias}, $Email{$Alias},
 				  $Host{$Alias}, $URL{$Alias});
     }
     close(ALIAS);
+
+    # 更新
+    rename($TmpFile, $File);
     
 }
 
