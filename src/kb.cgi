@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.5 2000-04-05 06:04:38 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.6 2000-04-05 14:44:22 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -106,7 +106,7 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 require( 'cgi.pl' );
 require( 'kinologue.pl' );
 $KB_RESOURCE_URL = $KB_RESOURCE_URL || $cgi'PATH_INFO;
-$KB_RESOURCE_URL .= '/' unless ( $KB_RESOURCE_URL =~ m!/$!o );
+$KB_RESOURCE_URL .= '/' if ( $KB_RESOURCE_URL && $KB_RESOURCE_URL !~ m!/$!o );
 $REMOTE_INFO = $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR || '(unknown)';
 $REMOTE_INFO .= '-' . $cgi'REMOTE_USER if $cgi'REMOTE_USER; # in BasicAuth
 $PROGRAM = $cgi'PROGRAM;
