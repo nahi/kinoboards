@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.43 2000-03-12 10:45:59 nakahiro Exp $
+# $Id: cgi.pl,v 2.44 2000-04-18 13:24:38 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -167,7 +167,7 @@ sub unlock_file_flock
 sub Header
 {
     local( $utcFlag, $utcStr, $cookieFlag, *cookieList, $cookieExpire ) = @_;
-    print( "Content-type: text/html; charset=" . $CHARSET_MAP{ $CHARSET } . "\n" );
+    print( "Content-type: text/html; charset=" . $CHARSET_MAP{ $CHARSET } . $CRLF );
     $cgiprint'CHARSET = $CHARSET;
 
     # Header for HTTP Cookies.
@@ -195,18 +195,18 @@ sub Header
 		print( " expires=$cookieExpire;" );
 	    }
 
-	    print( "\n" );
+	    print( $CRLF );
 	}
     }
 
     # Header for Last-Modified.
     if ( $utcFlag )
     {
-	print( "Last-Modified: ", &GetHttpDateTimeFromUtc( $utcStr || $^T ), "\n" );
+	print( "Last-Modified: ", &GetHttpDateTimeFromUtc( $utcStr || $^T ), $CRLF );
     }
 
     # now, the end of Head Block.
-    print( "\n" );
+    print( $CRLF );
 
 }
 
@@ -528,7 +528,7 @@ sub smtpBody
     &jcode'convert( *message, 'jis' );
     foreach ( split( /\n/, $message ))
     {
-	s/^\.$/\.\./o;		# `.' is the end of the message.
+	s/^\./\.\./o;		# `.' is the end of the message.
 	$body .= "$_$CRLF";
     }
 

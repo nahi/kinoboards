@@ -7,13 +7,13 @@
 #
 # 1. ↑の先頭行で，Perlのパスを指定します．「#!」に続けて指定してください．
 
-# 2. kbディレクトリのフルパスを指定してください（URLではなく，パスです）．
+# 2. kbdataディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    ブラウザからアクセス可能なディレクトリでなくてもかまいません
 #
-$KBDIR_PATH = '';
-# $KBDIR_PATH = '/home/nahi/public_html';
-# $KBDIR_PATH = 'd:\inetpub\wwwroot\kb';	# WinNT/Win9xの場合
-# $KBDIR_PATH = 'foo:bar:kb';			# Macの場合?
+$KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst/';
+# $KBDIR_PATH = '/home/nahi/kbdata/';
+# $KBDIR_PATH = 'd:\securedata\kbdata\';	# WinNT/Win9xの場合
+# $KBDIR_PATH = 'foo:bar:kb:';			# Macの場合?
 
 # 3. サーバが動いているマシンがWin95/Macの場合，
 #    $PCを1に設定してください．そうでない場合，この設定は不要です．
@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.65 2000-03-12 10:46:01 nakahiro Exp $
+# $Id: kb.cgi,v 5.66 2000-04-18 13:24:38 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -72,7 +72,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7β5';		# release
+$KB_RELEASE = '7β6-dev';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -159,10 +159,10 @@ $HTML_TAGS_I18NATTRS = 'lang/dir';
 $HTML_TAGS_GENATTRS = "$HTML_TAGS_COREATTRS/$HTML_TAGS_I18NATTRS";
 
 # 各種キャラクタアイコン
-$H_TOP = '&lt;&lt;最新';
-$H_BOTTOM = '先頭&gt;&gt;';
-$H_UP = '&lt;次';
-$H_DOWN = '前&gt;';
+$H_TOP = '最新';
+$H_BOTTOM = '先頭';
+$H_UP = '次';
+$H_DOWN = '前';
 $H_THREAD_ALL = '▲';
 $H_THREAD = '▼';
 @H_REVERSE = ( '△', '▽' );
@@ -715,8 +715,8 @@ sub hg_login_form
 	local( $contents );
 	$contents = &TagInputRadio( 'kinoA_url', 'kinoA', '3', 0 ) . ":\n" .
 	    &TagLabel( 'クッキー(HTTP-Cookies)を使わずに認証する', 'kinoA_url', 'U' ) . $HTML_BR;
-	$contents .= &TagInputRadio( 'kinoA_cookies', 'kinoA', '1', 1 ) .
-	    "\n" . &TagLabel( 'クッキーを使ってこのブラウザに情報を覚えさせる', 'kinoA_cookies', 'C' ) . $HTML_BR;
+	$contents .= &TagInputRadio( 'kinoA_cookies', 'kinoA', '1', 1 ) . "\n" .
+	    &TagLabel( 'クッキーを使ってこのブラウザに情報を覚えさせる', 'kinoA_cookies', 'C' ) . $HTML_BR;
 	$msg .= &TagFieldset( "クッキー:$HTML_BR", $contents );
     }
 
@@ -797,18 +797,18 @@ sub hg_user_entry_form
     &Fatal( 18, "$_[0]/UserEntryForm" ) if ( $_[0] ne 'UserEntry.xml' );
 
     local( %tags, $msg );
-    $msg = &TagLabel( $H_FROM, 'kinoU', 'N' ) . ': ' . &TagInputText( 'text',
-	'kinoU', '', $NAME_LENGTH ) . $HTML_BR;
-    $msg .= &TagLabel( $H_MAIL, 'mail', 'M' ) . ': ' . &TagInputText( 'text',
-	'mail', '', $MAIL_LENGTH ) . $HTML_BR;
-    $msg .= &TagLabel( $H_PASSWD, 'kinoP', 'P' ) . ': ' . &TagInputText(
-	'password', 'kinoP', '', $PASSWD_LENGTH ) . $HTML_BR;
-    $msg .= &TagLabel( $H_PASSWD, 'kinoP2', 'C' ) . ': ' . &TagInputText(
-	'password', 'kinoP2', '', $PASSWD_LENGTH ) .
+    $msg = &TagLabel( $H_FROM, 'kinoU', 'N' ) . ': ' .
+	&TagInputText( 'text', 'kinoU', '', $NAME_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_MAIL, 'mail', 'M' ) . ': ' .
+	&TagInputText( 'text', 'mail', '', $MAIL_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_PASSWD, 'kinoP', 'P' ) . ': ' .
+	&TagInputText( 'password', 'kinoP', '', $PASSWD_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( $H_PASSWD, 'kinoP2', 'C' ) . ': ' .
+	&TagInputText( 'password', 'kinoP2', '', $PASSWD_LENGTH ) .
 	'（念のため，もう一度お願いします）' . $HTML_BR;
-    $msg .= &TagLabel( $H_URL, 'url', 'U' ) . ': ' . &TagInputText( 'text',
-	'url', 'http://', $URL_LENGTH ) . '（省略してもかまいません）' .
-	$HTML_BR;
+    $msg .= &TagLabel( $H_URL, 'url', 'U' ) . ': ' .
+	&TagInputText( 'text', 'url', 'http://', $URL_LENGTH ) .
+	'（省略してもかまいません）' . $HTML_BR;
 
     %tags = ( 'c', 'uex' );
     &DumpForm( *tags, '登録', 'リセット', *msg, 1 );
@@ -980,10 +980,10 @@ sub hg_board_entry_form
     &Fatal( 18, "$_[0]/BoardEntryForm" ) if ( $_[0] ne 'BoardEntry.xml' );
 
     local( %tags, $msg );
-    $msg = &TagLabel( "$H_BOARD略称", 'name', 'B' ) . ': ' . &TagInputText(
-	'text', 'name', '', $BOARDNAME_LENGTH ) . $HTML_BR;
-    $msg .= &TagLabel( "$H_BOARD名称", 'intro', 'N' ) . ': ' . &TagInputText(
-	'text', 'intro', '', $BOARDNAME_LENGTH ) . $HTML_BR . $HTML_BR;
+    $msg = &TagLabel( "$H_BOARD略称", 'name', 'B' ) . ': ' .
+	&TagInputText( 'text', 'name', '', $BOARDNAME_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( "$H_BOARD名称", 'intro', 'N' ) . ': ' .
+	&TagInputText( 'text', 'intro', '', $BOARDNAME_LENGTH ) . $HTML_BR . $HTML_BR;
     $msg .= &TagLabel( "$H_BOARDの自動$H_MAIL配信先", 'armail', 'M' ) .
 	$HTML_BR . &TagTextarea( 'armail', '', $TEXT_ROWS, $MAIL_LENGTH ) .
 	$HTML_BR . $HTML_BR;
@@ -1057,8 +1057,7 @@ sub hg_board_config_form
 	$HTML_BR . &TagTextarea( 'armail', $all, $TEXT_ROWS, $MAIL_LENGTH ) .
 	$HTML_BR . $HTML_BR;
     $msg .= &TagLabel( "「$BOARD」の$H_BOARDヘッダ部分", 'article', 'H' ) .
-	$HTML_BR . &TagTextarea( 'article', $gHeader, $TEXT_ROWS,
-	$TEXT_COLS ) . $HTML_BR;
+	$HTML_BR . &TagTextarea( 'article', $gHeader, $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
     %tags = ( 'c', 'bcx', 'b', $BOARD );
     &DumpForm( *tags, '変更', 'リセット', *msg );
 }
@@ -1607,7 +1606,7 @@ sub hg_thread_article_tree
 	{
 	    # 該当記事のIDを取り出す
 	    $Id = &getMsgId( $IdNum );
-	    ( $Fid = &getMsgParents( $Id )) =~ s/,.*$//o;
+	    $Fid = &getMsgParent( $Id );
 	    # 後方参照は後回し．
 	    next if (( $Fid ne '' ) && (( $gADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
@@ -1641,7 +1640,7 @@ sub hg_thread_article_tree
 	for( $IdNum = $gTo; $IdNum >= $gFrom; $IdNum-- )
 	{
 	    $Id = &getMsgId( $IdNum );
-	    ( $Fid = &getMsgParents( $Id )) =~ s/,.*$//o;
+	    $Fid = &getMsgParent( $Id );
 	    next if (( $Fid ne '' ) && (( $gADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
 	    $gHgStr .= "<ul>\n" unless $gFold;
@@ -1867,7 +1866,7 @@ sub hg_thread_title_tree
 	{
 	    # 該当記事のIDを取り出す
 	    $Id = &getMsgId( $IdNum );
-	    ( $Fid = &getMsgParents( $Id )) =~ s/,.*$//o;
+	    $Fid = &getMsgParent( $Id );
 	    # 後方参照は後回し．
 	    next if (( $Fid ne '' ) && (( $gADDFLAG{$Fid} == 2 ) ||
 		( $SYS_THREAD_FORMAT == 2 )));
@@ -1919,7 +1918,7 @@ sub hg_thread_title_tree
 	{
 	    # 後は同じ
 	    $Id = &getMsgId( $IdNum );
-	    ( $Fid = &getMsgParents( $Id )) =~ s/,.*$//o;
+	    $Fid = &getMsgParent( $Id );
 	    next if (( $Fid ne '' ) && (( $gADDFLAG{$Fid} == 2 ) ||
 		( $SYS_THREAD_FORMAT == 2 )));
 
@@ -2055,9 +2054,7 @@ sub ThreadTitleMaintIcon
     # 移動コマンド(To)
     if (( $gComType == 4 ) && ( $fromId ne $id ) && ( $parents eq '' ) && ( $fromId ne $id ))
     {
-	$gHgStr .= &LinkP(
-	    "b=$BOARD_ESC&c=mve&rtid=$id&rfid=$fromId&roid=$oldId" .
-	    $addNum, $H_REORDERTO_MARK, '', $H_REORDERTO_MARK_L ) . "\n";
+	$gHgStr .= &LinkP( "b=$BOARD_ESC&c=mve&rtid=$id&rfid=$fromId&roid=$oldId" . $addNum, $H_REORDERTO_MARK, '', $H_REORDERTO_MARK_L ) . "\n";
     }
 
     # リンク先変更コマンド(To)
@@ -2294,7 +2291,7 @@ sub hg_show_article_original
     local( $fids ) = &getMsgParents( $gId );
     if ( $fids ne '' )
     {
-	$gHgStr .= "<p>▼$H_ORIG</p>\n";
+	$gHgStr .= "<p>$H_THREAD_ALL$H_ORIG</p>\n";
 	&DumpOriginalArticles( $fids );
     }
 }
@@ -2303,7 +2300,7 @@ sub hg_show_article_reply
 {
     &Fatal( 18, "$_[0]/ShowArticleReply" ) if ( $_[0] ne 'ShowArticle.xml' );
 
-    $gHgStr .= "<p>▼$H_REPLY</p>\n";
+    $gHgStr .= "<p>$H_THREAD$H_REPLY</p>\n";
     &DumpReplyArticles( &getMsgDaughters( $gId ));
 }
 
@@ -2329,20 +2326,21 @@ sub hg_search_article_result
     local( $SearchSubject ) = $cgi'TAGS{'searchsubject'};
     local( $SearchPerson ) = $cgi'TAGS{'searchperson'};
     local( $SearchArticle ) = $cgi'TAGS{'searcharticle'};
-    local( $SearchPostTime ) = $cgi'TAGS{'searchposttime'};
     local( $SearchPostTimeFrom ) = $cgi'TAGS{'searchposttimefrom'};
     local( $SearchPostTimeTo ) = $cgi'TAGS{'searchposttimeto'};
     local( $SearchIcon ) = $cgi'TAGS{'searchicon'};
     local( $Icon ) = $cgi'TAGS{'icon'};
 
+    local( %iconHash );
+    $iconHash{ $Icon } = 1;
+
     # キーワードが空でなければ，そのキーワードを含む記事のリストを表示
-    if ( $SearchIcon || ( $SearchPostTime && ( $SearchPostTimeFrom ||
-	$SearchPostTimeTo )) || (( $Key ne '' ) && ( $SearchSubject ||
-	$SearchPerson || $SearchArticle )))
+    if ( $SearchIcon || ( $SearchPostTimeFrom || $SearchPostTimeTo ) ||
+	(( $Key ne '' ) && ( $SearchSubject || $SearchPerson || $SearchArticle )))
     {
 	&DumpSearchResult( $Key, $SearchSubject, $SearchPerson,
-	    $SearchArticle, $SearchPostTime, $SearchPostTimeFrom,
-	    $SearchPostTimeTo, $SearchIcon, $Icon );
+	    $SearchArticle, $SearchPostTimeFrom, $SearchPostTimeTo,
+	    $SearchIcon, *iconHash );
     }
 }
 
@@ -2396,7 +2394,7 @@ sub hg_delete_preview_reply
 {
     &Fatal( 18, "$_[0]/DeletePreviewReply" ) if ( $_[0] ne 'DeletePreview.xml' );
 
-    $gHgStr .= "<p>▼$H_REPLY</p>\n";
+    $gHgStr .= "<p>$H_THREAD$H_REPLY</p>\n";
     &DumpReplyArticles( $gAids );
 }
 
@@ -2421,7 +2419,7 @@ sub UIDeleteExec
 
     local( $name ) = &getMsgAuthor( $gId );
     &Fatal( 44, '' ) if ( !&IsUser( $name ) && !( $POLICY & 8 ));
-    &Fatal( 19, '' ) if (( &getMsgDaughters( $gId ) ne '' ) && ( $SYS_OVERWRITE == 1 ));
+    &Fatal( 19, '' ) if (( &getMsgDaughters( $gId ) ne '' ) && !( $POLICY & 8 ) && ( $SYS_OVERWRITE == 1 ));
 
     # 削除実行
     &DeleteArticle( $gId, $BOARD, $threadFlag );
@@ -2564,12 +2562,12 @@ sub hg_c_top_menu
 	$contents .= sprintf( qq[<option%s value="r">最新$H_SUBJECT一覧(書き込み順)</option>\n], ( $SYS_TITLE_FORMAT == 1 )? ' selected="selected"' : '' );
 	$contents .= qq[<option value="vt">最新$H_MESG一覧(スレッド)</option>\n];
 	$contents .= qq[<option value="l">最新$H_MESG一覧(書き込み順)</option>\n];
-	$contents .= qq(<option value="v">--------</option>\n);
+	$contents .= qq(<option value="v">&nbsp;</option>\n);
 	$contents .= qq(<option value="s">$H_MESGの検索</option>\n);
 	$contents .= qq(<option value="i">使える$H_ICON一覧</option>\n) if $SYS_ICON;
 	if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )))
 	{
-	    $contents .= qq(<option value="v">--------</option>\n);
+	    $contents .= qq(<option value="v">&nbsp;</option>\n);
 	    $contents .= qq(<option value="n">$H_POSTNEWARTICLE</option>\n);
 	}
 
@@ -2775,7 +2773,6 @@ sub hg_b_search_article_form
     local( $SearchSubject ) = $cgi'TAGS{'searchsubject'};
     local( $SearchPerson ) = $cgi'TAGS{'searchperson'};
     local( $SearchArticle ) = $cgi'TAGS{'searcharticle'};
-    local( $SearchPostTime ) = $cgi'TAGS{'searchposttime'};
     local( $SearchPostTimeFrom ) = $cgi'TAGS{'searchposttimefrom'};
     local( $SearchPostTimeTo ) = $cgi'TAGS{'searchposttimeto'};
     local( $SearchIcon ) = $cgi'TAGS{'searchicon'};
@@ -2788,19 +2785,16 @@ sub hg_b_search_article_form
 
     $contents .= &TagInputCheck( 'searcharticle', $SearchArticle ) . ': ' . &TagLabel( $H_MESG, 'searcharticle', 'A' ) . $HTML_BR;
 
-    local( $sec, $min, $hour, $mday, $mon, $year, $nowStr );
-    if ( !$SearchPostTime )
-    {
-	( $sec, $min, $hour, $mday, $mon, $year, $nowStr ) = localtime( $^T );
-	$nowStr = sprintf( "%04d/%02d/%02d", $year+1900, $mon+1, $mday );
-    }
-    $contents .= &TagInputCheck( 'searchposttime', $SearchPostTime ) . ': ' . &TagLabel( $H_DATE, 'searchposttime', 'D' ) . " // \n";
-    $contents .= &TagInputText( 'text', 'searchposttimefrom', ( $SearchPostTimeFrom || '' ), 11 ) . ' ' . &TagLabel( '〜', 'searchposttimefrom', 'S' ) . " \n";
-    $contents .= &TagInputText( 'text', 'searchposttimeto', ( $SearchPostTimeTo || '' ), 11 ) . &TagLabel( 'の間', 'searchposttimeto', 'E' ) . $HTML_BR;
+    $contents .= &TagLabel( 'キーワード', 'key', 'K' ) . ': ' . &TagInputText( 'text', 'key', $Key, $KEYWORD_LENGTH ) . $HTML_BR . $HTML_BR;
+
+    $contents .= $H_DATE . ': ' . &TagInputText( 'text', 'searchposttimefrom', ( $SearchPostTimeFrom || '' ), 11 ) . ' ' .
+	&TagLabel( 'から', 'searchposttimefrom', 'S' ) .
+	"&nbsp;&nbsp;&nbsp;\n" .
+	&TagInputText( 'text', 'searchposttimeto', ( $SearchPostTimeTo || '' ), 11 ) . &TagLabel( 'の間', 'searchposttimeto', 'E' ) . $HTML_BR;
 
     if ( $SYS_ICON )
     {
-	$contents .= $HTML_BR . &TagLabel( $H_ICON, 'icon', 'I' ) . ": \n";
+	$contents .= &TagLabel( $H_ICON, 'icon', 'I' ) . ": \n";
 
 	# アイコンの選択
 	local( $selContents, $iconId );
@@ -2815,49 +2809,25 @@ sub hg_b_search_article_form
 
 	$contents .= "という$H_ICON\n";
 
-	$selContents = sprintf( qq[<option%s value="0">(アイコン検索をしない)</option>\n], ( $SearchIcon == 0 )? ' selected="selected"' : '' );
-
-	$selContents .= qq(<option value="0">----------------</option>\n);
+	$selContents = sprintf( qq[<option%s value="0">&nbsp;</option>\n], ( $SearchIcon == 0 )? ' selected="selected"' : '' );
 	$selContents .= sprintf( qq[<option%s value="1">を持つ$H_MESGを探す</option>\n], ( $SearchIcon == 1 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="1001">を持たない$H_MESGを探す</option>\n], ( $SearchIcon == 1001 )? ' selected="selected"' : '' );
-
-	$selContents .= qq(<option value="0">----------------</option>\n);
-	$selContents .= sprintf( qq[<option%s value="11">が直接の$H_REPLYにある$H_MESGを探す</option>\n], ( $SearchIcon == 11 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="1011">が直接の$H_REPLYに *ない* $H_MESGを探す</option>\n], ( $SearchIcon == 1011 )? ' selected="selected"' : '' );
-
-	$selContents .= qq(<option value="0">--------</option>\n);
-	$selContents .= sprintf( qq[<option%s value="12">が$H_REPLYの中にある$H_MESGを探す</option>\n], ( $SearchIcon == 12 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="1012">が$H_REPLYの中に *ない* $H_MESGを探す</option>\n], ( $SearchIcon == 1012 )? ' selected="selected"' : '' );
-
-	$selContents .= qq(<option value="0">--------</option>\n);
-	$selContents .= sprintf( qq[<option%s value="13">が$H_REPLYの末端にある$H_MESGを探す</option>\n], ( $SearchIcon == 13 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="1013">が$H_REPLYの末端に *ない* $H_MESGを探す</option>\n], ( $SearchIcon == 1013 )? ' selected="selected"' : '' );
-
-	$selContents .= qq(<option value="0">----------------</option>\n);
-	$selContents .= sprintf( qq[<option%s value="21">が直接の$H_ORIGである$H_MESGを探す</option>\n], ( $SearchIcon == 21 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="1021">が直接の$H_ORIGで *ない* $H_MESGを探す</option>\n], ( $SearchIcon == 1021 )? ' selected="selected"' : '' );
-
-	$selContents .= qq(<option value="0">--------</option>\n);
-	$selContents .= sprintf( qq[<option%s value="22">が$H_ORIGの中にある$H_MESGを探す</option>\n], ( $SearchIcon == 22 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="1022">が$H_ORIGの中に *ない* $H_MESGを探す</option>\n], ( $SearchIcon == 1022 )? ' selected="selected"' : '' );
-
-	$selContents .= qq(<option value="0">--------</option>\n);
-	$selContents .= sprintf( qq[<option%s value="23">が$H_ORIG_TOPにある$H_MESGを探す</option>\n], ( $SearchIcon == 23 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="1023">が$H_ORIG_TOPに *ない* $H_MESGを探す</option>\n], ( $SearchIcon == 1023 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="3">が$H_ORIGである$H_MESGを探す</option>\n], ( $SearchIcon == 3 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="2">という$H_REPLYを持つ$H_MESGを探す</option>\n], ( $SearchIcon == 2 )? ' selected="selected"' : '' );
+	$selContents .= qq(<option value="0">&nbsp;</option>\n);
+	$selContents .= sprintf( qq[<option%s value="11">を含むスレッドを探す</option>\n], ( $SearchIcon == 11 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="12">がスレッドの先頭にあるスレッドを探す</option>\n], ( $SearchIcon == 12 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="13">がスレッドの末端にあるスレッドを探す</option>\n], ( $SearchIcon == 13 )? ' selected="selected"' : '' );
 
 	$contents .= &TagSelect( 'searchicon', $selContents );
 
 	# アイコン一覧
 	$contents .= ' (' . &LinkP( "b=$BOARD_ESC&c=i", "使える$H_ICON一覧" .
-	    &TagAccessKey( 'H' ), 'H' ) . ')';
+	    &TagAccessKey( 'H' ), 'H' ) . ')' . $HTML_BR;
 
 #	$contents .= &TagInputCheck( 'searchicon', $SearchIcon ) . ': ' . &TagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
 
     }
     $msg .= &TagFieldset( "検索条件$HTML_BR", $contents ) . $HTML_BR;
-
-    $msg .= &TagLabel( 'キーワード', 'key', 'K' ) . ': ' . &TagInputText(
-	'text', 'key', $Key, $KEYWORD_LENGTH ) . $HTML_BR;
 
     %tags = ( 'c', 's', 'b', $BOARD );
     &DumpForm( *tags, '検索', 'リセット', *msg );
@@ -3023,6 +2993,7 @@ sub DumpArtEntryNormal
 	    }
 	    $ttBit++;
 	}
+	$contents .= $HTML_BR;
 	$msg .= &TagFieldset( &TagLabel( $H_TEXTTYPE, $labelTarget, 'Z' ) . ': ', $contents );
     }
     else
@@ -3070,8 +3041,9 @@ sub DumpArtEntryNormal
     }
     $msg .= "</p>\n<p>\n";
 
-    $contents = &TagInputRadio( 'com_p', 'com', 'p', 1 ) . ":\n" . &TagLabel(
-	'試しに表示してみる(まだ投稿しません)', 'com_p', 'P' ) . $HTML_BR;
+    $contents = &TagInputRadio( 'com_p', 'com', 'p', 1 ) . ":\n" .
+	&TagLabel( '試しに表示してみる(まだ投稿しません)', 'com_p', 'P' ) .
+	$HTML_BR;
     local( $doLabel );
     if ( $type eq 'supersede' )
     {
@@ -3081,8 +3053,8 @@ sub DumpArtEntryNormal
     {
 	$doLabel = "$H_MESGを投稿する";
     }
-    $contents .= &TagInputRadio( 'com_x', 'com', 'x', 0 ) . ":\n" . &TagLabel(
-	$doLabel, 'com_x', 'X' ) . $HTML_BR;
+    $contents .= &TagInputRadio( 'com_x', 'com', 'x', 0 ) . ":\n" .
+	&TagLabel( $doLabel, 'com_x', 'X' ) . $HTML_BR;
     $msg .= &TagFieldset( "コマンド$HTML_BR", $contents );
 
     local( $op ) = ( -M &GetPath( $SYS_DIR, $BOARD_FILE ));
@@ -3246,31 +3218,34 @@ sub DumpArtThread
 ## DumpSearchResult - 記事検索
 #
 # - SYNOPSIS
-#	DumpSearchResult( $Key, $Subject, $Person, $Article, $PostTime, $PostTimeFrom, $PostTimeTo, $IconType, $Icon );
+#	DumpSearchResult( $Key, $Subject, $Person, $Article, $PostTimeFrom, $PostTimeTo, $IconType, *iconHash );
 #
 # - ARGS
 #	$Key		キーワード
 #	$Subject	タイトルを検索するか否か
 #	$Person		投稿者を検索するか否か
 #	$Article	本文を検索するか否か
-#	$PostTime	日付を検索するか否か
 #	$PostTimeFrom	開始日付
 #	$PostTimeTo	終了日付
 #	$IconType	アイコンの検索手法
-#	$Icon		アイコン
+#	%iconHash	検索アイコン用ハッシュ．
+#			  $iconHash{ 'アイコン' }が真のアイコンが検索される．
 #
 # - DESCRIPTION
 #	記事を検索して表示する
 #
 sub DumpSearchResult
 {
-    local( $Key, $Subject, $Person, $Article, $PostTime, $PostTimeFrom, $PostTimeTo, $IconType, $Icon ) = @_;
+    local( $Key, $Subject, $Person, $Article, $PostTimeFrom, $PostTimeTo, $IconType, *iconHash ) = @_;
 
     local( @KeyList ) = split( /\s+/, $Key );
+    local( $postTime ) = ( $PostTimeTo || $PostTimeFrom );
 
     # リスト開く
     $gHgStr .= "<ul>\n";
 
+    # アイコン検索のキャッシュをクリア
+    %gSearchIconResult = ();
     local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail );
     local( $SubjectFlag, $PersonFlag, $PostTimeFlag, $ArticleFlag );
     local( $HitNum, $Line, $FromUtc, $ToUtc );
@@ -3285,16 +3260,14 @@ sub DumpSearchResult
 	$Line = '';
 
 	# アイコンチェック
-	next unless &SearchArticleIcon( $dId, $Icon, $IconType );
+	next unless &SearchArticleIcon( $dId, $IconType, *iconHash );
 
 	# 投稿時刻を検索
-	if ( $PostTime )
+	if ( $postTime )
 	{
 	    $FromUtc = $ToUtc = -1;
-	    $FromUtc = &GetUtcFromYYYY_MM_DD( $PostTimeFrom )
-		if $PostTimeFrom;
-	    $ToUtc = &GetUtcFromYYYY_MM_DD( $PostTimeTo )
-		if $PostTimeTo;
+	    $FromUtc = &GetUtcFromYYYY_MM_DD( $PostTimeFrom ) if $PostTimeFrom;
+	    $ToUtc = &GetUtcFromYYYY_MM_DD( $PostTimeTo ) if $PostTimeTo;
 	    $ToUtc += 86400 if ( $ToUtc >= 0 );
 	    next if !&CheckSearchTime( $dDate, $FromUtc, $ToUtc );
 	}
@@ -3523,8 +3496,7 @@ sub DumpArtCommand
 	
     if ( $prevId ne '' )
     {
-	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=e&id=$prevId", &TagComImg(
-	    $ICON_PREV, $H_PREVARTICLE ), 'P' ) . "\n";
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=e&id=$prevId", &TagComImg( $ICON_PREV, $H_PREVARTICLE ), 'P' ) . "\n";
     }
     else
     {
@@ -3533,8 +3505,7 @@ sub DumpArtCommand
 	
     if ( $nextId ne '' )
     {
-	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=e&id=$nextId", &TagComImg(
-	    $ICON_NEXT, $H_NEXTARTICLE ), 'N' ) . "\n";
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=e&id=$nextId", &TagComImg( $ICON_NEXT, $H_NEXTARTICLE ), 'N' ) . "\n";
     }
     else
     {
@@ -3543,8 +3514,7 @@ sub DumpArtCommand
 
     if ( $reply )
     {
-	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=t&id=$id", &TagComImg(
-	    $ICON_DOWN, $H_READREPLYALL ), 'M' ) . "\n";
+	$gHgStr .= $dlmtS . &LinkP( "b=$BOARD_ESC&c=t&id=$id", &TagComImg( $ICON_DOWN, $H_READREPLYALL ), 'M' ) . "\n";
     }
     else
     {
@@ -3814,7 +3784,7 @@ sub DumpArtSummary
     if ( $flag&1 && ( &getMsgParents( $id ) ne '' ))
     {
 	local( $fId );
-	( $fId = &getMsgParents( $id )) =~ s/^.*,//o;
+	$fId = &getMsgParentTop( $id );
 	$gHgStr .= ' ' . &LinkP( "b=$BOARD_ESC&c=t&id=$fId", $H_THREAD_ALL, '',
 	    $H_THREAD_ALL_L ) . ' ';
     }
@@ -4042,8 +4012,7 @@ sub FollowMail
     $MailSubject = &GetMailSubjectPrefix( $BOARDNAME, $Fid ) . $FstrSubject;
     $StrFrom = $Email? "$Name <$Email>" : "$Name";
 
-    local( $topId );
-    ( $topId = &getMsgParents( $Id )) =~ m/([^,]+)$/o;
+    local( $topId ) = &getMsgParentTop( $Id );
 
     $Message = <<__EOF__;
 $SYSTEM_NAMEからのお知らせです．
@@ -4055,7 +4024,7 @@ $H_REPLYがありました．
 
 新着$H_MESG:
   → $SCRIPT_URL?b=$BOARD&c=e&id=$Fid
-$H_ORIG_TOPからまとめ読み:
+スレッドの先頭からまとめ読み:
   → $SCRIPT_URL?b=$BOARD&c=t&id=$topId
 
 __EOF__
@@ -4174,25 +4143,19 @@ sub MakeNewArticleEx
 ## SearchArticleIcon - 記事の検索(アイコン)
 #
 # - SYNOPSIS
-#	SearchArticleIcon( $id, $icon, $type );
+#	SearchArticleIcon( $id, $type, const *iconHash );
 #
 # - ARGS
 #	$id		アイコンを検索する記事のID
-#	$icon		検索するアイコン
 #	$type		検索タイプ
 #			  1 ... 本人
-#			  11 ... 直接の娘にある
-#			  12 ... 娘，孫，…の任意にある
-#			  13 ... リーフの娘にある
-#			  21 ... 直接の親にある
-#			  22 ... 親，その親，…の任意にある
-#			  23 ... 新規の親にある
-#			  1011 ... 直接の娘にない
-#			  1012 ... 娘，孫，…の任意にない
-#			  1013 ... リーフの娘にない
-#			  1021 ... 直接の親にない
-#			  1022 ... 親，その親，…の任意にない
-#			  1023 ... 新規の親にない
+#			  2 ... 直接の娘にある
+#			  3 ... 直接の親にある
+#			  11 ... スレッド中に含む
+#			  12 ... スレッドの先頭に持つ
+#			  13 ... スレッドの末端に持つ
+#	%iconHash	検索アイコン用ハッシュ．
+#			  $iconHash{ 'アイコン' }が真のアイコンが検索される．
 #
 # - DESCRIPTION
 #	指定された記事のアイコンを検索する．
@@ -4200,60 +4163,130 @@ sub MakeNewArticleEx
 # - RETURN
 #	1 if match, 0 if not.
 #
+%gSearchIconResult = ();
 sub SearchArticleIcon
 {
-    local( $id, $icon, $type ) = @_;
+    local( $id, $type, *iconHash ) = @_;
 
-    local( $not ) = 0;
-    if ( $type > 1000 )
+    local( $result ) = 0;
+
+    # 検索結果がキャッシュしてあるかどうかをチェック．あればそちらを優先．
+    if ( defined( $gSearchIconResult{ $id } ))
     {
-	$type -= 1000;
-	$not = 1;
+	return $gSearchIconResult{ $id };
     }
 
     # 0は後方互換性のため．'on'が渡されるかもしれない．
-    local( $result );
     if (( $type == 1 ) || ( $type == 0 ))
     {
-	$result = 1 if ( &getMsgIcon( $id ) eq $icon );
+	$result = 1 if ( $iconHash{ &getMsgIcon( $id ) } );
+	$gSearchIconResult{ $id } = $result;
     }
-    elsif (( $type == 11 ) || ( $type == 12 ) || ( $type == 13 ))
+    elsif ( $type == 2 )
     {
 	local( @daughters ) = split( /,/, &getMsgDaughters( $id ));
-	$result = $not unless @daughters;
+	if ( !@daughters )
+	{
+	    $result = 0;
+	}
+	else
+	{
+	    foreach ( @daughters )
+	    {
+		$result = 1, last if ( $iconHash{ &getMsgIcon( $_ ) } );
+	    }
+	}
+	$gSearchIconResult{ $id } = $result;
+    }
+    elsif ( $type == 3 )
+    {
+	local( $parent ) = &getMsgParent( $id );
+	if ( $parent eq '' )
+	{
+	    $result = $gSearchIconResult{ $id } = 0;
+	}
+	elsif ( $iconHash{ &getMsgIcon( $parent ) } )
+	{
+	    local( @daughters ) = split( /,/, &getMsgDaughters( $parent ));
+	    foreach ( @daughters )
+	    {
+		$result = $gSearchIconResult{ $_ } = 1;
+	    }
+	}
+	else
+	{
+	    local( @daughters ) = split( /,/, &getMsgDaughters( $parent ));
+	    foreach ( @daughters )
+	    {
+		$result = $gSearchIconResult{ $_ } = 0;
+	    }
+	}
+    }
+    elsif ( $type == 11 )
+    {
+	local( $topId ) = &getMsgParentTop( $id );
+	if ( $topId eq '' )
+	{
+	    $topId = $id;
+	}
+
+	# トップから検索していく．
+	local( @daughters ) = ( $topId );
 	local( $dId );
 	while ( $dId = shift( @daughters ))
 	{
-	    if ( &getMsgIcon( $dId ) eq $icon )
-	    {
-		$result = 1 if (( $type == 11 ) || ( $type == 12 ));
-		$result = 1 if (( $type == 13 ) && ( &getMsgDaughters( $dId ) eq '' ));
-	    }
-	    if ( $type != 11 )
-	    {
-		# Search recursively...
-		push( @daughters, split( /,/, &getMsgDaughters( $dId )));
-	    }
+	    $result = 1, last if ( $iconHash{ &getMsgIcon( $dId ) } );
+	    push( @daughters, split( /,/, &getMsgDaughters( $dId )));
 	}
-	return $not - $result;
     }
-    elsif (( $type == 21 ) || ( $type == 22 ) || ( $type == 23 ))
+    elsif ( $type == 12 )
     {
-	local( @parents ) = split( /,/, &getMsgParents( $id ));
-	$result = $not unless @daughters;
-	local( $dId );
-	while ( $dId = shift( @parents ))
+	local( $topId ) = &getMsgParentTop( $id );
+	if ( $topId eq '' )
 	{
-	    if ( &getMsgIcon( $dId ) eq $icon )
+	    $topId = $id;
+	}
+	$result = 1 if ( $iconHash{ &getMsgIcon( $topId ) } );
+    }
+    elsif ( $type == 13 )
+    {
+	local( @daughters ) = ( $id );
+	local( $dId, $dDaughters );
+	while ( $dId = shift( @daughters ))
+	{
+	    $dDaughters = &getMsgDaughters( $dId );
+	    if ( $dDaughters eq '' )
 	    {
-		$result = 1 if (( $type == 21 ) || ( $type == 22 ));
-		$result = 1 if (( $type == 23 ) && ( $#parents == -1 ));
+		$result = 1, last if ( $iconHash{ &getMsgIcon( $dId ) } );
 	    }
-	    last if ( $type == 21 );
+	    else
+	    {
+		push( @daughters, split( /,/, $dDaughters ));
+	    }
 	}
     }
-    
-    return $not - $result;
+
+    # スレッド検索の場合
+    if ( int( $type / 10 ) == 1 )
+    {
+	# 検索結果をキャッシュに反映させる: トップからたどれる全ての娘へ
+	local( $topId ) = &getMsgParentTop( $id );
+	if ( $topId eq '' )
+	{
+	    $topId = $id;
+	}
+
+	# トップから検索していく．
+	local( @daughters ) = ( $topId );
+	local( $dId );
+	while ( $dId = shift( @daughters ))
+	{
+	    $gSearchIconResult{ $dId } = $result;
+	    push( @daughters, split( /,/, &getMsgDaughters( $dId )));
+	}
+    }
+
+    return $result;
 }
 
 
@@ -4338,8 +4371,19 @@ sub CheckSearchTime
 {
     local( $target, $from, $to ) = @_;
 
-    return 0 if (( $from >= 0 ) && ( $target < $from ));
-    return 0 if (( $to >= 0 ) && ( $target > $to ));
+    if ( $from >= 0 )
+    {
+	return 0 if ( $target < $from );
+    }
+    elsif ( $to >= 0 )
+    {
+	return 0 if ( $target > $to );
+    }
+    else
+    {
+	return 0;
+    }
+
     1;
 }
 
@@ -5578,12 +5622,12 @@ sub PageLink
 
     if ( $old )
     {
-	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&fold=$fold&rev=$rev", $H_TOP . &TagAccessKey( 'T' ), 'T' );
-	$str .= ' | ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&fold=$fold&rev=$rev", $H_UP . &TagAccessKey( 'N' ), 'N' );
+	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&fold=$fold&rev=$rev", '&lt;&lt;' . $H_TOP . &TagAccessKey( 'T' ), 'T', $H_TOP );
+	$str .= ' | ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&fold=$fold&rev=$rev", '&lt;' . $H_UP . &TagAccessKey( 'N' ), 'N', $H_UP );
     }
     else
     {
-	$str .= $H_TOP . &TagAccessKey( 'T' ) . ' | ' . $H_UP . &TagAccessKey( 'N' );
+	$str .= '&lt;&lt;' . $H_TOP . &TagAccessKey( 'T' ) . ' | ' . '&lt;' . $H_UP . &TagAccessKey( 'N' );
     }
 
     if ( $SYS_REVERSE )
@@ -5602,12 +5646,12 @@ sub PageLink
     local( $nofMsg ) = &getNofMsg();
     if ( $num && ( $nofMsg - $backOld >= 0 ))
     {
-	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&fold=$fold&rev=$rev", $H_DOWN . &TagAccessKey( 'P' ), 'P' );
-	$str .= ' | ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=" . ( $nofMsg - $num + 1) . "&fold=$fold&rev=$rev", $H_BOTTOM . &TagAccessKey( 'B' ), 'B' );
+	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&fold=$fold&rev=$rev", $H_DOWN . &TagAccessKey( 'P' ) . '&gt;', 'P', $H_DOWN );
+	$str .= ' | ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=" . ( $nofMsg - $num + 1 ) . "&fold=$fold&rev=$rev", $H_BOTTOM . &TagAccessKey( 'B' ) . '&gt;&gt;' , 'B', $H_BOTTOM );
     }
     else
     {
-	$str .= $H_DOWN . &TagAccessKey( 'P' ) . ' | ' . $H_BOTTOM . &TagAccessKey( 'B' );
+	$str .= $H_DOWN . &TagAccessKey( 'P' ) . '&gt;' . ' | ' . $H_BOTTOM . &TagAccessKey( 'B' ) . '&gt;&gt;';
     }
 
     $str .= "</p>\n";
@@ -7008,6 +7052,8 @@ sub getMsgInfo
 
 ###
 ## getMsgParents - メッセージ親情報の取得
+## getMsgParent - メッセージ親情報の取得
+## getMsgParentTop - メッセージ親情報の取得
 ## getMsgDaughters - メッセージ娘情報の取得
 ## getMsgSubject - メッセージタイトルの取得
 ## getMsgIcon - メッセージアイコンの取得
@@ -7016,6 +7062,8 @@ sub getMsgInfo
 #
 # - SYNOPSIS
 #	getMsgParents( $id );
+#	getMsgParent( $id );
+#	getMsgParentTop( $id );
 #	getMsgDaughters( $id );
 #	getMsgSubject( $id );
 #	getMsgIcon( $id );
@@ -7030,17 +7078,22 @@ sub getMsgInfo
 # - DESCRIPTION
 #	メッセージ親/娘情報を取得する．
 #
-# - RETURN
-#	get*
-#		親メッセージIDのリスト（「,」区切り）
-#		娘メッセージIDのリスト（「,」区切り）
-#	set*
-#		なし
-#
 sub getMsgParents { $DB_FID{ $_[0] }; }
 sub getMsgDaughters { $DB_AIDS{ $_[0] }; }
 sub getMsgSubject { $DB_TITLE{ $_[0] }; }
 sub getMsgIcon { $DB_ICON{ $_[0] }; }
+sub getMsgParent
+{
+    local( $parent );
+    ( $parent = $DB_FID{ $_[0] } ) =~ s/,.*$//o;
+    $parent;
+}
+sub getMsgParentTop
+{
+    local( $top );
+    ( $top = $DB_FID{ $_[0] } ) =~ s/^.*,//o;
+    $top;
+}
 
 sub setMsgParents { $DB_FID{ $_[0] } = $_[1]; }
 sub setMsgDaughters { $DB_AIDS{ $_[0] } = $_[1]; }
