@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.22 1997-11-26 12:05:41 nakahiro Rel $
+# $Id: cgi.pl,v 1.23 1997-11-26 14:23:32 nakahiro Rel $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -216,13 +216,13 @@ sub lock_link {
 
     srand( time|$$ );
     if ( -M "$lockFile" > $lockFileTimeout ) { unlink( $lockFile ); }
-    open( LOCKORG, ">$lockFile.org" ) || &Fatal( 1 );
     for( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
+	open( LOCKORG, ">$lockFile.org" ) || &Fatal( 1 );
+	close( LOCKORG );
 	$lockFlag = 1, last if ( link( "$lockFile.org", $lockFile ));
+	unlink( "$lockFile.org" );
 	sleep( 1 );
     }
-    unlink( "$lockFile.org" );
-    close( LOCKORG );
     $lockFlag;
 }
 
