@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.26 1998-02-05 11:45:03 nakahiro Rel $
+# $Id: cgi.pl,v 1.27 1998-02-08 03:31:17 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -102,6 +102,8 @@
 # &cgi'GetHttpDateTimeFromUtc( $utc );
 #	$utcで指定されたUTC時間から，HTTP Date/Timeフォーマットの時間文字列を
 #	作り出します．返り値はその文字列です．
+#	数字でない文字列を与えると，
+#	UNIX origin timeのHTTP Date/Timeフォーマットを返します．
 #
 # &cgi'Decode;
 #	ブラウザからCGIプログラムに送信されたフォームの入力内容，
@@ -332,6 +334,7 @@ sub Header {
 #
 sub GetHttpDateTimeFromUtc {
     local( $utc ) = @_;
+    if ( $utc !~ /^\d+$/ ) { $utc = 0; }
     local( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime( $utc );
 
     sprintf( "%s, %02d-%s-%02d %02d:%02d:%02d GMT", ( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' )[ $wday ], $mday, ( 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' )[ $mon ], $year, $hour, $min, $sec );
