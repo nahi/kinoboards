@@ -133,7 +133,7 @@ Fatal:
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    if ( !$PC && ( $errno != 1001 ) && ( $errno != 1001 ))
+    if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ))
     {
 	&UnlockBoard;
 	&UnlockAll;
