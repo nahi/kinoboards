@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.37 1997-02-08 21:24:56 nakahiro Exp $
+# $Id: kb.cgi,v 4.38 1997-02-14 11:41:00 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -46,6 +46,7 @@ chdir($PATH_TRANSLATED) if ($PATH_TRANSLATED ne '');
 require('kb.ph');
 require('cgi.pl');
 require('tag_secure.pl');
+require('jcode.pl');
 
 
 ###
@@ -186,7 +187,7 @@ MAIN: {
     require("$BoardConfFile") if (-s "$BoardConfFile");
 
     # DBを大域変数にキャッシュ
-    &DbCash;
+    &DbCash if $BOARD;
 
     # 値の抽出
     local($Command) = $cgi'TAGS{'c'};
@@ -793,7 +794,7 @@ sub WriteArticleId {
 
     # 数字のくせに古い数値より若い!
     local($OldArticleId) = &GetNewArticleId;
-    &Fatal($ERR_ILLEGALARTICLEID, '') if (($Id =~ /^\d+$/o) && ($Id < $OldArticleId));
+    &Fatal($ERR_ILLEGALARTICLEID, '') if (($Id =~ /^\d+$/) && ($Id < $OldArticleId));
 
     # Open Tmp File
     open(AID, ">$TmpFile") || &Fatal($ERR_FILE, $TmpFile);
@@ -1318,7 +1319,7 @@ sub SortArticle {
     local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
     local($BackOld) = ($Old + $Num);
     local($To) = $#DB_ID - $Old;
-    local($From) = $To - $Num + 1; $From = 0 if ($From < 0);
+    local($From) = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
     
     # 記事情報
     local($IdNum, $Id);
@@ -1382,7 +1383,7 @@ sub ViewTitle {
     local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
     local($BackOld) = ($Old + $Num);
     local($To) = $#DB_ID - $Old;
-    local($From) = $To - $Num + 1; $From = 0 if ($From < 0);
+    local($From) = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
 
     # 記事情報
     local($IdNum, $Id, $Line);
@@ -1558,7 +1559,7 @@ sub NewArticle {
     local($NextOld) = ($Old > $Num) ? ($Old - $Num) : 0;
     local($BackOld) = ($Old + $Num);
     local($To) = $#DB_ID - $Old;
-    local($From) = $To - $Num + 1; $From = 0 if ($From < 0);
+    local($From) = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
 
     # 記事情報
     local($Id) = ();
@@ -1704,7 +1705,7 @@ sub SearchArticleList {
 
     local($dId, $dAids, $dDate, $dTitle, $dIcon, $dName, $dEmail);
 
-    local($ArticleFile, $HitFlag) = ('', 0);
+    local($HitFlag) = 0;
     local($Line) = ();
     local($SubjectFlag, $PersonFlag, $ArticleFlag);
     local(@KeyList) = split(/ +/, $Key);
@@ -1754,8 +1755,7 @@ sub SearchArticleList {
 
 	    # 本文を検索
 	    if ($Article ne '') {
-		$ArticleFile = &GetArticleFileName($dId, $BOARD);
-		$ArticleFlag = 1 if ($Line = &SearchArticleKeyword($ArticleFile, @KeyList));
+		$ArticleFlag = 1 if ($Line = &SearchArticleKeyword($dId, @KeyList));
 	    }
 
 	} else {
@@ -1794,10 +1794,13 @@ sub SearchArticleList {
 #
 sub SearchArticleKeyword {
 
-    # ファイル名とキーワード
-    local($File, @KeyList) = @_;
+    # IDとキーワード
+    local($Id, @KeyList) = @_;
     local(@NewKeyList);
-    local($Line, $Return) = ();
+    local($Line, $Return, $Code) = ();
+
+    local($File) = &GetArticleFileName($Id, $BOARD);
+    local($ConvFlag) = ($Id !~ /^\d+$/);
 
     # 検索する
     open(ARTICLE, "<$File") || &Fatal($ERR_FILE, $File);
@@ -1805,6 +1808,12 @@ sub SearchArticleKeyword {
 
 	# Version Check
 	&VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
+
+	# コード変換
+	if ($ConvFlag) {
+	    $Code = &jcode'getcode(*Line);
+	    &jcode'convert(*Line, $SCRIPT_KCODE, $Code, "z");
+	}
 
 	# クリア
 	@NewKeyList = ();
@@ -1903,7 +1912,8 @@ sub AliasMod {
     #	1 ... エイリアスはマッチしたがマシン名がマッチしない
     #	2 ... マッチしてデータを変更した
     local($HitFlag) = 0;
-    
+    local($Alias);
+
     # 文字列チェック
     &AliasCheck($A, $N, $E, $U);
     
@@ -1920,6 +1930,9 @@ sub AliasMod {
     
     # マシン名が合わない!
     &Fatal($ERR_CANNOTGRANT, '') if ($HitFlag == 1);
+
+    # 新規登録
+    $Alias = $A if ($HitFlag == 0);
     
     # データの登録
     $Name{$Alias} = $N;
@@ -1971,7 +1984,8 @@ sub AliasDel {
     #	1 ... エイリアスはマッチしたがマシン名がマッチしない
     #	2 ... マッチしてデータを変更した
     local($HitFlag) = 0;
-    
+    local($Alias);
+
     # エイリアスの読み込み
     &CashAliasData($USER_ALIAS_FILE);
     
