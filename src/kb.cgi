@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# このファイルの変更は2箇所です（サーバマシンがWin95/Macの場合は3箇所）．
+# このファイルの変更は最低2箇所，最大4箇所です（環境次第です）．
 #
 # 1. ↑の先頭行で，Perlのパスを指定します．「#!」に続けて指定してください．
 
@@ -18,6 +18,12 @@ $KBDIR_PATH = '';
 $PC = 0;	# for UNIX / WinNT
 # $PC = 1;	# for Win95 / Mac
 
+# 4. サーバがCGIWRAPを利用している場合，以下のコメントを外し，
+#    kbディレクトリのURLを指定してください（今度はパスではなく，URLです）．
+#    そうでない人は，変更の必要はありません．コメントのままでOKです．
+#
+# $ENV{'PATH_INFO'} = '/~nahi/kb';
+
 
 # 以下は書き換えの必要はありません．
 
@@ -25,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.41 1999-06-25 16:36:05 nakahiro Exp $
+# $Id: kb.cgi,v 5.42 1999-06-26 14:15:31 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -226,7 +232,15 @@ MAIN:
     }
     elsif ( $c eq '' )
     {
-	$c = 'v'; $BOARD = 'test';
+	if ( $SYS_F_B )
+	{
+	    $c = 'bl';
+	}
+	else
+	{
+	    $c = 'v';
+	    $BOARD = $BOARD || 'test';
+	}
     }
 
     if ( $BOARD )
