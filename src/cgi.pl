@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.7 1998-10-22 08:22:59 nakahiro Exp $
+# $Id: cgi.pl,v 2.8 1998-10-22 15:38:15 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -43,9 +43,6 @@ $AF_INET = 2; $SOCK_STREAM = 1;
 
 $CRLF = "\xd\xa";		# cannot use \r\n
 				# because of MacPerl's !ox#*& behavior...
-
-$HTTP_COOKIES_NEVER_EXPIRED = 1704067199;
-				# Thursday, 31-Dec-2029 23:59:59 GMT
 
 @HTML_TAGS = (
      # タグ名, 閉じ必須か否か, 使用可能なfeature
@@ -211,9 +208,19 @@ sub Header
 	foreach ( @cookieStr )
 	{
 	    print( "Set-Cookie: $_;" );
-	    if ( $cookieExpire )
+	    if ( $cookieExpire eq '' )
 	    {
-		print( " expires=", &GetHttpDateTimeFromUtc( ( $cookieExpire == -1 )? $HTTP_COOKIES_NEVER_EXPIRED : $^T+$cookieExpire ), ";\n" );
+		# continue
+	    }
+	    elsif ( $cookieExpire =~ /^\d+$/ )
+	    {
+		# called by UTC.
+		print( " expires=", &GetHttpDateTimeFromUtc( $cookieExpire ), ";\n" );
+	    }
+	    else
+	    {
+		# called by string.
+		print( " expires=$cookieExpire;\n" );
 	    }
 	}
     }
@@ -1294,7 +1301,7 @@ sub Init { $STR = ''; }
 
 sub Cache
 {
-    $STR .= shift;
+    for ( @_ ) { $STR .= $_; }
     &Flush if ( length( $STR ) > $BUFLIMIT );
 }
 
