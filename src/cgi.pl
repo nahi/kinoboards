@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.6 1996-08-26 20:02:46 nakahiro Exp $
+# $Id: cgi.pl,v 1.7 1996-09-13 13:53:00 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -68,10 +68,12 @@ sub decode {
 #
 sub cookie {
 
-    local(@QUERY);
+    local(@QUERY, $Tag, $Value);
     @QUERY = split(";\s*", $ENV{'HTTP_COOKIE'});
-    foreach (@QUERY) { eval "\$$_;"; }
-
+    foreach (@QUERY) {
+	($Tag, $Value) = split(/=/, $_, 2);
+	eval("\$$Tag = \"$Value\";");
+    }
 }
 
 
@@ -80,9 +82,10 @@ sub cookie {
 #
 sub SendMail {
 
-    # subject，メールのファイル名，引用記事(0なら無し)，宛先
+    # 送り主名前，送り主メイルアドレス，Subject，付加ヘッダ，
+    # 引用記事(0なら無し)，宛先リスト
     # 本文以外には日本語を入れないように!
-    local($FromName, $FromEmail, $Subject, $Message, @To) = @_;
+    local($FromName, $FromEmail, $Subject, $Extension, $Message, @To) = @_;
 
     local($ToFirst) = 1;
 
@@ -108,7 +111,13 @@ sub SendMail {
     print(MAIL "Errors-To: $_\n");
 
     # Subjectヘッダ
-    print(MAIL "Subject: $Subject\n\n");
+    print(MAIL "Subject: $Subject\n");
+
+    # 付加ヘッダ
+    print(MAIL $Extension) if ($Extension);
+
+    # ヘッダ終わり
+    print(MAIN "\n");
 
     # 本文
     &jcode'convert(*Message, 'jis');
