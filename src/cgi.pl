@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.61 1998-04-03 16:49:08 nakahiro Exp $
+# $Id: cgi.pl,v 1.62 1998-06-19 07:46:50 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -113,7 +113,8 @@
 #	$cgi'COOKIES{'foo'}に'bar'が格納されます．
 #	%cgi'COOKIESを破壊します．返り値はありません．
 #
-# &cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message, $labelTo, @to );
+# &cgi'sendMail( $fromName, $fromEmail, $subject, $extension, $message,
+#		$labelTo, @to );
 #	メイルを送信します．
 #		$fromName: 送り主の名前
 #		$fromEmail: 送り主のE-Mail addr.
@@ -129,7 +130,7 @@
 #	OSによっては，$AF_INETと$SOCK_STREAMの値も変更する必要があります．
 #	$AF_INET = 2, $SOCK_STREAM = 2	... SonOS 5.*(Solaris 2.*)
 #	$AF_INET = 2, $SOCK_STREAM = 1	... SunOS 4.*, HP-UX, AIX, Linux,
-#					    FreeBSD, WinNT, Mac
+#					    FreeBSD, IRIX, WinNT, Mac
 #
 # &cgi'SecureHtml( *string );
 #	*stringで指定された文字列のうち，指定した安全なタグのみを残し，
@@ -172,7 +173,8 @@ $SMTP_SERVER = 'localhost';
 # $SMTP_SERVER = '123.123.123.123';
 
 $AF_INET = 2; $SOCK_STREAM = 1;
-# AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, Linux, FreeBSD, WinNT, Mac
+# AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, Linux, FreeBSD,
+#					IRIX, WinNT, Mac
 # AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*(Solaris 2.*)
 
 @HTML_TAGS = (
@@ -322,10 +324,12 @@ sub Header {
     print( "Content-type: text/html\n" );
 
     # Header for HTTP Cookies.
-    printf( "Set-Cookie: $cookieStr; domain=%s; path=%s\n", $SERVER_NAME, $CGIDIR_NAME ) if ( $cookieFlag );
+    printf( "Set-Cookie: $cookieStr; domain=%s; path=%s\n", $SERVER_NAME,
+	$CGIDIR_NAME ) if ( $cookieFlag );
 
     # Header for Last-Modified.
-    printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || $^T )) if ( $utcFlag );
+    printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || $^T ))
+	if ( $utcFlag );
 
     # now, the end of Head Block.
     print( "\n" );
@@ -401,7 +405,8 @@ sub Cookie {
 #
 # - SYNOPSIS
 #	require( 'cgi.pl' );
-#	&cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message, @to );
+#	&cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message,
+#	    @to );
 #
 # - ARGS
 #	$fromName	from name
@@ -428,7 +433,8 @@ sub SendMail {
     return 0 if ( !( $fromEmail && $subject && $message && @to ));
 
     # creating header
-    $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension, *labelTo, *to );
+    $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension,
+	*labelTo, *to );
 
     # creating body
     $body = &smtpBody( *message );
@@ -462,7 +468,8 @@ sub SendMail {
 #
 # - SYNOPSIS
 #	require( 'cgi.pl' );
-#	&cgi'sendMail( $fromName, $fromEmail, $subject, $extension, $message, $labelTo, @to );
+#	&cgi'sendMail( $fromName, $fromEmail, $subject, $extension, $message,
+#		$labelTo, @to );
 #
 # - ARGS
 #	$fromName	from name
@@ -481,14 +488,16 @@ sub SendMail {
 #	1 if succeed, 0 if failed.
 #
 sub sendMail {
-    local( $fromName, $fromEmail, $subject, $extension, $message, $labelTo, @to ) = @_;
+    local( $fromName, $fromEmail, $subject, $extension, $message, $labelTo,
+	@to ) = @_;
 
     local( $header, $body );
 
     return 0 if ( !( $fromEmail && $subject && $message && @to ));
 
     # creating header
-    $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension, *labelTo, *to );
+    $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension,
+	*labelTo, *to );
 
     # creating body
     $body = &smtpBody( *message );
@@ -521,7 +530,8 @@ sub sendMail {
 #
 #
 # - SYNOPSIS
-#	&smtpHeader( $fromName, $fromEmail, $subject, $extension, $labelTo, @to );
+#	&smtpHeader( $fromName, $fromEmail, $subject, $extension, $labelTo,
+#	    @to );
 #
 # - ARGS
 #	same as &sendMail.
@@ -630,7 +640,8 @@ sub smtpInit {
 
     # preparing for smtp connection...
     $proto = ( getprotobyname( 'tcp' ))[2];
-    $port = ( $smtpPort =~ /^\d+$/ ) ? $smtpPort : ( getservbyname( $smtpPort, 'tcp' ))[2];
+    $port = ( $smtpPort =~ /^\d+$/ ) ? $smtpPort : ( getservbyname( $smtpPort,
+	'tcp' ))[2];
     if ( $SMTP_SERVER =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ ) {
 	$smtpAddr = pack( 'C4', $1, $2, $3, $4 );
     }
@@ -716,17 +727,24 @@ sub SecureHtml {
     while (( $tag, $need ) = each( %NEED )) {
 	$srcString = $string;
 	$string = '';
-	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~ m!<$tag()>!i) ) {
+	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~
+		m!<$tag()>!i) ) {
 	    $srcString = $';
 	    $string .= $`;
-	    $1 ? ( $feature = " $1" ) =~ s/\\"/__EscapedQuote\376__/go : ( $feature = '' );
+	    if ( $1 ) {
+		( $feature = " $1" ) =~ s/\\"/__EscapedQuote\376__/go;
+	    }
+	    else {
+		$feature = '';
+	    }
 	    if ( &SecureFeature( $tag, $FEATURE{ $tag }, $feature )) {
 		if ( $srcString =~ m!</$tag>!i ) {
 		    $srcString = $';
 		    $markuped = $`;
 		    $feature =~ s/&/__amp\376__/go;
 		    $feature =~ s/"/__quot\376__/go;
-		    $string .= "__$tag Open$feature\376__" . $markuped . "__$tag Close\376__";
+		    $string .= "__$tag Open$feature\376__" . $markuped .
+			"__$tag Close\376__";
 		}
 		elsif ( !$need ) {
 		    $feature =~ s/&/__amp\376__/go;
