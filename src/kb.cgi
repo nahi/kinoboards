@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.2 1999-09-24 14:44:09 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.3 1999-10-15 05:14:15 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -56,12 +56,12 @@ $PC = 0;	# for UNIX / WinNT
 push( @INC, '.' );
 $[ = 0;				# zero origined
 $| = 1;				# pipe flushed
-$COLSEP = "\376";
+$COLSEP = "\377";
 
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.7';		# release
+$KB_RELEASE = '6.8';		# release
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
@@ -93,7 +93,7 @@ if ( !$KBDIR_PATH || !chdir( $KBDIR_PATH ))
 {
     print "Content-Type: text/plain; charset=EUC-JP\n\n";
     print "エラー．管理者様へ:\n";
-    print "kb.cgiの先頭部分に置かれている\$KBDIR_PATHが，\n";
+    print "$0の先頭部分に置かれている\$KBDIR_PATHが，\n";
     print "正しく設定されていません\n";
     print "（R6.4以降，この変数の設定が必須となりました）．\n";
     print "設定してから再度試してみてください．";
@@ -370,7 +370,7 @@ MAIN:
 	require( &GetPath( $UI_DIR, 'SearchArticle.pl' ));
 	last;
     }
-    elsif ( $c eq 'i' )
+    elsif ( $SYS_ICON && ( $c eq 'i' ))
     {
 	### ShowIcon - アイコン表示画面
 	require( &GetPath( $UI_DIR, 'ShowIcon.pl' ));
@@ -1017,7 +1017,7 @@ sub ReplyArticles
     else
     {
 	# 反応記事無し
-	&cgiprint'Cache( "<ul>\n<li>$H_REPLYはありません\n</ul>\n" );
+	&cgiprint'Cache( "<ul>\n<li>現在，この$H_MESGへの$H_REPLYはありません\n</ul>\n" );
     }
 
     &cgiprint'Cache( "</p>\n" );
@@ -1510,13 +1510,13 @@ __EOF__
 	$select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' ) if $SYS_F_B;
 	if ( $BOARD )
 	{
-	    $select .= sprintf( "<option %s value=\"v\">$H_SUBJECT一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'v' )? 'selected' : '' );
-	    $select .= sprintf( "<option %s value=\"r\">$H_SUBJECT一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'r' )? 'selected' : '' ) if $SYS_F_R;
-	    $select .= sprintf( "<option %s value=\"vt\">$H_MESG一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'vt' )? 'selected' : '' );
-	    $select .= sprintf( "<option %s value=\"l\">$H_MESG一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'l' )? 'selected' : '' ) if $SYS_F_L;
+	    $select .= sprintf( "<option %s value=\"v\">最新$H_SUBJECT一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'v' )? 'selected' : '' );
+	    $select .= sprintf( "<option %s value=\"r\">最新$H_SUBJECT一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'r' )? 'selected' : '' ) if $SYS_F_R;
+	    $select .= sprintf( "<option %s value=\"vt\">最新$H_MESG一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'vt' )? 'selected' : '' );
+	    $select .= sprintf( "<option %s value=\"l\">最新$H_MESG一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'l' )? 'selected' : '' ) if $SYS_F_L;
 	    $select .= sprintf( "<option %s value=\"s\">$H_MESGの検索\n", ( $cgi'TAGS{'c'} eq 's' )? 'selected' : '' ) if $SYS_F_S;
 	    $select .= sprintf( "<option %s value=\"n\">新規書き込み\n", ( $cgi'TAGS{'c'} eq 'n' )? 'selected' : '' ) if $SYS_F_N;
-	    $select .= sprintf( "<option %s value=\"i\">使えるアイコン一覧\n", ( $cgi'TAGS{'c'} eq 'i' )? 'selected' : '' );
+	    $select .= sprintf( "<option %s value=\"i\">使える$H_ICON一覧\n", ( $cgi'TAGS{'c'} eq 'i' )? 'selected' : '' ) if $SYS_ICON;
 	}
 	$select .= "</select>\n // 表示件数: <input name=\"num\" type=\"text\" size=\"3\" value=\"" . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . "\"> ";
 	local( %tags ) = ( 'b', $BOARD );
@@ -2010,7 +2010,7 @@ sub CheckArticle
     &CheckEmail( *eMail );
     &CheckURL( *url );
     &CheckSubject( *subject );
-    &CheckIcon( *icon, $board );
+    &CheckIcon( *icon, $board ) if $SYS_ICON;
 
     # 本文の空チェック．
     &Fatal( 2, '' ) if ( $article eq '' );
@@ -2153,7 +2153,7 @@ sub secureArticle
 	&PlainArticleToPreFormatted( *article );
 	# <URL:>の処理
 	$article = &ArticleEncode( $article );
-	$article =~ s/<URL:([^>][^>]*)>/$1/gi;
+	$article =~ s/<URL:([^>][^>]*)>/&lt;URL:$1&gt;/gi;
     }
     elsif ( $textType eq $H_TTLABEL[1] )
     {
@@ -2599,43 +2599,6 @@ sub GetUtcFromYYYY_MM_DD
 
 
 ###
-## DQEncode/DQDecode - 特殊文字のEncodeとDecode
-#
-# - SYNOPSIS
-#	DQEncode($Str);
-#	DQDecode($Str);
-#
-# - ARGS
-#	$Str	Encode/Decodeする文字列
-#
-# - DESCRIPTION
-#	HTMLの特殊文字(", >, <, &)をEncode/Decodeする．
-#
-# - RETURN
-#	Encode/Decodeした文字列
-#
-sub DQEncode
-{
-    local( $Str ) = @_;
-    $Str =~ s/\"/__dq__/go;
-    $Str =~ s/\>/__gt__/go;
-    $Str =~ s/\</__lt__/go;
-    $Str =~ s/\&/__amp__/go;
-    $Str;
-}
-
-sub DQDecode
-{
-    local( $Str ) = @_;
-    $Str =~ s/__dq__/\"/go;
-    $Str =~ s/__gt__/\>/go;
-    $Str =~ s/__lt__/\</go;
-    $Str =~ s/__amp__/\&/go;
-    $Str;
-}
-
-
-###
 ## HTMLEncode/HTMLDecode - 特殊文字のHTML用EncodeとDecode
 #
 # - SYNOPSIS
@@ -2784,7 +2747,7 @@ sub PlainArticleToPreFormatted
     $Article =~ s/\n*$//o;
     $Article =~ s/<URL:([^>][^>]*)>/__URL__$COLSEP$1$COLSEP/gi;
     $Article = &HTMLEncode( $Article );	# no tags are allowed.
-    $Article =~ s/__URL__$COLSEP([^$COLSEP][^$COLSEP]*)$COLSEP/<URL:$1>/gi;
+    $Article =~ s/__URL__$COLSEP([^$COLSEP][^$COLSEP]*)$COLSEP/"<URL:" . &HTMLDecode( $1 ) . ">"/gie;
     $Article = "<pre>\n" . $Article . "</pre>";
 }
 
