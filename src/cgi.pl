@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.23 1997-11-26 14:23:32 nakahiro Rel $
+# $Id: cgi.pl,v 1.24 1997-12-12 06:22:42 nakahiro Rel $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -72,7 +72,7 @@
 #
 # &cgi'lock( $file );
 #	$fileで指定されたファイル名を使い，perl programを排他ロックします．
-#	$mail'ARCHの値に応じ，用いるロック手法が異なります．
+#	$ARCHの値に応じ，用いるロック手法が異なります．
 #		UNIX	シンボリックリンクによるロック
 #		WinNT	flockによるロック
 #		Win95	flockによるロック
@@ -122,16 +122,9 @@
 #		$extension: メイルのextension header文字列
 #		$message: 本文である文字列
 #		@to: 宛先のE-Mail addr.のリスト
-#	$ARCHの値に応じ，用いるメイル送信手法が異なります．
-#		UNIX	$MAIL2で指定したsendmailコマンド
-#			(例えば'/usr/lib/sendmail -oi -t')を使って送信します．
-#		WinNT	UNIX以外ではメイル送信はできません．$MAIL2で
-#		Win95	指定したファイルに書き出します．
-#		Mac	perl5専用のcgi.pl.libnetを使い，
-#			MacPerl5とlibnet for Macの組み合わせで，
-#			メイル送信を行います．$SERVER_NAMEにCGIを起動した
-#			ホスト名を，$MAIL2にメイルサーバのホスト名を
-#			指定してください．
+#	$SMTP_SERVERにサーバのホスト名，
+#	もしくはIPアドレスを指定しておいてください．
+#	OSによっては，$AF_INETと$SOCK_STREAMの値も変更する必要があります．
 #	送信が無事行えれば1を，なんらかの理由で行えなければ0を返します．
 #
 # &cgi'SecureHtml( *string );
@@ -166,11 +159,23 @@ require('jcode.pl');
 package cgi;
 
 
+$SMTP_SERVER = 'localhost';
+# $SMTP_SERVER = 'foo.bar.baz.co.jp';
+# or
+# $SMTP_SERVER = '123.123.123.123';
+
+$AF_INET = 2; $SOCK_STREAM = 1;
+# AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, Linux, FreeBSD
+# AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*
+
 $ARCH = 'UNIX';
-$MAIL2 = '/usr/lib/sendmail -oi -t';
+# ARCH = 'WinNT' for WinNT ( flock locking )
+# ARCH = 'Win95' for Win95 ( flock locking )
+# ARCH = 'Mac' for Mac ( without locking )
+
 $JPOUT_SCHEME = 'jis';
 $WAITPID_BLOCK = 0;	# OS dependent.
-
+$SMTP_PORT = 'smtp';
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
 $REMOTE_HOST = $ENV{'REMOTE_HOST'};
@@ -332,131 +337,140 @@ sub Cookie {
 
 
 ###
-## メール送信
+## SendMail - sending mail
+#
+#
+# - SYNOPSIS
+#	require( 'cgi.pl' );
+#	&cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message,
+#		@to );
+#
+# - ARGS
+#	$fromName	from name
+#	$fromEmail	from e-mail addr.
+#	$subject	subject
+#	$extension	extension header
+#	$message	message
+#	@to		list of recipients
+#
+# - DESCRIPTION
+#	send a mail with smtp.
+#
+# - RETURN
+#	1 if succeed, 0 if failed.
 #
 sub SendMail {
-
-    return( &SendMailSendmail( @_ )) if ( $ARCH eq 'UNIX' );
-    return( &SendMailFile( @_ )) if ( $ARCH eq 'WinNT' );
-    return( &SendMailFile( @_ )) if ( $ARCH eq 'Win95' );
-    return( &SendMailFile( @_ )) if ( $ARCH eq 'Mac' );
-
-}
-
-
-###
-## メール送信(UNIX用)
-#
-# 本文以外には日本語を入れないように!
-sub SendMailSendmail {
     local( $fromName, $fromEmail, $subject, $extension, $message, @to ) = @_;
-    local( $pid );
-    local( $toFirst ) = 1;
     local( $from ) = "$fromName <$fromEmail>";
+    local( $sockAddr ) = 'S n a4 x8';
+    local( $port, $smtpAddr, $sock, $oldStream, $back, $toFirst );
 
-    # 安全のため，forkする
-    unless ( $pid = fork() ) {
+    return( 0 ) if ( !( $fromEmail && $subject && $message && @to ));
 
-	open( MAIL, "| $MAIL2" ) || &Fatal( 2 );
-
-	# Toヘッダ
-	foreach ( @to ) {
-	    if ( $toFirst ) {
-		print( MAIL "To: $_" );
-		$toFirst = 0;
-	    } else {
-		print( MAIL ",\n\t$_" );
-	    }
-
-	}
-	print( MAIL "\n" );
-
-	# Fromヘッダ，Errors-Toヘッダ
-	print( MAIL "From: $from\n" );
-	print( MAIL "Errors-To: $from\n" );
-
-	# Subjectヘッダ
-	print( MAIL "Subject: $subject\n" );
-
-	# 付加ヘッダ
-	if ( $extension ) {
-	    &jcode'convert( *extension, 'jis' );
-	    print( MAIL $extension );
-	}
-
-	# ヘッダ終わり
-	print( MAIN "\n" );
-
-	# 本文
-	&jcode'convert( *message, 'jis' );
-	print( MAIL "$message\n" );
-
-	# 送信する
-	close( MAIL );
-	exit( 0 );
-
+    # preparing for smtp connection...
+    $proto = (getprotobyname( 'tcp' ))[2];
+    $port = ( $SMTP_PORT =~ /^\d+$/ ) ? $SMTP_PORT : (getservbyname( $SMTP_PORT, 'tcp' ))[2];
+    if ( $SMTP_SERVER =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ ) {
+	$smtpAddr = pack( 'C4', $1, $2, $3, $4 );
+    } else {
+	$smtpAddr = (gethostbyname( $SMTP_SERVER ))[4];
     }
-    waitpid( $pid, $WAITPID_BLOCK );
+    return( 0 ) if ( !$smtpAddr );
 
-    # 送信した
-    !$?;
+    $sock = pack( $sockAddr, $AF_INET, $port, $smtpAddr );
 
-}
+    # create connection...
+    socket( S, $AF_INET, $SOCK_STREAM, $proto ) || return( 0 );
+    connect( S, $sock ) || return( 0 );
+    $oldStream = select( S ); $| = 1; select( $oldStream );
+    $back = <S>;
+    if ( !&checkSmtpResult( $back )) {
+	close( S );
+	return( 0 );
+    }
 
+    # helo!
+    print( S "helo localhost\r\n" );
+    $back = <S>;
+    if ( !&checkSmtpResult( $back )) {
+	close( S );
+	return( 0 );
+    }
 
-###
-## メール送信(Mac, Win用)
-#
-# 本文以外には日本語を入れないように!
-sub SendMailFile {
-    local( $fromName, $fromEmail, $subject, $extension, $message, @to) = @_;
-    local( $toFirst ) = 1;
-    local( $from ) = "$fromName <$fromEmail>";
+    # from
+    print( S "mail from: <$fromEmail>\r\n" );
+    $back = <S>;
+    if ( !&checkSmtpResult( $back )) {
+	close( S );
+	return( 0 );
+    }
 
-    # メール用ファイルを開く
-    &Fatal( 2 ) if ( $MAIL2 eq '' );
-    open( MAIL, ">> $MAIL2" ) || &Fatal( 2 );
+    # rcpt to
+    foreach ( @to ) {
+	print( S "rcpt to: <$_>\r\n" );
+	$back = <S>;
+	if ( !&checkSmtpResult( $back )) {
+	    close( S );
+	    return( 0 );
+	}
+    }
 
-    # Toヘッダ
+    # data block
+    print( S "data\r\n" );
+    $back = <S>;
+    if ( !&checkSmtpResult( $back )) {
+	close( S );
+	return( 0 );
+    }
+
+    # mail header
+    $toFirst = 1;
     foreach ( @to ) {
 	if ( $toFirst ) {
-	    print( MAIL "To: $_" );
+	    print( S "To: $_" );
 	    $toFirst = 0;
 	} else {
-	    print( MAIL ",\n\t$_" );
+	    print( S ",\r\n\t$_" );
 	}
     }
-    print(MAIL "\n");
-    
-    # Fromヘッダ，Errors-Toヘッダ
-    print( MAIL "From: $from\n" );
-    print( MAIL "Errors-To: $from\n" );
-
-    # Subjectヘッダ
-    print( MAIL "Subject: $subject\n" );
-
-    # 付加ヘッダ
+    print( S "\r\n" );
+    print( S "From: $from\r\n" );
+    print( S "Reply-To: $from\r\n" );# block replying to all rcps...
+    print( S "Errors-To: $from\r\n" );
+    print( S "Subject: $subject\r\n" );
     if ( $extension ) {
-	&jcode'convert( *extension, 'jis' );
-	print( MAIL $extension );
+	foreach ( split( /\n/, $extension )) {
+	    print( S "$_\r\n" );
+	}
+    }
+    print( S "\r\n" );
+
+    # mail body
+    &jcode'convert( *message, 'jis' );
+    foreach ( split( /\n/, $message )) {
+	s/^\.$/\.\./o;		# `.' is the end of the message.
+	print( S "$_\r\n" );
     }
 
-    # ヘッダ終わり
-    print( MAIN "\n" );
+    # end of the body
+    print( S ".\r\n" );		# `.' is the e... yes, you know. :)
+    $back = <S>;
+    if ( !&checkSmtpResult( $back )) {
+	close( S );
+	return( 0 );
+    }
 
-    # 本文
-    &jcode'convert( *message, 'jis' );
-    print( MAIL "$message\n" );
+    # quit
+    print( S "quit\r\n" );
+    $back = <S>;
 
-    # 区切り線
-    print( MAIL "-------------------------------------------------------------------------------\n" );
-
-    # 送信する
-    close( MAIL );
-
-    # 送信した
+    # success!
     1;
+}
 
+sub checkSmtpResult {
+    local( $str ) = @_;
+    $str !~ /^[45]/o;
 }
 
 
@@ -628,7 +642,7 @@ sub Fatal {
 
     } elsif ( $errno == 2 ) {
 
-	$errString = "管理者様へ: メイルを送信することができません．\$MAIL2の値(現在は「$MAIL2」)の設定がおかしくありませんか?";
+	$errString = "管理者様へ: メイルを送信することができません．\$SMTP_SERVERもしくは\$SMTP_PORTの値(現在は「$SMTP_SERVER」および「$SMTP_PORT」)の設定がおかしくありませんか?";
 
     } else {
 
