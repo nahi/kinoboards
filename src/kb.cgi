@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.35 1999-06-18 14:12:16 nakahiro Exp $
+# $Id: kb.cgi,v 5.36 1999-06-19 04:18:32 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -667,7 +667,8 @@ sub ViewOriginalArticle
 
     local( $msg );
 
-    $msg .= "<p><a name=\"$Id\"> </a>\n";
+    $msg .= "<p><a name=\"a$Id\"> </a>\n";
+    # $msg .= "<p id=\"a$Id\">"; # NC/4.5 does not follows this style... (-_-
 
     if ( $CommandFlag && $SYS_COMMAND )
     {
@@ -1553,7 +1554,7 @@ sub GetFormattedTitle
     }
 
     $G_TITLE_STR .= ' ' . &TagMsgImg( $icon ) . ' ' .
-	&TagA( ( $flag&2 )? "$cgi'REQUEST_URI#$id" :
+	&TagA( ( $flag&2 )? "$cgi'REQUEST_URI#a$id" :
 	"$PROGRAM?b=$BOARD&c=e&id=$id",	$title || $id );
 
     if ( $SYS_F_T && $aids )
