@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 5.1 1997-07-17 11:35:22 nakahiro Exp $
+# $Id: kb.cgi,v 5.2 1997-07-23 14:52:11 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -194,97 +194,97 @@ exit(0);
 ######################################################################
 # ユーザインタフェイスインプリメンテーション(個別)
 #
-# GUIディレクトリに収められているGUIの実装モジュールをrequireする．
+# UIディレクトリに収められているUIの実装モジュールをrequireする．
 # 不要なプログラムをコンパイルしないようにするため．
-# 各関数のリファレンスは，GUIディレクトリ内の各ファイルを参照のこと．
+# 各関数のリファレンスは，UIディレクトリ内の各ファイルを参照のこと．
 
 ### BoardList - 掲示板一覧の表示
-sub BoardList { require(&GetPath('GUI', 'BoardList.pl')); }
+sub BoardList { require(&GetPath('UI', 'BoardList.pl')); }
 
 ### Entry - 書き込み画面の表示
 sub Entry {
     ($gVarQuoteFlag) = @_;
-    require(&GetPath('GUI', 'Entry.pl'));
+    require(&GetPath('UI', 'Entry.pl'));
     undef($gVarQuoteFlag);
 }
 
 ### Preview - プレビュー画面の表示
-sub Preview { require(&GetPath('GUI', 'Preview.pl')); }
+sub Preview { require(&GetPath('UI', 'Preview.pl')); }
 
 ### Thanks - 登録後画面の表示
-sub Thanks { require(&GetPath('GUI', 'Thanks.pl')); }
+sub Thanks { require(&GetPath('UI', 'Thanks.pl')); }
 
 ### ShowArticle - 単一記事の表示
-sub ShowArticle { require(&GetPath('GUI', 'ShowArticle.pl')); }
+sub ShowArticle { require(&GetPath('UI', 'ShowArticle.pl')); }
 
 ### ThreadArticle - フォロー記事を全て表示．
-sub ThreadArticle { require(&GetPath('GUI', 'ThreadArticle.pl')); }
+sub ThreadArticle { require(&GetPath('UI', 'ThreadArticle.pl')); }
 
 ### ShowIcon - アイコン表示画面
-sub ShowIcon { require(&GetPath('GUI', 'ShowIcon.pl')); }
+sub ShowIcon { require(&GetPath('UI', 'ShowIcon.pl')); }
 
 ### SortArticle - 日付順にソート
-sub SortArticle { require(&GetPath('GUI', 'SortArticle.pl')); }
+sub SortArticle { require(&GetPath('UI', 'SortArticle.pl')); }
 
 ### ViewTitle - スレッド別表示
 sub ViewTitle {
     ($gVarComType) = @_;
-    require(&GetPath('GUI', 'ViewTitle.pl'));
+    require(&GetPath('UI', 'ViewTitle.pl'));
     undef($gVarComType);
 }
 
 ### NewArticle - 新しい記事をまとめて表示
-sub NewArticle { require(&GetPath('GUI', 'NewArticle.pl')); }
+sub NewArticle { require(&GetPath('UI', 'NewArticle.pl')); }
 
 ### SearchArticle - 記事の検索(表示画面の作成)
-sub SearchArticle { require(&GetPath('GUI', 'SearchArticle.pl')); }
+sub SearchArticle { require(&GetPath('UI', 'SearchArticle.pl')); }
 
 ### AliasNew - エイリアスの登録と変更画面の表示
-sub AliasNew { require(&GetPath('GUI', 'AliasNew.pl')); }
+sub AliasNew { require(&GetPath('UI', 'AliasNew.pl')); }
 
 ### AliasMod - ユーザエイリアスの登録/変更
-sub AliasMod { require(&GetPath('GUI', 'AliasMod.pl')); }
+sub AliasMod { require(&GetPath('UI', 'AliasMod.pl')); }
 
 ### AliasDel - ユーザエイリアスの削除
-sub AliasDel { require(&GetPath('GUI', 'AliasDel.pl')); }
+sub AliasDel { require(&GetPath('UI', 'AliasDel.pl')); }
 
 ### AliasShow - ユーザエイリアス参照画面の表示
-sub AliasShow { require(&GetPath('GUI', 'AliasShow.pl')); }
+sub AliasShow { require(&GetPath('UI', 'AliasShow.pl')); }
 
 ### DeletePreview - 削除記事の確認
-sub DeletePreview { require(&GetPath('GUI', 'DeletePreview.pl')); }
+sub DeletePreview { require(&GetPath('UI', 'DeletePreview.pl')); }
 
 ### DeleteExec - 記事の削除
 sub DeleteExec {
     ($gVarThreadFlag) = @_;
-    require(&GetPath('GUI', 'DeleteExec.pl'));
+    require(&GetPath('UI', 'DeleteExec.pl'));
     undef($gVarThreadFlag);
 }
 
 ### ArriveMailEntry - メイル自動配信先の指定
-sub ArriveMailEntry { require(&GetPath('GUI', 'ArriveMailEntry.pl')); }
+sub ArriveMailEntry { require(&GetPath('UI', 'ArriveMailEntry.pl')); }
 
 ### ArriveMailExec - メイル自動配信先の設定
-sub ArriveMailExec { require(&GetPath('GUI', 'ArriveMailExec.pl')); }
+sub ArriveMailExec { require(&GetPath('UI', 'ArriveMailExec.pl')); }
 
 ### Fatal - エラー表示
 sub Fatal {
     ($gVarFatalNo, $gVarFatalInfo) = @_;
-    require(&GetPath('GUI', 'Fatal.pl'));
+    require(&GetPath('UI', 'Fatal.pl'));
     undef($gVarFatalNo, $gVarFatalInfo);
 }
 
 ### ArriveMail - 記事が到着したことをメイル
 sub ArriveMail {
     ($gName, $gSubject, $gId, @gTo) = @_;
-    require(&GetPath('GUI', 'ArriveMail.pl'));
+    require(&GetPath('UI', 'ArriveMail.pl'));
     undef($gName, $gSubject, $gId, @gTo);
 }
 
 ### FollowMail - 反応があったことをメイル
 sub FollowMail {
     ($gName, $gDate, $gSubject, $gId, $gFname, $gFsubject, $gFid, @gTo) = @_;
-    require(&GetPath('GUI', 'FollowMail.pl'));
+    require(&GetPath('UI', 'FollowMail.pl'));
     undef($gName, $gDate, $gSubject, $gId, $gFname, $gFsubject, $gFid, @gTo);
 }
 
@@ -1118,7 +1118,7 @@ sub AliasCheck {
 # - DESCRIPTION
 #	エイリアスの文字列チェックを行なう．
 #	不正な文字列だったらエラー表示ルーチンへ．
-#	(アプリケーション/GUIを分離したほうがいいかな?)
+#	(アプリケーション/UIを分離したほうがいいかな?)
 #
 # - RETURN
 #	なし
@@ -1150,7 +1150,7 @@ sub CheckAlias {
 # - DESCRIPTION
 #	Subjectの文字列チェックを行なう．
 #	不正な文字列だったらエラー表示ルーチンへ．
-#	(アプリケーション/GUIを分離したほうがいいかな?)
+#	(アプリケーション/UIを分離したほうがいいかな?)
 #
 # - RETURN
 #	なし
@@ -1179,7 +1179,7 @@ sub CheckSubject {
 # - DESCRIPTION
 #	投稿者名の文字列チェックを行なう．
 #	不正な文字列だったらエラー表示ルーチンへ．
-#	(アプリケーション/GUIを分離したほうがいいかな?)
+#	(アプリケーション/UIを分離したほうがいいかな?)
 #
 # - RETURN
 #	なし
@@ -1208,7 +1208,7 @@ sub CheckName {
 # - DESCRIPTION
 #	E-Mail addr.の文字列チェックを行なう．
 #	不正な文字列だったらエラー表示ルーチンへ．
-#	(アプリケーション/GUIを分離したほうがいいかな?)
+#	(アプリケーション/UIを分離したほうがいいかな?)
 #
 # - RETURN
 #	なし
@@ -1245,7 +1245,7 @@ sub CheckEmail {
 #	URLの文字列チェックを行なう．ただし空チェックだけ．
 #	中身のチェックにはIsUrlを呼び出す．
 #	不正な文字列だったらエラー表示ルーチンへ．
-#	(アプリケーション/GUIを分離したほうがいいかな?)
+#	(アプリケーション/UIを分離したほうがいいかな?)
 #
 # - RETURN
 #	なし
