@@ -16,7 +16,7 @@
 #
 Preview: {
 
-    local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $rFid);
+    local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $rFid, $eArticle, $eSubject);
 
     # lock system
     local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
@@ -39,7 +39,10 @@ Preview: {
     if ($Id ne '') { ($rFid) = &GetArticlesInfo($Id); } else { $rFid = ''; }
 
     # 入力された記事情報のチェック
-    $Article = &CheckArticle($BOARD, *Name, *Email, *Url, *Subject, *Icon, $Article);
+    &CheckArticle($BOARD, *Name, *Email, *Url, *Subject, *Icon, *Article);
+
+    $eArticle = &DQEncode( $Article );
+    $eSubject = &DQEncode( $Subject );
 
     # 確認画面の作成
     &MsgHeader('Message preview', "書き込みの内容を確認してください");
@@ -55,8 +58,8 @@ Preview: {
 <input name="mail"     type="hidden" value="$Email">
 <input name="url"      type="hidden" value="$Url">
 <input name="icon"     type="hidden" value="$Icon">
-<input name="subject"  type="hidden" value="$Subject">
-<input name="article"  type="hidden" value="$Article">
+<input name="subject"  type="hidden" value="$eSubject">
+<input name="article"  type="hidden" value="$eArticle">
 <input name="fmail"    type="hidden" value="$Fmail">
 <input name="s"        type="hidden" value="$Supersede">
 
@@ -122,8 +125,8 @@ __EOF__
     }
 
     # 記事
-    $Article = &DQDecode($Article);
     $Article = &ArticleEncode($Article);
+    &cgi'SecureHtml(*Article);
     &cgiprint'Cache("$Article\n");
 
     &MsgFooter;

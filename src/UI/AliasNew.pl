@@ -29,7 +29,8 @@ AliasNew: {
 $H_ALIAS: <input name="alias" type="text" value="#" size="$NAME_LENGTH"><br>
 $H_FROM: <input name="name" type="text" size="$NAME_LENGTH"><br>
 $H_MAIL: <input name="email" type="text" size="$MAIL_LENGTH"><br>
-$H_URL_S: <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
+$H_URL_S:<br>
+<input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
 $H_ALIASの新規登録/登録内容の変更を行ないます．
 エイリアスは(あなた以外の!)誰にでも書き換えることができます．
 登録内容が変更されていないかどうか，

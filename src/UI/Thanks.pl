@@ -37,6 +37,10 @@ Thanks: {
     $Article = $cgi'TAGS{'article'};
     $Fmail = $cgi'TAGS{'fmail'};
 
+    # Preview経由でEncodeされているかもしれない
+    $Subject = &DQDecode( $Subject );
+    $Article = &DQDecode( $Article );
+
     if ($Supersede && $SYS_F_D) {
 
 	# 訂正する 

@@ -24,6 +24,33 @@
 ViewTitle: {
     local($ComType) = $gVarComType;
     local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id, $Fid, $IdNum, $Id, $AddNum);
+    local( $vCom, $vStr );
+
+    if ( $ComType == 0 ) {
+	$vCom = 'v';
+	$vStr = '';
+    }
+    elsif ( $ComType == 1 ) {
+	$vCom = 'vm';
+	$vStr = '';
+    }
+    elsif ( $ComType == 2 ) {
+	$vCom = 'ct';
+	$vStr = "&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'} . "&rtid=" . $cgi'TAGS{'rtid'};
+    }
+    elsif ( $ComType == 3 ) {
+	$vCom = 'vm';
+	$vStr = '';
+    }
+    elsif ( $ComType == 4 ) {
+	$vCom = 'mvt';
+	$vStr = "&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'} . "&rtid=" . $cgi'TAGS{'rtid'};
+    }
+    elsif ( $ComType == 5 ) {
+	$vCom = 'vm';
+	$vStr = '';
+    }
+
     %ADDFLAG = ();		# it's static.
 
     # lock system
@@ -115,9 +142,9 @@ __EOF__
     &cgiprint'Cache("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
     } else {
-	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
     }
 
     &cgiprint'Cache("<p><ul>\n");
@@ -175,9 +202,9 @@ __EOF__
     &cgiprint'Cache("</ul></p>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
     } else {
-	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
     }
 
     &MsgFooter;

@@ -147,7 +147,8 @@ __EOF__
 <p>
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
 $H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
-$H_URL_S: <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
+$H_URL_S:<br>
+<input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
 </p>
 __EOF__
 
@@ -158,7 +159,8 @@ __EOF__
 <p>
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
 $H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
-$H_URL_S: <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH">
+$H_URL_S:<br>
+<input name="url" type="text" value="$DefUrl" size="$URL_LENGTH">
 </p>
 __EOF__
 

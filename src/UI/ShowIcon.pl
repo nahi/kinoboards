@@ -36,7 +36,7 @@ ShowIcon: {
 </p><p>
 __EOF__
 	&cgiprint'Cache( "<li>" . &TagComImg( $ICON_BLIST, $H_BACKBOARD, 2 ) . "\n" );
-	&cgiprint'Cache( "<li>" . &TagComImg( $ICON_TLIST, $H_BACKTITLE, 2 ) . "\n" );
+	&cgiprint'Cache( "<li>" . &TagComImg( $ICON_TLIST, $H_BACKTITLEREPLY, 2 ) . "\n" );
 	&cgiprint'Cache( "<li>" . &TagComImg( $ICON_PREV, $H_PREVARTICLE, 2 ) . "\n" );
 	&cgiprint'Cache( "<li>" . &TagComImg( $ICON_NEXT, $H_NEXTARTICLE, 2 ) . "\n" );
 	&cgiprint'Cache( "<li>" . &TagComImg( $ICON_THREAD, $H_READREPLYALL, 2 ) . "\n" );
