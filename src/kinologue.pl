@@ -50,7 +50,7 @@ $SEV_ANY	= 6;		# another severity.
 @COLOR = ( '#000000', '#C0C0C0', '#808080', '#800000', '#FF0000', '#800080', '#FF00FF', '#008000', '#00FF00', '#808000', '#FFFF00', '#000080', '#0000FF', '#008080', '#00FFFF' );
 
 # require jcode.pl if needed.
-if ( $JAPANESE_CODE ) { require( 'jcode.pl' ); }
+require( 'jcode.pl' ) if $JAPANESE_CODE;
 
 
 ######################################################################
@@ -88,7 +88,8 @@ if ( $JAPANESE_CODE ) { require( 'jcode.pl' ); }
 #	log no message, but returns 1.
 #
 $NO_SHIFT = 0;
-sub KlgLog {
+sub KlgLog
+{
     local( $severity, $msg, $progname, $filename, $format ) = @_;
     if ( $severity < $SEV_THRESHOLD ) { return( 1 ); }
 
@@ -97,30 +98,42 @@ sub KlgLog {
 
     if ( $format eq '' ) { $format = $DEFAULT_FILEFORMAT; }
 
-    if ( $SHIFT_AGE && !$NO_SHIFT && (( -s "$filename" ) > $SHIFT_SIZE )) {
+    if ( $SHIFT_AGE && !$NO_SHIFT && (( -s "$filename" ) > $SHIFT_SIZE ))
+    {
 	$NO_SHIFT = 1;
-	&KlgLog( $SEV_INFO, "started logfile shifting.", "kinologue", $filename, $format );
-	if ( &__KlgShiftLog( $filename )) {
-	    &KlgLog( $SEV_INFO, "finished logfile shifting. new logfile opened.", "kinologue", $filename, $format );
-	} else {
-	    &KlgLog( $SEV_ERROR, "shifting logfile failed.", "kinologue", $filename, $format );
+	&KlgLog( $SEV_INFO, "started logfile shifting.", "kinologue",
+	    $filename, $format );
+	if ( &__KlgShiftLog( $filename ))
+	{
+	    &KlgLog( $SEV_INFO,
+		"finished logfile shifting. new logfile opened.", "kinologue",
+		$filename, $format );
+	}
+	else
+	{
+	    &KlgLog( $SEV_ERROR, "shifting logfile failed.", "kinologue",
+		$filename, $format );
 	}
 	$NO_SHIFT = 0;
     }
 
-    if (( $format == $FF_HTML ) && ( !-e "$filename" )) {
-	&__KlgLogHtmlHeader( $filename );
-    }
+    &__KlgLogHtmlHeader( $filename ) if (( $format == $FF_HTML ) &&
+	( !-e "$filename" ));
 
     &__KlgMsgFormat( *msg );
     if ( !$progname ) { $progname = $DEFAULT_PROGNAME; }
     if ( !$filename ) {	$filename = $DEFAULT_LOGFILE; }
 
-    if ( $format == $FF_PLAIN ) {
+    if ( $format == $FF_PLAIN )
+    {
 	$logStr = &__KlgLogPlain( $severity, $timeStr, $$, $progname, *msg );
-    } elsif ( $format == $FF_HTML ) {
+    }
+    elsif ( $format == $FF_HTML )
+    {
 	$logStr = &__KlgLogHtml( $severity, $timeStr, $$, $progname, *msg );
-    } else {
+    }
+    else
+    {
 	# unknown format.
 	return( 0 );
     }
@@ -152,11 +165,13 @@ sub KlgLog {
 # - RETURN
 #	formatted string.
 #
-sub __KlgLogPlain {
+sub __KlgLogPlain
+{
     local( $severity, $time, $pid, $progname, *msg ) = @_;
     local( $sevStr ) = &__KlgSevLabelOfSevId( $severity );
     local( $sevChar ) = substr( $sevStr, 0, 1 );
-    sprintf( "%s, [%s \#%d(%s)] %5s -- %s\n", $sevChar, $time, $pid, $progname, $sevStr, $msg );
+    sprintf( "%s, [%s \#%d(%s)] %5s -- %s\n", $sevChar, $time, $pid, $progname,
+	$sevStr, $msg );
 }
 
 
@@ -179,23 +194,25 @@ sub __KlgLogPlain {
 # - RETURN
 #	formatted string.
 #
-sub __KlgLogHtml {
+sub __KlgLogHtml
+{
     local( $severity, $time, $pid, $progname, *msg ) = @_;
-    local( $sevCol, $timeCol, $pidCol, $progCol, $msgCol, $mday, $progTmp, $progC );
+
     local( $sevStr ) = &__KlgSevLabelOfSevId( $severity );
     local( $sevChar ) = substr( $sevStr, 0, 1 );
 
-    $time =~ m/^\w+ (\d+) .*$/o; $mday = $1;
+    $time =~ m/^\w+ (\d+) .*$/o;
+    local( $mday ) = $1;
+
+    local( $progTmp, $progC );
     ( $progTmp = $progname ) =~ s/(.)/( $progC += unpack( "C", $1 ))/ge;
 
-    $sevCol = $SEV_COLOR[$severity];
-    $timeCol = $COLOR[( $mday % ( $#COLOR+1 ))];
-    $pidCol = $COLOR[( $pid % ( $#COLOR+1 ))];
-    $progCol = $COLOR[( $progC % ( $#COLOR+1 ))];
-    # $msgCol = $sevCol;		# too colorful?
+    local( $sevCol ) = $SEV_COLOR[$severity];
+    local( $timeCol ) = $COLOR[( $mday % ( $#COLOR+1 ))];
+    local( $pidCol ) = $COLOR[( $pid % ( $#COLOR+1 ))];
+    local( $progCol ) = $COLOR[( $progC % ( $#COLOR+1 ))];
 
-    sprintf( "<font color=\"$sevCol\">%s,</font> [<font color=\"$timeCol\">%s</font> \#<font color=\"$pidCol\">%d</font>(<font color=\"$progCol\">%s</font>)] <font color=\"$sevCol\">%5s</font> -- <font color=\"$msgCol\">%s</font><br>\n", $sevChar, $time, $pid, $progname, $sevStr, $msg );
-
+    sprintf( "<font color=\"$sevCol\">%s,</font> [<font color=\"$timeCol\">%s</font> \#<font color=\"$pidCol\">%d</font>(<font color=\"$progCol\">%s</font>)] <font color=\"$sevCol\">%5s</font> -- %s<br>\n", $sevChar, $time, $pid, $progname, $sevStr, $msg );
 }
 
 
@@ -218,7 +235,8 @@ sub __KlgLogHtml {
 # - RETURN
 #	nothing.
 #
-sub __KlgLogHtmlHeader {
+sub __KlgLogHtmlHeader
+{
     local( $logfile ) = @_;
     local( $timeStr ) = &__KlgDateTimeFormatOfUtc( time );
 
@@ -258,7 +276,8 @@ __EOF__
 #	severity lavel string defined at the top of this file.
 #	returns 'UNKNOWN' if severity id were not defined.
 #
-sub __KlgSevLabelOfSevId {
+sub __KlgSevLabelOfSevId
+{
     local( $severity ) = @_;
     $SEV_LABEL[ $severity ] || 'UNKNOWN';
 }
@@ -282,15 +301,16 @@ sub __KlgSevLabelOfSevId {
 # - RETURN
 #	nothing
 #
-sub __KlgMsgFormat {
+sub __KlgMsgFormat
+{
     local( *msg ) = @_;
 
+    # japanese code conversion, if needed.
+    if ( $JAPANESE_CODE ) { &jcode'convert( *msg, $JAPANESE_CODE ); }
     # remove white characters at the end of line.
     $msg =~ s/[ \t\r\f\n]*$//o;
     # add `.' at the end of string, if needed.
-    if ( $msg !~ /\.$/o ) { $msg .= '.'; }
-    # japanese code conversion, if needed.
-    if ( $JAPANESE_CODE ) { &jcode'convert( *msg, $JAPANESE_CODE ); }
+    $msg .= '.' if ( $msg !~ /\.$/o );
 }
 
 
@@ -309,13 +329,13 @@ sub __KlgMsgFormat {
 # - RETURN
 #	date/time formatted string
 #
-sub __KlgDateTimeFormatOfUtc {
+sub __KlgDateTimeFormatOfUtc
+{
     local( $utc ) = @_;
     local( $sec, $min, $hour, $mday, $mon, $year ) = localtime( $utc );
     sprintf( "%s %02d %02d:%02d:%02d %s",
-	    ( Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec )[ $mon ],
-	    $mday, $hour, $min, $sec,
-	    1900 + $year );
+	( Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec )[ $mon ],
+	$mday, $hour, $min, $sec, 1900 + $year );
 }
 
 
@@ -338,21 +358,24 @@ sub __KlgDateTimeFormatOfUtc {
 # - RETURN
 #	1 if succeed, 0 if failed.
 #
-sub __KlgShiftLog {
+sub __KlgShiftLog
+{
     local( $logfile ) = @_;
-    local( $i, $j );
 
     return( 0 ) if ( !-e "$logfile" );
 
-    if ( $SHIFT_AGE > 1 ) {
-	for ( $i = $SHIFT_AGE-2; $i >= 0; $i-- ) {
-	    if ( -e "$logfile.$i" ) {
+    local( $i, $j );
+    if ( $SHIFT_AGE > 1 )
+    {
+	for ( $i = $SHIFT_AGE-2; $i >= 0; $i-- )
+	{
+	    if ( -e "$logfile.$i" )
+	    {
 		($j = $i)++;
 		rename( "$logfile.$i", "$logfile.$j" ) || return( 0 );
 	    }
 	}
     }
-
     rename( $logfile, "$logfile.0" ) || return( 0 );
 
     1;
@@ -363,7 +386,7 @@ sub __KlgShiftLog {
 1;
 
 
-# $Id: kinologue.pl,v 1.5 1998-03-29 10:30:54 nakahiro Exp $
+# $Id: kinologue.pl,v 1.6 1998-11-13 03:37:26 nakahiro Exp $
 
 
 # This program is free software; you can redistribute it and/or modify
