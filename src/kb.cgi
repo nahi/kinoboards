@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 3.1 1996-01-26 07:33:18 nakahiro Exp $
+# $Id: kb.cgi,v 3.2 1996-02-08 07:11:04 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 3.1  1996-01-26 07:33:18  nakahiro
+# Revision 3.2  1996-02-08 07:11:04  nakahiro
+# Bulletin board for KINOTROPE Inc.
+#
+# Revision 3.1  1996/01/26 07:33:18  nakahiro
 # release version for OOW96.
 #
 # Revision 3.0  1996/01/20 14:01:13  nakahiro
@@ -64,6 +67,120 @@
 ## ヘッダファイルの読み込み
 #
 require('kb.ph');
+
+
+#/////////////////////////////////////////////////////////////////////
+
+
+###
+## 大域変数の定義
+#
+
+
+#
+# 配列のdefault
+#
+$[ = 0;
+
+
+#
+# default http port
+#
+$DEFAULT_HTTP_PORT = 80;
+
+
+#
+# ファイル
+#
+# ロックファイル
+$LOCK_FILE = ".lock.kb";
+# 記事番号ファイル
+$ARTICLE_NUM_FILE_NAME = ".articleid";
+# タイトルファイル
+$TITLE_FILE_NAME = "index.html";
+# allファイル
+$ALL_FILE_NAME = "all.html";
+# タイトルtmporaryファイル
+$TTMP_FILE_NAME = "index.tmp";
+# ユーザエイリアスファイル
+$USER_ALIAS_FILE = "kinousers";
+# ボードエイリアスファイル
+$BOARD_ALIAS_FILE = "kinoboards";
+# デフォルトのアイコン定義ファイル
+$DEFAULT_ICONDEF = "all.idef";
+
+#
+# 記事のプレフィクス
+#
+$ARTICLE_PREFIX = "kb";
+
+#
+# prefix of quote file.
+#
+$QUOTE_PREFIX = "q";
+
+#
+# アイコンディレクトリ
+# アイコンとアイコン定義ファイルを入れるディレクトリ名
+#
+$ICON_DIR = "icons";
+
+#
+# アイコン定義ファイルのポストフィクス
+# アイコン定義ファイルが、「(ボードディレクトリ名).(指定した文字列)」になる。
+#
+$ICONDEF_POSTFIX = "idef";
+
+#
+# 環境変数を拾う
+#
+$SERVER_NAME = $ENV{'SERVER_NAME'};
+$SERVER_PORT = $ENV{'SERVER_PORT'};
+$SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
+$PATH_INFO   = $ENV{'PATH_INFO'};
+$REMOTE_HOST = $ENV{'REMOTE_HOST'};
+$BOARD       = substr($PATH_INFO, $[ + 1);
+($CGIPROG_NAME = $SCRIPT_NAME) =~ s#^(.*/)##;
+$CGIDIR_NAME = $1;
+$SCRIPT_URL  = "http://$SERVER_NAME:$SERVER_PORT$SCRIPT_NAME";
+$DIR_URL     = "http://$SERVER_NAME:$SERVER_PORT$CGIDIR_NAME";
+$PROGRAM = (($SYS_SCRIPTPATH == 'relative') ? $CGIPROG_NAME : $SCRIPT_NAME);
+$PROGRAM_FROM_BOARD = "../$PROGRAM";
+
+#
+# 制御用コメント文
+#
+$COM_TITLE_BEGIN = "<!-- Title List Begin -->";
+$COM_TITLE_END = "<!-- Title List End -->";
+$COM_ARTICLE_BEGIN = "<!-- Article Begin -->";
+$COM_ARTICLE_END = "<!-- Article End -->";
+$COM_HEADER_BEGIN = "<!-- Header Begin -->";
+$COM_FMAIL_BEGIN = "<!-- Follow Mail Begin";
+$COM_FMAIL_END = "Follow Mail End -->";
+
+#
+# Permission of Title File.
+#
+$TITLE_FILE_PERMISSION = "0666";
+
+#
+# ロックのタイプ
+#
+$LOCK_SH = 1;
+$LOCK_EX = 2;
+$LOCK_NB = 4;
+$LOCK_UN = 8;
+
+#
+# 引用フラグ
+#
+$QUOTE_ON = 1;
+$NO_QUOTE = 0;
+
+
+###
+## インクルードファイルの読み込み
+#
 require('cgi.pl');
 require('tag_secure.pl');
 
@@ -213,14 +330,17 @@ sub URLEntry {
 
 	# file
 	local($File) = &GetPath($BOARD, ".$QUOTE_PREFIX.$$");
-	local($Server, $HttpPort, $Resource);
+	local($Server, $HttpPort, $Resource, $Name) = ("", "", "", "");
 
 	# split
-	if ($URL =~ m#http://([^:]*):([0-9]*)(/.*)$#io) {
+	$URL =~ s/#(.*)$//;
+	$Name = $1;
+
+	if ($URL =~ m!http://([^:]*):([0-9]*)(/.*)$!io) {
 	    $Server = $1;
 	    $HttpPort = $2;
 	    $Resource = $3;
-	} elsif ($URL =~ m#http://([^/]*)(/.*)$#io) {
+	} elsif ($URL =~ m!http://([^/]*)(/.*)$!io) {
 	    $Server = $1;
 	    $HttpPort = $DEFAULT_HTTP_PORT;
 	    $Resource = $2;
@@ -236,7 +356,7 @@ sub URLEntry {
 	&MsgHeader($ENTRY_MSG, $BOARD);
 
 	# 引用ファイルの表示
-	&ViewOriginalFile($File);
+	&ViewOriginalFile($File, $Name);
 	print("<hr>\n");
 	print("<h2>$H_REPLYMSG</h2>");
 
@@ -269,7 +389,7 @@ sub URLEntry {
 
 	# 本文(引用ありなら元記事を挿入)
 	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
-	&QuoteOriginalFile($File) if ($QuoteFlag == $QUOTE_ON);
+	&QuoteOriginalFile($File, $Name) if ($QuoteFlag == $QUOTE_ON);
 	print("</textarea><br>\n");
 
 	# 名前とメールアドレス、URLを表示。
@@ -454,7 +574,10 @@ sub QuoteOriginalArticle {
 sub QuoteOriginalFile {
 
 	# ファイル名
-	local($File) = @_;
+	local($File, $Name) = @_;
+
+	# name tagが来たか?
+	local($NameFlag) = ($Name) ? 0 : 1;
 
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
@@ -466,7 +589,8 @@ sub QuoteOriginalFile {
 		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/$COM_ARTICLE_END/);
+		$QuoteFlag = 0, last
+		    if (($QuoteFlag == 1) && (/$COM_ARTICLE_END/));
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -477,8 +601,11 @@ sub QuoteOriginalFile {
 			print($DEFAULT_QMARK, $_);
 		}
 
+		# name tag?
+		$NameFlag = 1 if (/<a\s+name\s*=\s*\"$Name/i);
+
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/$COM_ARTICLE_BEGIN/);
+		$QuoteFlag = 1 if (($NameFlag) && (/$COM_ARTICLE_BEGIN/));
 
 	}
 	close(TMP);
@@ -510,7 +637,7 @@ sub ShowIcon {
 	while(<ICON>) {
 		chop;
 		($FileName, $Title) = split(/\t/, $_);
-		print("<dt><img src=\"$ICON_DIR/$FileName\"> : $Title\n");
+		print("<dt><img src=\"$ICON_DIR/$FileName\" alt=\"$Title\"> : $Title\n");
 	}
 	close(ICON);
 
@@ -631,8 +758,9 @@ sub MakeTemporaryFile {
 	($cgi'TAGS{'icon'} eq $H_NOICON)	
 	? printf(TMP "<strong>$H_SUBJECT</strong> %s<br>\n",
 		$cgi'TAGS{'subject'})
-	: printf(TMP "<strong>$H_SUBJECT</strong> <img src=\"%s\"> %s<br>\n",
+	: printf(TMP "<strong>$H_SUBJECT</strong> <img src=\"%s\" alt=\"%s\"> %s<br>\n",
 		&GetIconURL($cgi'TAGS{'icon'}),
+		$cgi'TAGS{'icon'},
 		$cgi'TAGS{'subject'});
 
 	# お名前
@@ -918,16 +1046,17 @@ sub AddTitleNormal {
 		# コード変換
 		&jcode'convert(*_, 'euc');
 
-		# 上に追加指定で、タイトルリスト開始なら追加
-		printf(TTMP "<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile)
-		    if ((! $SYS_BOTTOMTITLE) && (/$COM_TITLE_BEGIN/));
-
 		# 下に追加指定で、タイトルリスト終了なら追加
 		printf(TTMP "<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile)
 		    if (($SYS_BOTTOMTITLE) && (/$COM_TITLE_END/));
 
 		# そのまま書き出す。
 		print(TTMP $_);
+
+		# 上に追加指定で、タイトルリスト開始なら追加
+		printf(TTMP "<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile)
+		    if ((! $SYS_BOTTOMTITLE) && (/$COM_TITLE_BEGIN/));
+
 	}
 
 	close(TITLE);
@@ -1828,12 +1957,15 @@ sub MsgHeader {
 	local($Message, $Board) = @_;
 
 	&cgi'header;
+	print("<html>", "\n");
+	print("<head>", "\n");
 	print("<title>$Message</title>", "\n");
 	if (! $Board) {
 		print("<base href=\"$SCRIPT_URL\">\n");
 	} else {
 		print("<base href=\"$DIR_URL$Board/\">\n");
 	}
+	print("</head>", "\n");
 	print("<body bgcolor=\"$BG_COLOR\" TEXT=\"$TEXT_COLOR\" LINK=\"$LINK_COLOR\" ALINK=\"$ALINK_COLOR\" VLINK=\"$VLINK_COLOR\">\n");
 	print("<h1>$Message</h1>\n");
 	print("<hr>\n");
@@ -1849,6 +1981,7 @@ sub MsgFooter {
 	print("$ADDRESS\n");
 	print("</address>\n");
 	print("</body>");
+	print("</html>");
 }
 
 
@@ -1920,8 +2053,11 @@ sub ViewOriginalArticle {
 #
 sub ViewOriginalFile {
 
-	# ファイル名
-	local($File) = @_;
+	# ファイル名、name tag
+	local($File, $Name) = @_;
+
+	# name tagが来たか?
+	local($NameFlag) = ($Name) ? 0 : 1;
 
 	# 引用部分を判断するフラグ
 	# 0 ... before
@@ -1936,13 +2072,17 @@ sub ViewOriginalFile {
 		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
-		$QuoteFlag = 2 if (/$COM_ARTICLE_END/);
+		$QuoteFlag = 2, last
+ 			if (($QuoteFlag == 1) && (/$COM_ARTICLE_END/));
 
 		# 引用文字列の表示
 		print($_) if ($QuoteFlag == 1);
 
+		# name tag?
+		$NameFlag = 1 if (/<a\s+name\s*=\s*\"$Name/i);
+
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/$COM_ARTICLE_BEGIN/);
+		$QuoteFlag = 1 if (($NameFlag) && (/$COM_ARTICLE_BEGIN/));
 
 	}
 	close(TMP);
@@ -2175,7 +2315,7 @@ sub GetSubjectFromFile {
 		# コード変換
 		&jcode'convert(*_, 'euc');
 
-		if (/^<title>(.*)<\/title>$/i) {
+		if (/<title>(.*)<\/title>/i) {
 			$Title = $1;
 		}
 	}
