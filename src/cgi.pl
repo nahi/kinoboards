@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.33 1999-08-26 08:44:52 nakahiro Exp $
+# $Id: cgi.pl,v 2.34 1999-08-28 08:31:57 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -45,7 +45,7 @@ $CRLF = "\x0d\x0a";		# cannot use \r\n
 @TAG_ALLOWED = ();		# CGI variables which is allowed to use <>.
 
 %CHARSET_MAP = ( 'euc', 'EUC-JP', 'jis', 'ISO-2022-JP', 'sjis', 'Shift_JIS' );
-$CHARSET = 'jis';
+$CHARSET = 'euc';
 
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
@@ -1416,7 +1416,7 @@ package cgiprint;
 
 $STR = '';
 $BUFLIMIT = 4096;
-$CHARSET = 'jis';
+$CHARSET = 'euc';
 
 sub Init { $STR = ''; }
 
