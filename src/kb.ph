@@ -1,8 +1,8 @@
-# $Id: kb.ph,v 4.16 1997-02-14 11:43:17 nakahiro Exp $
+# $Id: kb.ph,v 4.17 1997-03-13 15:18:21 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
-# Copyright (C) 1995, 96 NAKAMURA Hiroshi.
+# Copyright (C) 1995, 96, 97 NAKAMURA Hiroshi.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ $MAINT = 'nakahiro@kinotrope.co.jp';
 # サーバが動いているマシンはどれですか?
 # 該当する1行を残してコメントアウトしてください．
 #
-  $ARCH = 'UNIX';			# UNIX + Perl4/5
+ $ARCH = 'UNIX';			# UNIX + Perl4/5
 # $ARCH = 'WinNT';			# WinNT + Perl5
 # $ARCH = 'Win95';			# Win95 + Perl5
 # $ARCH = 'Mac';			# Mac + MacPerl
@@ -52,9 +52,10 @@ $MAIL2 = 'foo.bar.baz.co.jp'		if ($ARCH eq 'Mac');
 # MacPerlでメイル送信機能を用いるには，
 # <URL:ftp://mors.gsfc.nasa.gov/pub/MacPerl/Scripts/>
 # に置かれている，MacPerl用のlibnetが必要です．
+# 詳しくはdoc/INSTALL.htmlを御覧ください．
 #
 # Winの場合，今のところメイル送信機能がありません．
-# メイルはすべて，上で指定したファイルに書き出されます．
+# メイルはすべて，上で指定した名前のファイルに書き出されます．
 # 一応，1日1回，そのファイルを適当に分割し，
 # 手動で送信するという手もありますね．(^_^;
 # WinNTにはsendmailがあるはずなので，いつかは対応したい……
@@ -78,10 +79,15 @@ $SYS_TEXTTYPE = 1;
 #   1: 利用する
 $SYS_ALIAS = 1;
 
-# アイコンを利用するか否か
+# 記事アイコンを利用するか否か
 #   0: 利用しない
 #   1: 利用する
 $SYS_ICON = 1;
+
+# コマンドアイコンを利用するか否か
+#   0: 利用しない
+#   1: 利用する
+$SYS_COMICON = 1;
 
 # 新規投稿記事が，上に増えていくか，下に増えていくか(タイトル一覧の時)
 #   0: 上
@@ -93,11 +99,10 @@ $SYS_BOTTOMTITLE = 0;
 #   1: 下
 $SYS_BOTTOMARTICLE = 1;
 
-# メイル送信サービスを利用するか否か(日本語のみ)
-# (サーバが動いているマシンがUNIXの場合のみ有効)
+# 自動メイル配信サービスを利用するか否か
 #   0: 利用しない
 #   1: 利用する
-$SYS_FOLLOWMAIL = 1;
+$SYS_MAIL = 1;
 
 # 記事のヘッダにマシン名を表示するか否か
 #   0: 表示しない
@@ -216,7 +221,7 @@ $H_NOICON = "なし";
 # あおり文
 $H_REPLYMSG = "上の$H_MESGへの$H_REPLYを書き込む";
 $H_AORI_1 = "$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにウェブページをお持ちの方は，ホームページの$H_URLを書き込んでください．";
-$H_AORI_2 = "ただしHTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，$H_MESGをHTMLとして書いて頂くと，表示の時にHTML整形を行ないます．";
+$H_AORI_2 = "HTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，$H_MESGをHTMLとして書いて頂くと，表示の時にHTML整形を行ないます．";
 $H_SEEICON = "アイコンの説明";
 $H_SEEALIAS = "$H_ALIASの一覧";
 $H_ALIASENTRY = "登録する";
@@ -236,15 +241,16 @@ $H_PUSHHERE_PREVIEW = "投稿する";
 $H_THANKSMSG = "書き込みの訂正，取消などは，メイルで<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
 $H_BACKTITLE = "$H_SUBJECT一覧へ";
 $H_BACKORG = "$H_ORIGの$H_MESGへ";
+$H_PREVARTICLE = "前の$H_MESGへ";
 $H_NEXTARTICLE = "次の$H_MESGへ";
-$H_POSTNEWARTICLE = "新規に投稿する";
+$H_POSTNEWARTICLE = "新規に書き込む";
 $H_REPLYTHISARTICLE = "$H_REPLYを書き込む";
 $H_REPLYTHISARTICLEQUOTE = "引用して$H_REPLYを書き込む";
 $H_READREPLYALL = "$H_REPLYをまとめ読み";
 $H_ARTICLES = "$H_MESG数";
 $H_KEYWORD = "キーワード";
 $H_SEARCHKEYWORD = "検索する";
-$H_RESETKEYWORD = "リセットする";
+$H_RESET = "リセットする";
 $H_SEARCHTARGET = "検索範囲";
 $H_SEARCHTARGETSUBJECT = "$H_SUBJECT";
 $H_SEARCHTARGETPERSON =  "名前";
@@ -261,6 +267,7 @@ $H_INPUTKEYWORD = "<p>
 </ul>
 </p>";
 $H_NOTFOUND = "該当する$H_MESGは見つかりませんでした．";
+$H_FOUNDNO = "件の$H_MESGが見つかりました．";
 $H_ALIASTITLE = "新規登録/登録内容の変更";
 $H_ALIASNEWCOM = "$H_ALIASの新規登録/登録内容の変更を行ないます．ただし悪戯防止のため，変更は，登録の際と同じマシンでなければできません．変更できない場合は，<a href=\"mailto:$MAINT\">$MAINT</a>までメイルでお願いします．";
 $H_ALIASNEWPUSH = "登録/変更する";
