@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.36 1999-06-19 04:18:32 nakahiro Exp $
+# $Id: kb.cgi,v 5.37 1999-06-19 09:19:13 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -59,7 +59,7 @@ $COLSEP = "\376";
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.5-dev';	# release
+$KB_RELEASE = '6.5';		# release
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
@@ -1404,7 +1404,8 @@ sub MsgHeader
     
     if (( $SYS_ALIAS == 3 ) && ( $cgi'TAGS{'cookies'} eq 'on' ))
     {
-	local( @cookieStr ) = ( "kb10info=" . join( $COLSEP, $cgi'TAGS{ 'name' }, $cgi'TAGS{ 'mail' }, $cgi'TAGS{ 'url' } ));
+	local( @cookieStr ) = ( "kb10info=" . join( $COLSEP, $cgi'TAGS{'name'},
+	    $cgi'TAGS{'mail'}, $cgi'TAGS{'url'} ));
 	local( $cookieExpire );
 	if ( $SYS_COOKIE_EXPIRE == 1 )
 	{
@@ -1437,9 +1438,10 @@ sub MsgHeader
 
     local( $msg );
     $msg .= <<__EOF__;
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <head>
+<link rev="MADE" href="mailto:$MAINT">
 <base href="$BASE_URL">
 <title>$titleString</title>
 <LINK REV=MADE HREF="mailto:$MAINT">
@@ -1470,9 +1472,26 @@ __EOF__
     $msg .= <<__EOF__;
 ]</p>
 
-$H_HR
-
 __EOF__
+
+    local( $select );
+    $select .= "表示画面: \n<select name=\"c\">\n<option value=\"v\">\n";
+    $select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n<option value=\"v\">\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' ) if $SYS_F_B;
+    $select .= sprintf( "<option %s value=\"v\">$H_SUBJECT一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'v' )? 'selected' : '' );
+    $select .= sprintf( "<option %s value=\"r\">$H_SUBJECT一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'r' )? 'selected' : '' ) if $SYS_F_R;
+    $select .= sprintf( "<option %s value=\"vt\">$H_MESG一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'vt' )? 'selected' : '' );
+    $select .= sprintf( "<option %s value=\"l\">$H_MESG一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'l' )? 'selected' : '' ) if $SYS_F_L;
+    $select .= sprintf( "<option %s value=\"s\">$H_MESGの検索\n", ( $cgi'TAGS{'c'} eq 's' )? 'selected' : '' ) if $SYS_F_S;
+    $select .= "<option value=\"v\">\n";
+    $select .= sprintf( "<option %s value=\"n\">新規書き込み\n", ( $cgi'TAGS{'c'} eq 'n' )? 'selected' : '' ) if $SYS_F_N;
+    $select .= sprintf( "<option %s value=\"i\">使えるアイコン一覧\n", ( $cgi'TAGS{'c'} eq 'i' )? 'selected' : '' );
+    $select .= "</select>\n // 表示件数: <input name=\"num\" type=\"text\" size=\"3\" value=\"" . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . "\"> ";
+
+    local( %tags ) = ( 'b', $BOARD );
+    local( $str );
+    &TagForm( *str, *tags, "表示", 0, *select );
+    $msg .= $str;
+    $msg .= "$H_HR\n";
 
     &cgiprint'Init;
     &cgiprint'Cache( $msg );
@@ -1691,7 +1710,7 @@ sub TagForm
 {
     local( *str, *tags, $submit, $reset, *contents ) = @_;
 
-    $str = "<form action=\"$PROGRAM\" method=\"POST\">\n";
+    $str = "<form action=\"$PROGRAM\" method=\"POST\">\n<p>\n";
     foreach ( keys( %tags ))
     {
 	$str .= "<input name=\"$_\" type=\"hidden\" value=\"$tags{$_}\">\n";
@@ -1699,7 +1718,7 @@ sub TagForm
     $str .= $contents;
     $str .= "<input type=\"submit\" value=\"$submit\">\n";
     $str .= "<input type=\"reset\" value=\"$reset\">\n" if $reset;
-    $str .= "</form>\n";
+    $str .= "</p>\n</form>\n";
 }
 
 
