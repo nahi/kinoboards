@@ -236,7 +236,7 @@ $KBDIR_PATH = 'c:\inetpub\wwwroot\kb';
 <p>
 $B$5$i$K!$%5!<%P(BOS$B$,(BWin95/Win98$B!$$b$7$/$O(BMac$B$N>l9g(B
 $B!J%W%m%P%$%@$,$3$l$i$N%^%7%s$r%5!<%P$K$9$k$3$H$O$J$$$G$7$g$&$+$i!$(B
-$B<+J,$N%Q%9%3%s$G%F%9%H$9$k>l9g$G$9$M!K!$(B
+$B<+J,$N%Q(B$B%=%3%s$G%F%9%H$9$k>l9g$G$9$M!K!$(B
 kb.cgi$B$NB3$/(B3$B$DL\$N9`L\$r!$0J2<$N$h$&$K=q$-49$($^$9!%(B
 $B%5!<%P$,(BWin95/Win98$B!$(BMac$B$G$J$$>l9g$O=q$-49$($kI,MW$O$"$j$^$;$s!%(B
 </p>
@@ -971,10 +971,10 @@ telnet$B$G$-$J$$?M$O!D!D4pK\E*$K!$(B
 $B%P%C%/%"%C%W$OI,$:<h$C$F$*$$$F$/$@$5$$$M!%(B
 
 <blockquote><pre>
-cd ~/public_html/kb		$B"+(B KINOBOARDS$B$r%$%s%9%H!<%k$7$F$"$C$?%G%#%l%/%H%j$X(B
-chmod a-x kb/kb.cgi		$B"+(Bkb.cgi$B$N<B9T8"$r$J$/$9(B
-cd ..
-tar cvfp kb10_old.tar kb
+cd ~/public_html/kb            $B"+(Bkb$B%G%#%l%/%H%j$X(B
+chmod a-x kb.cgi               $B"+(Bkb.cgi$B$N<B9T8"$r$J$/$9(B
+cd ..                          $B"+(Bkb$B%G%#%l%/%H%j$N$"$k%G%#%l%/%H%j$XLa$C$F(B
+tar cvfp kb10_old.tar kb       $B"+(Bkb$B%G%#%l%/%H%j$4$H8G$a$k(B
 </pre></blockquote>
 <br>
 
@@ -984,7 +984,7 @@ gzip$B$G05=L$7!$>C$5$:$K;D$7$F$*$$$F$/$@$5$$(B
 
 <blockquote>
 <pre>
-gzip kb10_old.tar
+gzip kb10_old.tar              $B"+05=L$9$k(B
 </pre>
 </blockquote>
 <br>
@@ -994,8 +994,8 @@ kb$B$N%G%#%l%/%H%j$NL>A0$r!$8E$$$b$N$G$"$k$H$o$+$k$h$&$KJQ99$7$F$/$@$5$$!%(B
 
 <blockquote>
 <pre>
-cd ~/public_html		$B"+(B KINOBOARDS$B$r%$%s%9%H!<%k$7$F$"$C$?%G%#%l%/%H%j$X(B
-mv kb kb_old
+cd ~/public_html               $B"+(Bkb$B%G%#%l%/%H%j$N$"$k%G%#%l%/%H%j$X9T$C$F(B
+mv kb kb_old                   $B"+L>A0$rJQ99(B
 </pre>
 </blockquote>
 <br>
@@ -1010,11 +1010,10 @@ kb$B%G%#%l%/%H%j$K%$%s%9%H!<%k$7D>$7$F$/$@$5$$(B</a>$B!%(B
 
 <blockquote>
 <pre>
-cd ~/public_html/kb		$B"+(B $B?7$7$/%$%s%9%H!<%k$7$?(BKINOBOARDS$B$X(B
-rm -rf test			$B"+(B test$B7G<(HD$r:o=|(B
-rm -rf board			$B"+(B board$B7G<(HD$r:o=|(B
-rm kinoboards			$B"+(B $BEPO?7G<(HD>pJs$r:o=|(B
-rm kinousers			$B"+(B $B%f!<%6%(%$%j%"%9>pJs$r:o=|(B
+cd ~/public_html/kb            $B"+?7$7$/%$%s%9%H!<%k$7$?(Bkb$B%G%#%l%/%H%j$X9T$C$F(B
+rm -rf test                    $B"+(Btest$B7G<(HD$r:o=|(B
+rm kinoboards                  $B"+EPO?7G<(HD>pJs$r:o=|(B
+rm kinousers                   $B"+%f!<%6%(%$%j%"%9>pJs$r:o=|(B
 </pre>
 </blockquote>
 <br>
@@ -1024,13 +1023,12 @@ rm kinousers			$B"+(B $B%f!<%6%(%$%j%"%9>pJs$r:o=|(B
 
 <blockquote>
 <pre>
-cd ~/public_html/kb		$B"+(B $B?7$7$/%$%s%9%H!<%k$7$?(BKINOBOARDS$B$X(B
-cp -pr ../kb_old/test test	$B"+(B test$B7G<(HD$r%3%T!<(B
-cp -pr ../kb_old/board board	$B"+(B board$B7G<(HD$r%3%T!<(B
- :				$B"+(B $B%$%s%9%H!<%k8e$K:n@.$7$?7G<(HD$,$"$l$P!$(B
- :				$B"+(B $BF1MM$K%3%T!<$7$F$/$@$5$$!%(B
-cp -p ../kb_old/kinoboards .	$B"+(B $BEPO?7G<(HD>pJs$r%3%T!<(B
-cp -p ../kb_old/kinousers .	$B"+(B $B%f!<%6%(%$%j%"%9>pJs$r%3%T!<(B
+cd ~/public_html/kb            $B"+?7$7$/%$%s%9%H!<%k$7$?(Bkb$B%G%#%l%/%H%j$X9T$C$F(B
+cp -pr ../kb_old/test test     $B"+(Btest$B7G<(HD$r%3%T!<(B
+ :                             $B"+%$%s%9%H!<%k8e$K:n@.$7$?7G<(HD$,$"$l$P!$(B
+ :                             $B"+F1MM$K%3%T!<$7$F$/$@$5$$!%(B
+cp -p ../kb_old/kinoboards .   $B"+EPO?7G<(HD>pJs$r%3%T!<(B
+cp -p ../kb_old/kinousers .    $B"+%f!<%6%(%$%j%"%9>pJs$r%3%T!<(B
 </pre>
 </blockquote>
 <br>
@@ -1046,10 +1044,10 @@ kb.cgi$B$HF1$8$/!$@hF,9T$N(Bperl$B$N%Q%9$rI,MW$K1~$8$F=q$-49$($kI,MW$,$"$j$^$
 
 <blockquote>
 <pre>
-                                   $B$^$:(Bconv.cgi$B$r(Bkb$B%G%#%l%/%H%j$K%3%T!<$9$k(B
-cd ~/public_html/kb		$B"+(B $B?7$7$/%$%s%9%H!<%k$7$?(BKINOBOARDS$B$X(B
-./conv.cgi			$B"+(B $BJQ49%W%m%0%i%`$r5/F0(B
-rm conv.cgi                     $B"+(B $B<B9T$7$F$7$^$C$?$i:o=|$9$k(B
+                                 $B$^$:(Bconv.cgi$B$r(Bkb$B%G%#%l%/%H%j$K%3%T!<$9$k(B
+cd ~/public_html/kb            $B"+?7$7$/%$%s%9%H!<%k$7$?(BKINOBOARDS$B$X(B
+./conv.cgi                     $B"+JQ49%W%m%0%i%`$r5/F0(B
+rm conv.cgi                    $B"+<B9T$7$F$7$^$C$?$i:o=|$9$k(B
 </pre>
 </blockquote>
 
@@ -1059,16 +1057,16 @@ CGI script$B$H$7$F%V%i%&%6$+$i5/F0$7$F$b$+$^$$$^$;$s!%(B
 
 <blockquote>
 <pre>
-Content-type: text/plain			$B"+(B conv.cgi$B$NI=<((B
+Content-type: text/plain                        $B"+(B conv.cgi$B$NI=<((B
 
-rename: test/.db -> test/kb.db			$B"+(B $BL>A0$,JQ99$5$l$?$3$H$r<($9(B
+rename: test/.db -> test/kb.db                  $B"+(B $BL>A0$,JQ99$5$l$?$3$H$r<($9(B
 rename: test/.board -> test/kb.board
 rename: test/.articleid -> test/kb.aid
 rename: board/.db -> board/kb.db
 rename: board/.board -> board/kb.board
 rename: board/.articleid -> board/kb.aid
-older release -> R5.6 conversion succeeded.	$B"+(B succeeded$B$HI=<($5$l$l$P@.8y(B
-Renamed 6 file(s).				$B"+(B 6$B$D$N%U%!%$%k$,JQ99$5$l$?(B
+older release -> R5.6 conversion succeeded.     $B"+(B succeeded$B$HI=<($5$l$l$P@.8y(B
+Renamed 6 file(s).                              $B"+(B 6$B$D$N%U%!%$%k$,JQ99$5$l$?(B
 </pre>
 </blockquote>
 <br>
