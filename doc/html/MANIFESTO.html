@@ -1,148 +1,128 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
-<html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="ja">
 <head>
-<TITLE>manifesto</TITLE>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="INDEX" href="index.html">
+<link rev="MADE" href="mailto:nakahiro@sarion.co.jp">
+<link rel="KINOBOARDS Home Page" href="http://www.jin.gr.jp/~nahi/kb/">
+<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen">
+<title>Manifesto</title>
 </head>
 <body>
 
+<div class="header">
 <h1>
-manifesto
+Manifesto
 </h1>
 
-<p>
-Last Update: Feb 18, 1999
+<p class="status">
+Last Update: June 26, 1999
 </p>
+</div>
 
 <hr>
 
+<div class="main">
 <p>
-※基本的に，
-全てのファイルのJapanese Kanji Character Setのencoding scheme
-(以下単に漢字コード)は日本語EUCです．
-プログラムの挙動がおかしくなったら，まずは漢字コードをチェックしてくださいね．
-ファイル名の後ろに書かれているのは，
-サーバがUNIXの場合のファイルの推奨パーミッションです．
+きのぼずパッケージに含まれているファイルの簡単な解説です．
 </p>
-<p>
-<dl>
-<dt>kb/: 777
-<dd>以下のファイルが含まれているKINOBOARDS/1.0のメインディレクトリ．
-
-<dt>kb/COPYING: 444
-<dd>GNU GENERAL PUBLIC LICENSE Version 2, June 1991のCopyingメッセージ．
-
-<dt>kb/README: 444
-<dd>READMEファイル．最初に読んでください．
-
-<dt><a name="UI">kb/UI/</a>: 755
-<dd>きのぼーずシステム本体のうち，
-ユーザインタフェイス部のインプリメンテーションを含むディレクトリ．
-*.plというファイル個々で，各表示画面と送信メイルを生成しています．
-画面のタグを変更したい，あるいは送信するメイルの文面を変更したい場合には，
-各インプリメンテーションを書き換えてください．
-ただし，漢字コードは必ずEUCにしてくださいね．
-
-<dt>kb/board/: 777
-<dd>新規に掲示板を作成する際に利用する各種ファイルを保管するディレクトリ．
-このディレクトリ内は書き換えず，
-各ファイルを新しいディレクトリにコピーして，新しい掲示板を作成してください．
 
 <dl>
-<dt>kb/board/kb.db: 666
-<dd>掲示板に書き込まれた記事情報を管理するDB．
+<dt>COPYING
+<dd>GNU GENERAL PUBLIC LICENSEです（英語）．
+本パッケージの利用規定になります．
+日本語訳がredistディレクトリに含まれていますので，参考にしてください．
 
-<dt>kb/board/kb.aid: 666
-<dd>掲示板に書き込まれた最新記事のIDを管理するDB．
+<dt>README
+<dd>ろくな情報ではありませんが，一応，最初に読んでください．
 
-<dt>kb/board/kb.board: 644
-<dd>掲示板の記事一覧の先頭に挿入されるhtmlファイル．
+<dt>doc/
+<dd>ドキュメントを収めたディレクトリです．
+中にhtmlというディレクトリがあり，
+その中にHTML形式のドキュメントが含まれています．
+
+<dt>kb/
+<dd>CGIプログラム用パッケージを収めたディレクトリです．
+このディレクトリをウェブサーバに置いて（転送して）ください．
+その他のファイルはウェブサーバに置かれていなくてもかまいません
+（稼働時には使われません）．
+
+<dt>kb/UI/
+<dd>きのぼずの各画面表示用プログラムを収めたディレクトリです．
+プログラム本体はkb.cgiの1つだけなんですが，きのぼずでは，
+kb.cgiからこのディレクトリ内のファイルを読み込むことによって，
+各表示画面を生成しています．
+
+<dt>kb/board/
+<dd>きのぼずの掲示板ディレクトリの，雛型です．
+新規掲示板を作成する場合は，このディレクトリはそのまま残しておき，
+新規ディレクトリにコピーしてそちらを書き換えてください．
+
+<dt>kb/cgi.pl
+<dd>CGIプログラム用の各種ユーティリティライブラリです．
+
+<dt>kb/icons/
+<dd>きのぼずが利用する各種アイコンを収めたディレクトリです．
+
+<dt>kb/index.html, kb/index.html.cgi-bin, kb/index.shtml
+<dd>掲示板一覧を表示するためのHTMLファイルです．
+きのぼずには掲示板一覧を表示する機能もあるんですが，
+デザインに凝りたい方は，こちらのHTMLファイルを利用してください．
+掲示板一覧の表示方法については，kb.phの中で説明されています．
+
+<dt>kb/jcode.pl
+<dd>歌代さんによる，日本語文字encoding scheme変換ライブラリです．
+
+<dt>kb/kb.cgi
+<dd>きのぼずのプログラム本体です．
+CGIとして実行するのは，このファイルだけです．
+
+<dt>kb/kb.ph
+<dd>きのぼずの各種設定ファイルです．
+表示項目や利用可能機能など，詳細な設定を行なえます．
+本ファイルを書き換えると，そのままきのぼず本体の挙動が変更されます．
+
+<dt>kb/kinoboards
+<dd>利用掲示板を設定するためのファイルです．
+配布時点では，テスト用掲示板のみが登録されています．
+新規掲示板の作成方法については，
+<a href="MAINT.html">MAINTENANCEドキュメント</a>
+を御覧ください．
+
+<dt>kb/kinologue.pl
+<dd>ログファイル作成用のライブラリです．
+
+<dt>kb/kinousers
+<dd>ユーザ情報を格納するためのファイルです．
+現在ではほとんど使われないんですが，一応残しておいてください．
+
+<dt>kb/log/
+<dd>ログディレクトリです．
+
+<dt>kb/mimer.pl, kb/mimew.pl
+<dd>生田さんによる，MIME base64 encoding/decodingライブラリです．
+mime_pls-2_00alpha_tar.gzがフルパッケージになります．
+
+<dt>kb/test/
+<dd>配布時点でセットアップ済みであるテスト用掲示板のための，
+掲示板ディレクトリです．
+
+<dt>redist/
+<dd>他の方の許可を得て再配布しているファイルを収めたディレクトリです．
+このディレクトリ以下のパッケージの再配布については，
+各パッケージで規定されている条件に従ってください．
 </dl>
-
-<dt><a name="cgi.pl">kb/cgi.pl</a>: 444
-<dd>CGI関連package．
-<a href="#kb.cgi">kb.cgi</a>で読み込んで，
-表示，セキュリティチェック，メイル送信，システムのロック等を行います．
-
-<dt>kb/doc/: 755
-<dd>htmlによるドキュメントが格納されたディレクトリ．
-<a href="index.html">doc/index.html</a>は，
-少なくとも一度はアクセスしてみてください．
-
-<dt>kb/icons/: 755
-<dd>アイコン用gifファイルを保管するディレクトリ．
-
-<dl>
-<dt>kb/icons/all.idef: 644
-<dd>アイコンメッセージとgifファイルとのdefaultの対応を保持します．
-
-<dt>kb/icons/{掲示板ディレクトリ名}.idef: 644
-<dd>各掲示板固有の，アイコンメッセージとgifファイルとの対応を用意したい場合は，
-このようなファイルを作成してください．
-例えばテスト用掲示板では，icons/test.idefが存在するなら，
-そこに書かれた対応に従うことになります．
-</dl>
-
-<dt>kb/index.html: 644
-<dd>各掲示板に分岐するためのhtmlページ．
-自由に書き換えて結構です．このファイルのみ，漢字コードは任意ですが，
-読者の利便を考えるとJIS(ISO-2022-jp)にしておいた方がいいと思います
-(掲示板の中では全てJISになります)．
-
-<dt>kb/index.html.cgi-bin: 644
-<dd>CGI scriptとシステムを別ディレクトリに置かなければならないサイトのための，
-サンプルindex.htmlファイル．詳しくは
-<a href="INSTALL.html">INSTALLATIONファイル</a>
-を参照してください．
-
-<dt><a name="jcode.pl">kb/jcode.pl</a>: 444
-<dd>歌代さんによる，日本語漢字コード変換用のpackageです．
-
-<dt><a name="kb.cgi">kb/kb.cgi</a>: 755
-<dd>きのぼーずシステム本体であるperl script．
-アプリケーションモデルとデータモデルがインプリメントされています．
-ユーザインタフェイス部分は<a href="#UI">UIディレクトリ</a>の下の
-各ファイルでインプリメントされます．
-
-<dt>kb/kb.ph: 644
-<dd>きのぼーずシステムのサイト依存の設定を行なうためのperl header．
-管理者のメールアドレス，システムの機能設定，メッセージの定義等を行ないます．
-
-<dt><a name="kinoboards">kb/kinoboards</a>: 644
-<dd>きのぼーずシステムが扱う，
-掲示板のディレクトリ名と正式名との対応を管理するDB．
-<a href="MAINT.html#addboard">掲示板を増やす場合</a>に，
-ディレクトリ名と掲示板名をTAB文字で区切り，1行に1つの掲示板情報を書き加えます．
-行末には必ず改行コードを入れてください．
-配布時に登録されている掲示板は，「test/テスト」のみです．
-
-<dt><a name="kinologue.pl">kb/kinologue.pl</a>: 444
-<dd>ログを書き出すためのpackage．
-<a href="#kb.cgi">kb.cgi</a>で読み込んで使われます．
-
-<dt>kb/kinousers: 666
-<dd>ユーザのエイリアスを管理するDB．
-エイリアス名，ユーザ名，E-mail addr.，URL等を管理します．
-<a href="#kinoboards">kinoboards</a>とは異なり，
-基本的にユーザが直接ファイルを書き換える必要はありません．
-配布時は空です．
-
-<dt><a name="mimew.pl">kb/mimew.pl</a>: 444
-<dt><a name="mimer.pl">kb/mimew.pl</a>: 444
-<dd>生田さんによる，MIME base64 encoding/decodingのためのpackageです．
-mime_pls/2.00αのパッケージに含まれているライブラリです．
-mime_pls-2_00alpha_tar.gzが，mime_plsのフルパッケージになります．
-
-<dt>kb/test/: 777
-<dd>配布時に用意されているテスト用掲示板の記事を保管するディレクトリ．
-</dl>
-</p>
+</div>
 
 <hr>
 
+<div class="footer">
 <address>
-<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br>
 Copyright (C) 1995-99
 <a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
+</div>
 </body>
 </html>

@@ -1,23 +1,37 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
-<html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="ja">
 <head>
-<TITLE>maintenance</TITLE>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="INDEX" href="index.html">
+<link rev="MADE" href="mailto:nakahiro@sarion.co.jp">
+<link rel="KINOBOARDS Home Page" href="http://www.jin.gr.jp/~nahi/kb/">
+<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen">
+<title>Maintenance</title>
 </head>
 <body>
 
+<div class="header">
 <h1>
-maintenance
+Maintenance
 </h1>
 
-<p>
-Last Update: Feb 18, 1999
+<p class="status">
+Last Update: June 26, 1999
 </p>
+</div>
 
 <hr>
 
+<div class="main">
 <h2>目次</h2>
 
 <p>
+手動でメンテナンスを行なう場合，
+必ず事前にkbディレクトリのバックアップを取ってからにしてください．
+操作ミスでファイルが消えてしまっても大丈夫なように．．．
+</p>
+
 <ul>
 <li><a href="#addboard">1. 掲示板を新設する</a>
 <li><a href="#customize">2. 掲示板の機能を個別にカスタマイズする</a>
@@ -28,30 +42,32 @@ Last Update: Feb 18, 1999
 <li><a href="#delete">7. 記事を削除する</a>
 <li><a href="#log">8. ログを監視する</a>
 </ul>
-</p>
-
-<hr>
 
 <h2><a name="addboard">1. 掲示板を新設する</a></h2>
 
 <p>
 掲示板用ディレクトリの作成と，掲示板DBへのエントリが必要です．
 </p>
+
 <ol>
 <li>新規に作成する掲示板の，ディレクトリ名と掲示板名を決めます．
 
 <blockquote>
+<p>
 <code>
 e.g.) forum/フォーラム
 </code>
+</p>
 </blockquote>
 
 <li>boardディレクトリをコピーして，新規掲示板用ディレクトリを作ります．
 
 <blockquote>
+<p>
 <code>
 cp -pr board forum<br>
 </code>
+</p>
 </blockquote>
 
 <li>記事一覧のヘッダ部分に表示するコメントを，適当に変更します．
@@ -67,43 +83,41 @@ TAB文字(必ず1つ)で区切って追加します．
 追加した行の行末には，必ず改行コードを入れてください．
 
 <blockquote>
+<p>
 <code>
 forum	フォーラム	0
 </code>
+</p>
 </blockquote>
 
-<li>index.html等に，その掲示板へのリンクを追加します．
+<li>掲示板一覧，もしくはあなたのウェブページに，
+その掲示板へのリンクを追加します．
 
 <blockquote>
+<p>
 <code>
 &lt;a href=&quot;kb.cgi?<strong>b=forum</strong>&amp;c=v&amp;num=40&quot;&gt;フォーラム&lt;/a&gt;<br>
 </code>
+</p>
 </blockquote>
 </ol>
-
-<hr>
 
 <h2><a name="customize">2. 掲示板の機能を個別にカスタマイズする</a></h2>
 
 <p>
 kb.phをコピーして，掲示板用に書き換えます．
-</p><p>
+</p>
+
 <ol>
-<li>まずシステムを止めます．
-
-<blockquote>
-<code>
-chmod go-x kb.cgi
-</code>
-</blockquote>
-
 <li>kb.phファイルを，掲示板ディレクトリにコピーします．
 「kb.conf」という名前でコピーしてください．
 
 <blockquote>
+<p>
 <code>
 cp -p kb.ph forum/kb.conf
 </code>
+</p>
 </blockquote>
 
 <li>kb.confファイルを編集し，メッセージやシステム機能を変更します．
@@ -129,77 +143,53 @@ $SYS_BOTTOMTITLE = 1;
 （ここが「0」になっていると，kb.confがあっても読み込みません）．
 
 <blockquote>
+<p>
 <code>
 forum	フォーラム	1
 </code>
-</blockquote>
-
-<li>システムを再び稼働可能にします．
-
-<blockquote>
-<code>
-chmod go+x kb.cgi
-</code>
+</p>
 </blockquote>
 
 </ol>
-</p>
-
-<hr>
 
 <h2><a name="iconconf">3. 掲示板のアイコンを個別にカスタマイズする</a></h2>
 
 <p>
 アイコン定義ファイルをコピーして，掲示板用に書き換えます．
-</p><p>
+</p>
+
 <ol>
-<li>まずシステムを止めます．
-
-<blockquote>
-<code>
-chmod go-x kb.cgi
-</code>
-</blockquote>
-
 <li>必要なアイコンファイルを用意してください．
 20 dot×20 dotでないアイコンを作成する場合，
 kb.phの中の，$MSGICON_HEIGHTと$MSGICON_WIDTHも変更してください．
 全アイコンが同じサイズであれば，縦長，横長，どんなサイズでもOKです．
+<br><br>
 
 <li>iconsディレクトリの中のアイコン定義ファイル，all.idefファイルを，
 掲示板ディレクトリ.idefという名前でコピーします．
 
 <blockquote>
+<p>
 <code>
 cd icons<br>
 cp -p all.idef forum.idef
 </code>
+</p>
 </blockquote>
 
 <li>新しく作成したアイコン定義ファイルを書き換えてください．
-アイコンファイル名と略称を，TAB文字(必ず1つ)で区切って並べます．
+アイコンファイル名と略称，説明を，TAB文字(必ず1つ)で区切って並べます．
 
 <blockquote>
 <pre>
-bug.gif	バグ
-change.gif	変更要求
-done.gif	対処
-complete.gif	完了
+bug.gif	バグ	バグを発見した時に使います．
+change.gif	変更要求	変更してほしい時に使います．
+done.gif	対処	対処しました．
+complete.gif	完了	修正を確認しました．
 </pre>
 </blockquote>
 
-<li>システムを再び稼働可能にします．
-
-<blockquote>
-<code>
-chmod go+x kb.cgi
-</code>
-</blockquote>
-
 </ol>
-</p>
-
-<hr>
 
 <h2><a name="adddb">4. 用意したファイルをメッセージ扱いする</a></h2>
 
@@ -209,21 +199,15 @@ KINOBOARDS/1.0を使って書き込まれた記事以外に，
 KINOBOARDS/1.0の記事扱いすることができます．
 既存の記事群にリプライを貰えるようにすることや，
 簡易検索エンジンとして使うことができます．
-</p><p>
+</p>
+
 <ol>
 <li>ファイルを登録する掲示板を決めます．
 <a href="#addboard">新しく作っても</a>構いませんし，
 既存の掲示板に追加しても構いません．
 ただし既存の掲示板に追加する場合，すでに登録されているIDと，
 新規に追加するファイル名が重ならないようにしてください．
-
-<li>まずシステムを止めます．
-
-<blockquote>
-<code>
-chmod go-x kb.cgi
-</code>
-</blockquote>
+<br><br>
 
 <li>shellから以下のコマンドを実行し，kb.dbファイルにファイルを登録してください．
 「ls」でなくて「\ls」です．
@@ -245,34 +229,16 @@ chmod go-x kb.cgi
 </ul>
 等の処理を行ない，記事として挿入可能なHTMLにしておいてください．
 
-<li>システムを再び稼働可能にします．
-
-<blockquote>
-<code>
-chmod go+x kb.cgi
-</code>
-</blockquote>
-
 </ol>
-</p>
-
-<hr>
 
 <h2><a name="arrivemail">5. 書き込みがあった時に，記事をメイルで自動配信する宛先を設定する</a></h2>
 
 <p>
 掲示板毎に，宛先を書いた専用のファイルを作成します．
 このファイルがなければ，メイルは送られません．
-</p><p>
+</p>
+
 <ol>
-<li>まずシステムを止めます．
-
-<blockquote>
-<code>
-chmod go-x kb.cgi
-</code>
-</blockquote>
-
 <li>掲示板ディレクトリの中に，「kb.mail」というファイルを作ります．
 ファイルの中には，1行に1つのメイルアドレスを書きます．
 その掲示板に書き込みがあった場合，
@@ -280,38 +246,31 @@ chmod go-x kb.cgi
 自動で記事が配信されることになります．
 
 <blockquote>
+<p>
 <code>
 nahi@keynauts.com<br>
-nakahiro@kinotrope.com
+nakahiro@sarion.co.jp
 </code>
+</p>
 </blockquote>
 
 <li>行の先頭に「#」をつけると，コメント扱いになります
 (そのメイルアドレスに対してはメイルが送られません)．
 
 <blockquote>
+<p>
 <code>
 nahi@keynauts.com<br>
 # nakahiro@kinotrope.com ※海外出張のため，4月まで配信せず
 </code>
+</p>
 </blockquote>
 
 <li>各掲示板毎に，以上の設定を行なってください．
 掲示板ディレクトリに「kb.mail」というファイルがなくても構いません．
 なければ誰にも送られないだけです．
 
-<li>システムを再び稼働可能にします．
-
-<blockquote>
-<code>
-chmod go+x kb.cgi
-</code>
-</blockquote>
-
 </ol>
-</p>
-
-<hr>
 
 <h2><a name="correct">6. 記事を訂正する</a></h2>
 
@@ -323,39 +282,23 @@ chmod go+x kb.cgi
 </p>
 
 <ol>
-<li>まずシステムを止めます．
-
-<blockquote>
-<code>
-chmod go-x kb.cgi
-</code>
-</blockquote>
-
 <li>掲示板ディレクトリ内の該当記事のファイルのモードを変えて，
 書き換えられるようにします．
 
 <blockquote>
+<p>
 <code>
 cd test<br>
 mv 123 foo<br>
 cp -p foo 123<br>
 chmod 666 123
 </code>
+</p>
 </blockquote>
 
 <li>該当記事のファイルを書き換えます．
 
-<li>システムを再び稼働可能にします．
-
-<blockquote>
-<code>
-chmod go+x kb.cgi
-</code>
-</blockquote>
-
 </ol>
-
-<hr>
 
 <h2><a name="delete">7. 記事を削除する</a></h2>
 
@@ -367,24 +310,18 @@ chmod go+x kb.cgi
 </p>
 
 <ol>
-<li>まずシステムを止めます．
-
-<blockquote>
-<code>
-chmod go-x kb.cgi
-</code>
-</blockquote>
-
 <li>掲示板ディレクトリ内の記事DB(kb.db)のモードを変更し，
 書き換えられるようにします．
 
 <blockquote>
+<p>
 <code>
 cd test<br>
 mv kb.db foo<br>
 cp -p foo kb.db<br>
 chmod 666 kb.db
 </code>
+</p>
 </blockquote>
 
 <li>記事DBの該当記事の行の先頭に「#」を挿入して，コメントアウトします．
@@ -409,26 +346,18 @@ mv 15 ~/tmp
 </code>
 </blockquote>
 
-<li>システムを再び稼働可能にします．
-
-<blockquote>
-<code>
-chmod go+x kb.cgi
-</code>
-</blockquote>
-
 </ol>
 
 <h2><a name="log">8. ログを監視する</a></h2>
 
 <p>
-R5.2から，
-<a href="http://www.jin.gr.jp/~nahi/src/perl.shtml#kinologue.pl">kinologue.pl</a>
-を使って，KINOBOARDSの動作ログを取れるようにしました．
-なんらかの警告や障害があった場合，
-kbディレクトリ内のkb.klgというファイルに，
+きのぼずでは，なんらかの警告や障害があった場合，
+logディレクトリ内のログファイルに，
 コメントとその重要度が書き出されます．各重要度は次の意味を持ちます．
+</p>
+
 <blockquote>
+<p>
 <table align="center" border="1" cellpadding="1">
 <tr><th>行頭の識別子</th><th>重要度ラベル</th><th>意味</th></tr>
 <tr><td>W,</td><td>WARN</td><td>単なる警告．</td></tr>
@@ -437,27 +366,32 @@ kbディレクトリ内のkb.klgというファイルに，
 <tr><td>F,</td><td>FATAL</td><td>エラー．システムは再起動不可能な状態．</td></tr>
 <tr><td>A,</td><td>ANY</td><td>不明．その他のコメント．</td></tr>
 </table>
-</blockquote>
 </p>
+</blockquote>
+
 <p>
 設定次第では，ログを取らないようにすることもできます．
 インストール直後の動作の安定しないうちは，
 原因究明のため，極力ログを取るようにしてください．
 動作が安定してきたらログを取らない設定に変更するといいでしょう．
 </p>
+
 <p>
-ただ，悪戯等を見張るためにも，できればログを取り続けることをお勧めします．
-その場合，ログファイル（kb.klg）はどんどん大きくなるので，
-適宜削除するなり移動して圧縮するなりしてください．
-掲示板動作中にこれらの作業をしても，なんら問題はありません．
+ただし，悪戯等を見張るためにも，できればログを取り続けることをお勧めします．
+ログファイルは適当な大きさになると自動的にバックアップが取られ，
+古いものから少しずつ消えていきます．
+削除される前に，定期的に中身をチェックしておいてください．
 </p>
+</div>
 
 <hr>
 
+<div class="footer">
 <address>
-<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br>
 Copyright (C) 1995-99
 <a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
+</div>
 </body>
 </html>
