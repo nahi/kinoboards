@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.28.2.6 2000-04-05 05:53:56 nakahiro Exp $
+# $Id: cgi.pl,v 2.28.2.7 2000-07-01 12:05:41 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -167,7 +167,7 @@ sub unlock_file_flock
 sub Header
 {
     local( $utcFlag, $utcStr, $cookieFlag, *cookieList, $cookieExpire ) = @_;
-    print( "Content-type: text/html; charset=" . $CHARSET_MAP{ $CHARSET } . "\n" );
+    print( "Content-type: text/html; charset=" . $CHARSET_MAP{ $CHARSET } . $CRLF );
     $cgiprint'CHARSET = $CHARSET;
 
     # Header for HTTP Cookies.
@@ -178,8 +178,7 @@ sub Header
 	{
 	    # Escape unexpected chars in data.
 	    ( $key, $value ) = split( /=/, $_, 2 );
-	    $value =~ s/(\W)/$urlEscapeCache{$1} ||= sprintf( "%%%02X",
-		ord( $1 ))/eg;
+	    $value =~ s/(\W)/$urlEscapeCache{$1} ||= sprintf( "%%%02X", ord( $1 ))/eg;
 	    print( "Set-Cookie: $key=$value;" );
 	    if ( $cookieExpire eq '' )
 	    {
@@ -196,18 +195,18 @@ sub Header
 		print( " expires=$cookieExpire;" );
 	    }
 
-	    print( "\n" );
+	    print( $CRLF );
 	}
     }
 
     # Header for Last-Modified.
     if ( $utcFlag )
     {
-	print( "Last-Modified: ", &GetHttpDateTimeFromUtc( $utcStr || $^T ), "\n" );
+	print( "Last-Modified: ", &GetHttpDateTimeFromUtc( $utcStr || $^T ), $CRLF );
     }
 
     # now, the end of Head Block.
-    print( "\n" );
+    print( $CRLF );
 
 }
 
@@ -234,10 +233,10 @@ sub GetHttpDateTimeFromUtc
 #
 sub Decode
 {
-    local( $args, $readSize, $key, $term, $value, $encode );
+    local( $args );
     if ( $ENV{ 'REQUEST_METHOD' } eq 'POST' )
     {
-	$readSize = read( STDIN, $args, $ENV{ 'CONTENT_LENGTH' } );
+	local( $readSize ) = read( STDIN, $args, $ENV{ 'CONTENT_LENGTH' } );
 	$args = '' if ( $readSize != $ENV{ 'CONTENT_LENGTH' } );
     }
     else			# GET, HEAD, PUT, OPTIONS, DELETE, TRACE?
@@ -245,9 +244,10 @@ sub Decode
 	$args = $QUERY_STRING;
     }
 
-    foreach $term ( split( '&', $args ))
+    local( $key, $value, $encode );
+    foreach ( split( '&', $args ))
     {
-	( $key, $value ) = split( /=/, $term, 2 );
+	( $key, $value ) = split( /=/, $_, 2 );
 	$value =~ tr/+/ /;
 	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack( "C", hex( $1 ))/ge;
 	$encode = &jcode'getcode( *value );
@@ -664,6 +664,9 @@ sub SecureHtmlEx
     local( $srcString, $tag, $need, $feature, $markuped );
 
     $string =~ s/\\>/__EscapedGt\377__/go;
+    $string =~ s/&nbsp;?/__HtmlNbsp\377__/go;
+    $string =~ s/&copy;?/__HtmlCopy\377__/go;
+    $string =~ s/&reg;?/__HtmlReg\377__/go;
     $string =~ s/&amp;?/__HtmlAmp\377__/go;
     $string =~ s/&quot;?/__HtmlQuote\377__/go;
     $string =~ s/&lt;?/__HtmlLt\377__/go;
@@ -721,6 +724,9 @@ sub SecureHtmlEx
     $string =~ s/"/&quot;/g;
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;
+    $string =~ s/__HtmlNbsp\377__/&nbsp;/go;
+    $string =~ s/__HtmlCopy\377__/&copy;/go;
+    $string =~ s/__HtmlReg\377__/&reg;/go;
     $string =~ s/__HtmlAmp\377__/&amp;/go;
     $string =~ s/__HtmlQuote\377__/&quot;/go;
     $string =~ s/__HtmlLt\377__/&lt;/go;
@@ -767,14 +773,14 @@ sub Init { $STR = ''; }
 sub Cache
 {
     for ( @_ ) { $STR .= $_; }
-    &Flush if ( length( $STR ) > $BUFLIMIT );
+    &Flush() if ( length( $STR ) > $BUFLIMIT );
 }
 
 sub Flush
 {
     &jcode'convert( *STR, $CHARSET ) if ( $CHARSET ne 'euc' );
     print( $STR );
-    &Init;
+    &Init();
 }
 
 
