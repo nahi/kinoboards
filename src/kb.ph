@@ -271,7 +271,7 @@ $SYS_MAIL = 1 + 2;
   # などとするといいかもしれません．
   $MAILTO_LABEL = '';
 
-  # 送信するメイルのヘッダ「Sendar:」に書かれる名前を，
+  # 送信するメイルのヘッダ「Sender:」に書かれる名前を，
   # システム管理者の名前とは変えたい場合に指定してください．
   # 省略すると，このファイルの先頭で設定した$MAINT_NAMEが使われます．
   # $MAILFROM_LABEL = 'Kinoboards Mail Daemon';
@@ -436,7 +436,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.16 1999-06-16 14:35:30 nakahiro Exp $
+# $Id: kb.ph,v 5.17 1999-06-17 13:02:36 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
