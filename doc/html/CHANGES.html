@@ -1,0 +1,424 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
+<html>
+<head>
+<TITLE>changes</TITLE>
+</head>
+<body>
+
+<h1>
+changes
+</h1>
+
+<p>
+Last Update: Feb 18, 1999
+</p>
+
+<hr>
+
+<dl>
+<dt>Release 6.4 - 1999/02/17 19:03:52 GMT
+<dd>kb.cgi's RCS revision: 5.20
+<dd>kb.ph's RCS revision: 5.13
+<dd>cgi.pl's RCS revision: 2.16
+<dd>kinologue.pl's RCS revision: 1.7
+<dd>Encode `&amp;' in URL to `&amp;amp;'
+<dd>Changed auto-mail's `From:' header. Poster's name and e-mail is used now instead of Maint's.
+<dd>Added $KBDIR_PATH feature for security reason. So, removed $IIS_TRANSLATED_PATH. Those have same role.
+<dd>Added search by posted date.
+<dd>Use REMOTE_ADDR when REMOTE_HOST is null(ex. Apache/1.3.x).
+<dd>Fixed TAG checking routine's bug. Several features(style, lang, and so on) cannot be used.
+<dd>Added new feature to post an article from command line.
+<dd>Returns Last-Modified header when HEAD request.
+<dd>Removed default allowed HTML_TAGS from cgi.pl.
+
+<dt>Release 6.3 - 1998/12/25 06:47:11 GMT
+<dd>kb.cgi's RCS revision: 5.19
+<dd>kb.ph's RCS revision: 5.12
+<dd>cgi.pl's RCS revision: 2.13
+<dd>kinologue.pl's RCS revision: 1.6
+<dd>Added new parameter to log the accessing hosts.
+<dd>Added new format which converted to &lt;a ...&gt; link automatically.
+&lt;URL:kb:...&gt; is converted to the link to an article in the board.
+<dd>Added new command icon in title list.
+Upper triangle links to the threaded view from the top of the thread.
+<dd>HTML/4.0 tags in article are allowed.
+<dd>Boards in Boardlist view are ordered according to the file 'kinobooards'.
+<dd>The 'rev' feature was reset when user traced a page link. Fixed.
+<dd>The link 'Back to the title view' was linked the last(newest) page.
+Changed to link to the page which included the article.
+<dd>__TITLE_NUM__ and __ARTICLE_NUM__ are replaced
+with $DEF_TITLE_NUM and $DEF_ARTICLE_NUM in kb.board.
+<dd>Added the link to the top article in the thread which includes the article.
+<dd>Added ID of the newest article in the top of each page.
+<dd>Performance tuning. Title view, Article view, Keyword search, and so on.
+<dd>Removed the button 'remove all replies' in Delete preview of the article
+which has no reply.
+<dd>Added links to replies of an article at the bottom of Delete preview.
+<dd>Posted article string in Preview are encoded with Base64.
+Some browser(NetPositive of BeOS R4?) deleted newlines
+in the hidden input tag...
+<dd>Added the link to go back to Entry view from Preview.
+In some environment(I don't know well...),
+'back' button of the browser does not work(data in forms are deleted...).
+
+<dt>Release 6.2 - 1998/12/10 11:29:11 GMT
+<dd>kb.cgi's RCS revision: 5.18
+<dd>kb.ph's RCS revision: 5.11
+<dd>cgi.pl's RCS revision: 2.11
+<dd>kinologue.pl's RCS revision: 1.6
+<dd>Added new parameter for denying multiple posting from the same form.
+<dd>Added new parameter to restrain printing command header of each article
+in ThreadArticle or NewArticle.
+<dd>Added new parameter to restrain printing auther's e-mail addr.
+<dd>Added new parameter for logging REMOTE_HOST.
+<dd>Added reverse link in ViewTitle, NewArticle, and SortArticle.
+<dd>Added new parameter to print links for jump instead of command buttons
+in ThanksView.
+<dd>Added new parameter for [new!] icon.
+You can add [new!] icons to the article which was posted recently n days.
+<dd>Fixed a bug in cgi'secureHtml. The tail of the article was removed
+when unbalanced TAG in an article.
+<dd>Fixed a bug in cgi'secureHtml.
+Unbalanced TAG in an article was not checked.
+<dd>Fixed a comment in entry view.
+Supress the comment mentioned about search function when it is turned off.
+<dd>Changed a link for jump to title list in the command header of an article.
+It was linked to the newest page.
+Changed to jump the page which the article was included.
+<dd>Added new parameter to left the tags in article when superceding articles.
+<dd>Fixed a bug in SMTP header.
+Line-splitted MIMEed subject terminated with \n. Changed to \r\n.
+<dd>Added to check return value of `print' functions.
+Avoid to delete files when the file system is full...
+<dd>Changed a link for back in kb.board. `index.html' -> `./'
+<dd>Added to log the given command when the error `command not found' occured.
+<dd>Changed an algorithm for trailing tree structure.
+<dd>Avoid posting from old form( The entry form must be created in 1 day ).
+
+<dt>Release 6.1 - 1998/11/05 22:03:59 GMT
+<dd>kb.cgi's RCS revision: 5.17
+<dd>kb.ph's RCS revision: 5.10
+<dd>cgi.pl's RCS revision: 2.10
+<dd>kinologue.pl's RCS revision: 1.5
+<dd>Used only one HTTP-Cookies. Used three Cookies before
+( Name, E-mail, and URL ).
+Joined those values with \376 and set it to HTTP-Cookies.
+<dd>Use cgi'SecureHtmlEx instead of cgi'SecureHtml.
+Maintenance user can set usable Tags in kb.cgi
+( Neither in kb.ph, and in cgi.pl... ).
+<dd>Fixed <URL:...> bug in AS-IS writing mode.
+<dd>Changed method of jumping to Board-List.
+Jumping to non-CGI resources using ACTION from FORM tag causes error
+in some platform.
+<dd>Usable tags in subject and in article are different.
+<dd>Num of [new!] icons was bigger than the specified. Fixed.
+<dd>Num of [new!] icons cannot be deleted. Fixed.
+<dd>&lt;URL:...&gt; was deleted when '...' was not seems to be an URL.
+Not delete, and not linked.
+<dd>A syntax bug in use-only-alias mode in Entry.pl. Fixed.
+<dd>View link for jumping to the posted article after posting an article.
+<dd>Replace __PROGRAM__ in kb.board.
+<dd>Lack of header in the article when previewing an article.
+Links to replied articles were not shown. Fixed.
+<dd>__BOARD__ in kb.board are replaced with $BOARD.
+
+<dt>Release 6.0 - 1998/10/29 17:36:11 GMT
+<dd>kb.cgi's RCS revision: 5.15
+<dd>kb.ph's RCS revision: 5.10
+<dd>cgi.pl's RCS revision: 2.9
+<dd>kinologue.pl's RCS revision: 1.5
+<dd>Added c=v&amp;num=??&amp;id=?? command. View around specified ID.
+<dd>Changed granularity of system-lock. Locks by each board.
+<dd>Added thread view configuration. No thread, normal thread(former type), and All thread.
+<dd>Fixed &lt;URL:...&gt; bug when multiple &lt;URL:...&gt;s in an article.
+<dd>Not checked TAGS in subject when $SYS_TAGINSUBJECT set to 1... Fixed.
+<dd>Added [new!] icon in BoardList by CGI.
+
+<dt>Release 5.8 - 1998/10/22 15:41:04 GMT
+<dd>kb.cgi's RCS revision: 5.14
+<dd>kb.ph's RCS revision: 5.9
+<dd>cgi.pl's RCS revision: 2.8
+<dd>kinologue.pl's RCS revision: 1.5
+<dd>Added a config option to specify HTTP-Cookies expiration method.
+<dd>Added PATH_TRANSLATED modification for WinNT + IIS.
+<dd>$MAINT_NAME and $MAINT in kb.conf now override its value in kb.ph, same as other options.
+<dd>Logging in plain text did not work. Fixed.
+<dd>New n articles are marked by [new!] icon.
+<dd>Added icon and author's e-mail addr. to the message sent by e-mail.
+<dd>Fixed confused subject in reply-mail.
+<dd>Translate tags to safe-char in articles wrote by 'AS-IS' mode.
+<dd>LF -&gt; &lt;br&gt; in articles wrote by 'HTML-translate' mode.
+<dd>Send auto-mail before reply-mail. Recipients of auto-mail thought to be correct than recipients of reply-mail.
+<dd>Not print 'back to board-list' button when not using board-list.
+<dd>'Show Alias' view did not work when using HTTP-Cookies. Fixed.
+<dd>Not print 'back to ...' button when lock fails.
+<dd>&amp;cgiprint'Cache in cgi.pl now accepts LIST.
+<dd>Removed umask configuration. Users are confused with group/other permission.
+
+<dt>Release 5.7 - 1998/09/14 19:47:15 GMT
+<dd>kb.cgi's RCS revision: 5.12
+<dd>kb.ph's RCS revision: 5.8
+<dd>cgi.pl's RCS revision: 2.4
+<dd>kinologue.pl's RCS revision: 1.5
+<dd>Changed MacPerl detection method.
+<dd>Added charsets control function for output pages.
+<dd>Remember Name, E-mail, and URL using HTTP-Cookies.
+<dd>Reinforced error checking of SMTP handler.
+<dd>Quoting without auther's name.
+
+<dt>Release 5.6 - 1998/06/19 07:30:37 GMT
+<dd>kb.cgi's RCS revision: 5.11
+<dd>kb.ph's RCS revision: 5.7
+<dd>cgi.pl's RCS revision: 1.62
+<dd>kinologue.pl's RCS revision: 1.5
+<dd>Added a new configuration switch; $MAILFROM_LABEL for specifing Mailer daemon's name which is different from Maintenance user's name. Thanks to Mr. MOROBOSHI Tomorou.
+<dd>Added `Content-type' notation in HEAD tag. Thanks to Mr. SGL-HOR.
+<dd>Fixed lock-system bug in Win95.
+<dd>Deleted `Last-Modified' field from HTTP header. To avoid cache problem.
+<dd>Changed strings in TITLE tag of every pages. PageType - BoardName(if any) - SystemName.
+<dd>Changed time format of posted of articles. MM/DD -> YY/MM/DD.
+<dd>Fixed syntax errors for perl/4.036... local @foo; -> local( @foo );
+<dd>Fixed umask's bug. Files created by the system were group writable...
+
+<dt>Release 5.5 - 1998/04/03 17:55:27 GMT
+<dd>kb.cgi's RCS revision: 5.8
+<dd>kb.ph's RCS revision: 5.6
+<dd>cgi.pl's RCS revision: 1.61
+<dd>kinologue.pl's RCS revision: 1.5
+<dd>cgi.pl was changed. Changed SendMail interface. sendMail is new, SendMail is old. Added &smtpHeader, &smtpBody, &smtpInit, and &smtpMsg. Took action against IIS's PATH_* problem. If it seems to be an IIS, and SCRIPT_NAME equals to PATH_INFO, then clear PATH_INFO and PATH_TRANSLATED.
+<dd>And, in kb.cgi, changed &cgi'SendMail -> &cgi'sendMail.
+<dd>Changed DB filenames. .articleid -> kb.aid, .db -> kb.db, .board -> kb.board, and .lock.kb -> kb.lock.
+<dd>Set umask.
+<dd>Added TEXTTYPE value. Plain text( use PRE tag ), Plain html( not use any tags ), and HTML conversion( use P tag ).
+<dd>Added new customize option. We can specify any string to TO: header in Mail. For ML usage?
+<dd>Show title list of the `test' board when no command and board was given. Since R5.4, printed `huh? ...'.
+<dd>Removed version check routine... We'll never use it like this small small system...
+<dd>Fixed a bug when replying a message whose subject includes &quot; char. Added &TAGEncode.
+<dd>Changed Mail sending order. At first, sends Reply-Mail, then sends Auto-Mail. Reply-Mail is less than Auto-Mail.
+
+<dt>Release 5.4 - 1998/03/18 20:49:56 GMT
+<dd>kb.cgi's RCS revision: 5.7
+<dd>kb.ph's RCS revision: 5.5
+<dd>cgi.pl's RCS revision: 1.30
+<dd>kinologue.pl's RCS revision: 1.4
+<dd>Removed $ARCH. Use $PC for architecture classification now.
+<dd>Use $^T instead of time function.
+<dd>Changed file requiring order. cgi.pl, kinologue.pl and jcode.pl needed to copy to /cgi-bin, ~/cgi-bin, etc. Now those files can be in kb directory.
+<dd>Add 1998 as the copyright year!
+<dd>No lock when Win95... perl for Win32 cannot use flock on Win95...(WinNT is O.K.)
+<dd>Changed interface of cgi'Header for printing correct Last-Modified...
+<dd>Added function GetFormattedTitle, TagComImg, TagMsgImg, and TagA.
+<dd>Changed encode/decoding article method. Encode before preview, decode before submit.
+<dd>Subject can include TAGS which is not unsafe. Added subject encode/decoding.
+<dd>Changed checking valid URL routine like &lt;URL:.#:;?/\&gt; in article.
+<dd>Fixed a bug of the title list paging for maintenance.
+<dd>Added checking return values of `rename' syscall.
+<dd>Moved the configuration flag for server machine OS, from kb.ph to kb.cgi. This flag is changed at the first time, and never changed after all.
+<dd>Use an article's subject as the e-mail version of subject(MIME base64 encoded.)
+
+<dt>Release 5.3 - 1997/12/16 12:24:30 GMT
+<dd>kb.cgi's RCS revision: 5.6
+<dd>kb.ph's RCS revision: 5.4
+<dd>cgi.pl's RCS revision: 1.24
+<dd>kinologue.pl's RCS revision: 1.2
+<dd>Removed DB files' version checking. DB files' structure will not changed little while...
+<dd>Changed locking timing. System is locked at suitable timing by each UI/*.pl.
+<dd>Changed filename of board dependent configuration file. .kbconf -> kb.conf.
+<dd>Changed interface of function for UI. Called from MAIN block directly.
+<dd>Replaced SMTP handling function in cgi.pl. Do speak by itself with smtp server using SMTP. Does not use /usr/lib/sendmail now.
+<dd>Changed order of configuration block in kb.ph.
+<dd>Added SMTP server's configuration in kb.ph( included AF_INET and SOCK_STREAM for socket configuration ).
+
+<dt>Release 5.2 - 1997/11/26 09:41:07 GMT
+<dd>kb.cgi's RCS revision: 5.5
+<dd>kb.ph's RCS revision: 5.2
+<dd>cgi.pl's RCS revision: 1.21
+<dd>kinologue.pl's RCS revision: 1.2
+<dd>Added two configuration switches. to log or not, and maximum size of an article.
+<dd>Added new feature to log with kinologue.pl.
+<dd>Changed signal handler.
+<dd>Added new feature to check a size of posted article.
+<dd>Fixed bug when changing user alias information.
+<dd>Added new feature to translate a plain article into HTML document.
+
+<dt>Release 5.1 - 1997/09/12 14:49:36 GMT
+<dd>RCS Revision: 5.4
+<dd>Bug Fixed: cannot delete article... lack of $BOARD in function DeleteArticle...
+<dd>sorted icons by DB order.
+
+<dt>Release 5.0 - 1997/07/23 14:52:11 GMT
+<dd>RCS Revision: 5.2
+<dd>Merged with KBPRIV.
+<dd>Separated UI implementations to GUI/.
+<dd>Some Environment variables refers a configuration switch before including configuration file. Fixed.
+<dd>variable AddFlag is global(ADDFLAG) in &ViewTitle.
+<dd>Quotaion Mark ( ] with the author's name) is not doubled.
+<dd>Configurable TIMEZONE.
+<dd>Added valid functions customize.
+<dd>Added a button to back to board list.
+<dd>Added new ALIAS option; to select user's alias by pulldown menu when writing.
+
+<dt>Release 4.0 - 1997/06/24 15:57:35 GMT
+<dd>RCS Revision: 4.44
+<dd>Added a flag to print a port number in URLs.
+<dd>Wrote on-line function's manual.
+<dd>Restructure whole functions as 3-tier model.
+<dd>Remove the module for security of user aliases.
+<dd>Added a flag to view both command-icon and command-text.
+<dd>Read configuration file(kb.ph) in the current directory when kb.cgi is placed different directory from `kb'.
+<dd>Add configuration switch to use each functions or not.
+<dd>Fixed a bug in converting URLs in article.
+<dd>Separate configuration of the size of Command Icon and Article Icon.
+<dd>Changed sorting argorithm of titles.
+
+<dt>WhiteDay Release - 1997/03/13 15:27:16 GMT
+<dd>RCS Revision: 4.40
+<dd>Removed default HTTP port number(80) from URL.
+<dd>Added `Last-Modified' HTTP Optional Header(changed cgi.pl).
+<dd>Rewrite HTML security check part(can use tags with features).
+<dd>Removed tag_secure.pl from the package(thanks to Ms. Ami).
+<dd>Changed locking system(in symlink locking system, lockfile is unlinked automatically 5 min later).
+Changed Japanese K-Code conversion mechanism(cash strings to buffer for each `print' function, convert and print if the buffer's size be over specified limit; 4096byte).
+<dd>Added a function to view previous article.
+<dd>Added a function to send notation mail to specified members when new article comes.
+<dd>Added a function to count num. of searched articles.
+<dd>Added a configuration flag to use command icon, or not.
+<dd>Rewrite some command icon(thanks to Mr. Ryo).
+<dd>Added Change Log Document(CHANGES.html).
+<dd>Added Icon's Copyright Document(ICON.html).
+<dd>Removed Known Bugs Document(BUGS.html).
+
+<dt>Valentine Release - 1997/02/14 11:41:00 GMT
+<dd>RCS Revision: 4.38
+<dd>Fixed a little bug around View Next Article(worked as reloading).
+<dd>Changed a mechanism to get an ID of the next article.
+<dd>Changed a mechanism to get data from article's DB(cash DB's data at the beginning of the script).
+<dd>Fixed bugs around Alias function(variables were not localized).
+<dd>Deleted `Last-Modified' HTTP Optional Header.
+
+<dt>Release 3.2 - 1997/02/06 17:25:27 GMT
+<dd>RCS Revision: 4.34
+<dd>Ported to Win95, WinNT, and Mac.
+<dd>Added a function to auto hyperlink from article.
+<dd>Added `Last-Modified' HTTP Optional Header.
+<dd>Added a function to handle normal file as article.
+
+<dt>Release 3.1 - 1996/12/02 10:01:32 GMT
+<dd>RCS Revision: 4.32
+<dd>Fixed a critical bug around article DB(duplicate entries in article db when posting by forking sendmail processes.).
+
+<dt>Release 3.0 - 1996/11/19 13:59:23 GMT
+<dd>RCS Revision: 4.31
+<dd>Removed all magic number for Error ID.
+<dd>Added a configuration flag to use Netscape Extension of HTML, or not.
+<dd>Added a function to view pages with Japanese character encoding scheme, JIS.
+<dd>Fixed many HTML bugs(checked with jweblint).
+
+<dt>Release 2.4 - 1996/09/17 17:07:57 GMT
+<dd>RCS Revision: 4.27
+<dd>Fixed a bug around Icon Configuration File(use always all.idef however *.idef was prepared).
+<dd>Changed the interface of tag_secure package(call-by-value to call-by-reference).
+<dd>Added a configuration flag to check poster's e-mail address, or not.
+<dd>Added extension headers to notation e-mail.
+<dd>Changed short cut to Thread View(not print link TAGs in the article header which has no reply).
+<dd>Added a function to check KINOBOARDS' version.
+
+<dt>Release 2.3 - 1996/08/21 16:52:28 GMT
+<dd>RCS Revision: 4.21
+<dd>Fixed a little bug(Opened file was not closed).
+
+<dt>Release 2.2 - 1996/08/16 17:11:43 GMT
+<dd>RCS Revision: 4.20
+<dd>Fixed bugs around title list paging.
+
+<dt>Release 2.1 - 1996/08/05 18:41:44 GMT
+<dd>RCS Revision: 4.19
+<dd>Added quoted article in notation e-mail.
+<dd>Added signal traps for lock trouble.
+<dd>Added a function for title list paging.
+
+<dt>Release 2.0 - 1996/08/05 16:35:16 GMT
+<dd>RCS Revision: 4.18
+<dd>Rewrited `print' functions with HERE DOCUMENT.
+<dd>Added a configuratin flag to define the time order of title list.
+<dd>Added a configuratin flag to print commands in article header, or not.
+<dd>Deleted a configuratin flag to leave TAGS in quoted article, or not.
+<dd>Added a function to search article by plural keywords(logical AND).
+
+<dt>Release 1.11 - 1996/07/25 13:18:23 GMT
+<dd>RCS Revision: 4.14
+<dd>Fixed a bug around article DB(DB was broken when posted article's subject contains CR. added a check function).
+<dd>Fixed a bug around Sort View of plural articles(viewd from older one by one).
+
+<dt>Release 1.10 - 1996/07/08 14:31:16
+<dd>RCS Revision: 4.12
+<dd>Added a function to search article by icon type.
+<dd>Added a short cut to Thred View in title list.
+
+<dt>Release 1.9 - 1996/07/05 11:15:51 GMT
+<dd>RCS Revision: 4.11
+<dd>Fixed a little bug around locking system.
+
+<dt>Release 1.8 - 1996/06/11 17:09:29 GMT
+<dd>RCS Revision: 4.10
+<dd>Deleted a function to include a HyperText specified by URL.
+
+<dt>Release 1.7 - 1996/05/21 19:21:36 GMT
+<dd>RCS Revision: 4.9
+<dd>Fixed a bug in lock system.
+<dd>Changed lock system timing(lock system when executed, not when file was opened).
+<dd>Added command icons in article header.
+
+<dt>Release 1.6 - 1996/04/30 16:05:46 GMT
+<dd>RCS Revision: 4.7
+<dd>Fixed a bug around posting(new article handled as following article).
+<dd>Changed lock system(use not flock but link).
+
+<dt>Release 1.5 - 1996/04/25 11:58:51 GMT
+<dd>RCS Revision: 4.5
+<dd>Fixed a critical bug of ArticleId(always set to 1...).
+<dd>Added a link to quoted HyperText in article's header.
+
+<dt>Release 1.4 - 1996/04/09 03:22:55 GMT
+<dd>RCS Revision: 4.1, released under GPL2.
+<dd>Added a notation of copyright.
+<dd>Changed article DB's structure(added a column for list of followed articles).
+<dd>Fixed a few bug around &quot; in posted article.
+<dd>Changed a function to show title list header(generated by CGI insted of prepared HTML file).
+
+<dt>Release 1.3 - 1996/01/26 07:33:18 GMT
+<dd>RCS Revision: 3.1, released for Oracle Open World's board.
+<dd>Changed forms' design.
+<dd>Added article's icon and a function to View Icon-help.
+<dd>Added functions for Alias entry, modifiy, and delete.
+<dd>Added a function to include a HyperText specified by URL.
+<dd>Added a function for full-text searching based simply keyword matching.
+<dd>Added a function to send notation e-mail when an article was followed.
+
+<dt>Release 1.2 - 1995/12/19 05:00:54 GMT
+<dd>RCS Revision: 1.11, released for C&amp;C Mesh's board.
+<dd>Divided kb.cgi into kb.ph, cgi.pl, and kb.cgi.
+<dd>Added a function to check posted illegal tags(using tag_secure.pl by ami@kinotrope.co.jp).
+<dd>Added a function for Search Article.
+<dd>Added a function to include a local file when posting article.
+<dd>Fixed a few bug around ' in posted article.
+
+<dt>Release 1.1 - 1995/11/01 06:27:56 GMT
+<dd>RCS Revision: 1.1, released for Kinotrope Inc.'s board.
+<dd>Added a function for Thread View of plural articles.
+<dd>Added a function for Sort View of plural articles.
+
+<dt>Release 1.0 - 1995/10/22 08:59:03 GMT
+<dd>RCS Revision: 1.0, not released but internal use for my web pages.
+<dd>initial version.
+</dl>
+
+<hr>
+
+<address>
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+Copyright (C) 1995-99
+<a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
+</address>
+</body>
+</html>
