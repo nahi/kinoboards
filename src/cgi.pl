@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.9 1996-09-21 07:27:51 nakahiro Exp $
+# $Id: cgi.pl,v 1.10 1996-09-26 02:22:40 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -25,7 +25,7 @@
 package cgi;
 
 $MAIL2 = ((defined $'MAIL2) ? $'MAIL2 : "/usr/lib/sendmail -oi -t");
-$WAITPID_NONBLOCKMODE = ((defined $'WAITPID_NONBLOCKMODE) ? $'WAITPID_NONBLOCKMODE : 0);
+$WAITPID_BLOCK = ((defined $'WAITPID_BLOCK) ? $'WAITPID_BLOCK : 0);
 
 
 ###
@@ -138,7 +138,7 @@ sub SendMail {
 	exit(0);
 
     }
-    waitpid($Pid, $WAITPID_NONBLOCKMODE);
+    waitpid($Pid, $WAITPID_BLOCK);
 
     # 送信した
     return(! $?);
