@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl
+#!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.26 1996-09-15 08:14:49 nakahiro Exp $
+# $Id: kb.cgi,v 4.27 1996-09-17 17:07:57 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -59,9 +59,15 @@ require('tag_secure.pl');
 $[ = 0;
 
 #
+# VersionとRelease番号
+#
+$KB_VERSION = '1.0';
+$KB_RELEASE = '2.4';
+
+#
 # 著作権表示
 #
-$ADDRESS = "KINOBOARDS/1.0 R2.4: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
+$ADDRESS = sprintf("KINOBOARDS/%s R%s: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.", $KB_VERSION, $KB_RELEASE);
 
 #
 # ファイル
@@ -293,12 +299,20 @@ __EOF__
 	    || (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 		|| &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
 	while(<ICON>) {
+
+	    # Version Check
+	    &VersionCheck('Icon', $1), next
+		if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	    # コメント文はキャンセル
 	    next if (/^\#/o);
 	    next if (/^$/o);
+
+	    # 表示
 	    chop;
 	    ($FileName, $Title) = split(/\t/, $_, 3);
 	    print("<OPTION>$Title\n");
+
 	}
 	close(ICON);
 	print("</SELECT>\n");
@@ -398,6 +412,10 @@ sub QuoteOriginalArticle {
     # ファイルを開く
     open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
     while(<TMP>) {
+
+	# Version Check
+	&VersionCheck('Article', $1), next
+	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
 
 	# 引用のための変換
 	s/\&//go;
@@ -611,6 +629,9 @@ sub MakeArticleFile {
     # ファイルを開く
     open(TMP, ">$File") || &Fatal(1, $File);
 
+    # バージョン情報を書き出す
+    printf(TMP "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE);
+
     # TextType用前処理
     print(TMP "<pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
@@ -662,7 +683,10 @@ sub AddArticleId {
 
     # Open Tmp File
     open(AID, ">$TmpFile") || &Fatal(1, $TmpFile);
-    print(AID $ArticleId, "\n");
+
+    # 記事ID
+    print(AID "$ArticleId\n");
+
     close(AID);
 
     # 更新
@@ -692,6 +716,10 @@ sub AddDBFile {
     open(DB, "<$File") || &Fatal(1, $File);
 
     while(<DB>) {
+
+	# Version Check
+	&VersionCheck('DB', $1)
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
 
 	print(DBTMP "$_"), next if (/^\#/);
 	print(DBTMP "$_"), next if (/^$/);
@@ -811,7 +839,16 @@ __EOF__
 
     # 記事
     open(TMP, "<$File") || &Fatal(1, $File);
-    while(<TMP>) {print($_);}
+    while(<TMP>) {
+
+	# Version Check
+	&VersionCheck('Article', $1), next
+	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+
+	# 表示
+	print($_);
+
+    }
     close(TMP);
 
     # article end
@@ -946,6 +983,10 @@ sub GetFollowIdList {
     open(DB, "<$DBFile") || &Fatal(1, $DBFile);
     while(<DB>) {
 
+	# Version Check
+	&VersionCheck('DB', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	next if (/^\#/);
 	next if (/^$/);
 	chop;
@@ -996,6 +1037,10 @@ sub GetUserInfo {
     # 1つ1つチェック．
     while(<ALIAS>) {
 	
+	# Version Check
+	&VersionCheck('Alias', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	next if (/^$/);
 	chop;
 	
@@ -1063,8 +1108,15 @@ sub SendMail {
 	# 引用
 	open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
 	while(<TMP>) {
-	    s/<[^>]*>//go;	# タグは要らない
+
+	    # Version Check
+	    &VersionCheck('Article', $1), next
+		if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+
+	    # タグは要らない
+	    s/<[^>]*>//go;
 	    $Message .= &HTMLDecode($_) if ($_);
+
 	}
 	close(TMP);
 
@@ -1136,11 +1188,18 @@ __EOF__
 	    || (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 		|| &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
 	while(<ICON>) {
+
+	    # Version Check
+	    &VersionCheck('Icon', $1), next
+		if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	    # コメント文はキャンセル
 	    next if (/^\#/o);
 	    next if (/^$/o);
 	    chop;
 	    ($FileName, $Title, $Help) = split(/\t/, $_, 3);
+
+	    # 表示
 	    printf("<li><img src=\"%s\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : %s\n", &GetIconURL($FileName), ($Help || $Title));
 	}
 	close(ICON);
@@ -1235,6 +1294,10 @@ sub GetTitle {
     open(DB, "<$DBFile") || &Fatal(1, $DBFile);
 
     while(<DB>) {
+
+	# Version Check
+	&VersionCheck('DB', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
 
 	# コメント文はキャンセル
 	next if (/^\#/o);
@@ -1561,11 +1624,18 @@ __EOF__
 	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
+
+	# Version Check
+	&VersionCheck('Icon', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	# コメント文はキャンセル
 	next if (/^\#/o);
 	next if (/^$/o);
 	chop;
 	($FileName, $IconTitle) = split(/\t/, $_, 3);
+
+	# 表示
 	printf("<OPTION%s>$IconTitle\n",
 	       (($Icon eq $IconTitle) ? ' SELECTED' : ''));
     }
@@ -1617,6 +1687,10 @@ sub SearchArticleList {
     # ファイルを開く．DBファイルがなければnot found.
     open(DB, "<$DBFile") || &Fatal(1, $DBFile);
     while(<DB>) {
+
+	# Version Check
+	&VersionCheck('DB', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
 
 	next if (/^\#/);
 	next if (/^$/);
@@ -1698,6 +1772,10 @@ sub SearchArticleKeyword {
     # 検索する
     open(ARTICLE, "<$File") || &Fatal(1, $File);
     while($Line = <ARTICLE>) {
+
+	# Version Check
+	&VersionCheck('Article', $1), next
+	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
 
 	# クリア
 	@NewKeyList = ();
@@ -1947,7 +2025,11 @@ sub CashAliasData {
     # 放り込む．
     open(ALIAS, "<$File") || &Fatal(1, $File);
     while(<ALIAS>) {
-	
+
+	# Version Check
+	&VersionCheck('Alias', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	next if (/^$/);
 	chop;
 
@@ -1977,6 +2059,11 @@ sub WriteAliasData {
 
     # 書き出す
     open(ALIAS, ">$TmpFile") || &Fatal(1, $TmpFile);
+
+    # バージョン情報を書き出す
+    printf(ALIAS "# Kb-System-Id: %s/%s\n", $KB_VERSION, $KB_RELEASE);
+
+    # 順に．
     foreach $Alias (sort keys(%Name)) {
 	($Name{$Alias}) && printf(ALIAS "%s\t%s\t%s\t%s\t%s\n",
 				  $Alias, $Name{$Alias}, $Email{$Alias},
@@ -1998,7 +2085,13 @@ sub BoardHeader {
     local($File) = &GetPath($BOARD, $BOARD_FILE_NAME);
 
     open(HEADER, "<$File") || &Fatal(1, $File);
-    while(<HEADER>){ print("$_"); }
+    while(<HEADER>){
+	# Version Check
+	&VersionCheck('Header', $1), next
+	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+	# 表示する
+	print("$_");
+    }
     close(HEADER);
 
 }
@@ -2039,7 +2132,7 @@ sub GetArticleId {
     # 記事番号
     local($ArticleId);
 
-    open(AID, "$ArticleNumFile") || &Fatal(1, $ArticleNumFile);
+    open(AID, "<$ArticleNumFile") || &Fatal(1, $ArticleNumFile);
     while(<AID>) {
 	chop;
 	$ArticleId = $_;
@@ -2064,6 +2157,11 @@ sub GetBoardInfo {
 
     open(ALIAS, "<$BOARD_ALIAS_FILE") || &Fatal(1, $BOARD_ALIAS_FILE);
     while(<ALIAS>) {
+
+	# Version Check
+	&VersionCheck('Board', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	next if (/^\#/);
 	next if (/^$/);
 	chop;
@@ -2355,7 +2453,16 @@ __EOF__
 
     # 記事の中身
     open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
-    while(<TMP>) { print("$_"); }
+    while(<TMP>) {
+
+	# Version Check
+	&VersionCheck('Article', $1), next
+	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+
+	# 表示
+	print("$_");
+
+    }
     close(TMP);
 
 }
@@ -2434,6 +2541,11 @@ sub GetIconURLFromTitle {
 	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
 	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
+
+	# Version Check
+	&VersionCheck('Icon', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	# コメント文はキャンセル
 	next if (/^\#/o);
 	next if (/^$/o);
@@ -2467,6 +2579,10 @@ sub GetArticlesInfo {
     open(DB, "<$DBFile");
     while(<DB>) {
 
+	# Version Check
+	&VersionCheck('DB', $1), next
+	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+
 	next if (/^\#/);
 	next if (/^$/);
 	chop;
@@ -2489,6 +2605,20 @@ sub GetArticlesInfo {
     close(DB);
 
     return($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail);
+
+}
+
+
+###
+## Version Check
+#
+sub VersionCheck {
+
+    local($FileType, $VersionString) = @_;
+
+    local($VersionId, $ReleaseId) = split(/\//, $VersionString);
+
+    # no check now...
 
 }
 
