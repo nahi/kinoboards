@@ -129,6 +129,7 @@ EOS
   def exec_proc_entry( query )
     idef = KbIconDefFile.new( IDEF_FILE )
     html = CGI.new( 'html4' )
+    checked = ( query.has_key?( 'checked' ))? true : nil
 
     CGI::print( { 'charset' => 'EUC-JP' } ) {
       html.html( 'LANG' => 'ja' ) {
@@ -168,7 +169,7 @@ EOS
       		iconLabel = idef.getLabel( key )
       		iconComment = idef.getComment( key )
 		html.li {
-		  html.checkbox( 'i_' << key, 'use' ) <<
+		  html.checkbox( 'i_' << key, 'use', checked ) <<
 		  html.img( "#{ ICON_DIR }/#{ iconFileName }", iconLabel,
 		    ICON_WIDTH, ICON_HEIGHT ) <<
 		  " : [" <<
