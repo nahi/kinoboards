@@ -1,9 +1,12 @@
-#!/usr/local/bin/perl
+#!/usr/local/bin/GNU/perl
 #
-# $Id: kb.cgi,v 1.3 1995-11-02 05:50:48 nakahiro Exp $
+# $Id: kb.cgi,v 1.4 1995-11-08 09:18:22 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.3  1995-11-02 05:50:48  nakahiro
+# Revision 1.4  1995-11-08 09:18:22  nakahiro
+# Add reference to Original File when Quoting local file.
+#
+# Revision 1.3  1995/11/02 05:50:48  nakahiro
 # New Feature: quote a local file.
 #
 # Revision 1.2  1995/11/02 04:59:44  nakahiro
@@ -38,32 +41,40 @@
 #	×	HTML or Plain Text
 #	×	^Mを取り除く
 #	×	最新の記事n個!
-#	△	まとめ読み(thread)
+#	×	まとめ読み(thread)
 #	×	指定した日記を引用する。
+#	×	指定した日記へのReferenceをつける
+#		「上へ」「下へ」のリンク機能の追加(次/前は廃止?)
+#		まとめ読みの時、threadをわかりやすくする工夫を
 #		部分日付ソート
 #		aliasの登録機能
-#		Subjectの先頭にIconを!
-#		Boardを自由に選択する。
+#		Subjectの先頭にIconをつけたい
+#		Boardを自由に選択する
 
 
 ###
-## ユーザが定義する宣言(動かす前にチェックして!)
+## ユーザが定義する宣言(動かす前に必ず変更して!)
 #
 
 #
-# Maintenance
+# 管理者のe-mail addr.
 #
 $Maint = "nakahiro@ohara.info.waseda.ac.jp";
-
-#
-# このプログラムの名前
-#
-$PROGRAM_NAME = "kb.cgi";
 
 #
 # プログラムが存在するディレクトリのURL表示
 #
 $PROGRAM_DIR_URL = "/~nakahiro";
+
+
+###
+## ユーザが定義する宣言(特に変更しないでもOK)
+#
+
+#
+# このプログラムの名前
+#
+$PROGRAM_NAME = "kb.cgi";
 
 #
 # 記事のプレフィクス
@@ -99,6 +110,9 @@ $H_PRE = "整形済み文書";
 
 $H_AORI = "普通に書き込んで下さい。自動的な折り返しは行なわず、書いたまま表示されます。ただし、&lt; &gt; &amp; &quot; は、そのままでは使えません。代わりにそれぞれ、 &amp;lt; &amp;gt; &amp;amp; &amp;quot; と書くと、正しく表示されます。<br>HTMLのわかる方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
 
+#
+# 引用マーク
+#
 $DEFAULT_QMARK = " ] ";
 
 #
@@ -116,7 +130,7 @@ $URL_LENGTH     = 37;
 
 
 ###
-## その他の宣言(ここから先はいぢる必要はない、はず ^^;)
+## その他の宣言(ここから先は変更しないでね)
 #
 
 #
@@ -196,9 +210,10 @@ MAIN: {
 	$Num = $cgi'tags{'num'};
 
 	&Entry($NO_QUOTE, 0),			last MAIN if ($Command eq "n");
-	$Id ? &Entry($QUOTE_ON, $Id) : &FileEntry($File),
+	$Id ? &Entry($QUOTE_ON, $Id) : &FileEntry($QUOTE_ON, $File),
 						last MAIN if ($Command eq "q");
-	&Entry($NO_QUOTE, $Id),			last MAIN if ($Command eq "f");
+	$Id ? &Entry($NO_QUOTE, $Id) : &FileEntry($NO_QUOTE, $File),
+						last MAIN if ($Command eq "f");
 	&Thanks($File, $Id),			last MAIN if ($Command eq "x");
 	&SortArticle,				last MAIN if ($Command eq "r");
 	&NewArticle($Num),			last MAIN if ($Command eq "l");
@@ -531,6 +546,9 @@ sub MakeTemporaryFile {
 	if ($cgi'tags{'id'} != 0) {
 		$ReplyArticleFile = &GetArticleFileName($cgi'tags{'id'}, '');
 		$ReplyArticleSubject = &GetSubject($cgi'tags{'id'}, $Board);
+	} elsif ($cgi'tags{'file'} ne '') {
+		$ReplyArticleFile = "../" . $cgi'tags{'file'};
+		$ReplyArticleSubject = &GetSubjectFromFile($cgi'tags{'file'});
 	}
 
 	# エイリアスチェック
@@ -580,6 +598,8 @@ sub MakeTemporaryFile {
 	# 引用の場合
 	if ($cgi'tags{'id'} != 0) {
 		printf(TMP "<strong>$H_REPLY</strong> [$BoardName: %d] <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n", $cgi'tags{'id'});
+	} elsif ($cgi'tags{'file'} ne '') {
+		printf(TMP "<strong>$H_REPLY</strong> <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n");
 	}
 
 	print(TMP "------------------------<br>\n");
@@ -645,7 +665,12 @@ sub MakeNewArticle {
 	close TMP;
 
 	# ロックファイルを開く
-	open(LOCK, "$LOCK_FILE") || &MyFatal(1, $LOCK_FILE);
+	open(LOCK, "$LOCK_FILE")
+		# 開けなきゃ作る
+		|| (&MakeLockFile($LOCK_FILE) && open(LOCK, "$LOCK_FILE"))
+		# 作れなきゃエラー
+		|| &MyFatal(1, $LOCK_FILE);
+
 	# ロックをかける
 	&lock();
 
@@ -981,15 +1006,17 @@ sub GetandAddArticleId {
 	local($ArticleNumFile) = @_;
 
 	# 記事番号
-	local($ArticleId);
+	local($ArticleId) = 0;
 
-	open(AID, "$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
+	# 記事番号をファイルから読み込む。読めなかったら0のまま……のはず。
+	open(AID, "$ArticleNumFile");
 	while(<AID>) {
 		chop;
 		$ArticleId = $_;
 	}
 	close AID;
 
+	# 1増やして書き込む。
 	open(AID, ">$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
 	print(AID $ArticleId + 1, "\n");
 	close AID;
@@ -1150,6 +1177,15 @@ sub GetArticleFileName {
 ###
 ## ログファイルのロック関係
 #
+sub MakeLockFile {
+	# ファイル名
+	local($File) = @_;
+
+	open(MAKELOCK, ">$File") || return(0);
+	close MAKELOCK;
+	return(1);
+}
+
 sub lock {
 	# ロック
 	flock(LOCK, $LOCK_EX);
@@ -1243,8 +1279,8 @@ sub MyFatal {
 #
 sub FileEntry {
 
-	# 引用するファイル(kb.cgiから相対)
-	local($File) = @_;
+	# 引用あり/なしと、引用するファイル(kb.cgiから相対)
+	local($QuoteFlag, $File) = @_;
 
 	# 選択されたBoardの取得
 	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
@@ -1266,6 +1302,9 @@ sub FileEntry {
 	# 引用Id; 正規の引用でないので0。
 	print("<input name=\"id\" type=\"hidden\" value=\"0\">\n");
 
+	# 引用ファイル
+	print("<input name=\"file\" type=\"hidden\" value=\"$File\">\n");
+
 	# あおり文
 	print("<p>$H_AORI</p>\n");
 
@@ -1284,7 +1323,7 @@ sub FileEntry {
 
 	# 本文(引用ありなら元記事を挿入)
 	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">\n");
-	&QuoteOriginalFile($File);
+	&QuoteOriginalFile($File) if ($QuoteFlag == $QUOTE_ON);
 	print("</textarea><br>\n");
 
 	# 名前とメールアドレス、URL。
@@ -1318,7 +1357,7 @@ sub ViewOriginalFile {
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^<\/body>$/);
+		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -1326,7 +1365,7 @@ sub ViewOriginalFile {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^<body>$/);
+		$QuoteFlag = 1 if (/^<!-- Article Begin -->$/);
 
 	}
 	close TMP;
@@ -1349,7 +1388,7 @@ sub QuoteOriginalFile {
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^<\/body>$/);
+		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -1361,7 +1400,7 @@ sub QuoteOriginalFile {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^<body>$/);
+		$QuoteFlag = 1 if (/^<!-- Article Begin -->$/);
 
 	}
 	close TMP;
@@ -1374,7 +1413,24 @@ sub QuoteOriginalFile {
 #
 sub GetReplySubjectFromFile {
 
-	# IdとBoard
+	# ファイル
+	local($File) = @_;
+
+	# 取り出したSubject
+	local($Title) = &GetSubjectFromFile($File);
+
+	# 先頭に「Re: 」をくっつけて返す。
+	return("Re: $Title");
+
+}
+
+
+###
+## あるファイルからTitleを取ってくる
+#
+sub GetSubjectFromFile {
+
+	# ファイル
 	local($File) = @_;
 
 	# 取り出したSubject
@@ -1389,8 +1445,8 @@ sub GetReplySubjectFromFile {
 	}
 	close TMP;
 
-	# 先頭に「Re: 」をくっつけて返す。
-	return("Re: $Title");
+	# 返す。
+	return($Title);
 
 }
 
