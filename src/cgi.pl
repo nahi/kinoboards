@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.7 1996-09-13 13:53:00 nakahiro Exp $
+# $Id: cgi.pl,v 1.8 1996-09-13 14:18:02 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -114,7 +114,10 @@ sub SendMail {
     print(MAIL "Subject: $Subject\n");
 
     # 付加ヘッダ
-    print(MAIL $Extension) if ($Extension);
+    if ($Extension) {
+	&jcode'convert(*Extension, 'jis');
+	print(MAIL $Extension);
+    }
 
     # ヘッダ終わり
     print(MAIN "\n");
