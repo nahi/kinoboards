@@ -269,7 +269,7 @@ __EOF__
 	    $msg .= "<option>$Key\n";
 	}
 	$msg .=<<__EOF__;
-</select>
+</select><br>
 __EOF__
 
 	$note .=<<__EOF__;

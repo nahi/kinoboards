@@ -88,9 +88,11 @@ __EOF__
     }
 
     %tags = ( 'corig', $COrig, 'c', 'x', 'b', $BOARD, 'id', $Id,
-	    'texttype', $TextType, 'name', $Name, 'mail', $Email, 'url', $Url,
-	    'icon', $Icon, 'subject', $eSubject, 'article', $eArticle,
-	    'fmail', $Fmail, 's', $Supersede, 'op', $op );
+	     'texttype', $TextType,
+	     'name', ( $SYS_ALIAS == 2 )? $cgi'TAGS{'name'} : $Name,
+	     'mail', $Email, 'url', $Url, 'icon', $Icon, 'subject', $eSubject,
+	     'article', $eArticle, 'fmail', $Fmail, 's', $Supersede,
+	     'op', $op );
 
     &TagForm( *str, *tags, "ผยนิ", '', *msg );
     &cgiprint'Cache( $str );

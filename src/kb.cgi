@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43 1999-06-26 14:55:40 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.1 1999-07-19 10:16:10 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -61,7 +61,7 @@ $COLSEP = "\376";
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.5';		# release
+$KB_RELEASE = '6.6';		# release
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
@@ -232,15 +232,19 @@ MAIN:
     }
     elsif ( $c eq '' )
     {
-	if ( $SYS_F_B )
-	{
-	    $c = 'bl';
-	}
-	else
-	{
-	    $c = 'v';
-	    $BOARD = $BOARD || 'test';
-	}
+        if ( $BOARD )
+        {
+            $c = 'v';
+        }
+        elsif ( $SYS_F_B )
+        {
+            $c = 'bl';
+        }
+        else
+        {
+            $c = 'v';
+            $BOARD = 'test';
+        }
     }
 
     if ( $BOARD )
@@ -1496,7 +1500,7 @@ __EOF__
 
 __EOF__
 
-    if ( $SYS_HEADER_MENU )
+    if ( $SYS_HEADER_MENU && ( $SYS_F_B || $BOARD ))
     {
 	local( $select );
 	$select .= "表示画面: \n<select name=\"c\">\n";
@@ -1510,8 +1514,8 @@ __EOF__
 	    $select .= sprintf( "<option %s value=\"s\">$H_MESGの検索\n", ( $cgi'TAGS{'c'} eq 's' )? 'selected' : '' ) if $SYS_F_S;
 	    $select .= sprintf( "<option %s value=\"n\">新規書き込み\n", ( $cgi'TAGS{'c'} eq 'n' )? 'selected' : '' ) if $SYS_F_N;
 	    $select .= sprintf( "<option %s value=\"i\">使えるアイコン一覧\n", ( $cgi'TAGS{'c'} eq 'i' )? 'selected' : '' );
-	    $select .= "</select>\n // 表示件数: <input name=\"num\" type=\"text\" size=\"3\" value=\"" . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . "\"> ";
 	}
+	$select .= "</select>\n // 表示件数: <input name=\"num\" type=\"text\" size=\"3\" value=\"" . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . "\"> ";
 	local( %tags ) = ( 'b', $BOARD );
 	local( $str );
 	&TagForm( *str, *tags, "表示", 0, *select );
