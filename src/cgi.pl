@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.1 1998-08-28 19:21:04 nakahiro Exp $
+# $Id: cgi.pl,v 2.2 1998-09-14 16:24:26 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -1189,6 +1189,7 @@ package cgiprint;
 
 $STR = '';
 $BUFLIMIT = 4096;
+$CHARSET = 'jis';
 
 sub Init { $STR = ''; }
 
@@ -1198,7 +1199,7 @@ sub Cache {
 }
 
 sub Flush {
-    &jcode'convert( *STR, 'jis' );
+    &jcode'convert( *STR, $CHARSET );
     print( $STR );
     &Init;
 }
@@ -1206,4 +1207,3 @@ sub Flush {
 
 #/////////////////////////////////////////////////////////////////////
 1;
-
