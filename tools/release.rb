@@ -73,7 +73,7 @@ end
 `chmod 444 KB/kbdata/jcode.pl KB/kbdata/mimer.pl KB/kbdata/mimew.pl`
 
 `chmod 755 KB/kb/icon KB/kb/style`
-`chmod 755 KB/kb/kb.cgi`
+`chmod 755 KB/kb/index.cgi`
 `chmod 644 KB/kb/style/*`
 `chmod 444 KB/kb/icon/*`
 
