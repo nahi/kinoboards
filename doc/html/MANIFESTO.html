@@ -1,3 +1,4 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
 <TITLE>manifesto</TITLE>
@@ -9,7 +10,7 @@ manifesto
 </h1>
 
 <p>
-Last Update: 11/19/96
+Last Update: Feb 18, 1999
 </p>
 
 <hr>
@@ -19,49 +20,94 @@ Last Update: 11/19/96
 全てのファイルのJapanese Kanji Character Setのencoding scheme
 (以下単に漢字コード)は日本語EUCです．
 プログラムの挙動がおかしくなったら，まずは漢字コードをチェックしてくださいね．
+ファイル名の後ろに書かれているのは，
+サーバがUNIXの場合のファイルの推奨パーミッションです．
 </p>
 <p>
 <dl>
-<dt>COPYING
+<dt>kb/: 777
+<dd>以下のファイルが含まれているKINOBOARDS/1.0のメインディレクトリ．
+
+<dt>kb/COPYING: 444
 <dd>GNU GENERAL PUBLIC LICENSE Version 2, June 1991のCopyingメッセージ．
 
-<dt>doc
+<dt>kb/README: 444
+<dd>READMEファイル．最初に読んでください．
+
+<dt><a name="UI">kb/UI/</a>: 755
+<dd>きのぼーずシステム本体のうち，
+ユーザインタフェイス部のインプリメンテーションを含むディレクトリ．
+*.plというファイル個々で，各表示画面と送信メイルを生成しています．
+画面のタグを変更したい，あるいは送信するメイルの文面を変更したい場合には，
+各インプリメンテーションを書き換えてください．
+ただし，漢字コードは必ずEUCにしてくださいね．
+
+<dt>kb/board/: 777
+<dd>新規に掲示板を作成する際に利用する各種ファイルを保管するディレクトリ．
+このディレクトリ内は書き換えず，
+各ファイルを新しいディレクトリにコピーして，新しい掲示板を作成してください．
+
+<dl>
+<dt>kb/board/kb.db: 666
+<dd>掲示板に書き込まれた記事情報を管理するDB．
+
+<dt>kb/board/kb.aid: 666
+<dd>掲示板に書き込まれた最新記事のIDを管理するDB．
+
+<dt>kb/board/kb.board: 644
+<dd>掲示板の記事一覧の先頭に挿入されるhtmlファイル．
+</dl>
+
+<dt><a name="cgi.pl">kb/cgi.pl</a>: 444
+<dd>CGI関連package．
+<a href="#kb.cgi">kb.cgi</a>で読み込んで，
+表示，セキュリティチェック，メイル送信，システムのロック等を行います．
+
+<dt>kb/doc/: 755
 <dd>htmlによるドキュメントが格納されたディレクトリ．
 <a href="index.html">doc/index.html</a>は，
 少なくとも一度はアクセスしてみてください．
 
-<dt><a name="kb.cgi">kb.cgi</a>
-<dd>きのぼーずシステム本体であるperl script．
-記事の書き込み，記事の表示，タイトルの表示等，
-全ての機能がこのperl scriptにより実装されています．
-起動時に渡すCGI変数等の詳細は，ファイル中のコメントを参照してください．
+<dt>kb/icons/: 755
+<dd>アイコン用gifファイルを保管するディレクトリ．
 
-<dt>kb.ph
+<dl>
+<dt>kb/icons/all.idef: 644
+<dd>アイコンメッセージとgifファイルとのdefaultの対応を保持します．
+
+<dt>kb/icons/{掲示板ディレクトリ名}.idef: 644
+<dd>各掲示板固有の，アイコンメッセージとgifファイルとの対応を用意したい場合は，
+このようなファイルを作成してください．
+例えばテスト用掲示板では，icons/test.idefが存在するなら，
+そこに書かれた対応に従うことになります．
+</dl>
+
+<dt>kb/index.html: 644
+<dd>各掲示板に分岐するためのhtmlページ．
+自由に書き換えて結構です．このファイルのみ，漢字コードは任意ですが，
+読者の利便を考えるとJIS(ISO-2022-jp)にしておいた方がいいと思います
+(掲示板の中では全てJISになります)．
+
+<dt>kb/index.html.cgi-bin: 644
+<dd>CGI scriptとシステムを別ディレクトリに置かなければならないサイトのための，
+サンプルindex.htmlファイル．詳しくは
+<a href="INSTALL.html">INSTALLATIONファイル</a>
+を参照してください．
+
+<dt><a name="jcode.pl">kb/jcode.pl</a>: 444
+<dd>歌代さんによる，日本語漢字コード変換用のpackageです．
+
+<dt><a name="kb.cgi">kb/kb.cgi</a>: 755
+<dd>きのぼーずシステム本体であるperl script．
+アプリケーションモデルとデータモデルがインプリメントされています．
+ユーザインタフェイス部分は<a href="#UI">UIディレクトリ</a>の下の
+各ファイルでインプリメントされます．
+
+<dt>kb/kb.ph: 644
 <dd>きのぼーずシステムのサイト依存の設定を行なうためのperl header．
 管理者のメールアドレス，システムの機能設定，メッセージの定義等を行ないます．
-基本的にこのファイル中のメッセージを全て変更すれば，
-外国語版きのぼーずを作ることができるはずです
-(ただし，応答時に送られるメールの本文とエラーメッセージについては，
-<a href="#kb.cgi">kb.cgi</a>の中を直接変更してください)．
 
-<dt>cgi.pl
-<dd>CGI変数をdecodeするperl package．
-<a href="#kb.cgi">kb.cgi</a>で読み込んで，decodeを行います．
-また(株)SRAの歌代さんが作られたフリーウェアである
-<a href="ftp://ftp.sra.co.jp/pub/lang/perl/sra-scripts/">jcode.pl</a>
-(現時点での最新正式リリース版はv 1.12)を用いて，漢字コードの変換を行ないます．
-
-<dt><a name="tag_secure.pl">tag_secure.pl</a>
-<dd>文字列中に含まれる不正なタグをチェックするperl package．
-<a href="http://www.kinotrope.co.jp/">キノトロープ</a>の
-<a href="http://www.kinotrope.co.jp/~ami/">河合あみこさん</a>
-によるフリーウェア．ver 1.0．
-<a href="#kb.cgi">kb.cgi</a>の中に読み込んで，
-投稿された記事のチェックを行ないます．
-使用可能なタグはヘッダ部分で定義されているので，
-必要があれば変更，追加してください．
-
-<dt><a name="kinoboards">kinoboards</a>
+<dt><a name="kinoboards">kb/kinoboards</a>: 644
 <dd>きのぼーずシステムが扱う，
 掲示板のディレクトリ名と正式名との対応を管理するDB．
 <a href="MAINT.html#addboard">掲示板を増やす場合</a>に，
@@ -69,72 +115,34 @@ Last Update: 11/19/96
 行末には必ず改行コードを入れてください．
 配布時に登録されている掲示板は，「test/テスト」のみです．
 
-<dt>kinousers
+<dt><a name="kinologue.pl">kb/kinologue.pl</a>: 444
+<dd>ログを書き出すためのpackage．
+<a href="#kb.cgi">kb.cgi</a>で読み込んで使われます．
+
+<dt>kb/kinousers: 666
 <dd>ユーザのエイリアスを管理するDB．
 エイリアス名，ユーザ名，E-mail addr.，URL等を管理します．
 <a href="#kinoboards">kinoboards</a>とは異なり，
 基本的にユーザが直接ファイルを書き換える必要はありません．
 配布時は空です．
 
-<dt>icons
-<dd>アイコン用gifファイルを保管するディレクトリ．
+<dt><a name="mimew.pl">kb/mimew.pl</a>: 444
+<dt><a name="mimer.pl">kb/mimew.pl</a>: 444
+<dd>生田さんによる，MIME base64 encoding/decodingのためのpackageです．
+mime_pls/2.00αのパッケージに含まれているライブラリです．
+mime_pls-2_00alpha_tar.gzが，mime_plsのフルパッケージになります．
 
-<dl>
-<dt>icons/all.idef
-<dd>アイコンメッセージとgifファイルとのdefaultの対応を保持します．
-
-<dt>icons/{掲示板ディレクトリ名}.idef
-<dd>各掲示板固有の，アイコンメッセージとgifファイルとの対応を用意したい場合は，
-このようなファイルを作成してください．
-例えばテスト用掲示板では，icons/test.idefが存在するなら，
-そこに書かれた対応に従うことになります．
-</dl>
-
-<dt>board
-<dd>新規に掲示板を作成する際に利用する各種ファイルを保管するディレクトリ．
-このディレクトリ内は書き換えず，
-各ファイルを新しいディレクトリにコピーして，新しい掲示板を作成します．
-
-<dl>
-<dt>board/.db
-<dd>掲示板に書き込まれた記事情報を管理するDB．
-
-<dt>board/.articleid
-<dd>掲示板に書き込まれた最新記事のIDを管理するDB．
-
-<dt>board/.board
-<dd>掲示板の記事一覧の先頭に挿入されるhtmlファイル．
-
-<dt>board/.board.cgi-bin
-<dd>CGI scriptとシステムを別ディレクトリに置かなければならないサイトのための，
-サンプル.boardファイル．詳しくは
-<a href="INSTALL.html">INSTALLATIONファイル</a>
-を参照してください．
-</dl>
-
-<dt>test
+<dt>kb/test/: 777
 <dd>配布時に用意されているテスト用掲示板の記事を保管するディレクトリ．
-
-<dt>index.html
-<dd>各掲示板に分岐するためのhtmlページ．
-自由に書き換えて結構です．このファイルのみ，漢字コードは任意ですが，
-読者の利便を考えるとJIS(ISO-2022-jp)にしておいた方がいいと思います
-(掲示板の中では全てJISになります)．
-
-<dt>index.html.cgi-bin
-<dd>CGI scriptとシステムを別ディレクトリに置かなければならないサイトのための，
-サンプルindex.htmlファイル．詳しくは
-<a href="INSTALL.html">INSTALLATIONファイル</a>
-を参照してください．
 </dl>
 </p>
 
 <hr>
 
 <address>
-<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
-Copyright (C) 1995, 96
-<a href="http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</a>.
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+Copyright (C) 1995-99
+<a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
 </body>
 </html>

@@ -1,3 +1,4 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
 <TITLE>maintenance</TITLE>
@@ -9,17 +10,33 @@ maintenance
 </h1>
 
 <p>
-Last Update: 8/22/96
+Last Update: Feb 18, 1999
 </p>
 
 <hr>
 
-<h2><a name="addboard">1. 掲示板の増やし方</a></h2>
+<h2>目次</h2>
+
+<p>
+<ul>
+<li><a href="#addboard">1. 掲示板を新設する</a>
+<li><a href="#customize">2. 掲示板の機能を個別にカスタマイズする</a>
+<li><a href="#iconconf">3. 掲示板のアイコンを個別にカスタマイズする</a>
+<li><a href="#adddb">4. 用意したファイルをメッセージ扱いする</a>
+<li><a href="#arrivemail">5. 書き込みがあった時に，記事をメイルで自動配信する宛先を設定する</a>
+<li><a href="#correct">6. 記事を訂正する</a>
+<li><a href="#delete">7. 記事を削除する</a>
+<li><a href="#log">8. ログを監視する</a>
+</ul>
+</p>
+
+<hr>
+
+<h2><a name="addboard">1. 掲示板を新設する</a></h2>
 
 <p>
 掲示板用ディレクトリの作成と，掲示板DBへのエントリが必要です．
 </p>
-<p>
 <ol>
 <li>新規に作成する掲示板の，ディレクトリ名と掲示板名を決めます．
 
@@ -37,26 +54,21 @@ cp -pr board forum<br>
 </code>
 </blockquote>
 
-<li>記事一覧のヘッダ部分に表示するコメントを，適当に変更します
-(そのままでも構いません)．漢字コードは日本語EUCにしてください．
-
-<li>そのファイルの，掲示板のディレクトリを指定している部分を，
-全て新しい掲示板のものに書き換えます．
-
-<blockquote>
-<code>
-...&<strong>b=test</strong>&... → ...&<strong>b=forum</strong>&...
-</code>
-</blockquote>
+<li>記事一覧のヘッダ部分に表示するコメントを，適当に変更します．
+先ほど新規掲示板用ディレクトリにコピーされた，
+「kb.board」というファイルを書き換えてください(そのままでも構いません)．
+漢字コードは日本語EUCにしてください．
+<br><br>
 
 <li>掲示板DBであるkinoboardsというファイルに，
-ディレクトリ名と掲示板名を，TAB文字(必ず1つ)で区切って追加します．
+ディレクトリ名と掲示板名，さらに「0」を，
+TAB文字(必ず1つ)で区切って追加します．
 漢字コードは日本語EUCで，
 追加した行の行末には，必ず改行コードを入れてください．
 
 <blockquote>
 <code>
-forum	フォーラム
+forum	フォーラム	0
 </code>
 </blockquote>
 
@@ -68,33 +80,33 @@ forum	フォーラム
 </code>
 </blockquote>
 </ol>
-</p>
 
-<h2>2. 個別掲示板の機能のカスタマイズ</h2>
+<hr>
+
+<h2><a name="customize">2. 掲示板の機能を個別にカスタマイズする</a></h2>
 
 <p>
 kb.phをコピーして，掲示板用に書き換えます．
-</p>
-<p>
+</p><p>
 <ol>
-<li>手動でロックファイルを作成し，システムを止めます．
+<li>まずシステムを止めます．
 
 <blockquote>
 <code>
-touch .lock.kb
+chmod go-x kb.cgi
 </code>
 </blockquote>
 
 <li>kb.phファイルを，掲示板ディレクトリにコピーします．
-「.kbconf」という名前でコピーしてください．
+「kb.conf」という名前でコピーしてください．
 
 <blockquote>
 <code>
-cp -p kb.ph forum/.kbconf
+cp -p kb.ph forum/kb.conf
 </code>
 </blockquote>
 
-<li>.kbconfファイルを編集し，メッセージやシステム機能を変更します．
+<li>kb.confファイルを編集し，メッセージやシステム機能を変更します．
 kb.phと同じ部分については削除して構いません．
 
 <blockquote>
@@ -111,32 +123,48 @@ $SYS_BOTTOMTITLE = 1;
 </pre>
 </blockquote>
 
-<li>ロックファイルを消去し，システムを再び稼働可能にします．
+<li>掲示板DBであるkinoboardsというファイルで，
+該当掲示板でkb.confを読み込むように設定します．
+具体的には，TAB文字で区切った3データ目に「1」を設定します
+（ここが「0」になっていると，kb.confがあっても読み込みません）．
 
 <blockquote>
 <code>
-rm .lock.kb
+forum	フォーラム	1
 </code>
 </blockquote>
-</ol>
 
-<h2>3. 個別掲示板のアイコンのカスタマイズ</h2>
+<li>システムを再び稼働可能にします．
+
+<blockquote>
+<code>
+chmod go+x kb.cgi
+</code>
+</blockquote>
+
+</ol>
+</p>
+
+<hr>
+
+<h2><a name="iconconf">3. 掲示板のアイコンを個別にカスタマイズする</a></h2>
 
 <p>
 アイコン定義ファイルをコピーして，掲示板用に書き換えます．
-</p>
-<p>
+</p><p>
 <ol>
-<li>手動でロックファイルを作成し，システムを止めます．
+<li>まずシステムを止めます．
 
 <blockquote>
 <code>
-touch .lock.kb
+chmod go-x kb.cgi
 </code>
 </blockquote>
 
 <li>必要なアイコンファイルを用意してください．
-ただし20 dot×20 dotのアイコンに限ります．
+20 dot×20 dotでないアイコンを作成する場合，
+kb.phの中の，$MSGICON_HEIGHTと$MSGICON_WIDTHも変更してください．
+全アイコンが同じサイズであれば，縦長，横長，どんなサイズでもOKです．
 
 <li>iconsディレクトリの中のアイコン定義ファイル，all.idefファイルを，
 掲示板ディレクトリ.idefという名前でコピーします．
@@ -160,27 +188,146 @@ complete.gif	完了
 </pre>
 </blockquote>
 
-<li>ロックファイルを消去し，システムを再び稼働可能にします．
+<li>システムを再び稼働可能にします．
 
 <blockquote>
 <code>
-rm .lock.kb
+chmod go+x kb.cgi
 </code>
 </blockquote>
+
 </ol>
-
-<h2>4. 記事の訂正</h2>
-
-<p>
-記事ファイルを直接書き換えます．
 </p>
+
+<hr>
+
+<h2><a name="adddb">4. 用意したファイルをメッセージ扱いする</a></h2>
+
 <p>
+KINOBOARDS/1.0を使って書き込まれた記事以外に，
+既存のファイル(例えば書き溜めた日記等)を，
+KINOBOARDS/1.0の記事扱いすることができます．
+既存の記事群にリプライを貰えるようにすることや，
+簡易検索エンジンとして使うことができます．
+</p><p>
 <ol>
-<li>手動でロックファイルを作成し，システムを止めます．
+<li>ファイルを登録する掲示板を決めます．
+<a href="#addboard">新しく作っても</a>構いませんし，
+既存の掲示板に追加しても構いません．
+ただし既存の掲示板に追加する場合，すでに登録されているIDと，
+新規に追加するファイル名が重ならないようにしてください．
+
+<li>まずシステムを止めます．
 
 <blockquote>
 <code>
-touch .lock.kb
+chmod go-x kb.cgi
+</code>
+</blockquote>
+
+<li>shellから以下のコマンドを実行し，kb.dbファイルにファイルを登録してください．
+「ls」でなくて「\ls」です．
+<blockquote>
+<code>
+<pre>
+\ls d9612.html d9701.html d9702.html	(←追加するファイル群)
+(追加するファイルを確認する)
+\ls !* &gt;&gt; kb.db
+</pre>
+</code>
+</blockquote>
+
+<li>用意するファイルは，HTMLとして解釈されます．
+必要なら，
+<ul>
+<li>ファイルの先頭部分のHTMLタグやHEADタグを取り除く．
+<li>ファイルの先頭に&lt;pre&gt;を，末尾に&lt;/pre&gt;を加える．
+</ul>
+等の処理を行ない，記事として挿入可能なHTMLにしておいてください．
+
+<li>システムを再び稼働可能にします．
+
+<blockquote>
+<code>
+chmod go+x kb.cgi
+</code>
+</blockquote>
+
+</ol>
+</p>
+
+<hr>
+
+<h2><a name="arrivemail">5. 書き込みがあった時に，記事をメイルで自動配信する宛先を設定する</a></h2>
+
+<p>
+掲示板毎に，宛先を書いた専用のファイルを作成します．
+このファイルがなければ，メイルは送られません．
+</p><p>
+<ol>
+<li>まずシステムを止めます．
+
+<blockquote>
+<code>
+chmod go-x kb.cgi
+</code>
+</blockquote>
+
+<li>掲示板ディレクトリの中に，「kb.mail」というファイルを作ります．
+ファイルの中には，1行に1つのメイルアドレスを書きます．
+その掲示板に書き込みがあった場合，
+ここに書かれたメイルアドレスたちに対して，
+自動で記事が配信されることになります．
+
+<blockquote>
+<code>
+nahi@keynauts.com<br>
+nakahiro@kinotrope.com
+</code>
+</blockquote>
+
+<li>行の先頭に「#」をつけると，コメント扱いになります
+(そのメイルアドレスに対してはメイルが送られません)．
+
+<blockquote>
+<code>
+nahi@keynauts.com<br>
+# nakahiro@kinotrope.com ※海外出張のため，4月まで配信せず
+</code>
+</blockquote>
+
+<li>各掲示板毎に，以上の設定を行なってください．
+掲示板ディレクトリに「kb.mail」というファイルがなくても構いません．
+なければ誰にも送られないだけです．
+
+<li>システムを再び稼働可能にします．
+
+<blockquote>
+<code>
+chmod go+x kb.cgi
+</code>
+</blockquote>
+
+</ol>
+</p>
+
+<hr>
+
+<h2><a name="correct">6. 記事を訂正する</a></h2>
+
+<p>
+<a href="#Special">機能特別版のkb.cgiプログラムを作</a>
+ってある場合，記事の訂正はブラウザから行なうことができます．
+なんらかの理由により，機能特別版のkb.cgiがインストールできない場合は，
+以下のようにして，記事ファイルを直接書き換えます．
+</p>
+
+<ol>
+<li>まずシステムを止めます．
+
+<blockquote>
+<code>
+chmod go-x kb.cgi
 </code>
 </blockquote>
 
@@ -198,40 +345,45 @@ chmod 666 123
 
 <li>該当記事のファイルを書き換えます．
 
-<li>ロックファイルを消去し，システムを再び稼働可能にします．
+<li>システムを再び稼働可能にします．
 
 <blockquote>
 <code>
-rm .lock.kb
+chmod go+x kb.cgi
 </code>
 </blockquote>
+
 </ol>
-</p>
 
-<h2>5. 記事の削除</h2>
+<hr>
+
+<h2><a name="delete">7. 記事を削除する</a></h2>
 
 <p>
-もったいないので:-)記事ファイルは保存し，記事DBを書き換えます．
+<a href="#Special">機能特別版のkb.cgiプログラムを作</a>
+ってある場合，記事の削除はブラウザから行なうことができます．
+なんらかの理由により，機能特別版のkb.cgiがインストールできない場合は，
+以下のようにして，記事ファイル群を直接書き換えます．
 </p>
-<p>
+
 <ol>
-<li>手動でロックファイルを作成し，システムを止めます．
+<li>まずシステムを止めます．
 
 <blockquote>
 <code>
-touch .lock.kb
+chmod go-x kb.cgi
 </code>
 </blockquote>
 
-<li>掲示板ディレクトリ内の記事DB(.db)のモードを変更し，
+<li>掲示板ディレクトリ内の記事DB(kb.db)のモードを変更し，
 書き換えられるようにします．
 
 <blockquote>
 <code>
 cd test<br>
-mv .db foo<br>
-cp -p foo .db<br>
-chmod 666 .db
+mv kb.db foo<br>
+cp -p foo kb.db<br>
+chmod 666 kb.db
 </code>
 </blockquote>
 
@@ -240,42 +392,72 @@ chmod 666 .db
 <blockquote>
 <code>
 <pre>
-11	0		4/30(00:48)	こんにちは	なし	foo.bar.jp	なひ	nakahiro@kinotrope.co.jp	http://	
+11	0		123456789	こんにちは	なし	foo.bar.jp	なひ	nahi@keynauts.com	http://	
 ↓
-#11	0		4/30(00:48)	こんにちは	なし	foo.bar.jp	なひ	nakahiro@kinotrope.co.jp	http://	
+#11	0		123456890	こんにちは	なし	foo.bar.jp	なひ	nahi@keynauts.com	http://	
 </pre>
 </code>
 </blockquote>
 
-<li>ロックファイルを消去し，システムを再び稼働可能にします．
+<li>該当記事のファイルを削除します．
+いつでも復活させられるように，
+適当なディレクトリに保存しておいたほうがいいでしょう．
 
 <blockquote>
 <code>
-rm .lock.kb
+mv 15 ~/tmp
 </code>
 </blockquote>
+
+<li>システムを再び稼働可能にします．
+
+<blockquote>
+<code>
+chmod go+x kb.cgi
+</code>
+</blockquote>
+
 </ol>
 
-<h2>6. 異常終了時からのシステムの復帰</h2>
+<h2><a name="log">8. ログを監視する</a></h2>
 
 <p>
-システムが異常終了した場合，ロックファイルが残ってしまい，
-システムがいつまでも動かなくなることがあります．
-その場合は手動でロックファイルを削除して下さい．
-
+R5.2から，
+<a href="http://www.jin.gr.jp/~nahi/src/perl.shtml#kinologue.pl">kinologue.pl</a>
+を使って，KINOBOARDSの動作ログを取れるようにしました．
+なんらかの警告や障害があった場合，
+kbディレクトリ内のkb.klgというファイルに，
+コメントとその重要度が書き出されます．各重要度は次の意味を持ちます．
 <blockquote>
-<code>
-rm .lock.kb
-</code>
+<table align="center" border="1" cellpadding="1">
+<tr><th>行頭の識別子</th><th>重要度ラベル</th><th>意味</th></tr>
+<tr><td>W,</td><td>WARN</td><td>単なる警告．</td></tr>
+<tr><td>E,</td><td>ERROR</td><td>エラー．できるなら対処すべき．</td></tr>
+<tr><td>C,</td><td>CAUTN</td><td>エラー．なんらかの対処が必要．</td></tr>
+<tr><td>F,</td><td>FATAL</td><td>エラー．システムは再起動不可能な状態．</td></tr>
+<tr><td>A,</td><td>ANY</td><td>不明．その他のコメント．</td></tr>
+</table>
 </blockquote>
+</p>
+<p>
+設定次第では，ログを取らないようにすることもできます．
+インストール直後の動作の安定しないうちは，
+原因究明のため，極力ログを取るようにしてください．
+動作が安定してきたらログを取らない設定に変更するといいでしょう．
+</p>
+<p>
+ただ，悪戯等を見張るためにも，できればログを取り続けることをお勧めします．
+その場合，ログファイル（kb.klg）はどんどん大きくなるので，
+適宜削除するなり移動して圧縮するなりしてください．
+掲示板動作中にこれらの作業をしても，なんら問題はありません．
 </p>
 
 <hr>
 
 <address>
-<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
-Copyright (C) 1995, 96
-<a href="http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</a>.
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+Copyright (C) 1995-99
+<a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
 </body>
 </html>

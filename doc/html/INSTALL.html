@@ -1,3 +1,4 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
 <TITLE>installation</TITLE>
@@ -9,235 +10,1027 @@ installation
 </h1>
 
 <p>
-Last Update: 9/18/96
+Last Update: Feb 18, 1999
 </p>
 
 <hr>
 
 <p>
-インストール方法は，旧バージョン(R2.3)をインストール済みか，
-それとも初めてのインストールなのか，
-また，あなたが利用するhttpサーバのCGIの稼働設定に応じ，
-以下の3種類にわかれています．
-
-<ul>
-<li><a href="#1">1. R2.3をインストール済み</a>
-<li>初めてのインストール
-<ul>
-<li><a href="#2">2. CGIを自分のディレクトリ内に持てる場合</a>
-<li><a href="#3">3. CGIは共通のディレクトリに置かなければならない場合</a>
-</ul>
-</ul>
+インストール方法は，初めてのインストールか，
+それとも旧バージョンのバージョンアップかに応じて，
+2種類にわかれています．
 </p>
 
-<h2><a name="1">1. R2.3からのバージョンアップ</a></h2>
-
-<p>
-release 2.3から変更のあったファイルで，
-今回のpatchファイル(kb10_24.patch)によってバージョンアップされるのは，
-以下のファイル群です．
-
 <ul>
-<li>kb.cgi
-<li>kb.ph
-<li>docディレクトリ以下のドキュメント
-<li>cgi.pl
-<li>tag_secure.pl
+<li><a href="#New">A. 初めてのインストール</a>
+<li><a href="#Update">B. バージョンアップインストール</a>
 </ul>
 
+<p>
+バージョンアップインストールをするためには，
+<strong>プロバイダのマシンにtelnetできなければなりません</strong>．
+telnetできない人は，
+<a href="#New">初めてのインストール</a>
+を見て，新しくインストールし直してください．
+</p>
+
+<hr>
+
+<h2><a name="New">A. 初めてのインストール</a></h2>
+
+<p>
+初めてのインストールは，
+</p>
+
+<ul>
+<li>あなたが利用するプロバイダでは，
+CGIプログラムを自由なディレクトリに置くことができるのか，
+あるいは決まったディレクトリ(cgi-bin等)に置かなければならないのか．
+<li>あなたがプロバイダのマシンにtelnetできるか否か．
+</ul>
+
+<p>
+に応じて一部手順が異なります．御注意ください．
+</p>
+
+<p>
+WinNT上のIIS4.0がサーバの場合，IIS側の設定としては，
+いさおさんが書かれた記事，
+「<a href="http://www.jin.gr.jp/~nahi/kb.cgi?b=k&c=e&id=1636">R5.7 on NT(IIS4.0)</a>」
+が参考になると思います．
+この記事は いさおさんがKINOBOARDS/1.0R5.7をインストールする人のために
+書いてくださったものですが，
+本リリースでも全く同じようにインストールできるはずです．
+いさおさん，どうもありがとうございました．
+</p>
+
+<p>
+また，以下の特殊な例にも御注意ください．
+</p>
+
+<p>
+プロバイダに依っては，CGI WrapperというCGI起動用ラッパープログラムを
+利用している場合があります
+（具体的には，1999年2月時点で，hi-ho，interqなど）．
+またCobalt Networks社のCobalt Cube 2700J，Cobalt Raq J R15 125 NIUも，
+CGI Wrapperを利用しています．
+この場合はkb.cgiに若干の変更が必要です．
+「<a href="http://www.jin.gr.jp/~nahi/kb.cgi?b=k&c=e&id=1832">もすこし</a>」
+を参考にしてください．
+</p>
+
+<p>
+プロバイダに依っては，サーバApacheのsuEXEC機能を利用している場合があります
+（具体的には，1999年1月時点で，A-CUBE，X-Jamなど）．
+この場合はkbディレクトリのパーミッションを777から755に変更する必要があります．
+「<a href="http://www.jin.gr.jp/~nahi/kb.cgi?b=k&c=t&id=1815">．．．動きました。（大汗）</a>」
+を参考にしてください．
+</p>
+
+<p>
+それでは始めましょう．
+インストールは以下の手順で進めてください．
+</p>
+
 <ol>
-<li>patchファイル(kb10_24.patch)をダウンロードしてください．
-
-<li>release 2.3のkbディレクトリへ行き，システムを止め，
-念のためバックアップを取ってください．
-もし記事が消えたり，設定が変わって動かなくなっても，責任は取れません(^_^;．
-バックアップは必ず取っておいてくださいね．
-
-<blockquote>
-<code>
-cd ~/public_html/kb<br>
-touch .lock.kb<br>
-cd ..<br>
-tar cvfp kb.tar kb<br>
-</code>
-</blockquote>
-
-<li>kbディレクトリに対して，patchを当ててください．
-
-<blockquote>
-<code>
-cd ~/public_html/kb<br>
-cd ..<br>
-patch < kb10_24.patch<br>
-</code>
-</blockquote>
-
-<li>システムのロックを外し，システムが正しく動作することを確認してください．
-
-<blockquote>
-<code>
-rm .lock.kb<br>
-</code>
-</blockquote>
+<li><a href="#DownLoad">ダウンロード</a>
+<li><a href="#Expand">展開</a>
+<li><a href="#PerlPath">Perlのパスの設定</a>
+<li><a href="#Put">ファイル送信</a>
+<li><a href="#Mode">ファイルモードの設定</a>
+<li><a href="#InitialTest">初期テスト</a>
+<li><a href="#WwwTest">CGI動作テスト</a>
+<li><a href="#Config">カスタマイズ</a>
+<li><a href="#KbPhTest">設定ファイルテスト</a>
+<li><a href="#LastTest">カスタマイズ掲示板動作テスト</a>
+<li><a href="#Special">機能特別版のkb.cgiプログラムを作る</a>
 </ol>
-</p>
-
-<h2><a name="2">2. ユーザがCGIを自分のディレクトリ内に持てる設定</a></h2>
 
 <p>
-以下の手順でインストールを行ないます．
-
-<ol>
-<li>WWWとしてアクセス可能なディレクトリで，
-配布パッケージ(tar + gzip)を展開します．
-
-<blockquote>
-<code>
-gzip -dc kb10_24.tar.gz | tar xvfp -
-</code>
-</blockquote>
-
-<li>注意!: 展開時，tarのpオプションを忘れないようにしてください．
-本システムはパーミッションにシビアです! m(..)m
-
-<li>kbというディレクトリが作られ，その中にプログラム本体が展開されます．
-
-<li>サーバの設定によっては，そのディレクトリでCGIプログラムが動くために，
-.htaccessというファイルの設定が必要です．
-設定方法等は，サーバ管理者の方に問い合わせてください．
-
-<li>展開してできたkbディレクトリに，jcode.plを置きます．
-<a href="ftp://ftp.sra.co.jp/pub/lang/perl/sra-scripts/">SRAのftp site</a>
-から取ってきて，他人でも読めるようにして置いてください．
-jcode.plは(株)SRAの歌代さんが作られたフリーウェアで，
-これがなければ日本語のコード変換ができません．
-
-<blockquote>
-<code>
-chmod a+r jcode.pl
-</code>
-</blockquote>
-
-<li>kb.cgiの先頭行のperlのpathを，動作環境に合わせて設定します．
-
-<blockquote>
-<code>
-#!/usr/local/bin/perl → #!/usr/local/bin/GNU/perl5
-</code>
-</blockquote>
-
-<li>もう動くはずなので，適当なブラウザで，
-配布パッケージを展開した時に作られたkbディレクトリにある，
-index.htmlにアクセスしてみてください．
-
-<li>とりあえず動くことを確認したら，kb.phを書き換えて，
-きのぼーずをあなたのサイト用に設定し直してください．
-ただし，特に変更が必要なのは「管理者のメールアドレス」のみだと思います
-(必ず変更してくださいね ^_^;)．
-「システム設定」や「メッセージ」は，お好みで変更してください．
-</ol>
+長々とお疲れさまでした．(^_^;
+1〜10まで(必要だったら11まで)くれば，インストールは終わりです．
+システムをインストールして頂きましたら，
+<a href="http://www.jin.gr.jp/~nahi/kv.cgi?b=example">きのぼずインストーラリスト</a>
+にある，アンケートに御協力ください．
+今後の開発の参考にしますので，どうかよろしくお願いします．m(..m
 </p>
 
-<h2><a name="3">3. CGIを共通のディレクトリに置く設定</a></h2>
+<hr>
+
+<h2><a name="DownLoad">1. ダウンロード</a></h2>
 
 <p>
-この場合，CGI(kb.cgi)と，その他のファイルを置くディレクトリを，
-分けなければなりません．
-以下の手順でインストールを行ないます．
+<a href="http://www.jin.gr.jp/~nahi/src/perl.shtml#KINOBOARDS">圧縮パッケージ</a>
+（kb10_64.tar.gz，もしくはkb10_64.LZH）
+をダウンロードして，自分のパソコンに保存してください．
+</p>
+
+<hr>
+
+<h2><a name="Expand">2. 展開</a></h2>
+
+<p>
+圧縮パッケージを展開します．
+プロバイダのマシンにtelnetできない人は，
+自分のパソコン上で圧縮パッケージを展開してください．
+</p>
+
+<p>
+telnetできる人は上記ツールがなくても，
+プロバイダのマシン上で展開することができます
+(プロバイダのマシンがUNIXで，tarとgzipがインストールされていた場合;
+現状ではほとんどのプロバイダがこれに当てはまるはずです)．
+まずkb10_64.tar.gzの方の圧縮パッケージを，
+FTPソフトウェアで自分のディレクトリの中に送ってください．
+次にプロバイダのマシンにtelnetしてログインし，
+圧縮パッケージが置かれているディレクトリへ行ったあと，
+</p>
+
+<blockquote><pre>
+gzip -dc kb10_64.tar.gz | tar xvfp -
+</pre></blockquote>
+
+<p>
+と入力してください．
+</p>
+
+<p>
+圧縮パッケージを展開すると，kbというディレクトリと，
+そのディレクトリの中にいくつかのファイルとディレクトリが作られるはずです．
+</p>
+
+<blockquote><pre>
+kb
+  |
+  +--COPYING
+  +--README
+  +--jcode.pl
+  +--mimer.pl
+  +--mimew.pl
+  +--mime_pls-2_00alpha_tar.gz
+  +--cgi.pl
+  +--kinologue.pl
+  +--index.html
+  +--index.html.cgi-bin
+  +--index.shtml
+  +--kb.cgi
+  +--kb.ph
+  +--kinoboards
+  +--kinousers
+  |
+  +--UI
+  |    |
+  |    +--AliasDel.pl
+  |    +--AliasMod.pl
+  |    +--AliasNew.pl
+  |    +--AliasShow.pl
+  |    +--ArriveMail.pl
+  |    +--ArriveMailEntry.pl
+  |    +--ArriveMailExec.pl
+  |    +--BoardList.pl
+  |    +--DeleteExec.pl
+  |    +--DeletePreview.pl
+  |    +--Entry.pl
+  |    +--Fatal.pl
+  |    +--FollowMail.pl
+  |    +--NewArticle.pl
+  |    +--Preview.pl
+  |    +--SearchArticle.pl
+  |    +--ShowArticle.pl
+  |    +--ShowIcon.pl
+  |    +--SortArticle.pl
+  |    +--Thanks.pl
+  |    +--ThreadArticle.pl
+  |    +--ViewTitle.pl
+  |
+  +--board
+  |    |
+  |    +--kb.aid
+  |    +--kb.board
+  |    +--kb.db
+  |
+  +--doc
+  |    |
+  |    +--CHANGES.html
+  |    +--ENVIRONMENT.html
+  |    +--ICONS.html
+  |    +--INSTALL.html
+  |    +--MAINT.html
+  |    +--MANIFESTO.html
+  |    +--VERSION.html
+  |    +--index.html
+  |
+  +--icons
+  |    :
+  |
+  +--test
+       |
+       +--kb.aid
+       +--kb.board
+       +--kb.db
+</pre></blockquote>
+
+<hr>
+
+<h2><a name="PerlPath">3. Perlのパスの設定</a></h2>
+
+<p>
+kb.cgiというファイルの先頭行には，
+KINOBOARDSを動かすために必要なPerlというプログラムのパスが書かれています．
+展開時には一般的な設定がされていますが，
+ウェブサーバに依って違うため，調べて正しく設定しなければなりません．
+</p>
+
+<p>
+Perlのパスを調べるには，telnetしてログインした後，
+</p>
+
+<blockquote><pre>
+which perl
+</pre></blockquote>
+
+<p>
+と入力してください．
+telnetできない人や，「見つからない」と言われた人は，
+プロバイダの利用案内やFAQを探してみてください．
+どうしてもみつからなければ管理者に問い合わせてください．
+</p>
+
+<p>
+Perlのパスがわかったら，kb.cgiを書き換えます．
+圧縮パッケージをプロバイダのマシン上で展開した人は，
+まずFTPソフトウェアでkb.cgiを自分のパソコンに取ってきましょう．
+kb.cgiを適当なエディタで開いて，先頭行を書き換えてください．
+</p>
+
+<blockquote><pre>
+例: Perlのパスが/usr/local/bin/GNU/perlだった場合
+
+#!/usr/local/bin/perl → #!/usr/local/bin/GNU/perl
+</pre></blockquote>
+
+<p>
+また，サーバがIISの場合，kb.cgiの続く2つ目の項目で，
+パッケージを展開・伸長してできたkbディレクトリのフルパスを指定してください．
+サーバがIISでない場合は書き換える必要はありません．
+</p>
+
+<blockquote><pre>
+例: 展開・伸長してできたkbディレクトリがd:\inetpub\wwwroot\kbだった場合
+
+$IIS_TRANSLATED_PATH = '';
+
+↓
+
+$IIS_TRANSLATED_PATH = 'd:\inetpub\wwwroot\kb';
+</pre></blockquote>
+
+<p>
+さらに，サーバOSがWin95/Win98もしくはMacの場合
+（プロバイダがこれらのマシンをサーバにすることはないでしょうから，
+自分のパスコンでテストする場合ですね），
+kb.cgiの続く3つ目の項目を，以下のように書き換えます．
+サーバがWin95/Win98，Macでない場合は書き換える必要はありません．
+</p>
+
+<blockquote><pre>
+$PC = 0;	# for UNIX / WinNT
+# $PC = 1;	# for Win95 / Mac
+
+↓
+
+# $PC = 0;	# for UNIX / WinNT
+$PC = 1;	# for Win95 / Mac
+</pre></blockquote>
+
+<p>
+この時，間違えて先頭行以外を書き換えたり，
+漢字コードを変更してしまったりしないようにしてください
+(Perlのプログラムは基本的にEUCでなければ動きません．
+SJISでも一見動いているように見えることがありますが，
+遅かれ早かれ不都合が生じます)．
+</p>
+
+<hr>
+
+<h2><a name="Put">4. ファイル送信</a></h2>
+
+<p>
+展開された10のファイル(cgi.pl，jcode.pl，mimer.pl，mimew.pl，kinologue.pl，
+index.html，kb.cgi，kb.ph，kinoboards，kinousers)
+と3つのディレクトリ(UI，icons，test)を，
+決められたディレクトリ構成に従って，プロバイダのマシン上に設置します．
+CGIプログラムの設置形態に応じて，以下を参照してください．
+</p>
+
+<h3>4.1 CGIプログラムを自由なディレクトリに置くことができる場合</h3>
+
+<p>
+「CGIプログラムを自由なディレクトリに置くことができる」プロバイダの人は，
+下のディレクトリ構成図に示すように，
+kbという名前のディレクトリの中に各ファイルとディレクトリを設置してください．
+</p>
+
+<p>
+圧縮パッケージをプロバイダのマシン上で展開した人は，
+<a href="#PerlPath">3. Perlのパスの設定</a>
+で取ってきたkb.cgiを送るだけで済みます．
+</p>
+
+<p>
+自分のパソコン上で展開した人は，kbディレクトリを作り，
+その中に各ファイルとディレクトリを送ってください．
+面倒であれば，kbディレクトリごと全て送ってしまっても構いません．(^_^;
+</p>
+
+<p>
+<blockquote><pre>
+public_html
+  |
+  +--kb
+       |
+       +--cgi.pl
+       +--jcode.pl
+       +--mimer.pl
+       +--mimew.pl
+       +--kinologue.pl
+       +--index.html
+       +--kb.cgi
+       +--kb.ph
+       +--kinoboards
+       +--kinousers
+       |
+       +--UI
+       |    :
+       |
+       +--icons
+       |    :
+       |
+       +--test
+            :
+</pre></blockquote>
+</p>
+
+<h3>4.2 CGIプログラムを決まったディレクトリに置かなければならない場合</h3>
 
 <ol>
-<li>WWWとしてアクセス可能なディレクトリで，
-配布パッケージ(tar + gzip)を展開します．
-
-<blockquote>
-<code>
-gzip -dc kb10_24.tar.gz | tar xvfp -
-</code>
-</blockquote>
-
-<li>注意!: 展開時，tarのpオプションを忘れないようにしてください．
-本システムはパーミッションにシビアです! m(..)m
-
-<li>kbというディレクトリが作られ，その中にプログラム本体が展開されます．
-
-<li>展開してできたkbディレクトリに，jcode.plを置きます．
-<a href="ftp://ftp.sra.co.jp/pub/lang/perl/sra-scripts/">SRAのftp site</a>
-から取ってきて，他人でも読めるようにして置いてください．
-jcode.plは(株)SRAの歌代さんが作られたフリーウェアで，
-これがなければ日本語のコード変換ができません．
-
-<blockquote>
-<code>
-chmod a+r jcode.pl
-</code>
-</blockquote>
-
-<li>kb.cgiの先頭行のperlのpathを，動作環境に合わせて設定します．
-
-<blockquote>
-<code>
-#!/usr/local/bin/perl → #!/usr/local/bin/GNU/perl5
-</code>
-</blockquote>
-
-<li>kb.cgiを，CGIを置く共通のディレクトリに移します．
-
-<blockquote>
-<code>
-(共通のディレクトリが/usr/local/etc/htdocs/cgi-bin/の場合)<br>
-mv kb.cgi /usr/local/etc/htdocs/cgi-bin/<br>
-</code>
-</blockquote>
-
-<li>index.htmlを書き換えます．
+<li>「CGIプログラムを決まったディレクトリに置かなければならない」
+プロバイダの人は，
+ファイルを送る前に，まずindex.htmlを書き換える必要があります．
+圧縮パッケージをプロバイダのマシン上で展開した人は，
+まずFTPソフトウェアでindex.htmlを自分のパソコンに取ってきましょう．
+<br>
 index.htmlを見ると，「テスト」掲示板へのリンクが，
 
 <blockquote>
-&lt;a href=&quot;kb.cgi?b=test&amp;c=v&amp;num=0&quot;&gt;テスト&lt;/a&gt;
+&lt;a href=&quot;kb.cgi?b=test&amp;c=v&amp;num=20&quot;&gt;テスト&lt;/a&gt;
 </blockquote>
 
 となっていると思います．これを次のように変更してください．
 
 <blockquote>
-&lt;a href=&quot;(A)/kb.cgi/(B)?b=test&amp;c=v&amp;num=0&quot;&gt;テスト&lt;/a&gt;
+&lt;a href=&quot;(A)/kb.cgi/(B)?b=test&amp;c=v&amp;num=20&quot;&gt;テスト&lt;/a&gt;
 </blockquote>
 
 <ul>
-<li>(A): kb.cgiを置いたディレクトリのURL(例えば/cgi-bin)
-<li>(B): 配布パッケージを展開した時に作られたkbディレクトリのURL(例えば/~nakahiro/kb)
+<li>(A): CGIプログラムを置かなければならないディレクトリのURL(例えば/~nahi/cgi-bin)
+<li>(B): CGIプログラム以外を置く予定のkbディレクトリのURL(例えば/~nahi/kb)
 </ul>
 
 すなわち，「kb.cgi」→「(A)/kb.cgi/(B)」と変更します．上の例なら，
 
 <blockquote>
-&lt;a href=&quot;/cgi-bin/kb.cgi/~nakahiro/kb?b=test&amp;c=v&amp;num=0&quot;&gt;テスト&lt;/a&gt;
+&lt;a href=&quot;/~nahi/cgi-bin/kb.cgi/~nahi/kb?b=test&amp;c=v&amp;num=20&quot;&gt;テスト&lt;/a&gt;
 </blockquote>
 
 になります(上の例でのサンプルが，index.html.cgi-binとして用意してありますので，
 参考にしてください))．
+<br><br>
 
-<li>同様にして，test/.boardに書かれているkb.cgiへのリンクを，
-全て上のように(「kb.cgi」→「(A)/kb.cgi/(B)」のように)書き換えてください．
-index.htmlと同様に.board.cgi-binとして用意してあります．参考にしてください．
-
-<li>これで動くはずなので，適当なブラウザで，
-配布パッケージを展開した時に作られたkbディレクトリにある，
-index.htmlにアクセスしてみてください．
-
-<li>とりあえず動くことを確認したら，kb.phを書き換えて，
-きのぼーずをあなたのサイト用に設定し直してください．
-ただし，特に変更が必要なのは「管理者のメールアドレス」のみだと思います
-(必ず変更してくださいね ^_^;)．
-「システム設定」や「メッセージ」は，お好みで変更してください．
+<li>これが終わったらいよいよ設置です．
+圧縮パッケージをプロバイダのマシン上で展開した人は，
+一度ファイルを全部パソコンに取ってきてから，
+再びプロバイダのマシンに送り直してもいいですし，
+あるいは以下に添付したディレクトリ構成図を参考に，
+telnetしてからmvコマンドでディレクトリ構成を変更しても構いません．
+<br>
+まずCGIスクリプトを置かなければならないディレクトリにkb.cgiを置いてください．
+次にkbという名前のディレクトリの中に，
+残りのファイルとディレクトリを置いてください．
 </ol>
+
+<p>
+ファイル構成は，例えば以下のようになります
+(例: CGIプログラムを自分のホームディレクトリの，
+public_html/cgi-binディレクトリに置かなければならない場合)．
+</p>
+
+<blockquote><pre>
+public_html
+  |
+  +--cgi-bin
+  |    |
+  |    +--kb.cgi
+  |
+  +--kb
+       |
+       +--cgi.pl
+       +--jcode.pl
+       +--mimer.pl
+       +--mimew.pl
+       +--kinologue.pl
+       +--index.html
+       +--kb.ph
+       +--kinoboards
+       +--kinousers
+       |
+       +--UI
+       |    :
+       |
+       +--icons
+       |    :
+       |
+       +--test
+            :
+</pre></blockquote>
+
+<hr>
+
+<h2><a name="Mode">5. ファイルモードの設定</a></h2>
+
+<p>
+各ファイルとディレクトリのモードを，以下のように変更してください．
+</p>
+
+<ul>
+<li>kbディレクトリ: 777
+<li>cgi.pl: 644
+<li>kinologue.pl: 644
+<li>index.html: 644
+<li>jcode.pl: 444
+<li>mimer.pl: 444
+<li>mimew.pl: 444
+<li>kb.cgi: 755
+<li>kb.ph: 644
+<li>kinoboards: 644
+<li>kinousers: 666
+<li>UIディレクトリ: 755
+<li>UIディレクトリ内にあるファイル: 644
+<li>iconsディレクトリ: 755
+<li>iconsディレクトリ内にあるファイル: 644
+<li>testディレクトリ: 777
+<li>testディレクトリにあるkb.aid: 666
+<li>testディレクトリにあるkb.board: 644
+<li>testディレクトリにあるkb.db: 666
+</ul>
+
+<p>
+モードの変更は，お使いのFTPソフトウェアでやっても構いませんし
+(もちろんその機能があれば，ですが ^_^;)，
+telnetしてログインした後，chmodコマンドで行っても構いません．
 </p>
 
 <hr>
 
+<h2><a name="InitialTest">6. 初期テスト</a></h2>
+
+<p>
+プログラムのテストをしてください．
+telnetできない人はこのやり方ではテストできないので，ここは飛ばしてください
+(テストするためには，自分のパソコンにPerlをインストールする必要があります)．
+</p>
+
+<p>
+まずは送ったファイルが壊れてないかどうかのチェックをします．
+telnetしてログインし，kb.cgiのあるディレクトリへ行ってから，
+</p>
+
+<blockquote><pre>
+perl -c ./kb.cgi
+</pre></blockquote>
+
+<p>
+と打ち込んでください．
+</p>
+
+<blockquote><pre>
+./kb.cgi syntax OK
+</pre></blockquote>
+
+<p>
+と表示されればOKです．
+もしエラーメッセージ(parse error in 〜など)が表示されたら，
+kb.cgiのPerlのパス以外の部分を書き換えてしまってないか，
+漢字コードがSJISになってしまっていないかチェックしてください．
+</p>
+
+<hr>
+
+<h2><a name="WwwTest">7. CGI動作テスト</a></h2>
+
+<p>
+送ったindex.htmlにアクセスし，
+テスト掲示板に書き込んだり，タイトル一覧を表示をさせてみてください．
+もしうまく動かない場合，CGIを使うために何か設定がいるのかもしれません．
+プロバイダによって，最初からCGIを使える場合もありますし，
+.htaccessまたは.nsconfigというファイルを用意しなければならない場合もあります．
+詳しくはプロバイダの利用案内やFAQを見たり，問い合わせたりしてください．
+</p>
+
+<hr>
+
+<h2><a name="Config">8. カスタマイズ</a></h2>
+
+<p>
+ここまでで，プログラムが正しく動作することが確認できました．
+では次に，あなたの好みに合わせて掲示板の機能，見た目，
+メッセージ等を変更しましょう．
+一部，必ず変更しなければならない場所がありますので，
+「このままでいいや」と読み飛ばしたりしないでくださいね．(^_^;
+</p>
+
+<p>
+基本的なカスタマイズのために必要な操作は，
+設定ファイルkb.phの書き換えだけです．
+</p>
+
+<p>
+まずFTPソフトウェアで，kb.phを自分のパソコンに取ってきましょう．
+次にkb.phを適当なエディタで開いて，ファイルの中身を見てみてください．
+この時，
+Win95/Win98なら
+<a href="http://www2.mitene.or.jp/maruo/">秀丸エディタ(お金がかかりますが……)</a>，
+Macなら<a href="http://www.iijnet.or.jp/matsumoto/seihin/jedit/index.html">Jedit</a>
+など，漢字コードが日本語EUCのファイルを
+正しく表示できるエディタを使ってください．
+現在のパソコンに付属しているエディタのほとんどは，
+残念ながら漢字コードがSJISでないと正しく表示できません(涙)．
+</p>
+
+<p>
+もしも上記エディタがどうしても手に入らない人は，
+FTPソフトウェアでkb.phを取ってくる時に，
+漢字コードを日本語EUCからSJISに変換するようにして，取ってきてみてください
+(もちろん，お使いのソフトウェアにその機能があれば，ですが……)．
+うまくいけば，パソコン付属のエディタでも正しく表示できるかもしれません．
+</p>
+
+<p>
+うまくエディタで開けたら，kb.phを書き換えて，
+きのぼーずをあなたのサイト用に設定し直してください．
+設定の詳細はファイルに書かれています．
+特に変更が必要なのは，
+</p>
+
+<ul>
+<li>管理者の名前($MAINT_NAME)
+<li>管理者のメイルアドレス($MAINT)
+<li>掲示板システムの名前($SYSTEM_NAME)
+</ul>
+
+<p>
+です．忘れずに変更してくださいね．(^_^;
+</p>
+
+<p>
+<strong>ただし!</strong>
+記事の削除，訂正やメイル送信先の設定等の，
+管理用のコマンドを使えるようにするか否かを設定する以下の部分は，
+ここでは変更しないでください．
+</p>
+
+<blockquote><pre>
+#
+# これ以下のコマンドは必ず，
+# 「正しくアクセス制限をかけた上で」利用してください．
+# でないと破壊的な悪戯を匿名でやられ放題ですからね．
+#
+# [注意] スクリプトの名前を変えたくらいじゃ駄目ですよ．(^_^;
+#
+$SYS_F_D = 0;			# 記事の削除，訂正
+$SYS_F_MV = 0;			# 記事の「前後順序/元記事-リプライ関係」の変更
+$SYS_F_AM = 0;			# 新着記事到着時のメイル送信先の設定
+</pre></blockquote>
+
+<p>
+理由は，コメントとして書いてある通りです．気をつけてくださいね．(^_^;
+この設定は，後に，
+「11. <a href="#Special">機能特別版のkb.cgiプログラムを作る</a>」
+で行います．
+</p>
+
+<p>
+変更が終わったら，
+FTPソフトウェアでkb.phをプロバイダのマシンに送ってください．
+先程kb.phを取ってくる時に漢字コードを日本語EUCからSJISに変換した人は，
+SJISから日本語EUCに変換し直すようにして送ってくださいね．
+kb.phの漢字コードは，必ず，日本語EUCでなければいけません．
+</p>
+
+<hr>
+
+<h2><a name="KbPhTest">9. 設定ファイルテスト</a></h2>
+
+<p>
+書き換えた設定ファイル，kb.phのテストをしましょう．
+telnetできない人はこのやり方ではテストできないので，ここは飛ばしてください
+(テストするためには，自分のパソコンにPerlをインストールする必要があります)．
+</p>
+
+<p>
+telnetしてログインし，kbディレクトリへ行ってから，
+</p>
+
+<blockquote><pre>
+perl -c ./kb.ph
+</pre></blockquote>
+
+<p>
+と打ち込んでください．
+です．「syntax OK」と表示されればテストは成功です．
+</p>
+
+<p>
+もしエラーメッセージ(parse error in 〜など)が表示されたら，
+kb.phの書き方がどこか間違っている，ということです．
+エラーメッセージの中に，間違っている行番号が書かれていますよね?
+例えば
+</p>
+
+<blockquote><pre>
+parse error in file kb.ph at line <strong>106</strong>, next token "〜
+</pre></blockquote>
+
+<p>
+だったら，106行目付近が間違っているという意味です．
+kb.phの106行目付近をチェックしてください．
+特に，必要な「,」や「'」を間違って消してしまったりしがちですので，
+注意してください．
+</p>
+
+<hr>
+
+<h2><a name="LastTest">10. カスタマイズ掲示板動作テスト</a></h2>
+
+<p>
+<a href="#WwwTest">7</a>と同じく，index.htmlにアクセスして，
+カスタマイズした掲示板が正しく動作することを確認してください．
+<a href="#WwwTest">7</a>と<a href="#KbPhTest">9</a>
+のテストに成功していれば，ここまで来てエラーが出ることはないはずです．
+カスタマイズが気に入らなければ，
+<a href="#Config">8</a>からやり直しましょう．
+</p>
+
+<hr>
+
+<h2><a name="Special">11. 機能特別版のkb.cgiプログラムを作る</a></h2>
+
+<p>
+実はここまでで，掲示板運営に必要な最小限の機能は揃っています．
+ので，以降のインストールは特にやらなくても構いません．
+見ての通り長いし，それにアクセス制限とか，結構設定が面倒ですし．(^_^;
+</p>
+
+<p>
+<a href="#Config">8. カスタマイズ</a>でkb.phを変更した際，
+「掲示板の各機能を利用可能とするか否か」を設定する部分があったのに
+気付かれたでしょうか．
+普通に考えれば，せっかく用意されている機能なんですから，
+わざわざ「利用不可」になんてしたくないですよね．
+</p>
+
+<p>
+では何故，「利用不可」にできるようになっているのか……
+それは，ウェブサーバのアクセス制限機能を使うことによって，
+</p>
+
+<ul>
+<li>管理者だけに，管理機能(記事の訂正や削除，メイル送信先の設定)を
+使うことを許す．
+<li>許された一部の人達だけが書き込みできるようにする(その他の人は読むだけ)．
+</ul>
+
+<p>
+を実現するためなのです．例えばこの場合は，
+</p>
+
+<ul>
+<li>管理機能を使えるkb.cgiプログラムを作り，
+管理者だけがアクセスできるディレクトリに置く．
+<li>通常のkb.cgiは書き込み不可としてインストールしておいて，
+書き込み機能が使えるkb.cgiプログラムを，
+一部のユーザだけがアクセスできるディレクトリに置く．
+</ul>
+
+<p>
+ことで，必要なシステムを得ることができます．
+</p>
+
+<p>
+前置きが長くて失礼しました．(^_^;
+ではそろそろ，具体的なインストール方法に入りましょう．
+ただし「CGIプログラムを決まったディレクトリに置かなければならない」
+プロバイダの人の場合，
+以下のやり方では，アクセス制限をかけられないんじゃないかと思います．
+プロバイダによってやり方が異なると思いますので
+(もしかしたら，アクセス制限のできないプロバイダもあるかも……)，
+詳しくはプロバイダの利用案内やFAQを見たり，問い合わせたりしてください．
+</p>
+
+<p>
+基本的に，ディレクトリを作ってそこにアクセス制限をかけ，
+kb.cgiとkb.phをコピーして，kb.phを書き換える，という作業になります．
+</p>
+
+<ol>
+<li>新たにkb.cgiを置くディレクトリを決めます．
+ここでは管理者専用のkb.cgiを作ってみましょう．
+
+<blockquote><pre>
+例)
+
+~nahi (nahi用ディレクトリ)
+   |
+   +-- public_html (WWW用ディレクトリ)
+           |
+           +-- kb (きのぼーず1.0用ディレクトリ)
+                 |
+                 +-- priv (管理者用kb.cgiを置くディレクトリ)
+</pre></blockquote>
+<br>
+
+<li>サーバの設定によっては，そのディレクトリでCGIプログラムが動くために，
+.htaccessや.nsconfigといったファイルの設定が必要です．
+設定方法等は，プロバイダの利用案内やFAQを見たり，問い合わせたりしてください．
+<br><br>
+
+<li>ディレクトリにアクセス制限をかけましょう．
+<br>
+ここでは管理者専用のkb.cgiを作るので，
+もしあなたが，あなたしか使えない専用のマシンを持っているなら，
+そのマシンからのみアクセスできるように設定しましょう．
+そうでないなら，パスワードによるユーザ認証を行なうように設定します．
+.htaccessや.nsconfigといったファイルの設定が必要ですが，
+この設定方法もサーバの種類に依存します．
+市販の参考書やウェブサイトを参考にするか，
+プロバイダの利用案内やFAQを見たり，問い合わせたりしてください．
+<br><br>
+
+<li>FTPソフトウェアで，
+すでにインストール済みのkb.cgiとkb.phを自分のパソコンに取ってきましょう．
+そして<a href="#Config">8. カスタマイズ</a>を参考に，
+取ってきたkb.phを設定し直してください．
+<br>
+
+<a href="#Config">8. カスタマイズ</a>では「利用可能にしてはダメ」
+と書いた管理機能(記事の訂正や削除等)ですが，
+ここでは利用可能に設定してみましょう．
+<br><br>
+
+<li>FTPソフトウェアで，
+書き換えたkb.phと，
+cgi.pl，kinologue.pl，kb.cgi(これら3つは書き換えずにそのまま)を，
+サーバ内の，新たに作ったディレクトリに送ってください．
+<br><br>
+
+<li>もう動くはずです．
+新設したkb.cgiのURLに続けて「/(きのぼーず1.0ディレクトリのURL)?(コマンド指定)」を加え，
+アクセスしてください．上の例なら，
+
+<ul>
+<li>kb.cgiのURLが「/~nahi/kb/priv/kb.cgi」，
+<li>きのぼーず1.0ディレクトリのURLが「/~nahi/kb」，
+<li>例えば，trial掲示板（b=trial）の20記事（num=20）の
+管理者用タイトル一覧（c=vm）を表示させるには，
+<li>「/~nahi/kb/priv/kb.cgi/~nahi/kb?c=vm&b=trial&num=20」にアクセスします．
+</ul>
+<br>
+
+<li>最後に，アクセスを許された以外の人(ここではあなた以外の人)が，
+新設したkb.cgiにアクセスできないことを確認しましょう．
+もし他の人にアクセスできるようだと，悪戯のし放題になってしまいます．
+もちろんこのプログラムによって生じたいかなる不都合に関しても，
+私は責任を取れません
+(詳しくは<a href="../COPYING">COPYINGファイル</a>参照してください)が，
+無用なトラブルは起こさないに越したことはありませんよね．(^_^)
+</ol>
+
+<p>
+長々と御苦労様でした．これで機能特別版kb.cgiの出来上がりです．
+KINOBOARDS/1.0の様々な機能が，
+あなたのウェブサイト作成のお役に立てることを祈ってます．(^_^)
+</p>
+
+<hr>
+
+<h2><a name="Update">B. バージョンアップインストール</a></h2>
+
+<p>
+古いKINOBOARDSをバージョンアップをするには，
+<strong>プロバイダのマシンにtelnetできる必要があります</strong>．
+telnetできない人は……古いバージョンの時に書き込まれた記事は諦めてください．
+古いシステムの掲示板ディレクトリを全部自分のパソコンにFTPでもってきて，
+次に新しいシステムにFTPで送り直せばいいんですが……
+記事ファイルは大量にあるだろうし……．(^_^;
+</p>
+
+<p>
+インストールの方法には2種類あり，一つはpatchコマンドを使う方法で，
+もう一つは新しいKINOBOARDSをインストールして，
+従来のKINOBOARDSから記事ファイルを移植する方法です．
+一部手順が異なりますので注意してください．
+</p>
+
+<ul>
+<li><a href="#patchUpdate">前バージョンとの差分だけを固めたpatchファイルを使う方法</a>．
+<li><a href="#normalUpdate">新しいバージョンをインストールして，それまでに書き込まれた記事を移植する方法</a>．
+</ul>
+
+<hr>
+
+<h3><a name="patchUpdate">B1. patchを使ったバージョンアップ法</a></h3>
+
+<p>
+この方法は比較的トラブルが起こりがちです．
+いくらpatchファイルが，差分のみが収められているファイルだとはいえ，
+元のプログラムをあちこち書き換えた人にとっては，
+結局手動で修正を加えなければならなくなったりします．
+</p>
+
+<p>
+よって，「patchってなに?」という人(patchの仕組みがわからない人)は，
+<a href="#normalUpdate">新しいバージョンをインストールして，それまでに書き込まれた記事を移植する方法</a>．
+でバージョンアップした方がいいかもしれません．
+</p>
+
+<ol>
+<li>telnetしてR6.3のkbディレクトリへ行き，
+システムを止めてから，念のためバックアップを取ってください．
+もし記事が消えたり，設定が変わって動かなくなっても，責任は取れません(^_^;．
+バックアップは必ず取っておいてくださいね．
+
+<blockquote><pre>
+cd ~/public_html/kb		← KINOBOARDSをインストールしてあったディレクトリへ
+chmod go-x kb.cgi		←システムにアクセスできなくする
+cd ..
+tar cvfp kb10_63.tar kb
+</pre></blockquote>
+<br>
+
+<li>できたkb10_63.tarがバックアップファイルなので，
+gzipで圧縮し，消さずに残しておいてください
+(gzipで圧縮すると，ファイル名はkb10_63.tar.gzになります)．
+
+<blockquote><pre>
+gzip kb10_63.tar
+</pre></blockquote>
+<br>
+
+<li>R6.3からR6.4への差分ファイル(patchファイル)のパッケージ，
+<a href="http://www.jin.gr.jp/~nahi/src/kb10/kb10_63_64.patch.gz">kb10_63_64.patch.gz</a>
+を，ダウンロードしてください．
+<br><br>
+
+<li>ダウンロードしたパッケージを，kbディレクトリが入っているディレクトリ
+(KINOBOARDSがpublic_html/kbにインストールしてあるなら，public_htmlディレクトリ)
+にFTPして置いてください．
+<br><br>
+
+<li>パッケージを展開します．パッケージが置かれているディレクトリ上で，
+以下のコマンドを入力してください．
+コマンド実行後，kb10_63_64.patch.gzというファイルがなくなり，
+替わりにkb10_63_64.patchというファイルができているはずです．
+
+<blockquote><pre>
+cd ~/public_html		← パッケージが置かれているディレクトリへ
+gzip -d kb10_63_64.patch.gz
+</pre></blockquote>
+<br>
+
+<li>それではいよいよpatchをあてます．
+patchファイルが置かれているディレクトリ
+(すなわち，kbディレクトリが入っているディレクトリ)で，
+以下のように入力してください．
+
+<blockquote><pre>
+cd ~/public_html		← patchファイルが置かれているディレクトリへ
+patch -c -p1 < kb10_63_64.patch
+</pre></blockquote>
+<br>
+
+<li>システムを稼働可能にします．
+
+<blockquote><pre>
+cd ~/public_html/kb		← KINOBOARDSをインストールしてあるディレクトリへ
+chmod go+x kb.cgi
+</pre></blockquote>
+<br>
+
+<li>もしエラーメッセージが出ていなければ，これでバージョンアップは終わりです．
+正しく動くかどうか試してみてください．
+</ol>
+
+<hr>
+
+<h3><a name="normalUpdate">B2. 新しいバージョンをインストールして記事のみを移植するバージョンアップ法</a></h2>
+
+<ol>
+<li>telnetしてR6.3のkbディレクトリへ行き，
+システムを止めてから，念のためバックアップを取ってください．
+もし記事が消えたり，設定が変わって動かなくなっても，責任は取れません(^_^;．
+バックアップは必ず取っておいてくださいね．
+
+<blockquote><pre>
+cd ~/public_html/kb		← KINOBOARDSをインストールしてあったディレクトリへ
+chmod go-x kb.cgi		←システムにアクセスできなくする
+cd ..
+tar cvfp kb10_63.tar kb
+</pre></blockquote>
+<br>
+
+<li>できたkb10_63.tarがバックアップファイルなので，
+gzipで圧縮し，消さずに残しておいてください
+(gzipで圧縮すると，ファイル名はkb10_63.tar.gzになります)．
+
+<blockquote><pre>
+gzip kb10_63.tar
+</pre></blockquote>
+<br>
+
+<li>KINOBOARDSを新しくインストールするため，
+kbのディレクトリの名前を，古いものであるとわかるように変更してください．
+
+<blockquote><pre>
+cd ~/public_html		← KINOBOARDSをインストールしてあったディレクトリへ
+mv kb kb_63
+</pre></blockquote>
+<br>
+
+<li><a href="#New">新しいバージョンのKINOBOARDSを，
+kbディレクトリにインストールし直してください</a>．
+<br><br>
+
+<li>新しくインストールしたKINOBOARDSのディレクトリ(kb)から，
+掲示板ディレクトリ，「kinoboards」ファイル，「kinousers」ファイルを
+削除してください．
+
+<blockquote><pre>
+cd ~/public_html/kb		← 新しくインストールしたKINOBOARDSへ
+rm -rf test			← test掲示板を削除
+rm -rf board			← board掲示板を削除
+rm kinoboards			← 登録掲示板情報を削除
+rm kinousers			← ユーザエイリアス情報を削除
+</pre></blockquote>
+<br>
+
+<li>古いバージョンのKINOBOARDSから，掲示板ディレクトリ，
+「kinoboards」ファイル，「kinousers」ファイルをコピーしてください．
+
+<blockquote><pre>
+cd ~/public_html/kb		← 新しくインストールしたKINOBOARDSへ
+cp -pr ../kb_63/test test	← test掲示板をコピー
+cp -pr ../kb_63/board board	← board掲示板をコピー
+ :				← インストール後に作成した掲示板があれば，
+ :				← 同様にコピーしてください．
+cp -p ../kb_63/kinoboards .	← 登録掲示板情報をコピー
+cp -p ../kb_63/kinousers .	← ユーザエイリアス情報をコピー
+</pre></blockquote>
+<br>
+
+<li>R5.4以前とR6.4では，一部使用しているファイルの名前が違います．
+R5.4以前のシステムを利用している場合，
+ファイル形式の変換を行う必要があります．
+kbディレクトリにconv.cgiというperlプログラムを用意したので，
+これを起動してください（conv.cgiのperlで書かれています．
+kb.cgiと同じく，先頭行のperlのパスを必要に応じて書き換える必要があります）．
+
+<blockquote><pre>
+cd ~/public_html/kb		← 新しくインストールしたKINOBOARDSへ
+./conv.cgi			← 変換プログラムを起動
+Content-type: text/plain			← conv.cgiの表示
+
+rename: test/.db -> test/kb.db			← 名前が変更されたことを示す
+rename: test/.board -> test/kb.board
+rename: test/.articleid -> test/kb.aid
+rename: board/.db -> board/kb.db
+rename: board/.board -> board/kb.board
+rename: board/.articleid -> board/kb.aid
+older release -> R5.6 conversion succeeded.	← succeededと表示されれば成功
+Renamed 6 file(s).				← 6つのファイルが変更された
+</pre></blockquote>
+このプログラムは名前の通り，
+CGI scriptとしてブラウザから起動してもかまいません．
+<br><br>
+
+<li>以上でバージョンアップは終わりです．正しく動くかどうか試してみてください．
+</ol>
+
+<hr>
+
 <address>
-<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
-Copyright (C) 1995, 96
-<a href="http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</a>.
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+Copyright (C) 1995-99
+<a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
 </body>
 </html>

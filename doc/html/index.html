@@ -1,134 +1,338 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
-<TITLE>KINOBOARDS version 1.0 release 3.0</TITLE>
+<TITLE>KINOBOARDS version 1.0 release 6.4</TITLE>
 </head>
 <body>
 
 <h1>
-KINOBOARDS version 1.0 release 3.0
+KINOBOARDS version 1.0 release 6.4
 </h1>
 
 <p>
-Last Update: 11/19/96
+Last Update: Feb 18, 1999
 </p>
 
 <hr>
 
-<h2>1. 機能概要</h2>
+<h2>1. はじめに</h2>
 
 <p>
 きのぼーず(KINOBOARDS: Kinoboards Is Network Opened BOARD System)は，
-WWWの仕組みを用いて自由に意見交換を行なうことを目指して作成したシステムです．
-基本的な機能として，
+以下を支援することを目的としています．
+</p>
 
 <ul>
-<li>新規メッセージの書き込み
-<li>リプライメッセージの書き込み
-<li>メッセージの参照
-<li>メッセージ一覧の表示(リプライ順ソート，日付順ソート)
+<li>WWWの仕組みを用いて自由に意見交換を行なう．
+<li>そこで得られた知見を容易にまとめ挙げ，後に役立てる．
 </ul>
 
-を実装しています．
+<p>
+つまり，一般的に「掲示板」と呼ばれている，
+出会いとコミュニケーションが第一目的の書き捨て型のシステムとは，
+目指しているところが異なります．
+そのためきのぼーずをチャットシステムの延長として捉えると，
+やや扱い辛いかもしれません．
+逆に，記事が書き捨てられていくのに疲れてしまった方にとっては，
+良い薬になる可能性があります．(^_^;
+</p>
+
+<h2>2. 機能概要</h2>
+
+<p>
+きのぼーずの
 <a href="VERSION.html">現在のバージョン</a>
-ではこれに加えて，
+は，以下のような機能を持っています．
+</p>
 
 <ul>
-<li>最新のメッセージのまとめ読み
-<li>あるメッセージへのリプライ記事のまとめ読み
-<li>リプライメッセージ書き込み時の，元メッセージの引用
-<li>メッセージの内容に応じたアイコンの表示
-<li>メッセージの検索
-<li>頻繁に書き込む人のためのエイリアス機能
-<li>書き込んだメッセージに応答があった時のメールでの連絡
+<li>書く
+<ul>
+<li>新規にメッセージを書き込む機能
+<li>メッセージに対するリプライメッセージを書き込む機能
+<li>投稿者の名前等の入力の手間を省くための，エイリアス機能
+<li>メッセージの内容に応じたアイコンを貼り付ける機能
+<li>リプライメッセージ書き込み時に，元メッセージを引用する機能
+<li>メッセージに自動的にハイパーリンクを埋め込む機能
+<li>jcode.pl-2.0の機能を用いて，いわゆる半角仮名を全角仮名へ変換する機能
+<li>用意したファイル(書き溜めた日記等)を，メッセージとして取り扱う機能
 </ul>
 
-の各機能を持たせました．
-</p>
+<li>読む
+<ul>
+<li>タイトル一覧を表示する機能(リプライ順ソート，日付順ソート)
+<li>タイトル一覧を指定記事数毎にページ分割して表示する機能
+<li>メッセージを表示する機能
+<li>最近のメッセージをまとめ読みする機能
+<li>あるメッセージへのリプライメッセージのみをまとめ読みする機能
+<li>メッセージを検索する機能
+</ul>
 
-<h2>2. 動作要件</h2>
+<li>メイルとのリンク
+<ul>
+<li>新規メッセージが書き込まれた時に，指定したユーザにメイルで自動配信する機能
+<li>リプライメッセージが書き込まれた時に，元メッセージの作者に記事をメイルで自動配信する機能
+<li>コマンドラインから記事を書き込む機能（.forwardや/etc/aliasesとの組み合わせで，届いたメイルを記事として自動的に取り込めます）
+</ul>
 
-<p>
-<a href="ENVIRONMENT.html">ENVIRONMENTファイル</a>を参照してください．
-</p>
-
-<h2>3. プログラム構成</h2>
-
-<p>
-<a href="MANIFESTO.html">MANIFESTOファイル</a>を参照してください．
-</p>
-
-<h2>4. インストール</h2>
-
-<p>
-<a href="INSTALL.html">INSTALLATIONファイル</a>を参照してください．
-</p>
-
-<h2>5. インストール後のメンテナンス</h2>
-
-<p>
-<a href="MAINT.html">MAINTENANCEファイル</a>を参照してください．
-</p>
-
-<h2>6. バグ</h2>
+<li>管理する
+<ul>
+<li>メッセージを削除する機能
+<li>メッセージを訂正する機能
+<li>新規メッセージが書き込まれた時にメイルを自動配信するユーザを設定する機能
+<li>メッセージ表示順序を変更する機能
+<li>メッセージの元-リプライ関係を変更する機能
+</ul>
+</ul>
 
 <p>
-<a href="BUGS.html">KNOWN BUG(S)ファイル</a>を参照してください．
+実際にはもっと多くの機能を持っています．
+よその掲示板が持っている機能のほとんどは，
+設定を変更するだけで簡単に実現できるでしょう．
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">デモサイト</a>
+や
+<a href="http://www.jin.gr.jp/~nahi/kb.ph">きのぼず設定ファイル</a>
+で，その多彩な機能と，設定の自由度を確認してください．
+</p>
+
+<h2>3. 動作要件</h2>
+
+<p>
+きのぼーずの動作実績がある環境は，
+<a href="ENVIRONMENT.html">ENVIRONMENTファイル</a>
+にまとめられています．
+</p>
+
+<h2>4. パッケージ</h2>
+
+<p>
+きのぼーずの配布パッケージに含まれているファイルについては，
+<a href="MANIFESTO.html">MANIFESTOファイル</a>
+を参照してください．
+</p>
+
+<h2>5. インストール</h2>
+
+<p>
+インストール方法は，初めてのインストールか，
+それとも旧バージョンのバージョンアップかに応じて，
+2種類にわかれています．
+詳しくは
+<a href="INSTALL.html">INSTALLATIONファイル</a>
+を参照してください．
+</p>
+
+<h2>6. インストール後のメンテナンス</h2>
+
+<p>
+インストール後の管理者の仕事は，以下のようなものです．
+必ずしもやらなければならない，というわけではありませんが，
+一応目を通しておくと，後で困らずに済むかもしれません．
+</p>
+
+<ul>
+<li>掲示板を新設する
+<li>掲示板の機能を個別にカスタマイズする
+<li>掲示板のアイコンを個別にカスタマイズする
+<li>用意したファイルをメッセージ扱いする
+<li>書き込みがあった時に，記事をメイルで自動配信する宛先を設定する
+<li>記事を訂正する
+<li>記事を削除する
+<li><strong>ログを監視する</strong>
+</ul>
+
+<p>
+手順の詳細は，<a href="MAINT.html">MAINTENANCEファイル</a>を参照してください．
 </p>
 
 <h2>7. きのぼーず関連WWW Site</h2>
 
 <p>
+<a href="http://www.jin.gr.jp/~nahi/kb/">きのぼず Home Page</a>
+へ行くと，きのぼずに関する最新情報を得ることができます．
+新たなバージョンのリリースや今後の予定等の情報も，
+このHome Pageを通じてお伝えします．
+定期的にチェックしてくださると嬉しいです．
+</p>
+
+<p>
+システムをインストールして頂きましたら，
+<a href="http://www.jin.gr.jp/~nahi/kv.cgi?b=example">きのぼずインストーラリスト</a>
+にある，アンケートに御協力ください．
+今後の開発の参考にしますので，是非よろしくお願いします．
+もちろん匿名でもOKです．m(..m
+</p>
+
+<p>
 何か不都合や疑問が生じたら，とりあえず以下のURLにアクセスしてみてください．
-専用の掲示板を用意してあります．同じ悩みを持つ人が居て，
-助けてくれるかもしれません．
-また新たなバージョンのリリースや今後の予定等の情報も，
-この掲示板を通じてお伝えしていく予定です．
-作者に直接メイルを出すのは御遠慮ください．m(..)m
+KINOBOARDS/1.0を使った，専用の掲示板を用意してあります．
+これまでに各種不都合が報告され，また対処法も書き込まれていますので，
+メッセージの検索機能を使って，解決法を探してみてください．
+それでも見つからなかったら，新たに記事として，
+相談内容を書き込んでください（お気軽に）．
+同じ悩みを持つ人が居て，助けてくれるかもしれません．
+</p>
 
 <blockquote>
-<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">URL: http://www.kinotrope.co.jp/~nakahiro/kb10.shtml</a>
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">&lt;URL:http://www.jin.gr.jp/~nahi/kb10.shtml&gt;</a>
 </blockquote>
-</p>
-
-<h2>8. 作者</h2>
 
 <p>
+<a href="http://www.jin.gr.jp/~nahi/kbml.html">きのぼずML</a>
+というメイリングリストができました．
+きのぼずユーザの情報交換のためのメイリングリストです．
+KINOBOARDSをインストールした方，
+またユーザとしてKINOBOARDSを使っている方の参加を想定しています．
+</p>
+
+<ul>
+<li>インストールしたシステムの紹介（宣伝）
+<li>ユニークな使い方の紹介・提案
+<li>バグのレポート
+<li>機能追加・変更の要望
+<li>その他
+</ul>
+
+<p>
+KINOBOARDSに関する話題なら，なんでも扱っていく予定です．
+みなさんの御参加をお待ちしています．
+</p>
+
+<p>
+また，きのぼず開発関連の情報交換のためのメイリングリストもあります．
+詳しくは
+<a href="http://www.jin.gr.jp/~nahi/kb/">きのぼずML</a>
+を御覧ください．
+</p>
+
+<p>
+作者もこれらの掲示板やメイリングリストに，積極的頻繁に顔を出しています．
+みなさんで知識を共有するため，
+作者に直接メイルを出すのは御遠慮ください．m(..m
+</p>
+
+<h2>8. Release Notes</h2>
+
+<p>
+R6.4では，以下の修正を行いました．
+今回の修正点は，ここ数回のリリースの修正点の数と比べると，やや少なめかな?
+</p>
+
+<ul>
+<li>記事訂正後に「リプライ元の記事へ」と表示されるバグを修正．
+「訂正した記事へ」に．
+<li>URL中の`&amp;'を`&amp;amp;'にencodeするように修正．
+<li>自動配信メイルのFrom:ヘッダに，記事投稿者を入れるように変更．
+従来は掲示板管理者が入っていた．
+<li>R_mitさんの指摘で，PATH_INFO無条件信頼方式を廃止．
+kb.cgiの先頭で，kbディレクトリのパスを指定しなければ動かないように変更．
+<li>NOBZILLAさんの指摘で，投稿日付による検索機能を追加．
+<li>大垣さんの指摘で，環境変数REMOTE_HOSTが空の時，
+替わりにREMOTE_ADDRを使うように変更．
+<li>Sageさんの指摘で，記事中のタグにstyle，lang等のattributeが指定できない，
+というバグを修正．
+<li>記事中のタグを解析して安全なタグのみを残すルーチンのバグを修正．
+ここのところリリースのたびに修正&amp;エンバグしてる．．．
+<li>諸星さんの指摘で，HEADリクエストで起動された際，
+Last-Modifiedヘッダを返すように変更．
+ただし掲示板指定がある場合（kb.cgi?b=test等）のみ．
+具体的には「HEAD /〜/kb.cgi?b=test HTTP/1.0」のように
+リクエストする必要がある．
+<li>岩渕さん他の指摘により，コマンドラインから投稿機能を追加．
+「kb.cgi 掲示板名 POST」というコマンドを起動し，記事を標準入力から流し込む．
+ただし記事中に「x-kb-command: POST」という文字列が含まれていなければならない．
+<li>混乱を避けるため，利用可能なタグを指定を，cgi.plから取り除いた．
+利用可能タグはkb.cgiのみで指定する．
+<li>大垣さんの指摘で，
+kbディレクトリがウェブサイトのトップディレクトリに等しい場合に，
+$CGIDIR_NAMEを取り損ねる不具合を修正．
+<li>2000年対応．．．これで終わり．．．と思う．
+</ul>
+
+<p>
+不具合，変更点について指摘してくださったみなさん，
+どうもありがとうございました．m(..m
+</p>
+
+<p>
+「コマンドラインから投稿」の機能は，
+手動投稿や他スクリプトからの投稿に使えますが，
+想定している主な利用方法は，メイルを自動的に記事として取り込む，
+というものです．ただし現在は，すべて新規記事として取り込まれます．
+スレッドを継ぐには，管理者がいちいち手でやらなければなりません．
+具体的な利用方法がわからない方は，
+<a href="http://www.jin.gr.jp/~nahi/kb/">きのぼずML</a>
+までどうぞ．
+</p>
+
+<p>
+毎度「次こそ1.2」とか書いてますが，
+ML統合も面白そうだし．．．どうしよう．．．
+</p>
+
+<h2>9. 改版履歴</h2>
+
+<p>
+プログラムの改版履歴は
+<a href="CHANGES.html">CHANGESファイル</a>
+にまとめられています．
+</p>
+
+<h2>10. おわりに（Special Thanks）</h2>
+
+<p>
+きのぼーずと作者につきあってくださった全てのみなさんに感謝します．m(..m
+</p>
+
+<p>
+NTやMacへの移植を試みてくださった方々，
+修正すべき点を御指摘頂いた方々，
+頻繁なリリースにつきあってテストしてくださった方々，
+<a href="ICONS.html">アイコンを描いてくださった方々</a>，
+<a href="http://www.jin.gr.jp/~nahi/kbml.html">きのぼずML</a>
+に参加してくださった全ての方々，
+jcode.plを作られた歌代さん，
+mimew.plを作られた生田さん，
+Perlを生み出したLarry Wallさん，
+Perlに関する本を書かれた内外たくさんの方々，
+みなさまに深く感謝申し上げます．どうもありがとうございました．
+</p>
+
+<h2>11. 作者</h2>
+
 <dl>
 <dt>name
-<dd>NAKAMURA Hiroshi
+<dd>NAKAMURA, Hiroshi ( a.k.a. NaHi )
 
 <dt>e-mail
-<dd><a href="mailto:nakahiro@kinotrope.co.jp">nakahiro@kinotrope.co.jp</a>
+<dd><a href="mailto:nahi@keynauts.com">nahi@keynauts.com</a>
 
 <dt>URL
-<dd><a href="http://www.kinotrope.co.jp/~nakahiro/">http://www.kinotrope.co.jp/~nakahiro/</a>
+<dd><a href="http://www.jin.gr.jp/~nahi/">&lt;URL:http://www.jin.gr.jp/~nahi/&gt;</a>
 </dl>
-</p>
 
-<h2>9. Special Thanks</h2>
+<h2>12. Copyright</h2>
 
 <p>
-パッケージ中の<a href="MANIFESTO.html#tag_secure.pl">tag_secure.pl</a>は，
-<a href="http://www.kinotrope.co.jp/~ami/">河合あみこさん</a>
-によるフリーウェアです．
-またアイコンの一部は
-<a href="http://gene5.shinshu-u.ac.jp/">奥村リョウ</a>
-さんに描いて頂きました．どうもありがとうございました．
+KINOBOARDS: Kinoboards Is Network Opened BOARD System<br>
+Copyright (C) 1995-99 NAKAMURA, Hiroshi.
 </p>
-
-<h2>10. Copyright</h2>
 
 <p>
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License as
 published by the Free Software Foundation; either version 2 of the
 License, or (at your option) any later version.
-</p><p>
+</p>
+
+<p>
 This program is distributed in the hope that it will be
 useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License(the file named `COPYING') for more details.
-</p><p>
+</p>
+
+<p>
 You should have received a copy of the GNU General Public
 License along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -137,9 +341,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 <hr>
 
 <address>
-<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
-Copyright (C) 1995, 96
-<a href="http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</a>.
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+Copyright (C) 1995-99
+<a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
 </body>
 </html>
