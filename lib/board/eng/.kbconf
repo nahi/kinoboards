@@ -1,0 +1,194 @@
+# 入力文書タイプ(HTML or PRE)の選択を行うか否か(行なわないとPREのみ)
+#   0: 行わない
+#   1: 行う
+$SYS_TEXTTYPE = 0;
+
+# エイリアスを利用するか否か
+#   0: 利用しない
+#   1: 利用する
+$SYS_ALIAS = 0;
+
+# 記事アイコンを利用するか否か
+#   0: 利用しない
+#   1: 利用する
+$SYS_ICON = 1;
+
+# コマンドアイコンを利用するか否か
+#   0: 利用しない
+#   1: 利用する
+$SYS_COMICON = 1;
+
+# 新規投稿記事が，上に増えていくか，下に増えていくか(タイトル一覧の時)
+#   0: 上
+#   1: 下
+$SYS_BOTTOMTITLE = 0;
+
+# 新規投稿記事が，上に増えていくか，下に増えていくか(記事一覧の時)
+#   0: 上
+#   1: 下
+$SYS_BOTTOMARTICLE = 1;
+
+# メイル送信サービスを利用するか否か
+#   0: 利用しない
+#   1: 利用する
+#   2: 利用する．また，全ての記事を管理者に送信する
+$SYS_FOLLOWMAIL = 0;
+
+# 記事のヘッダにマシン名を表示するか否か
+#   0: 表示しない
+#   1: 表示する
+$SYS_SHOWHOST = 1;
+
+# 記事のヘッダにコマンド群を表示するか否か
+#   0: 表示しない
+#   1: 表示する
+$SYS_COMMAND = 1;
+
+# タイトルリストに新規投稿記事のみを表示するか否か
+#   0: リプライも含めてすべて
+#   1: 新規投稿記事のみ
+$SYS_NEWARTICLEONLY = 0;
+
+# ネットスケープ拡張に基づく字色とバックグラウンドイメージを使うか否か
+#   0: 使わない
+#   1: 使う
+$SYS_NETSCAPE_EXTENSION = 1;
+
+# 記事投稿時、メイルアドレスの入力を必須とするか
+#   0: 必須としない
+#   1: 必須とする
+$SYS_POSTERMAIL = 1;
+
+#
+# 引用マーク
+#
+#	「>」や「&gt;」を引用マークにするのは避けて下さい．
+#	トラブルを起こすブラウザが存在します．
+#
+$DEFAULT_QMARK = ' ] ';
+
+#
+# 各入力項目の大きさ
+#
+# 題
+$SUBJECT_LENGTH = 45;
+# 記事行数
+$TEXT_ROWS = 15;
+# 記事幅
+$TEXT_COLS = 50;
+# 名前幅
+$NAME_LENGTH = 45;
+# E-mail幅
+$MAIL_LENGTH = 45;
+# URL幅
+$URL_LENGTH = 37;
+# 検索キーワード幅
+$KEYWORD_LENGTH = 40;
+
+#
+# タイトル一覧に表示するタイトルの数
+#
+$DEF_TITLE_NUM = 20;
+
+#
+# Netscape Extensionの指定
+#
+$BG_IMG = "";
+$BG_COLOR = "#66CCCC";
+$TEXT_COLOR = "#000000";
+$LINK_COLOR = "#0000AA";
+$ALINK_COLOR = "#FF0000";
+$VLINK_COLOR = "#00AA00";
+
+#
+# URLとして許可するscheme
+#
+@URL_SCHEME = ('http', 'ftp', 'gopher');
+
+#
+# メッセージの宣言
+#
+$SYSTEM_NAME = "KINOBOARDS/1.0";
+
+$H_BOARD = "BOARDS";
+$H_ICON = "ICON";
+$H_SUBJECT = "TITLE";
+$H_MESG = "MESSAGE";
+$H_ALIAS = "ALIAS";
+$H_FROM = "NAME";
+$H_MAIL = "E-MAIL";
+$H_HOST = "HOST";
+$H_URL = "URL";
+$H_URL_S = "URL(can be omitted)";
+$H_DATE = "DATE";
+$H_REPLY = "REPLY";
+$H_ORIG = "REFERENCE";
+$H_ORIG_TOP = "ORIGINAL";
+
+$ENTRY_MSG = "Write new message";
+$SHOWICON_MSG = "Refer icon explanation";
+$PREVIEW_MSG = "Check your message before posting";
+$THANKS_MSG = "Thanks!";
+$VIEW_MSG = "View title list(threaded)";
+$SORT_MSG = "View title list(sorted by date)";
+$NEWARTICLE_MSG = "Read latest 10 messages";
+$THREADARTICLE_MSG = "Read all replies";
+$SEARCHARTICLE_MSG = "Seach messages";
+$ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
+
+$H_LINE = "------------------------------";
+$H_THREAD = "@";
+$H_FOLLOW = "@ $H_REPLY";
+$H_NOICON = "(nothing)";
+
+# あおり文
+$H_REPLYMSG = "Reply to the above message";
+$H_AORI_1 = "Write down the TITLE, MESSAGE, your NAME, your E-MAIL addr., and your HomePage's URL(if you have).";
+$H_SEEICON = "Icon explanation";
+$H_LINK = "If you want any hyperlink from MESSAGE, write like the mannar following; '&lt;URL:http://...&gt;'.";
+$H_PREVIEW_OR_ENTRY = "After completing your message, let's confirm it.";
+$H_PREVIEW = "Check your message before posting";
+$H_ENTRY = "Post your message";
+$H_PUSHHERE_POST = "Confirm";
+$H_NOTHING = "(Nothing)";
+$H_ICONINTRO_ENTRY = ": you can use these icons";
+$H_ICONINTRO_ARTICLE = "Each icon have the function below...";
+$H_POSTINFO = "After checking your message, lets' confirm it.";
+$H_PUSHHERE_PREVIEW = "Post";
+$H_THANKSMSG = "Thank you for your posting! If you wanto to change, or delete the message, pleaze e-mail to <a href=\"mailto:$MAINT\">$MAINT</a>.";
+$H_BACKTITLE = "View title list";
+$H_BACKORG = "Back to the message you refered";
+$H_PREVARTICLE = "PrevMsg";
+$H_NEXTARTICLE = "NextMsg";
+$H_POSTNEWARTICLE = "WriteNew";
+$H_REPLYTHISARTICLE = "Reply";
+$H_REPLYTHISARTICLEQUOTE = "Reply(with Quote)";
+$H_READREPLYALL = "ReadReply";
+$H_ARTICLES = "# of messages";
+$H_KEYWORD = "KEYWORD";
+$H_SEARCHKEYWORD = "Search";
+$H_RESETKEYWORD = "Reset";
+$H_SEARCHTARGET = "Search target";
+$H_SEARCHTARGETSUBJECT = "$H_SUBJECT";
+$H_SEARCHTARGETPERSON =  "poster's NAME and E-MAIL";
+$H_SEARCHTARGETARTICLE = "$H_MESG";
+$H_INPUTKEYWORD = "<p>
+<ul>
+<li>Select and check search target from $H_SEARCHTARGETSUBJECT, $H_SEARCHTARGETPERSON, and $H_SEARCHTARGETARTICLE, then press 'Search' button. Messages that includes the specified KEYWORD would listed.
+<li>Ignoring KEYWORD capitalized, or not.
+<li>You can specify multiple KEYWORDs separated with space(' ').
+The messages that includes all KEYWORDs would listed.
+<li>Searching messages by its ICON, check ICON box, and select the ICON you want to search
+</ul>
+</p>";
+$H_NOTFOUND = "(not found)";
+$H_FOUNDNO = " message(s) are found.";
+$H_BACKART = "Before";
+$H_NEXTART = "After";
+$H_TOP = "&lt;-";
+$H_BOTTOM = "-&gt;";
+$H_NOARTICLE = "(not found)";
+
+
+#/////////////////////////////////////////////////////////////////////
+1;

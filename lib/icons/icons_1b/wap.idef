@@ -1,0 +1,45 @@
+# きのぼず記事アイコン定義ファイル
+#
+# ファイル名/略称/ヘルプ用の説明
+#
+1b_note.gif	お知らせ	お知らせしたいこと
+1b_excl.gif	注意	注意してほしいこと
+1b_quest_m.gif	はてな	わからないこと/質問です
+#1b_quest_f.gif	はてな	わからないこと/質問です
+1b_hand.gif	提案	提案したいこと
+1b_idea.gif	電球	アイデア/ひらめいたこと
+1b_eye.gif	目	見てほしいこと
+1b_checkit.gif	チェック	チェックしてほしいこと
+1b_go_to.gif	リンク	リンク先のこと
+1b_close_view.gif	虫メガネ	クローズアップ
+1b_trap.gif	落し穴	トラップ/落し穴について
+#
+1b_th_dn.gif	反対	反対です
+1b_th_up.gif	賛成	賛成です
+#
+1b_anntena.gif	アンテナ	電界強度について
+1b_sattelite.gif	衛星	衛星/衛星通信について
+1b_parabora.gif	基地局	基地局について
+#
+1b_phone.gif	携帯電話	携帯電話について
+1b_c_phone.gif	有線電話	有線電話について
+1b_batt.gif	電池フル	バッテリーについて/フル充電
+1b_batt_mater.gif	電池カラ	バッテリーについて/充電カラ
+#
+1b_network.gif	ネットワーク	ネットワークについて
+1b_pc.gif	PC	PCについて
+1b_handheld.gif	ハンドヘルド	ハンドヘルド端末について
+1b_print.gif	プリンタ	プリンタ/印刷について
+1b_disk.gif	ディスク	ディスクについて
+1b_save.gif	フロッピー	フロッピー/保存について
+1b_cpu.gif	CPU	チップ/LSI/CPUについて
+1b_time.gif	時計	時計/時間について
+#
+1b_bug.gif	バグ	バグについて
+1b_bug_report.gif	情報	バグに関する報告です
+1b_bug_fix.gif	バグ修正	修正しました
+#
+1b_java.gif	カップ	カップ/Javaについて
+1b_mail.gif	メイル	メイルについて
+1b_sec.gif	施錠	セキュリティについて/セキュアです
+1b_sec_open.gif	開錠	セキュリティについて/危険です
