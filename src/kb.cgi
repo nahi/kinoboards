@@ -42,7 +42,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.57 2000-02-25 13:40:26 nakahiro Exp $
+# $Id: kb.cgi,v 5.58 2000-02-25 15:01:43 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -867,7 +867,7 @@ sub hg_user_config_form
     if ( $POLICY & 8 )
     {
 	local( %tags, $msg );
-	$msg = &TagLabel( "変更する$H_USERの$H_FROM", 'confUser', 'N' ) .
+	$msg .= &TagLabel( "変更する$H_USERの$H_FROM", 'confUser', 'N' ) .
 	    ': ' . &TagInputText( 'text', 'confUser', '', $NAME_LENGTH ) .
 	    "（管理者は全$H_USERの設定を変更できます）" . $HTML_BR . $HTML_BR;
 	$msg .= &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' . &TagInputText(
@@ -887,15 +887,13 @@ sub hg_user_config_form
 	$UURL = $UURL || 'http://';
 
 	local( %tags, $msg );
-	$msg = &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' . &TagInputText(
+	$msg .= $H_FROM . ': ' . $UNAME . $HTML_BR . $HTML_BR;
+	$msg .= &TagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' . &TagInputText(
 	    'text', 'confMail', $UMAIL, $MAIL_LENGTH ) . $HTML_BR;
 	$msg .= &TagLabel( $H_URL, 'confUrl', 'U' ) . ': ' . &TagInputText(
 	    'text', 'confUrl', $UURL, $URL_LENGTH ) . $HTML_BR . $HTML_BR;
-	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' . &TagInputText(
-	    'password', 'confP', '', $PASSWD_LENGTH ) . $HTML_BR;
-	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' . &TagInputText(
-	    'password', 'confP2', '', $PASSWD_LENGTH ) .
-	    '（念のため，もう一度お願いします）' . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' . &TagInputText( 'password', 'confP', '*' x $PASSWD_LENGTH , $PASSWD_LENGTH ) . $HTML_BR;
+	$msg .= &TagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' . &TagInputText( 'password', 'confP2', '*' x $PASSWD_LENGTH, $PASSWD_LENGTH ) . '（念のため，もう一度お願いします）' . $HTML_BR;
 	%tags = ( 'c', 'ucx' );
 	&DumpForm( *tags, '設定', 'リセット', *msg );
     }
@@ -2511,8 +2509,21 @@ sub hg_c_exec_date_time
 sub hg_c_top_menu
 {
     $gHgStr .= qq(<div class="kbTopMenu">\n);
-    local( $select, $contents );
-    $select = &TagLabel( "表示画面", 'c', 'W' ) . ": \n";
+    local( $formStr, $contents );
+
+    if ( $SYS_AUTH )
+    {
+	$formStr .= &LinkP( 'c=bl', 'TOP', 'J' ) . "\n";
+#	$formStr .= ' ' . &LinkP( 'c=ue', 'OPEN', 'O' ) . "\n";
+	$formStr .= ' ' . &LinkP( 'c=lo', 'LOGIN', 'L' ) . "\n";
+	if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne $cgiauth'F_COOKIE_RESET ))
+	{
+	    $formStr .= ' ' . &LinkP( 'c=uc', 'INFO', 'C' ) . "\n";
+	}
+	$formStr .= "&nbsp;&nbsp;&nbsp;\n";
+    }
+
+    $formStr .= &TagLabel( "表示画面", 'c', 'W' ) . ": \n";
 
     if ( $BOARD )
     {
@@ -2524,16 +2535,18 @@ sub hg_c_top_menu
 	$contents .= sprintf( qq(<option%s value="n">$H_POSTNEWARTICLE</option>\n), ( $cgi'TAGS{'c'} eq 'n' )? ' selected' : '' ) if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )));
 	$contents .= sprintf( qq(<option%s value="i">使える$H_ICON一覧</option>\n), ( $cgi'TAGS{'c'} eq 'i' )? ' selected' : '' ) if $SYS_ICON;
     }
+    else
+    {
+	$contents .= sprintf( qq(<option%s value="bl">$H_BOARD一覧</option>\n), ( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
+    }
 
-    $contents .= sprintf( qq(<option%s value="bl">$H_BOARD一覧</option>\n), ( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
-    $contents .= sprintf( qq(<option%s value="lo">$H_USER情報の呼び出し</option>\n), ( $cgi'TAGS{'c'} eq 'lo' )? ' selected' : '' ) if $SYS_AUTH;
-
-    $select .= &TagSelect( 'c', $contents ) . "\n // " .
+    $formStr .= &TagSelect( 'c', $contents ) . "\n&nbsp;&nbsp;&nbsp;" .
 	&TagLabel( "表示件数", 'num', 'Y' ) . ': ' .
 	&TagInputText( 'text', 'num', ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ),
 	3 );
+
     local( %tags ) = ( 'b', $BOARD );
-    &DumpForm( *tags, '表示(V)', '', *select );
+    &DumpForm( *tags, '表示(V)', '', *formStr );
     $gHgStr .= "</div>\n";
 }
 
@@ -2553,22 +2566,20 @@ sub hg_c_func_link
 
     $gHgStr .= "<dl>\n";
 
-    $gHgStr .= "<dt>「新しく$H_USER情報をサーバに記憶させる」</dt>\n";
-    $gHgStr .= '<dd>→' . &LinkP( 'c=ue', "$H_USER情報の新規登録" .
-	&TagAccessKey( 'E' ), 'E' ) . "</dd>\n";
+    $gHgStr .= "<dt>「新規に$H_USER情報をサーバに登録する」</dt>\n";
+    $gHgStr .= '<dd>→' . &LinkP( 'c=ue', "$H_USERアカウント作成ページ" .
+	&TagAccessKey( 'O' ), 'O' ) . "</dd>\n";
 
     if ( $UNAME )
     {
 	$gHgStr .= "<dt>「別の$H_USER情報を呼び出す」（現在利用中の$H_USER情報は，$UNAMEのものです）</dt>\n";
-	$gHgStr .= '<dd>→' . &LinkP( 'c=lo', "$H_USER情報の呼び出し" .
-	    &TagAccessKey( 'L' ), 'L' ) . "</dd>\n";
+	$gHgStr .= '<dd>→' . &LinkP( 'c=lo', "ログインページ" . &TagAccessKey( 'L' ), 'L' ) . "</dd>\n";
     }
 
     if ( $POLICY & 4 )
     {
 	$gHgStr .= "<dt>「$UNAMEについて登録した$H_USER情報を変更する」</dt>\n";
-	$gHgStr .= '<dd>→' . &LinkP( 'c=uc', "$H_USER情報の変更" .
-	    &TagAccessKey( 'C' ), 'C' ) . "</dd>\n";
+	$gHgStr .= '<dd>→' . &LinkP( 'c=uc', "$H_USER情報ページ" . &TagAccessKey( 'C' ), 'C' ) . "</dd>\n";
     }
 
     if ( $POLICY & 8 )
