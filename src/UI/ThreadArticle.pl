@@ -1,5 +1,5 @@
 ###
-## ThreadArticle - フォロー記事を全て表示．
+## ThreadArticle - スレッド別記事一覧
 #
 # - SYNOPSIS
 #	ThreadArticle;
