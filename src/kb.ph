@@ -1,8 +1,8 @@
-# $Id: kb.ph,v 3.5 1996-03-28 13:04:23 nakahiro Exp $
+# $Id: kb.ph,v 4.0 1996-04-05 11:57:42 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 3.5  1996-03-28 13:04:23  nakahiro
-# FIN like modification.
+# Revision 4.0  1996-04-05 11:57:42  nakahiro
+# KINOBOARDS works based on CGI. No html file now.
 #
 # Revision 3.4  1996/03/28 09:53:32  nakahiro
 # Modified articles DB structure. (Add list of articles followed)
@@ -167,33 +167,38 @@ $H_ID = "記事番号:";
 $H_FOLLOW = "▼反応";
 $H_FMAIL = "反応がついた時にメールで知らせる:";
 
-$H_TEXTTYPE = "入力形式:";
-$H_HTML = "HTML文書";
-$H_PRE = "整形済み文書";
+$H_TEXTTYPE = "表示形式:";
+$H_HTML = "HTMLとして表示する";
+$H_PRE = "そのまま表示する";
 
 $H_NOICON = "なし";
 
 # あおり文
 $H_REPLYMSG = "上の記事に反応する";
-$H_AORI = "題、記事、お名前、メールアドレス、さらにホームページをお持ちの方はURL(省略可)を書き込んでください。記事は、1行をあまり長くせず、適当に折り返して書いて頂くと読み易くなります。<br>HTMLをご存じの方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
+$H_AORI = "題、記事、お名前、メールアドレス、さらにホームページをお持ちの方はURL(省略可)を書き込んでください。<strong>記事はそのまま、メールと同じように書いてくださればOKです</strong>。<br>ただし、HTMLをご存じの方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
 $H_SEEICON = "アイコンを見る";
 $H_SEEALIAS = "エイリアスを見る";
 $H_ALIASENTRY = "登録する";
 $H_ALIASINFO = "エイリアスに登録されている方は、「$H_FROM」に「#...」と書くと、自動的に補完されます。";
-$H_ENTRYINFO = "入力できましたら、記事を確認しましょう(まだ投稿しません)。";
+$H_PREVIEW_OR_ENTRY = "書き込んだ内容を、";
+$H_PREVIEW = "試しに表示してみる(まだ投稿しません)";
+$H_ENTRY = "記事として投稿する";
 $H_PUSHHERE = "ここを押してください";
-$H_ICONINTRO = "「$BoardName」では次のアイコンを使うことができます。";
-$H_POSTINFO = "以下の記事を確認したら、書き込みましょう。";
+$H_NOTHING = "ありません";
+$H_ICONINTRO = "では次のアイコンを使うことができます。";
+$H_POSTINFO = "必要であれば、戻って書き込みを修正して下さい。よろしければボタンを押して書き込みましょう。";
 $H_THANKSMSG = "書き込みの訂正、取消などはメールでお願いいたします。";
 $H_BACK = "戻る";
+$H_COMMAND = "実行";
 $H_NEXTARTICLE = "次の記事へ";
-$H_REPLYTHISARTICLE = "この記事に反応";
-$H_REPLYTHISARTICLEQUOTE = "引用して反応";
-$H_READREPLYALL = "反応をまとめ読み";
+$H_POSTNEWARTICLE = "新規に投稿する";
+$H_REPLYTHISARTICLE = "この記事に反応する";
+$H_REPLYTHISARTICLEQUOTE = "引用して反応する";
+$H_READREPLYALL = "これまでの反応を見る";
 $H_ARTICLES = "記事数";
 $H_JUMPID = "↑の数字をクリックすると、そのIDの記事に飛びます。新しい記事ほど上の方にあります。";
 $H_KEYWORD = "キーワード";
-$H_INPUTKEYWORD = "$H_KEYWORD を入力してくたら、";
+$H_INPUTKEYWORD = "$H_KEYWORD を入力したら、";
 $H_NOTFOUND = "該当する記事は見つかりませんでした。";
 $H_ALIASTITLE = "新規登録/登録内容の変更";
 $H_ALIASNEWCOM = "エイリアスの新規登録/登録内容の変更が行なわれます。ただし変更は、登録の際と同じマシンでなければできません。変更できない場合は、<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします。";
