@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.74 2000-05-05 15:19:18 nakahiro Exp $
+# $Id: kb.cgi,v 5.75 2000-05-07 11:32:10 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -918,7 +918,7 @@ sub fatalStr
     elsif ( $errno == 40 )
     {
 	$severity = $kinologue'SEV_WARN;
-	$msg = "$H_PASSWDを間違えていませんか? $H_FROMと$H_PASSWDを確認し，戻ってやり直してみてください．" . &linkP( "c=lo", "ユーザ設定の呼び出し" . &tagAccessKey( 'L' ), 'L' );
+	$msg = "$H_PASSWDを間違えていませんか? $H_FROMと$H_PASSWDを確認し，戻ってやり直してみてください．" . &linkP( "c=lo", "ログイン" . &tagAccessKey( 'L' ), 'L' );
     }
     elsif ( $errno == 41 )
     {
