@@ -1,0 +1,62 @@
+<html>
+<head>
+<TITLE>known bug(s)</TITLE>
+</head>
+<body>
+
+<h1>
+known bug(s)
+</h1>
+
+<p>
+Last Update: 8/22/96
+</p>
+
+<hr>
+
+<h2>1. jcode.plとの相性</h2>
+
+<p>
+CGIとperl4との組み合わせの場合，jcode.plとの相性が悪いのか，
+文字の取りこぼしまたはサーバエラーが頻繁に起こることがあります．
+</p><p>
+だったんですが，
+<a href="http://www.yk.rim.or.jp/~kase">加瀬さん</a>
+に御協力頂き，R2.3でcgi.pl.jcodeを修正したら，
+なんだかエラーが出なくなってしまいました．
+原因をはっきりとつきとめたわけではないため，
+今後また，何かの拍子に再発するおそれがあります．
+</p><p>
+その場合，まず/usr/local/bin/kcもしくは/usr/local/bin/nkf
+(あるいはそれに類する漢字コード変換機能を持つUNIXプログラム)
+が存在することを確認し，cgi.pl.outcomをcgi.plに置き換えてください．
+cgi.plは，配布パッケージでは，cgi.pl.jcodeと同じものになっています．
+
+<blockquote>
+<code>
+rm cgi.pl<br>
+cp -p cgi.pl.outcom cgi.pl<br>
+</code>
+</blockquote>
+
+次にcgi.pl.outcomの中の
+
+<code>
+<pre>
+$KC2IN = "/usr/local/bin/nkf -e";
+$KC2OUT = "/usr/local/bin/nkf -j";
+</pre>
+</code>
+
+を書き換えて，EUC，およびJISに変換するコマンドを指定してください．
+</p>
+
+<hr>
+
+<address>
+<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+Copyright (C) 1995, 96
+<a href="http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</a>.
+</address>
+</body>
+</html>

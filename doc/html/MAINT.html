@@ -1,0 +1,317 @@
+<html>
+<head>
+<TITLE>maintenance</TITLE>
+</head>
+<body>
+
+<h1>
+maintenance
+</h1>
+
+<p>
+Last Update: 8/22/96
+</p>
+
+<hr>
+
+<h2><a name="addboard">1. 掲示板の増やし方</a></h2>
+
+<p>
+掲示板用directoryの作成と，掲示板DBへのエントリが必要です．
+</p>
+<p>
+<ol>
+<li>新規に作成する掲示板の，directory名と掲示板名を決めます．
+
+<blockquote>
+<code>
+e.g.) forum/フォーラム
+</code>
+</blockquote>
+
+<li>directoryを作ります．モードは777にしてください．
+
+<blockquote>
+<code>
+mkdir forum<br>
+chmod 777 forum
+</code>
+</blockquote>
+
+<li>記事DBのファイルを作ります．モードは666にしてください．
+
+<blockquote>
+<code>
+touch forum/.db<br>
+chmod 666 forum/.db
+</code>
+</blockquote>
+
+<li>記事IDのDBファイルを作ります．モードは666にしてください．
+
+<blockquote>
+<code>
+touch forum/.articleid<br>
+chmod 666  forum/.articleid
+</code>
+</blockquote>
+
+<li>記事一覧のヘッダ部分に挿入するファイルを作ります．
+モードは644にしてください．
+.boardファイルは自由に書き換えて構いません．
+ただし漢字コードは日本語EUCにしてください．
+
+<blockquote>
+<code>
+cp -p test/.board forum/.board<br>
+chmod 644 forum/.board
+</code>
+</blockquote>
+
+<li>そのファイルの，掲示板のdirectoryを指定している部分を，
+全て新しい掲示板のものに書き換えます．
+
+<blockquote>
+<code>
+vi forum/.board<br>
+...&<strong>b=test</strong>&... → ...&<strong>b=forum</strong>&...
+</code>
+</blockquote>
+
+<li>掲示板DBであるkinoboardsというファイルに，
+directory名と掲示板名を，TAB文字(必ず1つ)で区切って追加します．
+漢字コードは日本語EUCで，
+追加した行の行末には，必ず改行コードを入れてください．
+
+<blockquote>
+<code>
+forum	フォーラム
+</code>
+</blockquote>
+
+<li>index.html等に，その掲示板へのリンクを追加します．
+
+<blockquote>
+<code>
+vi index.html<br>
+&lt;a href=&quot;kb.cgi?<strong>b=forum</strong>&amp;c=v&amp;num=40&quot;&gt;フォーラム&lt;/a&gt;<br>
+</code>
+</blockquote>
+</ol>
+</p>
+
+<h2>2. 個別掲示板の機能のカスタマイズ</h2>
+
+<p>
+kb.phをコピーして，掲示板用に書き換えます．
+</p>
+<p>
+<ol>
+<li>手動でロックファイルを作成し，システムを止めます．
+
+<blockquote>
+<code>
+touch .lock.kb
+</code>
+</blockquote>
+
+<li>kb.phファイルを，掲示板directoryにコピーします．
+「.kbconf」という名前でコピーしてください．
+
+<blockquote>
+<code>
+cp -p kb.ph forum/.kbconf
+</code>
+</blockquote>
+
+<li>.kbconfファイルを編集し，メッセージやシステム機能を変更します．
+kb.phと同じ部分については削除して構いません．
+
+<blockquote>
+<pre>
+$SYS_ICON = 1;
+$SYS_BOTTOMTITLE = 0;
+$SYS_BOTTOMARTICLE = 1;
+
+｜
+｜(タイトル一覧で，新着記事が下へ向かって増えていくようにする)
+↓
+
+$SYS_BOTTOMTITLE = 1;
+</pre>
+</blockquote>
+
+<li>ロックファイルを消去し，システムを再び稼働可能にします．
+
+<blockquote>
+<code>
+rm .lock.kb
+</code>
+</blockquote>
+</ol>
+
+<h2>3. 個別掲示板のアイコンのカスタマイズ</h2>
+
+<p>
+アイコン定義ファイルをコピーして，掲示板用に書き換えます．
+</p>
+<p>
+<ol>
+<li>手動でロックファイルを作成し，システムを止めます．
+
+<blockquote>
+<code>
+touch .lock.kb
+</code>
+</blockquote>
+
+<li>必要なアイコンファイルを用意してください．
+ただし20 dot×20 dotのアイコンに限ります．
+
+<li>iconsディレクトリの中のアイコン定義ファイル，all.idefファイルを，
+掲示板directory.idefという名前でコピーします．
+
+<blockquote>
+<code>
+cd icons<br>
+cp -p all.idef forum.idef
+</code>
+</blockquote>
+
+<li>新しく作成したアイコン定義ファイルを書き換えてください．
+アイコンファイル名と略称を，TAB文字(必ず1つ)で区切って並べます．
+
+<blockquote>
+<pre>
+bug.gif	バグ
+change.gif	変更要求
+done.gif	対処
+complete.gif	完了
+</pre>
+</blockquote>
+
+<li>ロックファイルを消去し，システムを再び稼働可能にします．
+
+<blockquote>
+<code>
+rm .lock.kb
+</code>
+</blockquote>
+</ol>
+
+<h2>4. 記事の訂正</h2>
+
+<p>
+記事ファイルを直接書き換えます．
+</p>
+<p>
+<ol>
+<li>手動でロックファイルを作成し，システムを止めます．
+
+<blockquote>
+<code>
+touch .lock.kb
+</code>
+</blockquote>
+
+<li>掲示板directory内の該当記事のファイルのモードを変えて，
+書き換えられるようにします．
+
+<blockquote>
+<code>
+cd test<br>
+mv 123 foo<br>
+cp -p foo 123<br>
+chmod 666 123
+</code>
+</blockquote>
+
+<li>該当記事のファイルを書き換えます．
+
+<blockquote>
+<code>
+vi 123
+</code>
+</blockquote>
+
+<li>ロックファイルを消去し，システムを再び稼働可能にします．
+
+<blockquote>
+<code>
+rm .lock.kb
+</code>
+</blockquote>
+</ol>
+</p>
+
+<h2>5. 記事の削除</h2>
+
+<p>
+もったいないので:-)記事ファイルは保存し，記事DBを書き換えます．
+</p>
+<p>
+<ol>
+<li>手動でロックファイルを作成し，システムを止めます．
+
+<blockquote>
+<code>
+touch .lock.kb
+</code>
+</blockquote>
+
+<li>掲示板directory内の記事DB(.db)のモードを変更し，
+書き換えられるようにします．
+
+<blockquote>
+<code>
+cd test<br>
+mv .db foo<br>
+cp -p foo .db<br>
+chmod 666 .db
+</code>
+</blockquote>
+
+<li>記事DBの該当記事の行の先頭に「#」を挿入して，コメントアウトします．
+
+<blockquote>
+<code>
+<pre>
+11	0		4/30(00:48)	こんにちは	なし	foo.bar.jp	なひ	nakahiro@kinotrope.co.jp	http://	
+↓
+#11	0		4/30(00:48)	こんにちは	なし	foo.bar.jp	なひ	nakahiro@kinotrope.co.jp	http://	
+</pre>
+</code>
+</blockquote>
+
+<li>ロックファイルを消去し，システムを再び稼働可能にします．
+
+<blockquote>
+<code>
+rm .lock.kb
+</code>
+</blockquote>
+</ol>
+
+<h2>6. 異常終了時からのシステムの復帰</h2>
+
+<p>
+システムが異常終了した場合，ロックファイルが残ってしまい，
+システムがいつまでも動かなくなることがあります．
+その場合は手動でロックファイルを削除して下さい．
+
+<blockquote>
+<code>
+rm .lock.kb
+</code>
+</blockquote>
+</p>
+
+<hr>
+
+<address>
+<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
+Copyright (C) 1995, 96
+<a href="http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</a>.
+</address>
+</body>
+</html>
