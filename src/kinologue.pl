@@ -1,21 +1,5 @@
 # kinologue: KINO series LOGging Utility packagE
-# Copyright (C) 1997 NAKAMURA Hiroshi.
-#
-# $Id: kinologue.pl,v 1.3 1997-12-23 02:15:52 nakahiro Rel $
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# Copyright (C) 1997, 98 NAKAMURA Hiroshi.
 
 
 package kinologue;
@@ -37,13 +21,11 @@ $SEV_THRESHOLD = $SEV_DEBUG;	# logging threshold.
 # changes not required
 $DEFAULT_LOGFILE = './kinologue.klg';
 $DEFAULT_PROGNAME = '_unknown_';
-$LIMIT_2000 = 70;		# '69 -> 2069, '70 -> 1970
 $SHIFT_AGE = 3;			# 0 means 'no shifting.'
-$SHIFT_SIZE = 512000;		# byte(s)
+$SHIFT_SIZE = 102400;		# byte(s)
 
 # must not change
-$[ = 0;
-$| = 1;
+$[ = 0; $| = 1;
 
 # logfile format.
 $FF_PLAIN	= 0;		# plain text file.
@@ -60,9 +42,11 @@ $SEV_FATAL	= 5;		# system is down.
 $SEV_ANY	= 6;		# another severity.
 # severity label for logging. ( max 5 char )
 @SEV_LABEL = ( DEBUG, INFO, WARN, ERROR, CAUTN, FATAL, ANY );
+
 # severity color for logging with html.
 @SEV_COLOR = ( '#00FFFF', '#0000FF', '#00FF00', '#FFFF00', '#FF00FF', '#FF0000', '#000000' );
 # classification color for logging with html.
+# do not matter to add more colors below. it (will :-) work(s).
 @COLOR = ( '#000000', '#C0C0C0', '#808080', '#800000', '#FF0000', '#800080', '#FF00FF', '#008000', '#00FF00', '#808000', '#FFFF00', '#000080', '#0000FF', '#008080', '#00FFFF' );
 
 # require jcode.pl if needed.
@@ -103,11 +87,12 @@ if ( $JAPANESE_CODE ) { require( 'jcode.pl' ); }
 #	when the given severity is not enough severe,
 #	log no message, but returns 1.
 #
+$NO_SHIFT = 0;
 sub KlgLog {
     local( $severity, $msg, $progname, $filename, $format ) = @_;
     if ( $severity < $SEV_THRESHOLD ) { return( 1 ); }
 
-    local( $timeStr ) = &_KlgDateTimeFormatOfUtc( time );
+    local( $timeStr ) = &__KlgDateTimeFormatOfUtc( time );
     local( $logStr );
 
     if ( $format eq '' ) { $format = $DEFAULT_FILEFORMAT; }
@@ -115,7 +100,7 @@ sub KlgLog {
     if ( $SHIFT_AGE && !$NO_SHIFT && (( -s "$filename" ) > $SHIFT_SIZE )) {
 	$NO_SHIFT = 1;
 	&KlgLog( $SEV_INFO, "started logfile shifting.", "kinologue", $filename, $format );
-	if ( &_KlgShiftLog( $filename )) {
+	if ( &__KlgShiftLog( $filename )) {
 	    &KlgLog( $SEV_INFO, "finished logfile shifting. new logfile opened.", "kinologue", $filename, $format );
 	} else {
 	    &KlgLog( $SEV_ERROR, "shifting logfile failed.", "kinologue", $filename, $format );
@@ -124,17 +109,17 @@ sub KlgLog {
     }
 
     if (( $format == $FF_HTML ) && ( !-e "$filename" )) {
-	&_KlgLogHtmlHeader( $filename );
+	&__KlgLogHtmlHeader( $filename );
     }
 
-    &_KlgMsgFormat( *msg );
+    &__KlgMsgFormat( *msg );
     if ( !$progname ) { $progname = $DEFAULT_PROGNAME; }
     if ( !$filename ) {	$filename = $DEFAULT_LOGFILE; }
 
     if ( $format == $FF_PLAIN ) {
-	$logStr = &_KlgLogPlain( $severity, $timeStr, $$, $progname, *msg );
+	$logStr = &__KlgLogPlain( $severity, $timeStr, $$, $progname, *msg );
     } elsif ( $format == $FF_HTML ) {
-	$logStr = &_KlgLogHtml( $severity, $timeStr, $$, $progname, *msg );
+	$logStr = &__KlgLogHtml( $severity, $timeStr, $$, $progname, *msg );
     } else {
 	# unknown format.
 	return( 0 );
@@ -149,10 +134,10 @@ sub KlgLog {
 
 
 ###
-## _KlgLogPlain - format a log with plain text format.
+## __KlgLogPlain - format a log with plain text format.
 #
 # - SYNOPSIS
-#	&_KlgLogPlain( $severity, $time, $pid, $progname, *msg );
+#	&__KlgLogPlain( $severity, $time, $pid, $progname, *msg );
 #
 # - ARGS
 #	$severity	severity. see top of this file to set this.
@@ -167,19 +152,19 @@ sub KlgLog {
 # - RETURN
 #	formatted string.
 #
-sub _KlgLogPlain {
+sub __KlgLogPlain {
     local( $severity, $time, $pid, $progname, *msg ) = @_;
-    local( $sevStr ) = &_KlgSevLabelOfSevId( $severity );
+    local( $sevStr ) = &__KlgSevLabelOfSevId( $severity );
     local( $sevChar ) = substr( $sevStr, 0, 1 );
     sprintf( "%s, [%s \#%d(%s)] %5s -- %s\n", $sevChar, $time, $pid, $progname, $sevStr, $msg );
 }
 
 
 ###
-## _KlgLogHtml - format a log with html format.
+## __KlgLogHtml - format a log with html format.
 #
 # - SYNOPSIS
-#	&_KlgLogHtml( $severity, $time, $pid, $progname, *msg );
+#	&__KlgLogHtml( $severity, $time, $pid, $progname, *msg );
 #
 # - ARGS
 #	$severity	severity. see top of this file to set this.
@@ -194,10 +179,10 @@ sub _KlgLogPlain {
 # - RETURN
 #	formatted string.
 #
-sub _KlgLogHtml {
+sub __KlgLogHtml {
     local( $severity, $time, $pid, $progname, *msg ) = @_;
     local( $sevCol, $timeCol, $pidCol, $progCol, $msgCol, $mday, $progTmp, $progC );
-    local( $sevStr ) = &_KlgSevLabelOfSevId( $severity );
+    local( $sevStr ) = &__KlgSevLabelOfSevId( $severity );
     local( $sevChar ) = substr( $sevStr, 0, 1 );
 
     $time =~ m/^\w+ (\d+) .*$/o; $mday = $1;
@@ -208,7 +193,6 @@ sub _KlgLogHtml {
     $pidCol = $COLOR[( $pid % ( $#COLOR+1 ))];
     $progCol = $COLOR[( $progC % ( $#COLOR+1 ))];
     # $msgCol = $sevCol;		# too colorful?
-    $msgCol = '#000000';
 
     sprintf( "<font color=\"$sevCol\">%s,</font> [<font color=\"$timeCol\">%s</font> \#<font color=\"$pidCol\">%d</font>(<font color=\"$progCol\">%s</font>)] <font color=\"$sevCol\">%5s</font> -- <font color=\"$msgCol\">%s</font><br>\n", $sevChar, $time, $pid, $progname, $sevStr, $msg );
 
@@ -216,10 +200,10 @@ sub _KlgLogHtml {
 
 
 ###
-## _KlgLogHtmlHeader - log header with html format.
+## __KlgLogHtmlHeader - log header with html format.
 #
 # - SYNOPSIS
-#	&_KlgLogHtmlHeader( $logfile );
+#	&__KlgLogHtmlHeader( $logfile );
 #
 # - ARGS
 #	$logfile	logfile.
@@ -234,9 +218,9 @@ sub _KlgLogHtml {
 # - RETURN
 #	nothing.
 #
-sub _KlgLogHtmlHeader {
+sub __KlgLogHtmlHeader {
     local( $logfile ) = @_;
-    local( $timeStr ) = &_KlgDateTimeFormatOfUtc( time );
+    local( $timeStr ) = &__KlgDateTimeFormatOfUtc( time );
 
     open( LOG, ">$logfile" );
     print( LOG <<__EOF__);
@@ -250,16 +234,18 @@ sub _KlgLogHtmlHeader {
 <p>
 created on $timeStr.
 </p>
+
+<p>
 __EOF__
     close( LOG );
 }
 
 
 ###
-## _KlgSevLabelOfSevId - get severity lavel from severity id
+## __KlgSevLabelOfSevId - get severity lavel from severity id
 #
 # - SYNOPSIS
-#	_KlgSevLabelOfSevId( $severity );
+#	&__KlgSevLabelOfSevId( $severity );
 #
 # - ARGS
 #	$severity	severity ID; defined at the top of this file.
@@ -272,17 +258,17 @@ __EOF__
 #	severity lavel string defined at the top of this file.
 #	returns 'UNKNOWN' if severity id were not defined.
 #
-sub _KlgSevLabelOfSevId {
+sub __KlgSevLabelOfSevId {
     local( $severity ) = @_;
     $SEV_LABEL[ $severity ] || 'UNKNOWN';
 }
 
 
 ###
-## _KlgMsgFormat - format a message
+## __KlgMsgFormat - format a message
 #
 # - SYNOPSIS
-#	&_KlgMsgFormat( *msg );
+#	&__KlgMsgFormat( *msg );
 #
 # - ARGS
 #	*msg		reference to a message string.
@@ -290,10 +276,13 @@ sub _KlgSevLabelOfSevId {
 # - DESCRIPTION
 #	format a message.
 #
+# - BUGS
+#	cannot handle japanese multi-byted `.'...
+#
 # - RETURN
 #	nothing
 #
-sub _KlgMsgFormat {
+sub __KlgMsgFormat {
     local( *msg ) = @_;
 
     # remove white characters at the end of line.
@@ -306,10 +295,10 @@ sub _KlgMsgFormat {
 
 
 ###
-## _KlgDateTimeFormatOfUtc - get date/time format from UTC
+## __KlgDateTimeFormatOfUtc - get date/time format from UTC
 #
 # - SYNOPSIS
-#	_KlgDateTimeFormatOfUtc( $utd );
+#	&__KlgDateTimeFormatOfUtc( $utd );
 #
 # - ARGS
 #	$utc	time [UTC sec.]
@@ -320,21 +309,21 @@ sub _KlgMsgFormat {
 # - RETURN
 #	date/time formatted string
 #
-sub _KlgDateTimeFormatOfUtc {
+sub __KlgDateTimeFormatOfUtc {
     local( $utc ) = @_;
     local( $sec, $min, $hour, $mday, $mon, $year ) = localtime( $utc );
     sprintf( "%s %02d %02d:%02d:%02d %s",
 	    ( Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec )[ $mon ],
 	    $mday, $hour, $min, $sec,
-	    ( $year < $LIMIT_2000 ) ? "20$year" : "19$year" );
+	    1900 + $year );
 }
 
 
 ###
-## _KlgShiftLog - shift logfile
+## ___KlgShiftLog - shift logfile
 #
 # - SYNOPSIS
-#	&_KlgShiftLog( $logfile );
+#	&__KlgShiftLog( $logfile );
 #
 # - ARGS
 #	$logfile	logfile
@@ -349,7 +338,7 @@ sub _KlgDateTimeFormatOfUtc {
 # - RETURN
 #	1 if succeed, 0 if failed.
 #
-sub _KlgShiftLog {
+sub __KlgShiftLog {
     local( $logfile ) = @_;
     local( $i, $j );
 
@@ -372,3 +361,21 @@ sub _KlgShiftLog {
 
 #/////////////////////////////////////////////////////////////////////
 1;
+
+
+# $Id: kinologue.pl,v 1.4 1998-02-05 13:23:12 nakahiro Rel $
+
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
