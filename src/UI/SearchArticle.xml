@@ -3,7 +3,7 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
@@ -34,8 +34,9 @@
 検索範囲を「YYYY/MM/DD」形式の日付で指定してください
 （例1999/01/01〜1999/12/31）．
 始点と終点のどちらかを省略してもかまいません．
-<li>アイコンで検索する場合は，
-「アイコン」をチェックした後，探すメッセージのアイコンを選んでください．
+<li>アイコンで検索する場合は，検索する「アイコン」を指定した後，
+アイコンの探し方（そのアイコンを持つメッセージを検索する，
+そのアイコンがリプライにないメッセージを検索する，など）を指定してください．
 </ul>
 
 <kb:b_search_article_form />

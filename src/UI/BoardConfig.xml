@@ -3,7 +3,7 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
@@ -45,7 +45,7 @@
 特に実害はありませんが，無意味な空行が入りすぎないように注意してください．
 
 <li>「ヘッダ部分」は，その掲示板でタイトル一覧等を表示する際，
-ページ先頭に追加されます．HTMLで書き込んでください．
+ページ先頭に追加されます．XHTMLで書き込んでください．
 </ul>
 
 <hr />

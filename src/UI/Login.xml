@@ -3,7 +3,7 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
@@ -20,6 +20,11 @@
 そのままボタンを押せば，ゲストユーザとしてアクセスすることもできます．<br />
 ユーザ情報を登録済みの方は，
 お名前とパスワードを入力してからボタンを押してください．
+</p>
+
+<p>
+「クッキーを使ってこのブラウザに情報を覚えさせる」を選択する場合，
+御利用のブラウザが，クッキーを使える設定になっていることを確認してください．
 </p>
 
 <kb:login_form />

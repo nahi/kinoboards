@@ -3,7 +3,7 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.jin.gr.jp/namespaces/2000/kb"
+    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
@@ -32,21 +32,21 @@
 <li><kb:c_icon_msg var="new!" /> : 新着メッセージであることを示しています．</li>
 <br /><br />
 
-<li><kb:c_icon var="tlist.gif,上へ" /> : (あれば)リプライ元のメッセージを表示します．</li>
-<li><kb:c_icon var="prev.gif,前へ" /> : (あれば)前のメッセージを表示します(書き込み順)．</li>
-<li><kb:c_icon var="next.gif,次へ" /> : (あれば)次のメッセージを表示します(書き込み順)．</li>
-<li><kb:c_icon var="thread.gif,リプライをまとめ読み" /> : (あれば)そのメッセージへのリプライをまとめて表示します．▼と同じです．</li>
+<li><kb:c_icon var="org_tlist.gif,上へ" /> : (あれば)リプライ元のメッセージを表示します．</li>
+<li><kb:c_icon var="org_prev.gif,前へ" /> : (あれば)前のメッセージを表示します(書き込み順)．</li>
+<li><kb:c_icon var="org_next.gif,次へ" /> : (あれば)次のメッセージを表示します(書き込み順)．</li>
+<li><kb:c_icon var="org_thread.gif,リプライをまとめ読み" /> : (あれば)そのメッセージへのリプライをまとめて表示します．▼と同じです．</li>
 <br /><br />
 
-<li><kb:c_icon var="follow.gif,リプライを書き込む" /> : そのメッセージへのリプライを書き込みます．</li>
-<li><kb:c_icon var="quote.gif,引用してリプライを書き込む" /> : メッセージを引用して，リプライを書き込みます．</li>
+<li><kb:c_icon var="org_follow.gif,リプライを書き込む" /> : そのメッセージへのリプライを書き込みます．</li>
+<li><kb:c_icon var="org_quote.gif,引用してリプライを書き込む" /> : メッセージを引用して，リプライを書き込みます．</li>
 <br /><br />
 
-<li><kb:c_icon var="supersede.gif,訂正する" /> : そのメッセージを訂正します．</li>
-<li><kb:c_icon var="delete.gif,削除する" /> : そのメッセージを削除します．</li>
+<li><kb:c_icon var="org_supersede.gif,訂正する" /> : そのメッセージを訂正します．</li>
+<li><kb:c_icon var="org_delete.gif,削除する" /> : そのメッセージを削除します．</li>
 <br /><br />
 
-<li><kb:c_icon var="help.gif,ヘルプ" /> : コマンドヘルプを表示します．</li>
+<li><kb:c_icon var="org_help.gif,ヘルプ" /> : コマンドヘルプを表示します．</li>
 </ul>
 
 <hr />
