@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.2 1996-05-21 19:21:36 nakahiro Exp $
+# $Id: cgi.pl,v 1.3 1996-07-08 14:31:16 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -28,7 +28,10 @@ package cgi;
 ###
 ## HTMLヘッダの生成
 #
-sub header {print "Content-type: text/html\n\n";}
+sub header {
+	print "Magnus-charset: x-euc-jp\n";
+	print "Content-type: text/html\n\n";
+}
 
 
 ###

@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.4 1996-05-21 19:21:36 nakahiro Exp $
+# $Id: kb.ph,v 4.5 1996-07-08 14:31:16 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -108,6 +108,7 @@ $DELETE_THANKS_MSG = "記事の削除";
 $ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
 
 $H_LINE = "------------------------------";
+$H_THREAD = "▼";
 $H_BOARD = "掲示板:";
 $H_ICON = "アイコン:";
 $H_SUBJECT = "　題　:";

@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl5
+#!/usr/local/bin/GNU/perl
 #
-# $Id: kb.cgi,v 4.11 1996-07-05 11:15:51 nakahiro Exp $
+# $Id: kb.cgi,v 4.12 1996-07-08 14:31:16 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -34,7 +34,7 @@ $REMOTE_HOST = $ENV{'REMOTE_HOST'};
 $PATH_INFO = $ENV{'PATH_INFO'};
 $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 ($CGIPROG_NAME = $SCRIPT_NAME) =~ s#^(.*/)##;
-$CGIDIR_NAME = $1;
+$SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO" : "$1");
 $SCRIPT_URL = "http://$SERVER_NAME:$SERVER_PORT$SCRIPT_NAME";
 $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : $CGIPROG_NAME);
 
@@ -928,7 +928,7 @@ sub ShowArticle {
 	     $aEmail, $aUrl, $aFmail) = &GetArticlesInfo($Aid);
 
 	    # 表示
-	    printf("%s\n", &GetFormattedTitle($Aid, $aIcon, $aSubject, $aName, $aDate));
+	    printf("%s\n", &GetFormattedTitle($Aid, $aAids, $aIcon, $aSubject, $aName, $aDate));
 	}
 
 	print("</ul>\n");
@@ -1241,6 +1241,7 @@ sub ShowIcon {
 
 	print("<p>\"$BoardName\"$H_ICONINTRO_ENTRY</p>\n");
 	print("<p><dl>\n");
+	print("<dt>$H_THREAD : $THREADARTICLE_MSG\n");
 
 	# 一つ一つ表示
 	open(ICON, "$ICON_DIR/$BOARD.$ICONDEF_POSTFIX")
@@ -1318,8 +1319,7 @@ sub SortArticle {
 	# 新規記事のみ表示、の場合はキャンセル。
 	$ListFlag = 0 if ($SYS_NEWARTICLEONLY && ($Fid != 0));
 
-	push(Lines, &GetFormattedTitle($Id, $Icon, $Title, $Name, $Date))
-	    if ($ListFlag);
+	push(Lines, &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date)) if ($ListFlag);
 
     }
     close(DB);
@@ -1406,7 +1406,7 @@ sub ViewTitle {
 	if ($ListFlag) {
 
 	    # 追加する行
-	    $Line = "<!--$Id-->" . &GetFormattedTitle($Id, $Icon, $Title, $Name, $Date);
+	    $Line = "<!--$Id-->" . &GetFormattedTitle($Id, $Aids, $Icon, $Title, $Name, $Date);
 
 	    # 追加
 	    @Lines = ($Fid)
@@ -1609,9 +1609,11 @@ sub NewArticle {
 sub SearchArticle {
 
     # キーワード、検索範囲を拾う
-    local($Key, $SearchSubject, $SearchPerson, $SearchArticle)
+    local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon,
+	  $Icon)
 	= ($cgi'TAGS{'key'}, $cgi'TAGS{'searchsubject'},
-	   $cgi'TAGS{'searchperson'}, $cgi'TAGS{'searcharticle'});
+	   $cgi'TAGS{'searchperson'}, $cgi'TAGS{'searcharticle'},
+	   $cgi'TAGS{'searchicon'}, $cgi'TAGS{'icon'});
 
     # Board名称の取得
     local($BoardName) = &GetBoardInfo($BOARD);
@@ -1631,38 +1633,52 @@ sub SearchArticle {
 
     # キーワード入力部
     print("<p>$H_KEYWORD:\n");
-    print("<input name=\"key\" size=\"$KEYWORD_LENGTH\" value=\"$Key\">");
+    print("<input name=\"key\" type=\"text\" size=\"$KEYWORD_LENGTH\" value=\"$Key\">");
     print("</p>\n");
 
     # 検索範囲設定部
     print("<p>$H_SEARCHTARGET:\n");
-    if ($SearchSubject) {
-	print("<input name=\"searchsubject\" type=\"checkbox\" value=\"on\" CHECKED> $H_SEARCHTARGETSUBJECT / \n");
-    } else {
-	print("<input name=\"searchsubject\" type=\"checkbox\" value=\"on\"> $H_SEARCHTARGETSUBJECT / \n");
-    }
 
-    if ($SearchPerson) {
-	print("<input name=\"searchperson\" type=\"checkbox\" value=\"on\" CHECKED> $H_SEARCHTARGETPERSON / \n");
-    } else {
-	print("<input name=\"searchperson\" type=\"checkbox\" value=\"on\"> $H_SEARCHTARGETPERSON / \n");
-    }
+    printf("<li>$H_SEARCHTARGETSUBJECT: <input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchSubject) ? 'CHECKED' : ''));
+    printf("<li>$H_SEARCHTARGETPERSON: <input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchPerson) ? 'CHECKED' : ''));
+    printf("<li>$H_SEARCHTARGETARTICLE: <input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>", (($SearchArticle) ? 'CHECKED' : ''));
 
-    if ($SearchArticle) {
-	print("<input name=\"searcharticle\" type=\"checkbox\" value=\"on\" CHECKED> $H_SEARCHTARGETARTICLE");
-    } else {
-	print("<input name=\"searcharticle\" type=\"checkbox\" value=\"on\"> $H_SEARCHTARGETARTICLE");
-    }
+    printf("<li>$H_ICON: <input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s> // ", (($SearchIcon) ? 'CHECKED' : ''));
 
-    print("</p>\n");
+    # アイコンの選択
+    print("<SELECT NAME=\"icon\">\n");
+    printf("<OPTION%s>$H_NOICON\n",
+	   (($Icon ne $H_NOICON) ? '' : ' SELECTED'));
+	
+    # 一つ一つ表示
+    open(ICON, "$ICON_DIR/$BOARDDIR.$ICONDEF_POSTFIX")
+	|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
+	    || &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
+    while(<ICON>) {
+	chop;
+	($FileName, $IconTitle) = split(/\t/, $_, 2);
+	printf("<OPTION%s>$IconTitle\n",
+	       (($Icon eq $IconTitle) ? ' SELECTED' : ''));
+    }
+    close(ICON);
+    print("</SELECT>\n");
+
+    # アイコン一覧
+    print("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
+
+    print("</p>\n</ul>\n</form>\n");
 
     print("<hr>\n");
 
     # キーワードが空でなければ、そのキーワードを含む記事のリストを表示
-    &SearchArticleList($Key, $SearchSubject, $SearchPerson, $SearchArticle)
-	if (($Key) && ($SearchSubject || ($SearchPerson || $SearchArticle)));
+    if (($SearchIcon)
+	|| (($Key) && ($SearchSubject || ($SearchPerson || $SearchArticle)))) {
+	&SearchArticleList($Key, $SearchSubject, $SearchPerson, $SearchArticle,
+			   $SearchIcon, $Icon);
+    }
 
     &MsgFooter();
+
 }
 
 
@@ -1672,14 +1688,13 @@ sub SearchArticle {
 sub SearchArticleList {
 
     # キーワード、検索範囲
-    local($Key, $Subject, $Person, $Article) = @_;
+    local($Key, $Subject, $Person, $Article, $Icon, $IconType) = @_;
 
     # DBファイル
     local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
 
-    local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
-	  $Url, $Fmail) = (0, '', '', '', '', '', '', '', '', '', '');
-    local($ArticleFile, $ArticleFilePath, $HitFlag) = ('', '', 0);
+    local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = (0, '', '', '', '', '', '', '', '', '', '');
+    local($ArticleFile, $HitFlag) = ('', 0);
     local($Line, $Flag) = ('', 0);
 
     # リスト開く
@@ -1695,19 +1710,31 @@ sub SearchArticleList {
 	$Flag = 0;
 	$Line = '';
 
-	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
-	 $Url, $Fmail) = split(/\t/, $_);
-	$ArticleFile = &GetArticleFileName($Id, '');
-	$ArticleFilePath = &GetArticleFileName($Id, $BOARD);
+	# 記事情報
+	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
 
-	# タイトルを検索
-	$Flag = 1 if ($Subject && ($Title =~ /$Key/));
+	# アイコンチェック
+	next if (($Icon) && ($dIcon ne $IconType));
 
-	# 投稿者名を検索
-	$Flag = 1 if ($Person && (($Name =~ /$Key/)));
+	if ($Key) {
 
-	# 本文を検索
-	$Flag = 1 if ($Article && ($Line = &SearchArticleKeyword($ArticleFilePath, $Key)));
+	    # タイトルを検索
+	    $Flag = 1 if ($Subject && ($dTitle =~ /$Key/i));
+
+	    # 投稿者名を検索
+	    $Flag = 1 if ($Person && (($dName =~ /$Key/i)));
+
+	    # 本文を検索
+	    $ArticleFile = &GetArticleFileName($dId, $BOARD);
+	    $Flag = 1 if ($Article &&
+			  ($Line = &SearchArticleKeyword($ArticleFile, $Key)));
+
+	} else {
+
+	    # 無条件で一致
+	    $Flag = 1;
+
+	}
 
 	if ($Flag) {
 
@@ -1715,13 +1742,11 @@ sub SearchArticleList {
 	    $HitFlag = 1;
 
 	    # 記事へのリンクを表示
-	    print(&GetFormattedTitle($Id, $Icon, $Title, $Name, $Date));
+	    print(&GetFormattedTitle($dId, $dAids, $dIcon, $dTitle, $dName, $dDate));
 
 	    # 本文に合致した場合は本文も表示
 	    if ($Article && ($Line ne '')) {
 		$Line =~ s/<[^>]*>//go;
-		$Line =~ s/&/&amp;/go;
-		$Line =~ s/\"/&quot;/go;
 		print("<blockquote>$Line</blockquote>\n");
 	    }
 	}
@@ -1729,10 +1754,10 @@ sub SearchArticleList {
     close(DB);
 
     # ヒットしなかったら
-    print("<dt>$H_NOTFOUND\n") unless ($HitFlag = 1);
+    print("<li>$H_NOTFOUND\n") unless ($HitFlag = 1);
 
     # リスト閉じる
-    print("</dl>\n");
+    print("</ul>\n");
 }
 
 
@@ -2117,13 +2142,20 @@ sub GetBoardInfo {
 ## タイトルリストのフォーマット
 #
 sub GetFormattedTitle {
-    local($Id, $Icon, $Title, $Name, $Date) = @_;
+
+    local($Id, $Aids, $Icon, $Title, $Name, $Date) = @_;
     local($String, $Fnum) = ('', 0);
 
+    # リンク文字列
+    local($Link) = "<a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$Title</a>";
+
+    # まとめ読みリンク用文字列
+    local($Thread) = (($Aids) ? " <a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_THREAD</a>" : '');
+
     if (($Icon eq $H_NOICON) || (! $Icon)) {
-	$String = sprintf("<li><strong>$Id .</strong> <a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$Title</a> [$Name] $Date");
+	$String = sprintf("<li><strong>$Id .</strong> $Link$Thread [$Name] $Date");
     } else {
-	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$Title</a> [$Name] $Date", &GetIconURL($Icon));
+	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Link$Thread [$Name] $Date", &GetIconURL($Icon));
     }
 
     return($String);
@@ -2230,7 +2262,9 @@ sub MsgHeader {
     &cgi'header;
     print("<html>\n");
     print("<head>\n");
+    print("<!--陝 (0xF0A1): cool idea to euc decode error protection; thanks to faichan\@kt.rim.or.jp-->\n");
     print("<title>$Message</title>\n");
+    print("<base href=\"http://$SERVER_NAME:$SERVER_PORT$SYSDIR_NAME/\">\n");
     print("</head>\n");
     print("<body bgcolor=\"$BG_COLOR\" TEXT=\"$TEXT_COLOR\" LINK=\"$LINK_COLOR\" ALINK=\"$ALINK_COLOR\" VLINK=\"$VLINK_COLOR\">\n");
     print("<h1>$Message</h1>\n");
@@ -2522,7 +2556,7 @@ sub MyFatal {
 	print("<a href=\"mailto:$MAINT\">$MAINT</a>まで");
 	print("お知らせ下さい。</p>\n");
     } elsif ($MyFatalNo == 10) {
-	print("<p>$URLにアクセスできません.\n");
+	print("<p>$MyFatalInfoにアクセスできません.\n");
 	print("Try later.</p>\n");
     } elsif ($MyFatalNo == 11) {
 	print("<p>次の記事はまだ投稿されていません。</p>\n");
