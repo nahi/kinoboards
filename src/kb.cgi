@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.45 1997-06-30 17:11:07 nakahiro Exp $
+# $Id: kb.cgi,v 4.46 1997-06-30 18:37:32 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -28,15 +28,10 @@
 $TIME = time;			# プログラム起動時間(UTC)
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
-$SERVER_PORT_STRING = (($SERVER_PORT == 80) || ($SYS_PORTNO == 0)) ? '' : ":$SERVER_PORT";
 $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $REMOTE_HOST = $ENV{'REMOTE_HOST'};
 $PATH_INFO = $ENV{'PATH_INFO'};
 $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
-($CGIPROG_NAME = $SCRIPT_NAME) =~ s!^(.*/)!!o;
-$SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO/" : "$1");
-$SCRIPT_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$SCRIPT_NAME$PATH_INFO";
-$PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : $CGIPROG_NAME);
 
 # 環境変数の設定
 if ($TIME_ZONE) { $ENV{'TZ'} = $TIME_ZONE; }
@@ -49,7 +44,13 @@ require('cgi.pl');
 require('jcode.pl');
 
 # 大域変数の定義
-$[ = 0; $| = 1;
+$[ = 0;
+$| = 1;
+$SERVER_PORT_STRING = (($SERVER_PORT == 80) || ($SYS_PORTNO == 0)) ? '' : ":$SERVER_PORT";
+($CGIPROG_NAME = $SCRIPT_NAME) =~ s!^(.*/)!!o;
+$SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO/" : "$1");
+$SCRIPT_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$SCRIPT_NAME$PATH_INFO";
+$PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : $CGIPROG_NAME);
 
 # VersionとRelease番号
 $KB_VERSION = '1.0';
@@ -299,31 +300,83 @@ __EOF__
 $H_MESG中に関連ウェブページへのリンクを張る場合は，
 「&lt;URL:http://〜&gt;」のように，URLを「&lt;URL:」と「&gt;」で囲んで
 書き込んでください．自動的にリンクが張られます．
-</p><p>
+</p>
+__EOF__
+
+    if ($SYS_ALIAS == 0) {
+
+	# エイリアスは使わない
+	&cgiprint'Cache(<<__EOF__);
+<p>
 $H_FROM: <input name="name" type="text" size="$NAME_LENGTH"><br>
 $H_MAIL: <input name="mail" type="text" size="$MAIL_LENGTH"><br>
 $H_URL_S: <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
+</p>
 __EOF__
 
-    if ($SYS_MAIL) {
-	&cgiprint'Cache("$H_REPLYがあった時にメイルで知らせますか? <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
-    }
-    
-    if ($SYS_ALIAS) {
+    } elsif ($SYS_ALIAS == 1) {
+
+	# エイリアスを使う
 	&cgiprint'Cache(<<__EOF__);
-</p><p>
+<p>
+$H_FROM: <input name="name" type="text" size="$NAME_LENGTH"><br>
+$H_MAIL: <input name="mail" type="text" size="$MAIL_LENGTH"><br>
+$H_URL_S: <input name="url" type="text" value="http://" size="$URL_LENGTH">
+</p>
+__EOF__
+
+	&cgiprint'Cache(<<__EOF__);
+<p>
 「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録なさっている方は，
 「$H_FROM」に「#...」という登録名を書いてください．
 自動的に$H_FROMと$H_MAIL，$H_URLが補われます．
 (<a href="$PROGRAM?c=as">$H_ALIASの一覧</a> //
  <a href="$PROGRAM?c=an">$H_ALIASを登録</a>)
+</p>
+__EOF__
+
+    } else {
+
+	# エイリアスを登録しなければ書き込みできない
+
+	# エイリアスの読み込み
+	&CashAliasData($USER_ALIAS_FILE);
+
+	&cgiprint'Cache(<<__EOF__);
+<p>
+$H_USER:
+<SELECT NAME="name">
+<OPTION SELECTED>$H_FROMを登録した$H_ALIASを選んでください
+__EOF__
+
+	while (($Key, $Value) = each %Name) {
+	    &cgiprint'Cache("<OPTION>$Key\n");
+	}
+	&cgiprint'Cache(<<__EOF__);
+</SELECT>
+</p>
+__EOF__
+
+	&cgiprint'Cache(<<__EOF__);
+<p>
+予め「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録しないと書き込めません．
+登録した後，「#...」という登録名を指定してください．
+(<a href="$PROGRAM?c=as">$H_ALIASの一覧</a> //
+ <a href="$PROGRAM?c=an">$H_ALIASを登録</a>)<br>
+登録した$H_ALIASが表示されない(選択できない)場合，
+このページを再読み込みしてください．
+</p>
 __EOF__
 
     }
 
+    if ($SYS_MAIL) {
+	&cgiprint'Cache("<p>$H_REPLYがあった時にメイルで知らせますか? <input name=\"fmail\" type=\"checkbox\" value=\"on\"></p>\n");
+    }
+    
     # ボタン
     &cgiprint'Cache(<<__EOF__);
-</p><p>
+<p>
 書き込んだ内容を，<br>
 <input type="radio" name="com" value="p" CHECKED>: 試しに表示してみる(まだ投稿しません)<br>
 <input type="radio" name="com" value="x">: $H_MESGを投稿する<br>
@@ -1434,8 +1487,10 @@ sub AliasShow {
     
     # 表示画面の作成
     &MsgHeader('Alias view', "$H_ALIASの参照");
+
     # あおり文
-    &cgiprint'Cache(<<__EOF__);
+    if ($SYS_ALIAS == 1) {
+	&cgiprint'Cache(<<__EOF__);
 <p>
 投稿の際，「$H_FROM」の部分に以下の登録名(「#....」)を入力すると，
 登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．
@@ -1443,7 +1498,23 @@ sub AliasShow {
 <a href="$PROGRAM?c=an">新規登録/登録内容の変更</a>
 </p>
 __EOF__
-    
+
+    } elsif ($SYS_ALIAS == 2) {
+					  
+	&cgiprint'Cache(<<__EOF__);
+<p>
+投稿の際，「$H_USER」で以下の登録名(「#....」)を指定すると，
+登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．
+</p><p>
+<a href="$PROGRAM?c=an">新規登録/登録内容の変更</a>
+</p>
+__EOF__
+
+    } else {
+	# ありえない，はず
+	&Fatal(9999, '');
+    }
+
     # リスト開く
     &cgiprint'Cache("<dl>\n");
     
@@ -1626,7 +1697,7 @@ sub Fatal {
 
     } elsif ($FatalNo == 6) {
 
-	$ErrString = "$FatalInfoというエイリアスは，登録されていません．";
+	$ErrString = "「$FatalInfo」というエイリアスは，登録されていません．";
 
     } elsif ($FatalNo == 7) {
 
@@ -2348,13 +2419,13 @@ sub CheckArticle {
     local($Tmp);
 
     # エイリアスチェック
-    $_ = $Name;
-    if (/^\#.*$/o) {
-        ($Tmp, $Email, $Url) = &GetUserInfo($_);
-	if ($Tmp eq '') {
-	    &Fatal(6, $Name);
-	}
+    if ($Name =~ /^\#.*$/o) {
+        ($Tmp, $Email, $Url) = &GetUserInfo($Name);
+	if ($Tmp eq '') { &Fatal(6, $Name); }
 	$Name = $Tmp;
+    } elsif ($SYS_ALIAS == 2) {
+	# 必須のはずなのに，指定されたエイリアスが登録されていない
+	&Fatal(6, $Name);
     }
 
     # 文字列チェック
@@ -2364,10 +2435,10 @@ sub CheckArticle {
     &CheckSubject(*Subject);
 
     # 空チェック
-    (! $Article) && &Fatal(2, '');
+    if ($Article eq '') { &Fatal(2, ''); }
 
     # アイコンのチェック; おかしけりゃ「無し」に設定．
-    $Icon = $H_NOICON unless (&GetIconURLFromTitle($Icon));
+    if (&GetIconURLFromTitle($Icon)) { $Icon = $H_NOICON; }
 
     # 記事中の"をエンコード
     $Article = &DQEncode($Article);
@@ -2428,7 +2499,7 @@ sub CheckAlias {
     local(*String) = @_;
 
     # 空チェック
-    (! $String) && &Fatal(2, '');
+    if (! $String) { &Fatal(2, ''); }
 
     # `#'で始まってる?
     ($String =~ (/^\#/)) || &Fatal(7, $H_ALIAS);
@@ -2460,7 +2531,7 @@ sub CheckSubject {
     local(*String) = @_;
 
     # 空チェック
-    (! $String) && &Fatal(2, '');
+    if (! $String) { &Fatal(2, ''); }
 
     # タグをチェック
     if ($String =~ m/[<>\t\n]/o) { &Fatal(4, ''); }
@@ -2489,10 +2560,10 @@ sub CheckName {
     local(*String) = @_;
 
     # 空チェック
-    (! $String) && &Fatal(2, '');
+    if (! $String) { &Fatal(2, ''); }
 
     # 改行コードをチェック
-    ($String =~ /[\t\n]/o) && &Fatal(3, '');
+    if ($String =~ /[\t\n]/o) { &Fatal(3, ''); }
 
 }
 
@@ -2528,7 +2599,7 @@ sub CheckEmail {
     }
 
     # 改行コードをチェック
-    ($String =~ /[\t\n]/o) && &Fatal(3, '');
+    if ($String =~ /[\t\n]/o) { &Fatal(3, ''); }
 
 }
 
@@ -2558,7 +2629,7 @@ sub CheckURL {
     if ($String =~ m!^http://$!oi) { $String = ''; }
 
     # URLの中身のチェック
-    ($String ne '') && (! &IsUrl($String)) && &Fatal(7, 'URL');
+    if (($String ne '') && (! &IsUrl($String))) { &Fatal(7, 'URL'); }
 
 }
 
@@ -3406,7 +3477,9 @@ sub WriteAliasData {
 
     # 順に．
     foreach $Alias (sort keys(%Name)) {
-	($Name{$Alias}) && printf(ALIAS "%s\t%s\t%s\t%s\t%s\n", $Alias, $Name{$Alias}, $Email{$Alias}, $Host{$Alias}, $URL{$Alias});
+	if ($Name{$Alias}) {
+	    printf(ALIAS "%s\t%s\t%s\t%s\t%s\n", $Alias, $Name{$Alias}, $Email{$Alias}, $Host{$Alias}, $URL{$Alias});
+	}
     }
     close(ALIAS);
 
