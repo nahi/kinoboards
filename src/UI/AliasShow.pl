@@ -13,26 +13,25 @@
 # - RETURN
 #	なし
 #
-AliasShow: {
-
-    local($Alias);
-
+AliasShow:
+{
     # lock system
     local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
 
     # エイリアスの読み込み
-    &CashAliasData;
+    &CacheAliasData;
 
     # unlock system
     &cgi'unlock( $LOCK_FILE ) unless $PC;
-    
+
     # 表示画面の作成
-    &MsgHeader('Alias view', "$H_ALIASの参照");
+    &MsgHeader( 'Alias view', "$H_ALIASの参照" );
 
     # あおり文
-    if ($SYS_ALIAS == 1) {
+    if (( $SYS_ALIAS == 1 ) || ( $SYS_ALIAS == 3 ))
+    {
 	&cgiprint'Cache(<<__EOF__);
 <p>
 投稿の際，「$H_FROM」の部分に以下の登録名(「\#....」)を入力すると，
@@ -40,9 +39,9 @@ AliasShow: {
 </p><p>
 __EOF__
 	&cgiprint'Cache( &TagA( "$PROGRAM?c=an", "新規登録/登録内容の変更" ) . "\n</p>\n" );
-
-    } elsif ($SYS_ALIAS == 2) {
-					  
+    }
+    elsif ( $SYS_ALIAS == 2 )
+    {
 	&cgiprint'Cache(<<__EOF__);
 <p>
 投稿の際，「$H_USER」で以下の登録名(「\#....」)を指定すると，
@@ -50,17 +49,20 @@ __EOF__
 </p><p>
 __EOF__
 	&cgiprint'Cache( &TagA( "$PROGRAM?c=an", "新規登録/登録内容の変更" ) . "\n</p>\n" );
-
-    } else {
+    }
+    else
+    {
 	# ありえない，はず
 	&Fatal(9999, '');
     }
 
     # リスト開く
-    &cgiprint'Cache("<dl>\n");
+    &cgiprint'Cache( "<dl>\n" );
     
     # 1つずつ表示
-    foreach $Alias (sort keys(%Name)) {
+    local( $Alias );
+    foreach $Alias ( sort keys( %Name ))
+    {
 	&cgiprint'Cache(<<__EOF__);
 <p>
 <dt><strong>$Alias</strong>
@@ -69,14 +71,12 @@ __EOF__
 <dd>$H_URL: $URL{$Alias}
 </p>
 __EOF__
-
     }
 
     # リスト閉じる
-    &cgiprint'Cache("</dl>\n");
-    
-    &MsgFooter;
+    &cgiprint'Cache( "</dl>\n" );
 
+    &MsgFooter;
 }
 
 1;

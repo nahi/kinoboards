@@ -18,14 +18,14 @@ ArriveMailEntry: {
     local(@ArriveMail);
 
     # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
 
     &GetArriveMailTo(1, $BOARD, *ArriveMail); # 宛先とコメントを取り出す
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
 
     &MsgHeader("ArriveMail Entry", "自動メイル配信先の設定");
 
@@ -38,25 +38,19 @@ ArriveMailEntry: {
 #に続けてコメントを書き込むこともできます．
 </p><p>
 特に実害はありませんが，無意味な空行が入りすぎないように注意しましょう．
-</p><p>
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="me">
-<input name="b" type="hidden" value="$BOARD">
-<textarea name="armail" rows="$TEXT_ROWS" cols="$MAIL_LENGTH">
-__EOF__
-
-    foreach(@ArriveMail) { &cgiprint'Cache("$_\n"); }
-
-    &cgiprint'Cache(<<__EOF__);
-</textarea><br>
-<input type="submit" value="設定します">
-<input type="reset" value="リセットする">
-</form>
 </p>
 __EOF__
 
-    &MsgFooter;
+    local( %tags, $msg, $str );
+    $msg = "<textarea name=\"armail\" rows=\"$TEXT_ROWS\" cols=\"$MAIL_LENGTH\">\n";
+    foreach ( @ArriveMail ) { $msg .= "$_\n"; }
+    $msg .= "</textarea><br>";
 
+    %tags = ( 'c', 'me', 'b', $BOARD );
+    &TagForm( *str, *tags, "設定します", "リセットする", *msg );
+    &cgiprint'Cache( $str );
+
+    &MsgFooter;
 }
 
 1;

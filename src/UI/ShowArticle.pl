@@ -14,16 +14,16 @@
 # - RETURN
 #	なし
 #
-ShowArticle: {
-
+ShowArticle:
+{
     local($Id, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $DateUtc, $Aid, @AidList, @FollowIdTree);
 
     # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
-    # cash article DB
-    if ( $BOARD ) { &DbCash( $BOARD ); }
+    # cache article DB
+    if ( $BOARD ) { &DbCache( $BOARD ); }
 
     $Id = $cgi'TAGS{'id'};
     ($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url) = &GetArticlesInfo($Id);
@@ -42,25 +42,25 @@ ShowArticle: {
 
     # 反応記事
     &cgiprint'Cache("▼$H_REPLY\n");
-    if ($Aids ne '') {
 
+    if ( @AidList )
+    {
 	# 反応記事があるなら…
-	foreach $Aid (@AidList) {
-
+	foreach $Aid (@AidList)
+	{
 	    # フォロー記事の木構造の取得
 	    # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
-	    @FollowIdTree = &GetFollowIdTree($Aid);
-
+	    @FollowIdTree = ();
+	    &GetFollowIdTree($Aid, *FollowIdTree);
+	    
 	    # メイン関数の呼び出し(記事概要)
 	    &ThreadArticleMain('subject only', @FollowIdTree);
-
 	}
-
-    } else {
-
+    }
+    else
+    {
 	# 反応記事無し
 	&cgiprint'Cache("<ul>\n<li>$H_REPLYはありません\n</ul>\n");
-
     }
 
     &cgiprint'Cache("</p>\n");
@@ -69,7 +69,7 @@ ShowArticle: {
     &MsgFooter;
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
 
 }
 

@@ -19,19 +19,19 @@ ThreadArticle: {
     local($Id, @FollowIdTree);
 
     # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
-    # cash article DB
-    if ( $BOARD ) { &DbCash( $BOARD ); }
+    # cache article DB
+    if ( $BOARD ) { &DbCache( $BOARD ); }
     # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
 
     $Id = $cgi'TAGS{'id'};
 
     # フォロー記事の木構造の取得
     # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
-    @FollowIdTree = &GetFollowIdTree($Id);
+    &GetFollowIdTree($Id, *FollowIdTree);
 
     # 表示画面の作成
     &MsgHeader('Message view (threaded)', "$H_REPLYをまとめ読み");
@@ -41,6 +41,11 @@ ThreadArticle: {
 
     # メイン関数の呼び出し(記事)
     &ThreadArticleMain('', @FollowIdTree);
+
+    &cgiprint'Cache("$H_HR\n");
+
+    &PrintButtonToTitleList($BOARD);
+    &PrintButtonToBoardList if $SYS_F_B;
 
     &MsgFooter;
 

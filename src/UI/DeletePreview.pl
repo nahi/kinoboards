@@ -19,13 +19,13 @@ DeletePreview: {
     local($Id);
 
     # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
-    # cash article DB
-    if ( $BOARD ) { &DbCash( $BOARD ); }
+    # cache article DB
+    if ( $BOARD ) { &DbCache( $BOARD ); }
     # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
 
     $Id = $cgi'TAGS{'id'};
 
@@ -38,23 +38,16 @@ DeletePreview: {
 </p>
 __EOF__
 
-    # お約束
-    &cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="de">
-<input name="b" type="hidden" value="$BOARD">
-<input name="id" type="hidden" value="$Id">
-<input type="submit" value="この記事を削除します">
-</form>
-<form action="$PROGRAM" method="POST">
-<input name="c" type="hidden" value="det">
-<input name="b" type="hidden" value="$BOARD">
-<input name="id" type="hidden" value="$Id">
-<input type="submit" value="リプライ記事もまとめて削除します">
-</form>
-</p>
-<hr>
-__EOF__
+    local( %tags, $str );
+    %tags = ( 'c', 'de', 'b', $BOARD, 'id', $Id );
+    &TagForm( *str, *tags, "この記事を削除します", '', '' );
+    &cgiprint'Cache( $str );
+
+    %tags = ( 'c', 'det', 'b', $BOARD, 'id', $Id );
+    &TagForm( *str, *tags, "リプライ記事もまとめて削除します", '', '' );
+    &cgiprint'Cache( $str );
+
+    &cgiprint'Cache( $H_HR );
 
     # 削除ファイルの表示
     &ViewOriginalArticle($Id, 0, 1);

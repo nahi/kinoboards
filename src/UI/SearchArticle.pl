@@ -19,13 +19,13 @@ SearchArticle: {
     local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon, $IconTitle);
 
     # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
-    # cash article DB
-    if ( $BOARD ) { &DbCash( $BOARD ); }
+    # cache article DB
+    if ( $BOARD ) { &DbCache( $BOARD ); }
     # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
 
     $Key = $cgi'TAGS{'key'};
     $SearchSubject = $cgi'TAGS{'searchsubject'};
@@ -37,13 +37,8 @@ SearchArticle: {
     # 表示画面の作成
     &MsgHeader('Message search', "$H_MESGの検索");
 
-    # お約束
-    &cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM\" method="POST">
-<input name="c" type="hidden" value="s">
-<input name="b" type="hidden" value="$BOARD">
- 
-<p>
+    local( %tags, $str, $msg );
+    $msg =<<__EOF__;
 <ul>
 <li>「$H_SUBJECT」，「名前」，「$H_MESG」の中から，検索する範囲をチェックしてください．
 指定された範囲で，キーワードを含む$H_MESGを一覧表示します．
@@ -53,40 +48,38 @@ SearchArticle: {
 <li>アイコンで検索する場合は，
 「アイコン」をチェックした後，探したい$H_MESGのアイコンを選んでください．
 </ul>
-</p>
-<input type="submit" value="検索する">
-<input type="reset" value="リセットする">
-
-<p>キーワード:
-<input name="key" type="text" size="$KEYWORD_LENGTH" value="$Key">
-</p>
-
-<p>検索範囲:
-<ul>
 __EOF__
 
-    &cgiprint'Cache(sprintf("<li><input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SUBJECT\n", (($SearchSubject) ? 'CHECKED' : '')));
-    &cgiprint'Cache(sprintf("<li><input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: 名前\n", (($SearchPerson) ? 'CHECKED' : '')));
-    &cgiprint'Cache(sprintf("<li><input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: $H_MESG", (($SearchArticle) ? 'CHECKED' : '')));
-
-    &cgiprint'Cache(sprintf("<li><input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // ", (($SearchIcon) ? 'CHECKED' : '')));
+    $msg .= sprintf("<input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SUBJECT<br>\n", (($SearchSubject) ? 'CHECKED' : ''));
+    $msg .= sprintf("<input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: 名前<br>\n", (($SearchPerson) ? 'CHECKED' : ''));
+    $msg .= sprintf("<input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: $H_MESG<br>\n", (($SearchArticle) ? 'CHECKED' : ''));
+    $msg .= sprintf("<input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // \n", (($SearchIcon) ? 'CHECKED' : ''));
 
     # アイコンの選択
-    &CashIconDb($BOARD);	# アイコンDBのキャッシュ
-    &cgiprint'Cache(sprintf("<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED')));
-    foreach $IconTitle (sort keys(%ICON_FILE)) {
-	&cgiprint'Cache(sprintf("<OPTION%s>$IconTitle\n", (($Icon eq $IconTitle) ? ' SELECTED' : '')));
+    &CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
+    $msg .= sprintf("<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED'));
+
+    foreach $IconTitle ( sort keys( %ICON_FILE ))
+    {
+	$msg .= sprintf("<OPTION%s>$IconTitle\n", (($Icon eq $IconTitle) ? ' SELECTED' : ''));
     }
-    &cgiprint'Cache("</SELECT>\n");
+    $msg .= "</SELECT>\n";
 
     # アイコン一覧
-    &cgiprint'Cache( "(" . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "アイコンの説明" ) . ")<BR>\n" );
-    &cgiprint'Cache(<<__EOF__);
-</ul>
+    $msg .= "(" . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "アイコンの説明" ) . ")\n</p>\n";
+
+    $msg .=<<__EOF__;
+<p>
+キーワード:
+<input name="key" type="text" size="$KEYWORD_LENGTH" value="$Key">
 </p>
-</form>
-<hr>
 __EOF__
+
+    %tags = ( 'c', 's', 'b', $BOARD );
+    &TagForm( *str, *tags, "検索する", "リセットする", *msg );
+    &cgiprint'Cache( $str );
+
+    &cgiprint'Cache( $H_HR );
 
     # キーワードが空でなければ，そのキーワードを含む記事のリストを表示
     if (($SearchIcon ne '') || (($Key ne '') && ($SearchSubject || ($SearchPerson || $SearchArticle)))) {
@@ -94,7 +87,6 @@ __EOF__
     }
 
     &MsgFooter;
-
 }
 
 sub SearchArticleList {

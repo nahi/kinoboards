@@ -34,7 +34,7 @@ AliasDel: {
     $HitFlag = 0;
 
     # エイリアスの読み込み
-    &CashAliasData;
+    &CacheAliasData;
     
     # 1行ずつチェック
     foreach $Alias (sort keys(%Name)) {

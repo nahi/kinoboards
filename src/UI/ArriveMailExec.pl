@@ -19,7 +19,7 @@ ArriveMailExec: {
     local(@ArriveMail);
 
     # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
 
@@ -27,7 +27,7 @@ ArriveMailExec: {
     &UpdateArriveMailDb($BOARD, *ArriveMail); # DBを更新する
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
 
     &MsgHeader("ArriveMail Changed", "自動メイル配信先を設定しました");
 
@@ -48,7 +48,7 @@ __EOF__
 __EOF__
 
     &PrintButtonToTitleList($BOARD);
-    &PrintButtonToBoardList;
+    &PrintButtonToBoardList if $SYS_F_B;
 
     &MsgFooter;
 

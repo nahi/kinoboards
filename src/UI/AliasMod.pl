@@ -38,7 +38,7 @@ AliasMod: {
     &AliasCheck( $alias, $name, $eMail, $url );
     
     # エイリアスの読み込み
-    &CashAliasData;
+    &CacheAliasData;
     
     # 1行ずつチェック
     foreach (sort keys(%Name)) {
@@ -49,7 +49,6 @@ AliasMod: {
     # データの登録
     $Name{ $alias } = $name;
     $Email{ $alias } = $eMail;
-    $Host{ $alias } = $cgi'REMOTE_HOST;
     $URL{ $alias } = $url;
     
     # エイリアスファイルに書き出し

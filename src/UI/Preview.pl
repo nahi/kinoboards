@@ -14,139 +14,130 @@
 # - RETURN
 #	なし
 #
-Preview: {
-
-    local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $rFid, $eArticle, $eSubject);
-
+Preview:
+{
     # lock system
     local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
-    # cash article DB
-    if ( $BOARD ) { &DbCash( $BOARD ); }
+    &Fatal( 1001, '' ) if ( $lockResult == 2 );
+    &Fatal( 999, '' ) if ( $lockResult != 1 );
+    # lock system
+    $lockResult = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
+    &Fatal( 1001, '' ) if ( $lockResult == 2 );
+    &Fatal( 999, '' ) if ( $lockResult != 1 );
+
+    # cache article DB
+    &DbCache( $BOARD ) if $BOARD;
 
     # 入力された記事情報
-    $Name = $cgi'TAGS{'name'};
-    $Email = $cgi'TAGS{'mail'};
-    $Url = $cgi'TAGS{'url'};
-    $Supersede = $cgi'TAGS{'s'};
-    $Id = $cgi'TAGS{'id'};
-    $TextType = $cgi'TAGS{'texttype'};
-    $Icon = $cgi'TAGS{'icon'};
-    $Subject = $cgi'TAGS{'subject'};
-    $Article = $cgi'TAGS{'article'};
-    $Fmail = $cgi'TAGS{'fmail'};
-    if ($Id ne '') { ($rFid) = &GetArticlesInfo($Id); } else { $rFid = ''; }
+    local( $Name ) = $cgi'TAGS{'name'};
+    local( $Email ) = $cgi'TAGS{'mail'};
+    local( $Url ) = $cgi'TAGS{'url'};
+    local( $Supersede ) = $cgi'TAGS{'s'};
+    local( $Id ) = $cgi'TAGS{'id'};
+    local( $TextType ) = $cgi'TAGS{'texttype'};
+    local( $Icon ) = $cgi'TAGS{'icon'};
+    local( $Subject ) = $cgi'TAGS{'subject'};
+    local( $Article ) = $cgi'TAGS{'article'};
+    local( $Fmail ) = $cgi'TAGS{'fmail'};
+    local( $op ) = $cgi'TAGS{'op'};
+
+    local( $rFid ) = '';
+    ( $rFid ) = &GetArticlesInfo( $Id ) if ( $Id ne '' );
 
     # 入力された記事情報のチェック
-    &CheckArticle($BOARD, *Name, *Email, *Url, *Subject, *Icon, *Article);
+    &CheckArticle( $BOARD, *Name, *Email, *Url, *Subject, *Icon, *Article );
 
-    $eArticle = &DQEncode( $Article );
-    $eSubject = &DQEncode( $Subject );
+    local( $eSubject ) = &DQEncode( $Subject );
+    local( $eArticle ) = &DQEncode( $Article );
+
+    &secureSubject( *Subject );
+    &secureArticle( *Article, $TextType );
 
     # 確認画面の作成
-    &MsgHeader('Message preview', "書き込みの内容を確認してください");
+    &MsgHeader( 'Message preview', "書き込みの内容を確認してください" );
 
-    # お約束
-    &cgiprint'Cache(<<__EOF__);
-<form action="$PROGRAM" method="POST">
-<input name="c"        type="hidden" value="x">
-<input name="b"        type="hidden" value="$BOARD">
-<input name="id"       type="hidden" value="$Id">
-<input name="texttype" type="hidden" value="$TextType">
-<input name="name"     type="hidden" value="$Name">
-<input name="mail"     type="hidden" value="$Email">
-<input name="url"      type="hidden" value="$Url">
-<input name="icon"     type="hidden" value="$Icon">
-<input name="subject"  type="hidden" value="$eSubject">
-<input name="article"  type="hidden" value="$eArticle">
-<input name="fmail"    type="hidden" value="$Fmail">
-<input name="s"        type="hidden" value="$Supersede">
+    local( %tags, $str, $msg );
+    %tags = ( 'c', 'x', 'b', $BOARD, 'id', $Id, 'texttype', $TextType,
+	     'name', $Name, 'mail', $Email, 'url', $Url, 'icon', $Icon,
+	     'subject', $eSubject, 'article', $eArticle, 'fmail', $Fmail,
+	     's', $Supersede, 'op', $op );
 
-__EOF__
-
-    if ($Supersede && $SYS_F_D) {
-	&cgiprint'Cache(<<__EOF__);
+    if ( $Supersede && $SYS_F_D )
+    {
+	$msg =<<__EOF__;
 <p>
 上の$H_MESGの替わりに，下の$H_MESGを書き込みます．
 必要であれば，ブラウザのBACKボタンで戻って，書き込みを修正してください．
 よろしければボタンを押して訂正しましょう．
-<input type="submit" value="訂正します">
 </p>
-</form>
 __EOF__
-	&ViewOriginalArticle($Id, 0, 1);
-	&cgiprint'Cache("<hr>\n");
-    } else {
-	&cgiprint'Cache(<<__EOF__);
+	&TagForm( *str, *tags, "訂正します", '', *msg );
+	&cgiprint'Cache( $str );
+	&ViewOriginalArticle( $Id, 0, 1 );
+	&cgiprint'Cache( "$H_HR\n" );
+    }
+    else
+    {
+	$msg = <<__EOF__;
 <p>
 必要であれば，ブラウザのBACKボタンで戻って，書き込みを修正してください．
 よろしければボタンを押して書き込みましょう．
-<input type="submit" value="投稿する">
 </p>
-</form>
 __EOF__
+	&TagForm( *str, *tags, "投稿します", '', *msg );
+	&cgiprint'Cache( $str );
     }
 
-    &cgiprint'Cache("<p>\n");
+    &cgiprint'Cache( "<p>\n" );
 
     # 題
-    (($Icon eq $H_NOICON) || (! $Icon))
-        ? &cgiprint'Cache( "<strong>$H_SUBJECT</strong>: " . $Subject )
-            : &cgiprint'Cache( "<strong>$H_SUBJECT</strong>: " . &TagMsgImg( &GetIconUrlFromTitle($Icon, $BOARD), "$Icon " ) . $Subject );
+    if (( $Icon eq $H_NOICON ) || ( !$Icon ))
+    {
+        &cgiprint'Cache( "<strong>$H_SUBJECT</strong>: $Subject" );
+    }
+    else
+    {
+	&cgiprint'Cache( "<strong>$H_SUBJECT</strong>: ", &TagMsgImg( &GetIconUrlFromTitle($Icon, $BOARD), "$Icon " ), $Subject );
+    }
 
     # お名前
-    if ($Url ne '') {
+    if ( $Url ne '' )
+    {
         # URLがある場合
-        &cgiprint'Cache( "<br>\n<strong>$H_FROM</strong>: " . &TagA( $Url, $Name ));
-    } else {
+        &cgiprint'Cache( "<br>\n<strong>$H_FROM</strong>: ", &TagA( $Url, $Name ));
+    }
+    else
+    {
         # URLがない場合
-        &cgiprint'Cache( "<br>\n<strong>$H_FROM</strong>: " . $Name );
+        &cgiprint'Cache( "<br>\n<strong>$H_FROM</strong>: $Name" );
     }
 
     # メイル
-    &cgiprint'Cache( " " . &TagA( "mailto:$Email", "&lt;$Email&gt;" )) if ( $Email ne '' );
+    &cgiprint'Cache( " ", &TagA( "mailto:$Email", "&lt;$Email&gt;" ))
+	if $Email;
 
     # 反応元(引用の場合)
-    if ($rFid) {
-	if ($rFid ne '') {
-	    &ShowLinksToFollowedArticle(($Id, split(/,/, $rFid)));
-	} else {
-	    &ShowLinksToFollowedArticle($Id);
+    if ( $Id )
+    {
+	if ( $rFid )
+	{
+	    &ShowLinksToFollowedArticle(( $Id, split( /,/, $rFid )));
+	}
+	else
+	{
+	    &ShowLinksToFollowedArticle( $Id );
 	}
     }
 
     # 切れ目
-    &cgiprint'Cache("</p>\n$H_LINE\n");
-
-    # TextType用前処理
-    if ( !$SYS_TEXTTYPE ) {
-	# pre-formatted
-	&PlainArticleToPreFormatted( *Article );
-    }
-    elsif ( $TextType eq $H_TTLABEL[2] ) {
-	# nothing to do. it's HTML.
-    }
-    elsif ( $TextType eq $H_TTLABEL[1] ) {
-	# convert to html
-	&PlainArticleToHtml( *Article );
-    }
-    elsif ( $TextType eq $H_TTLABEL[0] ) {
-	# pre-formatted
-	&PlainArticleToPreFormatted( *Article );
-    }
-    else {
-	&Fatal( 0, 'must not be reached...MakeArticleFile' );
-    }
+    &cgiprint'Cache( "</p>\n$H_LINE\n" );
 
     # 記事
-    $Article = &ArticleEncode($Article);
-    &cgi'SecureHtml(*Article);
-    &cgiprint'Cache("$Article\n");
-
+    &cgiprint'Cache( "$Article\n" );
     &MsgFooter;
 
     # unlock system
+    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
     &cgi'unlock( $LOCK_FILE ) unless $PC;
 }
 
