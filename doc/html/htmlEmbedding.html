@@ -1,0 +1,841 @@
+<?xml version="1.0" encoding="ISO-2022-JP"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link rev="MADE" href="mailto:nakahiro@sarion.co.jp" />
+<link rel="INDEX" href="./" />
+<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen" />
+<title>KINOBOARDS HTML Embedding - KINOBOARDS/1.0R7</title>
+</head>
+<body>
+
+<div class="header">
+<h1>
+KINOBOARDS HTML Embedding
+</h1>
+
+<p class="status">
+Last modified: August 10, 2000<br />
+Created: August 7, 2000
+</p>
+</div>
+
+<hr />
+
+<div class="main">
+<h2>0. このドキュメントの目的</h2>
+
+<p>
+きのぼずが表示する画面の見た目は，<a href="UIDefinition.html">UIディレクトリの中に収められているXMLファイル</a>（以後UI定義ファイルと呼ぶことにします）を変更することにより，カスタマイズすることができます．
+UI定義ファイルは基本的にXHTMLそのままですが，一部きのぼず固有のタグを入れることができます．
+きのぼずはこのタグを見て，ジャンプメニューやメッセージのスレッドなどを合成し，最終的な画面を生成しています．
+</p>
+
+<p>
+このドキュメントは，UI定義ファイルの中で使える，きのぼず固有のタグについて説明するためのものです．
+きのぼず固有のタグはUI定義ファイルに埋め込むものですので，適宜
+<a href="UIDefinition.html">KINOBOARDS UI Definition</a>
+ドキュメントも参照してください．
+</p>
+
+<p>
+本文書が対象としているKINOBOARDSのバージョンは，
+KINOBOARDS version 1.0 release 7（KINOBOARDS/1.0R7.3以降）
+です．
+</p>
+
+<p>
+きのぼず固有のタグ（以下，きのぼずタグと呼ぶことにします）は，大まかに，以下の4種類に分けることができます．
+それぞれ説明します．
+</p>
+
+<dl>
+<dt><a href="#common">1. 共通タグ</a></dt>
+<dd>どのUI定義ファイルの中にでも置くことができます．
+タグ名はc_で始まります．</dd>
+
+<dt><a href="#board">2. 掲示板タグ</a></dt>
+<dd>表示している掲示板に関する情報を表示するためのタグです．
+掲示板が1つに定まらないUI定義ファイル（例えば掲示板一覧を表示するための<a href="UIDefinition.html#BoardList.xml">BoardList.xml</a>など）の中には置くことができません．
+タグ名はb_で始まります．</dd>
+
+<dt><a href="#depend">3. 固有タグ</a></dt>
+<dd>固有のUI定義ファイルでしか使えないタグです．
+この種類のタグは，指定されたUI定義ファイルの中にしか置けません
+（そのファイルの中であれば，任意の位置に置くことができます）．</dd>
+
+<dt><a href="#system">4. システムタグ</a></dt>
+<dd>きのぼずシステムが動くために必須なタグです．
+この種類のタグの移動や追加，削除は慎重にお願いします．
+タグ名はs_で始まります．</dd>
+</dl>
+
+<h2 id="common">1. 共通タグ</h2>
+
+<p>
+どのUI定義ファイルの中にでも置くことができます．
+タグ名はc_で始まります．
+</p>
+
+<h3>&lt;kb:c_anchor /&gt;</h3>
+
+<pre>
+&lt;kb:c_anchor comment=&quot;リンク文字列&quot; url=&quot;リンク先URL&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，リンク先URLへのリンクを挿入します．
+aエレメントです．
+UI定義ファイル中にそのまま&lt;a href=&quot;...と書いても構いませんが，このきのぼずタグを利用すると，必要に応じてaccesskeyが補われます．
+</p>
+
+<h3>&lt;kb:c_auth_user /&gt;</h3>
+
+<pre>
+&lt;kb:c_auth_user /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，アクセス中のユーザ名を挿入します．
+単なる文字列です．
+</p>
+
+<h3>&lt;kb:c_board_lastmod /&gt;</h3>
+
+<pre>
+&lt;kb:c_board_lastmod board=&quot;掲示板名&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，指定された掲示板の最終更新時刻を挿入します．
+単なる文字列です．
+</p>
+
+<h3>&lt;kb:c_board_name /&gt;</h3>
+
+<pre>
+&lt;kb:c_board_name board=&quot;掲示板名&quot; /&gt;
+
+ex. &lt;kb:c_board_name board=&quot;test&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，指定された掲示板の名前を挿入します．
+単なる文字列です．
+&lt;kb:b_board_name /&gt;との違いは，掲示板名を明示する点です．
+</p>
+
+<h3>&lt;kb:c_board_link /&gt;</h3>
+
+<pre>
+&lt;kb:c_board_link com=&quot;コマンド&quot; board=&quot;掲示板名&quot; /&gt;
+
+ex. &lt;kb:c_board_link com=&quot;message-thread&quot; board=&quot;test&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，掲示板のタイトル一覧，メッセージ一覧へのリンクをを挿入します．
+aエレメントの他に，最終更新時刻なども表示されます．
+コマンドとしては，以下のものを指定してください．
+</p>
+
+<dl>
+<dt>title-thread</dt>
+<dd>タイトル一覧（スレッド）へのリンク</dd>
+<dt>title-bydate</dt>
+<dd>タイトル一覧（日付順）へのリンク</dd>
+<dt>message-thread</dt>
+<dd>メッセージ一覧（スレッド）へのリンク</dd>
+<dt>message-bydate</dt>
+<dd>メッセージ一覧（日付順）へのリンク</dd>
+</dl>
+
+<h3>&lt;kb:c_board_link_all /&gt;</h3>
+
+<pre>
+&lt;kb:c_board_link_all /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，各掲示板のタイトル一覧へのリンクをを挿入します．
+ulエレメントです．
+最終更新時刻なども表示されます．
+</p>
+
+<h3>&lt;kb:c_command /&gt;</h3>
+
+<pre>
+&lt;kb:c_command comment=&quot;リンク文字列&quot; tag1=&quot;value1&quot; tag2=&quot;value2&quot; ... /&gt;
+
+ex. &lt;kb:c_command comment=&quot;検索&quot; c=&quot;s&quot; b=&quot;test&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，きのぼずのコマンドへのリンクを挿入します．
+aエレメントです．
+tagとvalue部分には，きのぼずに渡すクエリを書いてください．
+上記の例であれば，kb.cgi?c=s&amp;b=testというリンクを生成します．
+</p>
+
+<h3>&lt;kb:c_exec_date_time /&gt;</h3>
+
+<pre>
+&lt;kb:c_exec_date_time /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，現在時刻を挿入します．
+単なる文字列です．
+</p>
+
+<h3>&lt;kb:c_func_link /&gt;</h3>
+
+<pre>
+&lt;kb:c_func_link /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，認証関連の各機能を呼び出すためのリンクを挿入します．
+dlエレメントです．
+ログイン画面，ユーザ情報画面，新規登録画面へのリンクが（もし権限があれば）表示されます．
+</p>
+
+<h3>&lt;kb:c_help /&gt;</h3>
+
+<pre>
+&lt;kb:c_help type=&quot;タイプ&quot; /&gt;
+
+ex. &lt;kb:c_help type=&quot;boards&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，ヘルプ画面へのリンクを挿入します．
+aエレメントです．
+タイプとしては，以下のものを指定してください．
+</p>
+
+<dl>
+<dt>boards</dt>
+<dd>掲示板一覧画面のヘルプ</dd>
+<dt>titles</dt>
+<dd>タイトル一覧画面のヘルプ</dd>
+<dt>thread</dt>
+<dd>スレッドについてのヘルプ</dd>
+<dt>message</dt>
+<dd>メッセージ表示画面のヘルプ</dd>
+<dt>icon</dt>
+<dd>コマンドアイコンのヘルプ</dd>
+<dt>post</dt>
+<dd>メッセージ登録画面のヘルプ</dd>
+</dl>
+
+<h3>&lt;kb:c_icon /&gt;</h3>
+
+<pre>
+&lt;kb:c_icon icon=&quot;アイコンファイル名&quot; alt=&quot;説明文字列&quot; /&gt;
+
+ex. &lt;kb:c_icon icon=&quot;org_help.gif&quot; alt=&quot;ヘルプ&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，アイコンを挿入します．
+imgエレメントです．
+メッセージアイコンに限らず，iconディレクトリ内に置かれた画像ファイルであれば指定できます．
+アイコン名ではなく，アイコンファイル名を指定してください．
+</p>
+
+<h3>&lt;kb:c_icon_msg /&gt;</h3>
+
+<pre>
+&lt;kb:c_icon_msg icon=&quot;アイコン名&quot; /&gt;
+
+ex. &lt;kb:c_icon_msg icon=&quot;new!&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，メッセージアイコンを挿入します．
+imgエレメントです．
+アイコン名を指定します．
+</p>
+
+<h3>&lt;kb:c_img /&gt;</h3>
+
+<pre>
+&lt;kb:c_img src=&quot;ファイル名&quot; alt=&quot;説明文字列&quot; width=&quot;幅&quot; height=&quot;高さ&quot; /&gt;
+
+ex. &lt;kb:c_img src=&quot;boards.png&quot; alt=&quot;タイトル一覧ページ&quot; width=&quot;474&quot; height=&quot;256&quot; /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，きのぼずのimgディレクトリ内に置かれた画像ファイルを挿入します．
+imgエレメントです．
+ファイルはimgディレクトリに置かれたものでなければなりません．
+具体的には，kb.cgiの先頭で指定した$KB_RESOURCE_URL下のimgディレクトリ直下です．
+説明文字列，高さ，幅は必ず指定してください．
+</p>
+
+<h3>&lt;kb:c_page_link /&gt;</h3>
+
+<pre>
+&lt;kb:c_page_link /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，一覧表示時のページ移動用情報（最新，次，逆順，など）を挿入します．
+kbPageLinkというクラスのpエレメントです．
+「共通タグ」に分類されていますが，一覧表示用のUI定義ファイルに埋め込まなければ，意味がありません
+（その他のUI定義ファイルに埋め込んだ場合は，何も表示されません．）
+</p>
+
+<h3>&lt;kb:c_remote_info /&gt;</h3>
+
+<pre>
+&lt;kb:c_remote_info /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，アクセスユーザのリモート情報を挿入します．
+単なる文字列です．
+リモート情報は，ユーザのアクセス元ホスト情報（ホスト名もしくはIPアドレス）です．
+BasicAuth認証を利用している場合は，認証ユーザ名も入ります．
+</p>
+
+<h3>&lt;kb:c_site_name /&gt;</h3>
+
+<pre>
+&lt;kb:c_site_name /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，この掲示板システムの名前を挿入します．
+単なる文字列です．
+具体的には，kb.phで宣言された，$SYSTEM_NAMEが入ります．
+</p>
+
+<h3>&lt;kb:c_status /&gt;</h3>
+
+<pre>
+&lt;kb:c_status /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，きのぼずのステータスを挿入します．
+kbStatusというクラスのpエレメントです．
+ステータスは，認証済みであればユーザ名と，アクセス中の掲示板，現在時刻から成ります．
+</p>
+
+<h3>&lt;kb:c_top_menu /&gt;</h3>
+
+<pre>
+&lt;kb:c_top_menu /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，きのぼずのトップメニューを挿入します．
+kbTopMenuというクラスのdivエレメントです．
+トップメニューはTOP，HELP，OPENなどのリンクと，
+タイトル一覧やメッセージ一覧を表示するためのフォームから成ります．
+参照権限がないユーザに対しては，フォームが表示されません．
+</p>
+
+<h2 id="board">2. 掲示板タグ</h2>
+
+<p>
+表示している掲示板に関する情報を表示するためのタグです．
+掲示板が1つに定まらないUI定義ファイル（例えば掲示板一覧を表示するための<a href="UIDefinition.html#BoardList.xml">BoardList.xml</a>など）の中には置くことができません．
+タグ名はb_で始まります．
+</p>
+
+<p>
+（実際には，置いてもエラーにはなりません．
+ただ何も表示されないだけです．）
+</p>
+
+<p>
+このタイプのきのぼずタグは，属性を取りません．
+</p>
+
+<h3>&lt;kb:b_all_icon /&gt;</h3>
+
+<pre>
+&lt;kb:b_all_icon /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，該当掲示板で利用可能な全てのメッセージアイコンが挿入されます．
+ulエレメントです．
+各メッセージアイコンはliエレメントの中に入っています．
+</p>
+
+<h3>&lt;kb:b_board_header /&gt;</h3>
+
+<pre>
+&lt;kb:b_board_header /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，該当掲示板のヘッダを挿入します．
+具体的には，各掲示板ディレクトリ内のkb.boardファイルが展開されます．
+kb.boardファイルの中にも，きのぼずタグを挿入することができます
+</p>
+
+<h3>&lt;kb:b_board_name /&gt;</h3>
+
+<pre>
+&lt;kb:b_board_name /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，該当掲示板の掲示板名を挿入します．
+単なる文字列です．
+</p>
+
+<h3>&lt;kb:b_post_entry_form /&gt;</h3>
+
+<pre>
+&lt;kb:b_post_entry_form /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，該当掲示板にオリジナルメッセージを書き込むためのフォームを挿入します．
+formエレメントです．
+</p>
+
+<h3>&lt;kb:b_search_article_form /&gt;</h3>
+
+<pre>
+&lt;kb:b_search_article_form /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，該当掲示板のメッセージを検索するためのフォームを挿入します．
+formエレメントです．
+</p>
+
+<h2 id="depend">3. 固有タグ</h2>
+
+<p>
+固有のUI定義ファイルでしか使えないタグです．
+この種類のタグは，指定されたUI定義ファイルの中にしか置けません
+（そのファイルの中であれば，任意の位置に置くことができます）．
+</p>
+
+<p>
+このタイプのきのぼずタグは，属性を取りません．
+</p>
+
+<p>
+(To be detailed...)
+</p>
+
+<h3>&lt;kb:admin_config_form /&gt;</h3>
+
+<pre>
+&lt;kb:admin_config_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#AdminConfig.xml">AdminConfig.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:board_config_form /&gt;</h3>
+
+<pre>
+&lt;kb:board_config_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#BoardConfig.xml">BoardConfig.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:board_entry_form /&gt;</h3>
+
+<pre>
+&lt;kb:board_entry_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#BoardEntry.xml">BoardEntry.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:delete_exec_back_to_title_button /&gt;</h3>
+
+<pre>
+&lt;kb:delete_exec_back_to_title_button /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#DeleteExec.xml">DeleteExec.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:delete_preview_body /&gt;</h3>
+
+<pre>
+&lt;kb:delete_preview_body /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#DeletePreview.xml">DeletePreview.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:delete_preview_form /&gt;</h3>
+
+<pre>
+&lt;kb:delete_preview_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#DeletePreview.xml">DeletePreview.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:delete_preview_reply /&gt;</h3>
+
+<pre>
+&lt;kb:delete_preview_reply /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#DeletePreview.xml">DeletePreview.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:fatal_msg /&gt;</h3>
+
+<pre>
+&lt;kb:fatal_msg /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#Fatal.xml">Fatal.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:login_form /&gt;</h3>
+
+<pre>
+&lt;kb:login_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#Login.xml">Login.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:post_exec_jump_to_new_article /&gt;</h3>
+
+<pre>
+&lt;kb:post_exec_jump_to_new_article /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#PostExec.xml">PostExec.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:post_exec_jump_to_orig_article /&gt;</h3>
+
+<pre>
+&lt;kb:post_exec_jump_to_orig_article /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#PostExec.xml">PostExec.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:post_preview_body /&gt;</h3>
+
+<pre>
+&lt;kb:post_preview_body /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#PostPreview.xml">PostPreview.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:post_preview_form /&gt;</h3>
+
+<pre>
+&lt;kb:post_preview_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#PostPreview.xml">PostPreview.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:post_reply_entry_orig_article /&gt;</h3>
+
+<pre>
+&lt;kb:post_reply_entry_orig_article /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#PostReplyEntry.xml">PostReplyEntry.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:search_article_result /&gt;</h3>
+
+<pre>
+&lt;kb:search_article_result /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#SearchArticle.xml">SearchArticle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:show_article_body /&gt;</h3>
+
+<pre>
+&lt;kb:show_article_body /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ShowArticle.xml">ShowArticle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:show_article_original /&gt;</h3>
+
+<pre>
+&lt;kb:show_article_original /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ShowArticle.xml">ShowArticle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:show_article_reply /&gt;</h3>
+
+<pre>
+&lt;kb:show_article_reply /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ShowArticle.xml">ShowArticle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:show_article_title /&gt;</h3>
+
+<pre>
+&lt;kb:show_article_title /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ShowArticle.xml">ShowArticle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:show_thread_back_to_title_button /&gt;</h3>
+
+<pre>
+&lt;kb:show_thread_back_to_title_button /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ShowThread.xml">ShowThread.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:show_thread_msg_body /&gt;</h3>
+
+<pre>
+&lt;kb:show_thread_msg_body /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ShowThread.xml">ShowThread.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:show_thread_title /&gt;</h3>
+
+<pre>
+&lt;kb:show_thread_title /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ShowThread.xml">ShowThread.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:show_thread_title_tree /&gt;</h3>
+
+<pre>
+&lt;kb:show_thread_title_tree /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ShowThread.xml">ShowThread.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:sort_article_body /&gt;</h3>
+
+<pre>
+&lt;kb:sort_article_body /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#SortArticle.xml">SortArticle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:sort_title_tree /&gt;</h3>
+
+<pre>
+&lt;kb:sort_title_tree /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#SortTitle.xml">SortTitle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:supersede_entry_orig_article /&gt;</h3>
+
+<pre>
+&lt;kb:supersede_entry_orig_article /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#SupersedeEntry.xml">SupersedeEntry.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:supersede_exec_jump_to_new_article /&gt;</h3>
+
+<pre>
+&lt;kb:supersede_exec_jump_to_new_article /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#SupersedeExec.xml">SupersedeExec.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:supersede_preview_body /&gt;</h3>
+
+<pre>
+&lt;kb:supersede_preview_body /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#SupersedePreview.xml">SupersedePreview.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:supersede_preview_form /&gt;</h3>
+
+<pre>
+&lt;kb:supersede_preview_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#SupersedePreview.xml">SupersedePreview.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:supersede_preview_orig_article /&gt;</h3>
+
+<pre>
+&lt;kb:supersede_preview_orig_article /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#SupersedePreview.xml">SupersedePreview.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:thread_article_body /&gt;</h3>
+
+<pre>
+&lt;kb:thread_article_body /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ThreadArticle.xml">ThreadArticle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:thread_article_tree /&gt;</h3>
+
+<pre>
+&lt;kb:thread_article_tree /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ThreadArticle.xml">ThreadArticle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:thread_title_board_header /&gt;</h3>
+
+<pre>
+&lt;kb:thread_title_board_header /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ThreadTitle.xml">ThreadTitle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:thread_title_tree /&gt;</h3>
+
+<pre>
+&lt;kb:thread_title_tree /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#ThreadTitle.xml">ThreadTitle.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:user_config_form /&gt;</h3>
+
+<pre>
+&lt;kb:user_config_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#UserConfig.xml">UserConfig.xml</a>でのみ使えます．
+</p>
+
+<h3>&lt;kb:user_entry_form /&gt;</h3>
+
+<pre>
+&lt;kb:user_entry_form /&gt;
+</pre>
+
+<p>
+<a href="UIDefinition.html#UserEntry.xml">UserEntry.xml</a>でのみ使えます．
+</p>
+
+<h2 id="system">4. システムタグ</h2>
+
+<p>
+きのぼずシステムが動くために必須なタグです．
+この種類のタグの移動や追加，削除は慎重にお願いします．
+タグ名はs_で始まります．
+</p>
+
+<p>
+このタイプのきのぼずタグは，属性を取りません．
+</p>
+
+<h3>&lt;kb:s_address /&gt;</h3>
+
+<pre>
+&lt;kb:s_address /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，管理者名およびきのぼずの著作権表示を挿入します．
+このタグは移動しても構いませんし，削ってしまっても構いません．
+</p>
+
+<h3>&lt;kb:s_title /&gt;</h3>
+
+<pre>
+&lt;kb:s_title /&gt;
+</pre>
+
+<p>
+このタグが置かれた位置に，XHTMLのヘッダ項目を挿入します．
+XHTMLのヘッダエレメントの中から動かさないでください．
+</p>
+
+</div>
+
+<hr />
+
+<div class="footer">
+<address>
+<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br />
+Copyright &copy; 1995-2000
+<a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
+</address>
+</div>
+</body>
+</html>
