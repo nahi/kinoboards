@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.38 1997-02-14 11:41:00 nakahiro Exp $
+# $Id: kb.cgi,v 4.39 1997-02-19 07:46:16 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -63,7 +63,7 @@ $| = 1;
 # VersionとRelease番号
 #
 $KB_VERSION = '1.0';
-$KB_RELEASE = '3.3pre';
+$KB_RELEASE = '3.4pre';
 
 #
 # 著作権表示
@@ -296,17 +296,16 @@ sub Entry {
     if ($Id ne '') {
 	# 記事の表示(コマンド無し, 元記事あり)
 	&ViewOriginalArticle($Id, $F_FALSE, $F_TRUE);
-	print("<hr>\n");
-	&cgi'KPrint("<h2>$H_REPLYMSG</h2>");
+	&cgiprint'Cache("<hr>\n<h2>$H_REPLYMSG</h2>");
     }
 
     # ヘッダ部分の表示
     &EntryHeader((($Id eq '') ? '' : &GetReplySubject($Id)), $Id);
 
     # 本文(引用ありなら元記事を挿入)
-    print("<p><textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
+    &cgiprint'Cache("<p><textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
     &QuoteOriginalArticle($Id, $BOARD) if (($Id ne '') && ($QuoteFlag eq 'quote'));
-    print("</textarea></p>\n");
+    &cgiprint'Cache("</textarea></p>\n");
 
     # フッタ部分を表示
     &EntryFooter;
@@ -322,7 +321,7 @@ sub EntryHeader {
     local($Subject, $Id) = @_;
 
     # お約束
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="c" type="hidden" value="p">
 <input name="b" type="hidden" value="$BOARD">
@@ -330,8 +329,8 @@ sub EntryHeader {
 <p>
 $H_AORI_1
 __EOF__
-    &cgi'KPrint("$H_AORI_2\n") if ($SYS_TEXTTYPE);
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache("$H_AORI_2\n") if ($SYS_TEXTTYPE);
+    &cgiprint'Cache(<<__EOF__);
 </p>
 <p>
 $H_BOARD: $BOARDNAME<br>
@@ -339,7 +338,7 @@ __EOF__
 
     # アイコンの選択
     if ($SYS_ICON) {
-	&cgi'KPrint(<<__EOF__);
+	&cgiprint'Cache(<<__EOF__);
 $H_ICON:
 <SELECT NAME="icon">
 <OPTION SELECTED>$H_NOICON
@@ -361,20 +360,19 @@ __EOF__
 	    # 表示
 	    chop;
 	    ($FileName, $Title) = split(/\t/, $_, 3);
-	    &cgi'KPrint("<OPTION>$Title\n");
+	    &cgiprint'Cache("<OPTION>$Title\n");
 
 	}
 	close(ICON);
-	print("</SELECT>\n");
-	&cgi'KPrint("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
+	&cgiprint'Cache("</SELECT>\n(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
     }
 
     # Subject(フォローなら自動的に文字列を入れる)
-    &cgi'KPrint(sprintf("%s: <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n", $H_SUBJECT, $Subject, $SUBJECT_LENGTH));
+    &cgiprint'Cache(sprintf("%s: <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n", $H_SUBJECT, $Subject, $SUBJECT_LENGTH));
 
     # TextType
     if ($SYS_TEXTTYPE) {
-	&cgi'KPrint(<<__EOF__);
+	&cgiprint'Cache(<<__EOF__);
 $H_TEXTTYPE:
 <SELECT NAME="texttype">
 <OPTION SELECTED>$H_PRE
@@ -394,7 +392,7 @@ __EOF__
 sub EntryFooter {
 
     # 名前とメイルアドレス，URL．
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <p>
 $H_LINK
 </p><p>
@@ -403,10 +401,10 @@ $H_MAIL: <input name="mail" type="text" size="$MAIL_LENGTH"><br>
 $H_URL_S: <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
 __EOF__
 
-    ($SYS_FOLLOWMAIL) && &cgi'KPrint("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
+    ($SYS_FOLLOWMAIL) && &cgiprint'Cache("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
     
     if ($SYS_ALIAS) {
-	&cgi'KPrint(<<__EOF__);
+	&cgiprint'Cache(<<__EOF__);
 </p><p>
 $H_ALIASINFO
 (<a href="$PROGRAM?c=as">$H_SEEALIAS</a> //
@@ -416,7 +414,7 @@ __EOF__
     }
 
     # ボタン
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 </p><p>
 <input type="radio" name="com" value="p" CHECKED>: $H_PREVIEW<br>
 <input type="radio" name="com" value="x">: $H_ENTRY<br>
@@ -476,7 +474,7 @@ sub QuoteOriginalArticle {
 	s/<[^>]*>//go;
 
 	# 引用文字列の表示
-	&cgi'KPrint(sprintf("%s%s%s", $Name, $DEFAULT_QMARK, $_));
+	&cgiprint'Cache(sprintf("%s%s%s", $Name, $DEFAULT_QMARK, $_));
 	
     }
 
@@ -513,7 +511,7 @@ sub Preview {
     &MsgHeader('Message preview', $PREVIEW_MSG, $TIME);
 
     # お約束
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="c"        type="hidden" value="x">
 <input name="b"        type="hidden" value="$BOARD">
@@ -536,20 +534,20 @@ __EOF__
 
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
-        ? &cgi'KPrint("<strong>$H_SUBJECT</strong>: $Subject")
-            : &cgi'KPrint(sprintf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon)));
+        ? &cgiprint'Cache("<strong>$H_SUBJECT</strong>: $Subject")
+            : &cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon)));
 
     # お名前
     if ($Url ne '') {
         # URLがある場合
-        &cgi'KPrint("<br>\n<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a>");
+        &cgiprint'Cache("<br>\n<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a>");
     } else {
         # URLがない場合
-        &cgi'KPrint("<br>\n<strong>$H_FROM</strong>: $Name");
+        &cgiprint'Cache("<br>\n<strong>$H_FROM</strong>: $Name");
     }
 
     # メイル
-    &cgi'KPrint(" <a href=\"mailto:$Email\">&lt;$Email&gt;</a>") if ($Email ne '');
+    &cgiprint'Cache(" <a href=\"mailto:$Email\">&lt;$Email&gt;</a>") if ($Email ne '');
 
     # 反応元(引用の場合)
     if (defined($rFid)) {
@@ -561,21 +559,21 @@ __EOF__
     }
 
     # 切れ目
-    &cgi'KPrint("</p>\n$H_LINE<br>\n");
+    &cgiprint'Cache("</p>\n$H_LINE<br>\n");
 
     # TextType用前処理
-    print("<p><pre>") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
+    &cgiprint'Cache("<p><pre>") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
     # 記事
     $Article = &DQDecode($Article);
     $Article = &ArticleEncode($TextType, $Article);
-    &cgi'KPrint("$Article\n");
+    &cgiprint'Cache("$Article\n");
 
     # TextType用後処理
-    print("</pre></p>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
+    &cgiprint'Cache("</pre></p>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
     # お約束
-    print("</form>\n");
+    &cgiprint'Cache("</form>\n");
 
     &MsgFooter;
 }
@@ -592,7 +590,7 @@ sub Thanks {
     # 表示画面の作成
     &MsgHeader('Message entried', $THANKS_MSG, $TIME);
 
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <p>
 $H_THANKSMSG
 </p>
@@ -605,7 +603,7 @@ $H_THANKSMSG
 __EOF__
 
     if ($Id ne '') {
-	&cgi'KPrint(<<__EOF__);
+	&cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="e">
@@ -817,16 +815,19 @@ sub AddDBFile {
     local($Id, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $ArticleNullFlag) = @_;
 
     local($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
-    local($mdName, $mdInputDate, $mdSubject, $mdId, $mName, $mSubject, $mId, @To) = ();
+    local($mdName, $mdInputDate, $mdSubject, $mdId, $mName, $mSubject, $mId, @ArriveMailTo, @FollowMailTo) = ();
     local($FidList) = $Fid;
     local($FFid, @FFid) = ();
 
-    # リプライ元のリプライ元，を取ってくる(DBへのアクセスが増える……)
+    # リプライ元のリプライ元，を取ってくる
     if ($Fid ne '') {
 	($FFid) = &GetArticlesInfo($Fid);
 	@FFid = split(/,/, $FFid);
     }
-    
+
+    # 管理者に送信する?
+    push(ArriveMailTo, $MAINT) if ($SYS_FOLLOWMAIL == 2);
+
     # 登録ファイル
     local($File) = &GetPath($BOARD, $DB_FILE_NAME);
     local($TmpFile) = &GetPath($BOARD, $DB_TMP_FILE_NAME);
@@ -866,7 +867,7 @@ sub AddDBFile {
 		$mName = $Name;
 		$mSubject = $Subject;
 		$mId = $Id;
-		push(To, $dEmail) if ($dFmail ne '');
+		push(FollowMailTo, $dEmail) if ($dFmail ne '');
 	    }
 	}
 
@@ -874,7 +875,7 @@ sub AddDBFile {
 	printf(DBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
 
 	# リプライ元のリプライ元，かつメイル送信の必要があれば，宛先を保存
-	push(To, $dEmail) if ($SYS_FOLLOWMAIL && (@FFid) && $dFmail && $dEmail && (grep(/^$dId$/, @FFid)) && (! grep(/^$dEmail$/, @To)));
+	push(FollowMailTo, $dEmail) if ($SYS_FOLLOWMAIL && (@FFid) && $dFmail && $dEmail && (grep(/^$dId$/, @FFid)) && (! grep(/^$dEmail$/, @FollowMailTo)));
 
     }
 
@@ -888,8 +889,11 @@ sub AddDBFile {
     # DBを更新する
     rename($TmpFile, $File);
 
+    # 必要なら投稿があったことをメイルする
+    &ArriveMail($Name, $Subject, $Id, @ArriveMailTo) if (@ArriveMailTo);
+
     # 必要なら反応があったことをメイルする
-    &FollowMail($mdName, $mdInputDate, $mdSubject, $mdId, $mName, $mSubject, $mId, @To) if (@To);
+    &FollowMail($mdName, $mdInputDate, $mdSubject, $mdId, $mName, $mSubject, $mId, @FollowMailTo) if (@FollowMailTo);
 
 }
 
@@ -916,10 +920,10 @@ sub ShowArticle {
     &ViewOriginalArticle($Id, $F_TRUE, $F_TRUE);
 
     # article end
-    &cgi'KPrint("$H_LINE<br>\n<p>\n");
+    &cgiprint'Cache("$H_LINE<br>\n<p>\n");
 
     # 反応記事
-    &cgi'KPrint("$H_FOLLOW\n");
+    &cgiprint'Cache("$H_FOLLOW\n");
     if ($Aids ne '') {
 
 	# 反応記事があるなら…
@@ -937,11 +941,11 @@ sub ShowArticle {
     } else {
 
 	# 反応記事無し
-	&cgi'KPrint("<ul>\n<li>$H_NOTHING\n</ul>\n");
+	&cgiprint'Cache("<ul>\n<li>$H_NOTHING\n</ul>\n");
 
     }
 
-    print("</p>\n");
+    &cgiprint'Cache("</p>\n");
 
     # お約束
     &MsgFooter;
@@ -1006,9 +1010,9 @@ sub ThreadArticleMain {
     if ($SubjectOnly) {
 
 	if ($Head eq '(') {
-	    print("<ul>\n");
+	    &cgiprint'Cache("<ul>\n");
 	} elsif ($Head eq ')') {
-	    print("</ul>\n");
+	    &cgiprint'Cache("</ul>\n");
 	} else {
 	    &PrintAbstract($Head);
 	}
@@ -1017,7 +1021,7 @@ sub ThreadArticleMain {
 
 	if (($Head ne '(') && ($Head ne ')')) {
 	    # 元記事の表示(コマンド付き, 元記事なし)
-	    print("<hr>\n");
+	    &cgiprint'Cache("<hr>\n");
 	    &ViewOriginalArticle($Head, $F_TRUE, $F_FALSE);
 	}
 
@@ -1086,7 +1090,7 @@ sub PrintAbstract {
 
     # 記事情報を取り出す．
     local($dFid, $dAids, $dDate, $dSubject, $dIcon, $dRemoteHost, $dName) = &GetArticlesInfo($Id);
-    &cgi'KPrint(sprintf("<li>" . &GetFormattedTitle($Id, $dAids, $dIcon, $dSubject, $dName, $dDate) . "\n"));
+    &cgiprint'Cache(sprintf("<li>" . &GetFormattedTitle($Id, $dAids, $dIcon, $dSubject, $dName, $dDate) . "\n"));
 }
 
 
@@ -1135,6 +1139,35 @@ sub GetUserInfo {
 
 
 ###
+## 記事が到着したことをメイルする．
+#
+sub ArriveMail {
+
+    # 宛先いろいろ
+    local($Name, $Subject, $Id, @To) = @_;
+
+    # Subject
+    local($MailSubject) = "An article was arrived.";
+
+    # Message
+    local($Message) = "$SYSTEM_NAMEからのお知らせです．
+
+「$BOARDNAME」に対して「$Name」さんから，
+「$Subject」という題での書き込みがありました．
+
+お時間のある時に
+$SCRIPT_URL?b=$BOARD&c=e&id=$Id
+を御覧下さい．
+
+では失礼します．";
+
+    # メイル送信
+    &SendMail($MailSubject, $Message, $Id, @To);
+
+}
+
+
+###
 ## 反応があったことをメイルする．
 #
 sub FollowMail {
@@ -1142,9 +1175,6 @@ sub FollowMail {
     # 宛先いろいろ
     local($Name, $Date, $Subject, $Id, $Fname, $Fsubject, $Fid, @To) = @_;
 
-    local($URL) = "$SCRIPT_URL?b=$BOARD&c=e&id=$Id";
-    local($FURL) = "$SCRIPT_URL?b=$BOARD&c=e&id=$Fid";
-    
     # Subject
     local($MailSubject) = "The article was followed.";
 
@@ -1156,19 +1186,20 @@ sub FollowMail {
 
 $InputDateに「$BOARDNAME」に対して「$Name」さんが書いた，
 「$Subject」
-$URL
+$SCRIPT_URL?b=$BOARD&c=e&id=$Id
 に対して，
 「$Fname」さんから
 「$Fsubject」という題での反応がありました．
 
 お時間のある時に
-$FURL
+$SCRIPT_URL?b=$BOARD&c=e&id=$Fid
 を御覧下さい．
 
 では失礼します．";
 
     # メイル送信
     &SendMail($MailSubject, $Message, $Fid, @To);
+
 }
 
 
@@ -1248,7 +1279,7 @@ sub ShowIcon {
 
     if ($Type eq 'article') {
 
-	&cgi'KPrint(<<__EOF__);
+	&cgiprint'Cache(<<__EOF__);
 <p>
 $H_ICONINTRO_ARTICLE
 </p>
@@ -1265,7 +1296,7 @@ __EOF__
 
     } else {
 
-	&cgi'KPrint(<<__EOF__);
+	&cgiprint'Cache(<<__EOF__);
 <p>
 $H_ICONINTRO_ARTICLE
 <p>
@@ -1296,11 +1327,11 @@ __EOF__
 	    ($FileName, $Title, $Help) = split(/\t/, $_, 3);
 
 	    # 表示
-	    &cgi'KPrint(sprintf("<li><img src=\"%s\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : %s\n", &GetIconURL($FileName), ($Help || $Title)));
+	    &cgiprint'Cache(sprintf("<li><img src=\"%s\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : %s\n", &GetIconURL($FileName), ($Help || $Title)));
 	}
 	close(ICON);
 
-	print("</ul>\n</p>\n");
+	&cgiprint'Cache("</ul>\n</p>\n");
 
     }
 
@@ -1329,43 +1360,43 @@ sub SortArticle {
 
     &BoardHeader;
 
-    print("<hr>\n");
+    &cgiprint'Cache("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     } else {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
 
-    print("<p><ul>\n");
+    &cgiprint'Cache("<p><ul>\n");
 
     # 記事の表示
     if ($#DB_ID == -1) {
 
 	# 空だった……
-	&cgi'KPrint("<li>$H_NOARTICLE\n");
+	&cgiprint'Cache("<li>$H_NOARTICLE\n");
 
     } else {
 
 	if ($SYS_BOTTOMTITLE) {
 	    for ($IdNum = $From; $IdNum <= $To; $IdNum++) {
 		$Id = $DB_ID[$IdNum];
-		&cgi'KPrint("<li>" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
+		&cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
 	    }
 	} else {
 	    for ($IdNum = $To; $IdNum >= $From; $IdNum--) {
 		$Id = $DB_ID[$IdNum];
-		&cgi'KPrint("<li>" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
+		&cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
 	    }
 	}
     }
 
-    print("</ul></p>\n");
+    &cgiprint'Cache("</ul></p>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     }
 
     &MsgFooter;
@@ -1412,41 +1443,41 @@ sub ViewTitle {
 
     &BoardHeader;
 
-    print("<hr>\n");
+    &cgiprint'Cache("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     } else {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
 
-    print("<p><ul>\n");
+    &cgiprint'Cache("<p><ul>\n");
 
     # 記事の表示
     if (! @NewLines) {
 
 	# 空だった……
-	&cgi'KPrint("<li>$H_NOARTICLE\n");
+	&cgiprint'Cache("<li>$H_NOARTICLE\n");
 
     } else {
 
 	foreach (@NewLines) {
 	    if (! /^${NULL_LINE}$/o) {
 		if ((m!^<ul>$!io) || (m!^</ul>$!io)) {
-		    &cgi'KPrint("$_\n");
+		    &cgiprint'Cache("$_\n");
 		} else {
-		    &cgi'KPrint("<li>$_");
+		    &cgiprint'Cache("<li>$_");
 		}
 	    }
 	}
     }
 
-    print("</ul></p>\n");
+    &cgiprint'Cache("</ul></p>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     }
 
     &MsgFooter;
@@ -1568,15 +1599,15 @@ sub NewArticle {
     &MsgHeader('Message view (sorted)', "$BOARDNAME: $NEWARTICLE_MSG", $TIME);
 
     if ($SYS_BOTTOMARTICLE) {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     } else {
-	&cgi'KPrint("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     }
 
     if (! $#DB_ID == -1) {
 
 	# 空だった……
-	&cgi'KPrint("<p>$H_NOARTICLE</p>\n");
+	&cgiprint'Cache("<p>$H_NOARTICLE</p>\n");
 
     } else {
 
@@ -1584,25 +1615,25 @@ sub NewArticle {
 	    for ($IdNum = $From; $IdNum <= $To; $IdNum++) {
 		$Id = $DB_ID[$IdNum];
 		&ViewOriginalArticle($Id, $F_TRUE, $F_TRUE);
-		print("<hr>\n");
+		&cgiprint'Cache("<hr>\n");
 	    }
 	} else {
 	    for ($IdNum = $To; $IdNum >= $From; $IdNum--) {
 		$Id = $DB_ID[$IdNum];
 		&ViewOriginalArticle($Id, $F_TRUE, $F_TRUE);
-		print("<hr>\n");
+		&cgiprint'Cache("<hr>\n");
 	    }
 	}
 
     }
 
     if ($SYS_BOTTOMARTICLE) {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
     } else {
-	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     }
 
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="v">
@@ -1628,7 +1659,7 @@ sub SearchArticle {
     &MsgHeader('Message search', "$BOARDNAME: $SEARCHARTICLE_MSG", $TIME);
 
     # お約束
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM\" method="POST">
 <input name="c" type="hidden" value="s">
 <input name="b" type="hidden" value="$BOARD">
@@ -1645,15 +1676,14 @@ $H_INPUTKEYWORD
 <ul>
 __EOF__
 
-    &cgi'KPrint(sprintf("<li><input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETSUBJECT\n", (($SearchSubject) ? 'CHECKED' : '')));
-    &cgi'KPrint(sprintf("<li><input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETPERSON\n", (($SearchPerson) ? 'CHECKED' : '')));
-    &cgi'KPrint(sprintf("<li><input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETARTICLE", (($SearchArticle) ? 'CHECKED' : '')));
+    &cgiprint'Cache(sprintf("<li><input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETSUBJECT\n", (($SearchSubject) ? 'CHECKED' : '')));
+    &cgiprint'Cache(sprintf("<li><input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETPERSON\n", (($SearchPerson) ? 'CHECKED' : '')));
+    &cgiprint'Cache(sprintf("<li><input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETARTICLE", (($SearchArticle) ? 'CHECKED' : '')));
 
-    &cgi'KPrint(sprintf("<li><input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // ", (($SearchIcon) ? 'CHECKED' : '')));
+    &cgiprint'Cache(sprintf("<li><input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // ", (($SearchIcon) ? 'CHECKED' : '')));
 
     # アイコンの選択
-    print("<SELECT NAME=\"icon\">\n");
-    &cgi'KPrint(sprintf("<OPTION%s>$H_NOICON\n", (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED')));
+    &cgiprint'Cache(sprintf("<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED')));
 	
     # 一つ一つ表示
     open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
@@ -1671,13 +1701,13 @@ __EOF__
 	($FileName, $IconTitle) = split(/\t/, $_, 3);
 
 	# 表示
-	&cgi'KPrint(sprintf("<OPTION%s>$IconTitle\n", (($Icon eq $IconTitle) ? ' SELECTED' : '')));
+	&cgiprint'Cache(sprintf("<OPTION%s>$IconTitle\n", (($Icon eq $IconTitle) ? ' SELECTED' : '')));
     }
     close(ICON);
-    print("</SELECT>\n");
+    &cgiprint'Cache("</SELECT>\n");
 
     # アイコン一覧
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 (<a href="$PROGRAM?b=$BOARD&c=i&type=entry">$H_SEEICON</a>)<BR>
 </ul>
 </p>
@@ -1712,7 +1742,7 @@ sub SearchArticleList {
     local($Num);
 
     # リスト開く
-    print("<p><ul>\n");
+    &cgiprint'Cache("<p><ul>\n");
 
     foreach ($[ .. $#DB_ID) {
 
@@ -1771,21 +1801,21 @@ sub SearchArticleList {
 	    $HitFlag = 1;
 
 	    # 記事へのリンクを表示
-	    &cgi'KPrint("<li>" . &GetFormattedTitle($dId, $dAids, $dIcon, $dTitle, $dName, $dDate));
+	    &cgiprint'Cache("<li>" . &GetFormattedTitle($dId, $dAids, $dIcon, $dTitle, $dName, $dDate));
 
 	    # 本文に合致した場合は本文も表示
 	    if ($ArticleFlag) {
 		$Line =~ s/<[^>]*>//go;
-		&cgi'KPrint("<blockquote>$Line</blockquote>\n");
+		&cgiprint'Cache("<blockquote>$Line</blockquote>\n");
 	    }
 	}
     }
 
     # ヒットしなかったら
-    &cgi'KPrint("<li>$H_NOTFOUND\n") if ($HitFlag != 1);
+    &cgiprint'Cache("<li>$H_NOTFOUND\n") if ($HitFlag != 1);
 
     # リスト閉じる
-    print("</ul></p>\n");
+    &cgiprint'Cache("</ul></p>\n");
 }
 
 
@@ -1854,7 +1884,7 @@ sub AliasNew {
     &MsgHeader('Alias entry/edit', $ALIASNEW_MSG, $PROGTIME);
 
     # 新規登録/登録内容の変更
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <p>
 $H_ALIASTITLE
 </p>
@@ -1945,11 +1975,11 @@ sub AliasMod {
 
     # 表示画面の作成
     &MsgHeader('Alias modified', $ALIASMOD_MSG, $TIME);
-    &cgi'KPrint("<p>$H_ALIAS: <strong>$A</strong>:\n");
+    &cgiprint'Cache("<p>$H_ALIAS: <strong>$A</strong>:\n");
     if ($HitFlag == 2) {
-	&cgi'KPrint("$H_ALIASCHANGED</p>\n");
+	&cgiprint'Cache("$H_ALIASCHANGED</p>\n");
     } else {
-	&cgi'KPrint("$H_ALIASENTRIED</p>\n");
+	&cgiprint'Cache("$H_ALIASENTRIED</p>\n");
     }
     &MsgFooter;
     
@@ -2011,7 +2041,7 @@ sub AliasDel {
     
     # 表示画面の作成
     &MsgHeader('Alias deleted', $ALIASDEL_MSG, $TIME);
-    &cgi'KPrint("<p>$H_ALIAS: <strong>$A</strong>: $H_ALIASDELETED</p>\n");
+    &cgiprint'Cache("<p>$H_ALIAS: <strong>$A</strong>: $H_ALIASDELETED</p>\n");
     &MsgFooter;
 
 }
@@ -2029,7 +2059,7 @@ sub AliasShow {
     # 表示画面の作成
     &MsgHeader('Alias view', $ALIASSHOW_MSG, $TIME);
     # あおり文
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <p>
 $H_AORI_ALIAS
 </p><p>
@@ -2038,11 +2068,11 @@ $H_AORI_ALIAS
 __EOF__
     
     # リスト開く
-    print("<dl>\n");
+    &cgiprint'Cache("<dl>\n");
     
     # 1つずつ表示
     foreach $Alias (sort keys(%Name)) {
-	&cgi'KPrint(<<__EOF__);
+	&cgiprint'Cache(<<__EOF__);
 <p>
 <dt><strong>$Alias</strong>
 <dd>$H_FROM: $Name{$Alias}
@@ -2055,7 +2085,7 @@ __EOF__
     }
 
     # リスト閉じる
-    print("</dl>\n");
+    &cgiprint'Cache("</dl>\n");
     
     &MsgFooter;
 
@@ -2138,7 +2168,7 @@ sub BoardHeader {
 	# Version Check
 	&VersionCheck('Header', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 	# 表示する
-	&cgi'KPrint("$_");
+	&cgiprint'Cache("$_");
     }
     close(HEADER);
 
@@ -2265,13 +2295,13 @@ sub ShowLinksToFollowedArticle {
     if ($#IdList > 0) {
 	$Id = @IdList[$#IdList];
 	($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
-	&cgi'KPrint("<br>\n<strong>$H_ORIG_TOP:</strong> " . &GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date));
+	&cgiprint'Cache("<br>\n<strong>$H_ORIG_TOP:</strong> " . &GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date));
     }
 
     # 元記事
     $Id = @IdList[0];
     ($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
-    &cgi'KPrint("<br>\n<strong>$H_ORIG:</strong> " . &GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date));
+    &cgiprint'Cache("<br>\n<strong>$H_ORIG:</strong> " . &GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date));
 
 }
 
@@ -2392,7 +2422,9 @@ sub MsgHeader {
     local($Title, $Message, $LastModified) = @_;
     
     &cgi'header($LastModified);
-    &cgi'KPrint(<<__EOF__);
+
+    &cgiprint'Init;
+    &cgiprint'Cache(<<__EOF__);
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
@@ -2401,18 +2433,18 @@ sub MsgHeader {
 </head>
 __EOF__
 
-    print("<body");
+    &cgiprint'Cache("<body");
     if ($SYS_NETSCAPE_EXTENSION) {
-	print(" background=\"$BG_IMG\"") if $BG_IMG;
-	print(" bgcolor=\"$BG_COLOR\"") if $BG_COLOR;
-	print(" TEXT=\"$TEXT_COLOR\"") if $TEXT_COLOR;
-	print(" LINK=\"$LINK_COLOR\"") if $LINK_COLOR;
-	print(" ALINK=\"$ALINK_COLOR\"") if $ALINK_COLOR;
-	print(" VLINK=\"$VLINK_COLOR\"") if $VLINK_COLOR;
+	&cgiprint'Cache(" background=\"$BG_IMG\"") if $BG_IMG;
+	&cgiprint'Cache(" bgcolor=\"$BG_COLOR\"") if $BG_COLOR;
+	&cgiprint'Cache(" TEXT=\"$TEXT_COLOR\"") if $TEXT_COLOR;
+	&cgiprint'Cache(" LINK=\"$LINK_COLOR\"") if $LINK_COLOR;
+	&cgiprint'Cache(" ALINK=\"$ALINK_COLOR\"") if $ALINK_COLOR;
+	&cgiprint'Cache(" VLINK=\"$VLINK_COLOR\"") if $VLINK_COLOR;
     }
-    print(">\n");
+    &cgiprint'Cache(">\n");
 
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <h1>$Message</h1>
 <hr>
 __EOF__
@@ -2425,7 +2457,7 @@ __EOF__
 #
 sub MsgFooter {
 
-    &cgi'KPrint(<<__EOF__);
+    &cgiprint'Cache(<<__EOF__);
 <hr>
 <address>
 $ADDRESS
@@ -2433,6 +2465,8 @@ $ADDRESS
 </body>
 </html>
 __EOF__
+
+    &cgiprint'Flush;
 
 }
 
@@ -2525,56 +2559,81 @@ sub ViewOriginalArticle {
     # コマンド表示?
     if (($CommandFlag == $F_TRUE) && $SYS_COMMAND) {
 
-	&cgi'KPrint(<<__EOF__);
+	if ($SYS_COMICON) {
+
+	    &cgiprint'Cache(<<__EOF__);
 <p>
 <a href="$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM"><img src="$ICON_TLIST" alt="$H_BACKTITLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 <a href="$PROGRAM?b=$BOARD&c=en&id=$Id"><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 <a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 <a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
 __EOF__
-	if ($Aids ne '') {
-	    &cgi'KPrint("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>");
+
+	    if ($Aids ne '') {
+		&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>");
+	    } else {
+		&cgiprint'Cache("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">");
+	    }
+
+	    &cgiprint'Cache(<<__EOF__);
+<a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="?" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+</p>
+__EOF__
+
 	} else {
-	    &cgi'KPrint("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">");
+
+	    &cgiprint'Cache(<<__EOF__);
+<p>
+<a href="$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM">$H_BACKTITLE</a>
+ // <a href="$PROGRAM?b=$BOARD&c=en&id=$Id">$H_NEXTARTICLE</a>
+ // <a href="$PROGRAM?b=$BOARD&c=f&id=$Id">$H_REPLYTHISARTICLE</a>
+ // <a href="$PROGRAM?b=$BOARD&c=q&id=$Id">$H_REPLYTHISARTICLEQUOTE</a>
+__EOF__
+
+	    if ($Aids ne '') {
+		&cgiprint'Cache(" // <a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_READREPLYALL</a>");
+	    } else {
+		&cgiprint'Cache(" // $H_READREPLYALL");
+	    }
+
 	}
-	&cgi'KPrint("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n");
 
     }
 
-    print("<p>\n");
+    &cgiprint'Cache("<p>\n");
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || ($Icon eq '')) {
-	&cgi'KPrint("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject");
+	&cgiprint'Cache("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject");
     } else {
-	&cgi'KPrint(sprintf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon)));
+	&cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon)));
     }
 
     # お名前
     if (($Url eq '') || ($Url eq 'http://')) {
 	# 「http://だったら」というのは旧バージョンへの対処．そのうち削除する予定．
         # URLがない場合
-        &cgi'KPrint("<br>\n<strong>$H_FROM</strong>: $Name");
+        &cgiprint'Cache("<br>\n<strong>$H_FROM</strong>: $Name");
     } else {
         # URLがある場合
-        &cgi'KPrint("<br>\n<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a>");
+        &cgiprint'Cache("<br>\n<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a>");
     }
 
     # メイル
-    &cgi'KPrint(" <a href=\"mailto:$Email\">&lt;$Email&gt;</a>") if ($Email ne '');
+    &cgiprint'Cache(" <a href=\"mailto:$Email\">&lt;$Email&gt;</a>") if ($Email ne '');
 
     # マシン
-    &cgi'KPrint("<br>\n<strong>$H_HOST</strong>: $RemoteHost") if $SYS_SHOWHOST;
+    &cgiprint'Cache("<br>\n<strong>$H_HOST</strong>: $RemoteHost") if $SYS_SHOWHOST;
 
     # 投稿日
     local($InputDate) = &GetDateTimeFormatFromUtc($Date);
-    &cgi'KPrint("<br>\n<strong>$H_DATE</strong>: $InputDate");
+    &cgiprint'Cache("<br>\n<strong>$H_DATE</strong>: $InputDate");
 
     # 反応元(引用の場合)
     &ShowLinksToFollowedArticle(split(/,/, $Fid)) if (($OriginalFlag == $F_TRUE) && ($Fid ne ''));
 
     # 切れ目
-    &cgi'KPrint("</p>\n$H_LINE<br>\n");
+    &cgiprint'Cache("</p>\n$H_LINE<br>\n");
 
     # 記事の中身
     open(TMP, "<$QuoteFile") || &Fatal($ERR_FILE, $QuoteFile);
@@ -2584,7 +2643,7 @@ __EOF__
 	&VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 
 	# 表示
-	&cgi'KPrint("$_");
+	&cgiprint'Cache("$_");
 
     }
     close(TMP);
@@ -2826,10 +2885,10 @@ sub Fatal {
     # 表示画面の作成
     &MsgHeader('Error!', $ERROR_MSG, $TIME);
 
-    &cgi'KPrint("<p>$ErrString</p>\n");
+    &cgiprint'Cache("<p>$ErrString</p>\n");
 
     if ($BOARD ne '') {
-	&cgi'KPrint(<<__EOF__);
+	&cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="v">
