@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.15 1997-02-11 06:45:47 nakahiro Exp $
+# $Id: cgi.pl,v 1.16 1997-02-14 11:44:04 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -97,10 +97,10 @@ sub decode {
 	    $TAGS{$Tag} = $Value;
 	}
 
-	if ($ARCH eq 'Mac') {
-	    $TAGS{$Tag} =~ s/\O15\O12/\n/go;
-	    $TAGS{$Tag} =~ s/\O15/\n/go;
-	} else {
+        if ($ARCH eq 'Mac') {
+            $TAGS{$Tag} =~ s/\xd\xa/\n/go;
+            $TAGS{$Tag} =~ s/\xa/\n/go;
+        } else {
 	    $TAGS{$Tag} =~ s/\r\n/\n/go;
 	    $TAGS{$Tag} =~ s/\r/\n/go;
 	}
