@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.9 1996-08-21 16:52:28 nakahiro Exp $
+# $Id: kb.ph,v 4.10 1996-09-09 07:43:50 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -80,6 +80,11 @@ $SYS_COMMAND = 1;
 #   0: リプライも含めてすべて
 #   1: 新規投稿記事のみ
 $SYS_NEWARTICLEONLY = 0;
+
+# 記事投稿時、メールアドレスの入力を必須とするか
+#   0: 必須としない
+#   1: 必須とする
+$SYS_POSTERMAIL = 1;
 
 #
 # 引用マーク
