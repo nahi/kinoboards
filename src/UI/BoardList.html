@@ -1,25 +1,28 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
-<html lang="ja">
+<?xml version="1.0" encoding="EUC-JP"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
-<KB:sTitle>
-<title>掲示板一覧</title>
+<kb:s_title />
+<title>掲示板一覧 - <kb:c_site_name /></title>
 </head>
 <body>
 
-<h1>掲示板一覧</h1>
+<h1>掲示板一覧 - <kb:c_site_name /></h1>
 
-<KB:cStatus>
-<KB:cTopMenu>
+<kb:c_status />
+<kb:c_top_menu />
 
-<hr>
+<hr />
 
 <p>
 現在，以下の掲示板が用意されています．
 </p>
 
-<KB:cBoardLinkAll>
+<kb:c_board_link_all />
 
-<!-- ＜KB:cBoardLink var="xxx:yyy"＞というタグも使えます． -->
+<!-- ＜kb:c_board_link var="xxx,yyy" /＞というタグも使えます． -->
 <!-- yyyは掲示板名です．例えば「test」「board」など． -->
 <!-- xxxは以下のうちのいずれかを指定してください． -->
 <!--   title-thread ... タイトル一覧（スレッド） -->
@@ -27,16 +30,16 @@
 <!--   message-thread ... メッセージ一覧（スレッド） -->
 <!--   message-bydate ... メッセージ一覧（日付順） -->
 
-<!-- 例: ＜KB:cBoardLink var="message-thread:test"＞ -->
+<!-- 例: ＜kb:c_board_link var="message-thread,test" /＞ -->
 <!--     ↑test掲示板のメッセージ一覧（スレッド）へのリンクを生成 -->
 
-<hr>
+<hr />
 
-<KB:cFuncLink>
+<kb:c_func_link />
 
-<hr>
+<hr />
 
-<KB:sAddress>
+<kb:s_address />
 
 </body>
 </html>
