@@ -4,9 +4,6 @@
 #
 # メッセージ種別が省略されている場合，全て「article」として扱われます．
 #
-org_vote.gif	CFV	アンケートを実施する際に利用します	cfv
-aip2_vote.gif	VOTE	アンケートに対する投票です	vote
-#
 org_note.gif	お知らせ	お知らせ
 org_checkit.gif	チェック	チェックしてほしいこと
 aip2_excl.gif	注意	注意の呼びかけ
@@ -56,3 +53,8 @@ mip_handheld.gif	携帯端末	携帯端末のこと
 mip_network.gif	ネット	ネットワーク関連
 mip_save.gif	保存	バックアップ
 mip_batt_mater.gif	バッテリ	バッテリーのこと
+#
+# 以下はR8のために用意されています．R7では効果がありません．
+#
+# org_vote.gif	CFV	アンケートを実施する際に利用します	cfv
+# aip2_vote.gif	VOTE	アンケートに対する投票です	vote
