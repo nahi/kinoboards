@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.13 1997-02-06 17:28:02 nakahiro Exp $
+# $Id: cgi.pl,v 1.14 1997-02-09 20:36:21 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -28,6 +28,8 @@ require('jcode.pl');
 
 $ARCH = $main'ARCH;
 $MAIL2 = $main'MAIL2;
+$MAILHOST = $main'MAILHOST;
+$MAILTOUT = $main'MAILTOUT;
 $JPOUT_SCHEME = ($main'JPOUT_SCHEME || 'jis');
 $WAITPID_BLOCK = ($main'WAITPID_BLOCK || 0);
 
@@ -46,9 +48,14 @@ sub header {
 
     print(<<__EOF__);
 Content-type: text/html
-Last-Modified: $LastModified
 
 __EOF__
+
+#    print(<<__EOF__);
+#Content-type: text/html
+#Last-Modified: $LastModified
+#
+#__EOF__
 
 }
 
@@ -171,7 +178,7 @@ sub SendMailSendmail {
 
 	}
 	print(MAIL "\n");
-    
+
 	# Fromヘッダ，Errors-Toヘッダ
 	$_ = "$FromName <$FromEmail>";
 	print(MAIL "From: $_\n");
