@@ -17,7 +17,7 @@ Installation
 </h1>
 
 <p class="status">
-Last Update: June 26, 1999
+Last Update: February 15, 2000
 </p>
 </div>
 
@@ -53,7 +53,7 @@ CGIWRAPを利用しています．
 またCobalt Networks社のCobalt Cube 2700J，
 Cobalt Raq J R15 125 NIUというサーバも，CGIWRAPを利用しているそうです）
 <li>プロバイダがApacheのsuEXECという機能を利用している場合
-（具体的には，1999年1月時点で，A-CUBE，X-Jam等のプロバイダが
+（具体的には，2000年1月時点で，A-CUBE，X-Jam，BigNet等のプロバイダが
 suEXECを利用しています）
 </ol>
 
@@ -160,6 +160,11 @@ suEXECを利用しています）
    |     +-kb.board
    |     +-kb.db
    |
+   +-tools/
+   |  +-conv.cgi
+   |  +-kbTst.cgi
+   |  :
+   |
    +-redist/
       :
 </pre>
@@ -214,29 +219,32 @@ kb.cgiを適当なエディタで開いて，先頭行を書き換えてください．
 <p>
 続いて$KBDIR_PATHに，プロバイダ（ウェブサーバ）に置く予定の
 kbディレクトリのパス（URLじゃなくて，パスです）を指定します．
+「kbディレクトリのパスがわからない!」という場合は，
+<a href="#kbTst.cgi">kbTst.cgiというツールを使ってチェック</a>
+することができます．
 </p>
 
 <blockquote>
 <pre>
-例1: kbディレクトリのパスが「/home/nahi/public_html/kb」になる予定の場合
+例1: kbディレクトリのパスが「/home/nahi/public_html/kb/」になる予定の場合
 
 $KBDIR_PATH = '';
 ↓
-$KBDIR_PATH = '/home/nahi/public_html/kb';
+$KBDIR_PATH = '/home/nahi/public_html/kb/';
 
 
-例2: サーバがWinNTで，kbディレクトリのパスが「c:\inetpub\wwwroot\kb」になる予定の場合
+例2: サーバがWinNTで，kbディレクトリのパスが「c:\inetpub\wwwroot\kb\」になる予定の場合
 
 $KBDIR_PATH = '';
 ↓
-$KBDIR_PATH = 'c:\inetpub\wwwroot\kb';
+$KBDIR_PATH = 'c:\inetpub\wwwroot\kb\';
 </pre>
 </blockquote>
 
 <p>
 さらに，サーバOSがWin95/Win98，もしくはMacの場合
 （プロバイダがこれらのマシンをサーバにすることはないでしょうから，
-自分のパソコンでテストする場合ですね），
+自分のパソコンでテストする場合ですね），
 kb.cgiの続く3つ目の項目を，以下のように書き換えます．
 サーバがWin95/Win98，Macでない場合は書き換える必要はありません．
 </p>
@@ -262,16 +270,16 @@ $PC = 1;        # for Win95 / Mac
 
 <blockquote>
 <pre>
-例: kbディレクトリのURLが「/~nahi/bbs/kb」になる予定の場合
+例: kbディレクトリのURLが「/~nahi/bbs/kb/」になる予定の場合
 
-# $ENV{'PATH_INFO'} = '/~nahi/kb';
+# $KB_RESOURCE_URL = '/~nahi/kb/';
 ↓
-$ENV{'PATH_INFO'} = '/~nahi/bbs/kb';
+$KB_RESOURCE_URL = '/~nahi/bbs/kb/';
 </pre>
 </blockquote>
 
 <p>
-この時，間違えて先頭行以外を書き換えたり，
+この時，間違えて先頭部分以外を書き換えたり，
 漢字コードを変更してしまったりしないようにしてください．
 世の中にはSJISでも動くと謌っているPerlスクリプトもありますが，
 基本的にPerlはEUCでなければ動きません．
@@ -291,7 +299,8 @@ SJISでも一見動いているように見えることがありますが，バグの素です．
 で書き換えたものを送信してください．
 </p>
 
-<p>ここで，<a href="#New">最初にも書いた</a>，
+<p>
+ここで，<a href="#New">最初にも書いた</a>，
 「1. CGIプログラムを自由なディレクトリに置くことができる」
 環境の場合は，
 下のディレクトリ構成図に示すように，
@@ -443,10 +452,10 @@ kbディレクトリ
 
 <p>
 <a href="#New">4種類のCGI環境</a>
-のうち，
-「3. CGIWRAPを利用している」もしくは「4. suEXECを利用している」
+のうち，「4. suEXECを利用している」
 <strong>じゃない</strong>
 場合は，以下のように設定してください．
+「3. CGIWRAPを利用している」方もこちらの設定で試してみてください．
 </p>
 
 <blockquote>
@@ -485,15 +494,14 @@ kbディレクトリ
 
 
 <p>
-「3. CGIWRAPを利用している」もしくは「4. suEXECを利用している」
-の環境の場合は，以下のように設定します．
-基本的に，右側2つの数字が全部0になります．
+「4. suEXECを利用している」
+の環境の場合は，以下のように設定します．右側2つの数字が一部0になります．
 </p>
 
 <blockquote>
 <pre>
 +-public_html
-   +-kb/               700
+   +-kb/               755
       +-UI/            700
       |  :             400（UIディレクトリの中の〜.plというファイル）
       |
@@ -503,17 +511,17 @@ kbディレクトリ
       |  +-kb.db       600
       |
       +-cgi.pl         400
-      +-icons/         700
-      |  :             400（iconsディレクトリの中の〜.idef，〜.gifというファイル）
+      +-icons/         755
+      |  :             644（iconsディレクトリの中の〜.idef，〜.gifというファイル）
       |
-      +-index.html     600
-      +-index.shtml    600
+      +-index.html     644
+      +-index.shtml    644
       +-jcode.pl       400
       +-kb.ph          600
       +-kinoboards     600
       +-kinologue.pl   400
       +-kinousers      600
-      +-log/           700
+      +-log/           755
       +-mimer.pl       400
       +-mimew.pl       400
       +-test/          700
@@ -534,9 +542,22 @@ telnetしてログインした後，chmodコマンドで行っても構いません．
 <h3><a name="InitialTest">6. 初期テスト</a></h3>
 
 <p>
-プロバイダにtelnetできる人は，
-念のためここでプログラムのテストをしておきましょう．
-telnetできない人はこのやり方ではテストできないので，ここは飛ばしてください．
+念のためここでプログラムのテストをします．
+<a href="#kbTst.cgi">kbTst.cgiというツールを使ってテスト</a>
+してください．
+プロバイダにtelnetできる人は，以下の方法でもテストできますが，
+<a href="#kbTst.cgi">kbTst.cgi</a>
+は大変便利なので，そちらでのテストをお勧めします．
+<a href="#kbTst.cgi">kbTst.cgi</a>
+でのテストに成功した場合，この項目は飛ばして
+<a href="#WwwTest">7. CGI動作テスト</a>
+に進んでください．
+</p>
+
+<p>
+<a href="#kbTst.cgi">kbTst.cgiによるテスト</a>
+がお勧めなら，何故この項目ごと削ってしまわないかというと．．．
+kbTst.cgiがまだなかったころの名残りです．^^;
 </p>
 
 <p>
@@ -672,6 +693,19 @@ $SYS_F_AM = 0;			# 新着記事到着時のメイル送信先の設定
 </p>
 
 <p>
+ちなみに，このkb.phでカスタマイズ可能な各種機能を
+ブラウザから設定可能にしてしまうツールがあります．
+<a href="#kbTst.cgi">kbTst.cgi</a>
+の作者，綾乃介さんの，
+<a href="http://www5.big.or.jp/~aya/c_cgi/kbconf/">きのぼず/1.0 WWW設定ツール kbconf</a>
+です．是非一度画面サンプルを見てみてください．
+綺麗で機能的．なひにはないセンスです．．．
+なひの能力不足で未だパッケージに含めるまでには至っていませんが，
+とても便利なツールです．掲示板が増えてきたり，
+kb.phを直接いじるのに疲れてきたら，是非導入にトライしてみてください．
+</p>
+
+<p>
 変更が終わったら，
 FTPソフトウェアでkb.phをプロバイダに送信してください．
 モード（パーミッション）の設定も，再度行なってください．
@@ -684,7 +718,17 @@ kb.phの漢字コードは，必ず，日本語EUCでなければいけません．
 
 <p>
 書き換えた設定ファイル，kb.phのテストをしましょう．
-telnetできない人はこのやり方ではテストできないので，ここは飛ばしてください．
+<a href="#InitialTest">6. 初期テスト</a>
+と同じく，
+<a href="#kbTst.cgi">kbTst.cgi</a>
+を使ってテストしてください．
+プロバイダにtelnetできる人は，以下の方法でもテストできますが，
+<a href="#kbTst.cgi">kbTst.cgi</a>
+は大変便利なので，そちらでのテストをお勧めします．
+<a href="#kbTst.cgi">kbTst.cgi</a>
+でのテストに成功した場合，この項目は飛ばして
+<a href="#LastTest">10. カスタマイズ掲示板動作テスト</a>
+に進んでください．
 </p>
 
 <p>
@@ -948,6 +992,85 @@ configureされていなければなりません．．．
 少ないんじゃないかと思います．
 </p>
 
+<h3><a name="kbTst.cgi">13. kbTst.cgiできのぼず実行環境テスト</a></h3>
+
+<p>
+きのぼずのパッケージには，
+綾乃介さん(aya@big.or.jp)が作ってくださった，
+kbTst.cgiというCGIプログラムが含まれています．
+kbTst.cgiは，きのぼずの実行環境をテストするためのCGIプログラムです．
+kb.cgiと同じディレクトリにインストールし，
+ブラウザからアクセスするだけで，
+きのぼずが正しく動作するための準備が整っているかどうかをチェックしてくれます．
+</p>
+
+<p>
+では実際に動かしてみましょう．
+</p>
+
+<p>
+kbTst.cgiというファイルの先頭行には，
+<a href="#kb.cgi">kb.cgiと同じく</a>，
+perlというプログラムのパスが書かれています．
+予め一般的な設定がされていますが，調べて正しく設定しなければなりません．
+</p>
+
+<p>
+perlのパスについては，プロバイダの利用案内やFAQを探してみてください．
+「/usr/bin/perl」や「/usr/local/bin/perl」などのパスが
+指定されているはずです．
+どうしてもみつからなければ管理者に問い合わせてみましょう．
+</p>
+
+<p>
+perlのパスがわかったら，kbTst.cgiを書き換えます．
+パッケージのtoolsディレクトリに含まれているkbTst.cgiを適当なエディタで開いて，
+先頭行を書き換えてください．
+「#!」に続けて，perlのパスを書き込みます．
+</p>
+
+<blockquote>
+<pre>
+例: Perlのパスが/usr/bin/perlだった場合
+
+#!/usr/local/bin/perl → #!/usr/bin/perl
+</pre>
+</blockquote>
+
+<p>
+この時，間違えて先頭行以外を書き換えたり，
+漢字コードを変更してしまったりしないようにしてください．
+</p>
+
+<p>
+書き換えが終了したら，kbTst.cgiを，
+<a href="#Put">プロバイダ（ウェブサーバ）の，kb.cgiと同じディレクトリ</a>
+に送信してください．
+この時，kbTst.cgiのモード（パーミッション）は755にしてください
+（もしエラーが出るようなら，700や705も試してみてください）．
+</p>
+
+<p>
+ここまでで設置完了です．
+ウェブブラウザから，kbTst.cgiにアクセスしてみてください．
+きのぼずが正しく動作するための準備が整っているかどうかの診断結果が，
+ブラウザの画面上に表示されます．
+たくさんの項目についてチェックしてくれますが，
+もし「エラー」と表示された項目があったら，
+表示されるアドバイスに従って設定をチェックしてみてください．
+</p>
+
+<p>
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">きのぼずのサポート掲示板</a>
+でも，みなさんからの「インストールできない!」という問題の多くが，
+このkbTst.cgiによって解決されています．
+ほんとに便利なツールです．
+このような大変便利なツールを，
+きのぼずのパッケージに含めてみなさんに配布できることを，
+大変光栄に思います．綾乃介さん，どうもありがとうございました．
+</p>
+
+
 <h2><a name="Update">B. バージョンアップインストール</a></h2>
 
 <p>
@@ -972,7 +1095,7 @@ telnetできない人は……基本的に，
 
 <blockquote><pre>
 cd ~/public_html/kb		← KINOBOARDSをインストールしてあったディレクトリへ
-chmod a-x kb/kb.cgi		←kb.cgiの実行権をなくす
+chmod a-x kb.cgi		←kb.cgiの実行権をなくす
 cd ..
 tar cvfp kb10_old.tar kb
 </pre></blockquote>
@@ -1082,7 +1205,7 @@ Renamed 6 file(s).				← 6つのファイルが変更された
 <div class="footer">
 <address>
 <a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br>
-Copyright (C) 1995-99
+Copyright (C) 1995-2000
 <a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
 </div>

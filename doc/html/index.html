@@ -13,11 +13,11 @@
 
 <div class="header">
 <h1>
-KINOBOARDS version 1.0 release 6.8
+KINOBOARDS version 1.0 release 6.9
 </h1>
 
 <p class="status">
-Last Update: October 15, 1999
+Last Update: February 15, 2000
 </p>
 </div>
 
@@ -231,26 +231,54 @@ KINOBOARDSに関する話題なら，なんでも扱っていく予定です．
 <h2>8. Release Notes</h2>
 
 <p>
-R6.8での変更・修正点は以下の通りです．
+R6.9での変更・修正点は以下の通りです．
 </p>
 
 <ul>
-<li>井汲さんの指摘で，不要なHTMLエンコード/デコードを廃止．
-プレビュー画面から投稿画面に遷移する際，
-メッセージ本文同様にサブジェクトもbase64 encode/decodeするようにした．
-<li>井汲さんの指摘で，アイコン使用を前提とするcodingが残っていたのを修正．
-<li>きょくさんの指摘で，書き込み形式を「そのまま表示」にして
-「&lt;URL:」と「&gt;」の間に「&amp;」入りのURLを指定した際，
-過剰にエンコードしてしまう（「&amp;」→「&amp;amp;amp;」）バグを修正
-（「&amp;」→「&amp;amp;」が正しい）．
+<li>綾乃介さん作の，
+きのぼずの実行環境をテストするためのCGIプログラム「kbTst.cgi」を
+パッケージに添付．
+<li>井汲さんの指摘で，メッセージ修正時には新規にHTTP-Cookiesを
+送信しないように修正．
+<li>みひてぃさんの指摘で，タイトル一覧表示において，
+スレッドとスレッドの間に空行が入るように修正．
+<li>がんちゃんさん，綾乃介さんの指摘で，
+きのぼずが喋るSMTPのmail fromを管理者メイルアドレスに変更．
+メイル本文のSenderも管理者メイルアドレスに．
+<li>「HTMLで入力」の時に，正しいHTMLである「&amp;amp;」を入力しても，
+「&amp;」にならずに「&amp;&amp;」と表示されてしまう，というバグを修正．
 </ul>
 
 <p>
-基本的にはバグ修正のみです．
-R6.*シリーズは今後もバグ修正のみの予定です．
-新機能を追加済みのR7も，そろそろ正式リリースしたいなぁ
-（kb-dev MLにて，αリリース済みです）．
-興味のある方がありましたら，kb-dev MLまでどうぞ．
+やっとkbTst.cgiをパッケージに含めました．
+kbTst.cgiは，kb.cgiと同じディレクトリに設置してブラウザからアクセスするだけで，
+きのぼずが正しく動作するための準備が整っているかどうかをチェックしてくれます．
+</p>
+
+<p>
+<a href="http://www.jin.gr.jp/~nahi/kb10.shtml">きのぼずのサポート掲示板</a>
+でも，みなさんからの「インストールできない!」という問題の多くが，
+このkbTst.cgiによって解決されています．
+ほんとに便利なツールです．
+このような大変便利なツールを，
+きのぼずのパッケージに含めてみなさんに配布できることを，
+大変光栄に思います．作ってくださった綾乃介さん，どうもありがとうございました．
+</p>
+
+<p>
+ちなみに綾乃介さん作のきのぼず関連ツールとしては，
+kbTst.cgiの他に，
+<a href="http://www5.big.or.jp/~aya/c_cgi/kbconf/">きのぼず/1.0 WWW設定ツール kbconf</a>
+もあります．こちらは，きのぼず/1.0でカスタマイズ可能な各種機能を
+ブラウザから設定できるようにするツールです．
+是非一度画面サンプルを見てみてください．
+綺麗で機能的．なひにはないセンスです．．．
+</p>
+
+<p>
+なひの能力不足で未だパッケージに含めるまでには至っていませんが，
+とても便利なツールです．掲示板が増えてきたり，
+kb.phを直接いじるのに疲れてきたら，是非導入にトライしてみてください．
 </p>
 
 <h2>9. おわりに（Special Thanks）</h2>
@@ -290,7 +318,7 @@ Perlに関する本を書かれた内外たくさんの方々，
 
 <p>
 KINOBOARDS: Kinoboards Is Network Opened BOARD System<br>
-Copyright (C) 1995-99 NAKAMURA, Hiroshi.
+Copyright (C) 1995-2000 NAKAMURA, Hiroshi.
 </p>
 
 <p>
@@ -319,7 +347,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 <div class="footer">
 <address>
 <a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br>
-Copyright (C) 1995-99
+Copyright (C) 1995-2000
 <a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
 </address>
 </div>
