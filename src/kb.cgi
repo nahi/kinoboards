@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 1.8 1995-12-04 11:44:31 nakahiro Exp $
+# $Id: kb.cgi,v 1.9 1995-12-13 17:08:19 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.8  1995-12-04 11:44:31  nakahiro
+# Revision 1.9  1995-12-13 17:08:19  nakahiro
+# '(single-quote)-char escape routine.
+#
+# Revision 1.8  1995/12/04 11:44:31  nakahiro
 # articles can include ' char.
 #
 # Revision 1.7  1995/11/24 17:29:00  nakahiro
@@ -57,11 +60,11 @@
 #	×	指定した日記を引用する。
 #	×	指定した日記へのReferenceをつける
 #	×	部分日付ソート
-#		記事中に'を入れられるようにする
-#		中身はEUC、ファイルはJISで
+#	×	記事中に'を入れられるようにする
 #		記事検索機能
 #	×	まとめ読みの時、threadをわかりやすくする工夫を
 #		「上へ」「下へ」のリンク機能の追加(次/前は廃止?)
+#		中身はEUC、ファイルはJISで
 #		aliasの登録機能
 #		Subjectの先頭にIconをつけたい
 #		Boardを自由に選択する
@@ -110,7 +113,7 @@ $NEWARTICLE_MSG = "最近の記事";
 $THREADARTICLE_MSG = "反応まとめ読み";
 $ERROR_MSG   = "ERROR!";
 
-$ADDRESS = "Copyright 1995 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co.,Ltd.</a> &amp; <a href=\"http://www.ohara.info.waseda.ac.jp/person/nakahiro/nakahiro.html\">nakahiro</a> // 禁無断転載";
+$ADDRESS = "Copyright 1995 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co.,Ltd.</a> &amp; <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">nakahiro</a> // 禁無断転載";
 
 $H_BOARD = "ボード:";
 $H_SUBJECT = "　題　:";
@@ -1565,7 +1568,8 @@ sub decode {
                 ($tag, $value) = split(/=/, $_, 2);
                 $value =~ tr/+/ /;
                 $value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack("C", hex($1))/ge;
-		$tags{$tag} = `echo -n "$value" | /usr/local/bin/nkf -e`;
+		$value =~ s/'/'\\''/g;
+		$tags{$tag} = `echo -n '$value' | /usr/local/bin/nkf -e`;
 		$tags{$tag} =~ s///ge;
         }
 }
