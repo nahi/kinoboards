@@ -485,7 +485,7 @@ $H_URL = 'URL';
 $H_DATE = '日時';
 $H_REPLY = 'リプライ';
 $H_PARENT = 'リプライ元';
-$H_LINE = '<p>------------------------------</p>';
+$H_LINE = '<p class="bodySeparator">------------------------------</p>';
 $H_NEWARTICLE = 'new!';
 $H_BACKBOARD = '掲示板一覧へ';
 $H_BACKTITLEREPLY = 'タイトル一覧へ(スレッド)';
@@ -512,5 +512,5 @@ $H_REORDERTO_MARK_L = '移動先に指定';
 
 
 #/////////////////////////////////////////////////////////////////////
-# $Id: kb.ph,v 5.42 2000-08-06 14:54:01 nakahiro Exp $
+# $Id: kb.ph,v 5.43 2000-08-10 09:56:07 nakahiro Exp $
 1;
