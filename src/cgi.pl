@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.32 1999-08-23 20:17:17 nakahiro Exp $
+# $Id: cgi.pl,v 2.33 1999-08-26 08:44:52 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -658,18 +658,18 @@ sub SecureHtmlEx
     local( *string, *nVec, *fVec ) = @_;
     local( $srcString, $tag, $need, $feature, $markuped );
 
-    $string =~ s/\\>/__EscapedGt\376__/go;
+    $string =~ s/\\>/__EscapedGt\377__/go;
     TAGS: while (( $tag, $need ) = each( %nVec ))
     {
 	$srcString = $string;
 	$string = '';
-	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~ m!<$tag()>!i ))
+	while (( $srcString =~ m!<$tag(\s+([^>]*))?>!i ))
 	{
 	    $srcString = $';
 	    $string .= $`;
-	    if ( $1 )
+	    if ( $2 )
 	    {
-		( $feature = " $1" ) =~ s/\\"/__EscapedQuote\376__/go;
+		( $feature = " $2" ) =~ s/\\"/__EscapedQuote\377__/go;
 	    }
 	    else
 	    {
@@ -681,16 +681,16 @@ sub SecureHtmlEx
 		{
 		    $srcString = $';
 		    $markuped = $`;
-		    $feature =~ s/&/__amp\376__/go;
-		    $feature =~ s/"/__quot\376__/go;
-		    $string .= "__$tag Open$feature\376__" . $markuped .
-			"__$tag Close\376__";
+		    $feature =~ s/&/__amp\377__/go;
+		    $feature =~ s/"/__quot\377__/go;
+		    $string .= "__$tag Open$feature\377__" . $markuped .
+			"__$tag Close\377__";
 		}
 		elsif ( !$need )
 		{
-		    $feature =~ s/&/__amp\376__/go;
-		    $feature =~ s/"/__quot\376__/go;
-		    $string .= "__$tag Open$feature\376__";
+		    $feature =~ s/&/__amp\377__/go;
+		    $feature =~ s/"/__quot\377__/go;
+		    $string .= "__$tag Open$feature\377__";
 		}
 		else
 		{
@@ -706,18 +706,18 @@ sub SecureHtmlEx
 	}
 	$string .= $srcString;
     }
-    $string =~ s/__EscapedGt\376__/\\>/go;
-    $string =~ s/__EscapedQuote\376__/\\"/go;
+    $string =~ s/__EscapedGt\377__/\\>/go;
+    $string =~ s/__EscapedQuote\377__/\\"/go;
     $string =~ s/&/&amp;/g;
     $string =~ s/"/&quot;/g;
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;
     while (( $tag, $need ) = each( %nVec ))
     {
-        $string =~ s!__$tag Open([^\376]*)\376__!<$tag$1>!g;
-        $string =~ s!__$tag Close\376__!</$tag>!g;
-	$string =~ s!__amp\376__!&!go;
-	$string =~ s!__quot\376__!"!go;
+        $string =~ s!__$tag Open([^\377]*)\377__!<$tag$1>!g;
+        $string =~ s!__$tag Close\377__!</$tag>!g;
+	$string =~ s!__amp\377__!&!go;
+	$string =~ s!__quot\377__!"!go;
     }
 }
 
@@ -732,43 +732,11 @@ sub SecureFeature
     return 1 unless $features;
 
     local( @allowed ) = split( /\//, $allowedFeatures );
-    local( $ret ) = 1;
-
-    local( $dFeature, $dValue );
-    while ( $features )
+    while ( $features =~ m/^\s*([^=\s]+)\s*=\s*('|")([^'"]*)\2/go )#'
     {
-	$dFeature = &GetFeatureName( *features );
-	$dValue = &GetFeatureValue( *features );
-	if ( !$dValue )
-	{
-	    $dValue = $features;
-	    $features = '';
-	}
-	$ret = 0 if ( !$dFeature ) || ( !grep( /^$dFeature$/i, @allowed ));
+	return 0 if (( !$3 ) || ( !grep( /^$1$/i, @allowed )));
     }
-    $ret;
-}
-
-
-###
-## Feature名を取得
-#
-sub GetFeatureName
-{
-    local( *string ) = @_;
-    $string = '' unless ( $string =~ s/^\s*([^=\s]*)\s*=\s*"//o );
-    $1;
-}
-
-
-###
-## Featureの値を取得
-#
-sub GetFeatureValue
-{
-    local( *string ) = @_;
-    $string = '' unless ( $string =~ s/^([^"]*)"//o );
-    $1;
+    1;
 }
 
 
@@ -865,12 +833,8 @@ sub CheckUser
 	# with direct URL Authentication
 
 	# authentication data in TAGS.
-	return &CheckUserPasswd( $userdb, $cgi'TAGS{'kinoT'},
+	return &CheckUserPasswd( $userdb, ( $cgi'TAGS{'kinoT'} eq '' )? 1 : 0,
 	    $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} );
-    }
-    else
-    {
-	die 'not reached in &cgiauth\'CheckUser...';
     }
 
     # default authentication.
@@ -1122,10 +1086,10 @@ sub Header
 	    # not send
 	}
 	elsif (( $type == 1 ) &&
-	       ( $cgi'COOKIES{'kinoauth'} ne "$UNAME$COLSEP$PASSWD" ))
+	       ( $cgi'COOKIES{'kinoauth'} ne "$UID$COLSEP$PASSWD" ))
 	{
 	    # set
-	    push( @cookieList, "kinoauth=$UNAME$COLSEP$PASSWD" );
+	    push( @cookieList, "kinoauth=$UID$COLSEP$PASSWD" );
 	    $cookieFlag = 1;
 	}
 	elsif (( $type == 2 ) && ( $cgi'COOKIES{'kinoauth'} ne '' ))
@@ -1169,7 +1133,7 @@ sub LinkTagWithAuth
 {
     local( $url, $markUp ) = @_;
     local( $urlStr ) = $url . ( grep( /\?/, $url ) ? '&' : '?' ) .
-	"kinoU=$UNAME&kinoP=$PASSWD";
+	"kinoU=$UID&kinoP=$PASSWD";
     "<a href=\"$urlStr\">$markUp</a>";
 }
 
@@ -1241,7 +1205,7 @@ sub CheckUserPasswd
 	    )
 	    {
 		# authentication succeeded!
-		$UNAME = $dUser;
+		$UID = $dUser;
 		$PASSWD = $dPasswd;
 		$retCode = 0;
 		$retUser = $dUser;
@@ -1328,7 +1292,7 @@ sub UpdateUserPasswd
 	    {
 		$dSalt = &NewSalt();
 		$dPasswd = substr( crypt( $passwd, $dSalt ), 2 );
-		$UNAME = $dUser;
+		$UID = $dUser;
 		$PASSWD = $dPasswd;
 		$retCode = 0;
 		$retUser = $dUser;
