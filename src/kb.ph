@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.17 1997-03-13 15:18:21 nakahiro Exp $
+# $Id: kb.ph,v 4.18 1997-06-24 15:42:06 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -26,8 +26,12 @@
 # 管理者の名前とe-mail addr.
 # メイル送信に使うため，「$MAINT_NAME」はアルファベットのみで指定してください．
 #
-$MAINT_NAME = 'KinoAdmin';
-$MAINT = 'nakahiro@kinotrope.co.jp';
+# 例:
+# $MAINT_NAME = 'KinoboardsAdmin';
+# $MAINT = 'nakahiro@kinotrope.co.jp';
+#
+$MAINT_NAME = 'YourName';
+$MAINT = 'yourname@your.e-mail.domain';
 
 #
 # サーバが動いているマシンはどれですか?
@@ -62,11 +66,6 @@ $MAIL2 = 'foo.bar.baz.co.jp'		if ($ARCH eq 'Mac');
 #
 
 #
-# スクリプトのメインの漢字コード(EUCじゃなきゃ動きません)
-#
-$SCRIPT_KCODE = 'euc';
-
-#
 # システムの設定
 #
 # 入力文書タイプ(HTML or PRE)の選択を行うか否か(行なわないとPREのみ)
@@ -85,8 +84,9 @@ $SYS_ALIAS = 1;
 $SYS_ICON = 1;
 
 # コマンドアイコンを利用するか否か
-#   0: 利用しない
+#   0: 利用しない(コマンドはテキストで表示する)
 #   1: 利用する
+#   2: コマンドアイコンと同時にテキストも表示する
 $SYS_COMICON = 1;
 
 # 新規投稿記事が，上に増えていくか，下に増えていくか(タイトル一覧の時)
@@ -129,6 +129,25 @@ $SYS_NETSCAPE_EXTENSION = 1;
 #   1: 必須とする
 $SYS_POSTERMAIL = 1;
 
+# サーバのポート番号を表示するか否か
+#   0: 表示しない
+#   1: (必要ならば)表示する
+#      一般的なデフォルトである80番ポートの場合，1に設定しても表示しません
+$SYS_PORTNO = 1;
+
+# 各コマンドを実行可能とするか否か
+#   0: 実行できない
+#   1: 実行できる
+$SYS_F_E = 1;			# 記事の表示
+$SYS_F_T = 1;			# リプライ記事のまとめ読みの表示
+$SYS_F_N = 1;			# 新規記事の投稿
+$SYS_F_FQ = 1;			# リプライ記事の投稿
+$SYS_F_V = 1;			# タイトル一覧(リプライ順)の表示
+$SYS_F_R = 1;			# タイトル一覧(日付順)の表示
+$SYS_F_L = 1;			# 最近の記事一覧の表示
+$SYS_F_S = 1;			# 記事の検索
+$SYS_F_I = 1;			# アイコンヘルプの表示
+
 #
 # 引用マーク
 #
@@ -136,6 +155,18 @@ $SYS_POSTERMAIL = 1;
 #	トラブルを起こすブラウザが存在します．
 #
 $DEFAULT_QMARK = ' ] ';
+
+#
+# アイコンの大きさ
+# 一部のブラウザでは，この数値を適当に指定すると，
+# 勝手にアイコンの拡大縮小を行なってくれるようです．
+#
+# コマンドアイコン(次へ，等)
+$COMICON_HEIGHT = 20;
+$COMICON_WIDTH = 20;
+# メッセージアイコン(喜怒哀楽，等)
+$MSGICON_HEIGHT = 20;
+$MSGICON_WIDTH = 20;
 
 #
 # 各入力項目の大きさ
@@ -155,9 +186,8 @@ $URL_LENGTH = 37;
 # 検索キーワード幅
 $KEYWORD_LENGTH = 40;
 
-#
 # タイトル一覧に表示するタイトルの数
-#
+# 0にすると全記事を表示するようになります．
 $DEF_TITLE_NUM = 20;
 
 #
@@ -179,7 +209,6 @@ $VLINK_COLOR = "#00AA00";
 # メッセージの宣言
 #
 $SYSTEM_NAME = "きのぼーず";
-
 $H_BOARD = "掲示板";
 $H_ICON = "アイコン";
 $H_SUBJECT = "タイトル";
@@ -194,91 +223,19 @@ $H_DATE = "投稿日";
 $H_REPLY = "リプライ";
 $H_ORIG = "$H_REPLY元";
 $H_ORIG_TOP = "オリジナル";
-
-$ENTRY_MSG = "$H_MESGの書き込み";
-$SHOWICON_MSG = "アイコンの説明";
-$PREVIEW_MSG = "書き込みの内容を確認してください";
-$THANKS_MSG = "書き込みありがとうございました";
-$VIEW_MSG = "$H_SUBJECT一覧($H_REPLY順)";
-$SORT_MSG = "$H_SUBJECT一覧(日付順)";
-$NEWARTICLE_MSG = "最近の$H_MESGをまとめ読み";
-$THREADARTICLE_MSG = "$H_REPLYをまとめ読み";
-$SEARCHARTICLE_MSG = "$H_MESGの検索";
-$ALIASNEW_MSG = "$H_ALIASの登録/変更/削除";
-$ALIASMOD_MSG = "$H_ALIASが設定されました";
-$ALIASDEL_MSG = "$H_ALIASが削除されました";
-$ALIASSHOW_MSG = "$H_ALIASの参照";
-$ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
-
-$H_LINE = "------------------------------";
+$H_LINE = "<p>------------------------------</p>";
 $H_THREAD = "▼";
-$H_FOLLOW = "▼$H_REPLY";
 $H_TEXTTYPE = "表示形式";
 $H_HTML = "HTMLとして表示する";
 $H_PRE = "そのまま表示する";
 $H_NOICON = "なし";
-
-# あおり文
-$H_REPLYMSG = "上の$H_MESGへの$H_REPLYを書き込む";
-$H_AORI_1 = "$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにウェブページをお持ちの方は，ホームページの$H_URLを書き込んでください．";
-$H_AORI_2 = "HTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，$H_MESGをHTMLとして書いて頂くと，表示の時にHTML整形を行ないます．";
-$H_SEEICON = "アイコンの説明";
-$H_SEEALIAS = "$H_ALIASの一覧";
-$H_ALIASENTRY = "登録する";
-$H_ALIASINFO = "「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録なさっている方は，「$H_FROM」に「#...」という登録名を書いてください．自動的に$H_FROMと$H_MAIL，$H_URLが補われます．";
-$H_FMAIL = "$H_REPLYがあった時にメイルで知らせますか?";
-$H_LINK = "$H_MESG中に関連ウェブページへのリンクを張る場合は，「&lt;URL:http://〜&gt;」のように，URLを「&lt;URL:」と「&gt;」で囲んで書き込んでください．自動的にリンクが張られます．";
-$H_PREVIEW_OR_ENTRY = "書き込んだ内容を，";
-$H_PREVIEW = "試しに表示してみる(まだ投稿しません)";
-$H_ENTRY = "$H_MESGを投稿する";
-$H_PUSHHERE_POST = "コマンド実行";
-$H_NOTHING = "ありません";
-$H_ICONINTRO_ENTRY = "では，次のアイコンを使うことができます．";
-$H_ICONINTRO_ARTICLE = "各アイコンは次の機能を表しています．";
-$H_POSTINFO = "必要であれば，ブラウザのBACKボタンで戻って，書き込みを修正してください．よろしければボタンを押して書き込みましょう．";
-$H_DIRECTLINK = "($H_MESGはありません．$H_SUBJECT一覧からは，直接以下のURLにリンクが張られます．リンク先が正しいことを確認してください．)";
-$H_PUSHHERE_PREVIEW = "投稿する";
-$H_THANKSMSG = "書き込みの訂正，取消などは，メイルで<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
 $H_BACKTITLE = "$H_SUBJECT一覧へ";
-$H_BACKORG = "$H_ORIGの$H_MESGへ";
 $H_PREVARTICLE = "前の$H_MESGへ";
 $H_NEXTARTICLE = "次の$H_MESGへ";
 $H_POSTNEWARTICLE = "新規に書き込む";
 $H_REPLYTHISARTICLE = "$H_REPLYを書き込む";
 $H_REPLYTHISARTICLEQUOTE = "引用して$H_REPLYを書き込む";
 $H_READREPLYALL = "$H_REPLYをまとめ読み";
-$H_ARTICLES = "$H_MESG数";
-$H_KEYWORD = "キーワード";
-$H_SEARCHKEYWORD = "検索する";
-$H_RESET = "リセットする";
-$H_SEARCHTARGET = "検索範囲";
-$H_SEARCHTARGETSUBJECT = "$H_SUBJECT";
-$H_SEARCHTARGETPERSON =  "名前";
-$H_SEARCHTARGETARTICLE = "$H_MESG";
-$H_INPUTKEYWORD = "<p>
-<ul>
-<li>「$H_SEARCHTARGETSUBJECT」，「$H_SEARCHTARGETPERSON」，「$H_SEARCHTARGETARTICLE」の中から，検索する範囲をチェックしてください．
-指定された範囲で，$H_KEYWORDを含む$H_MESGを一覧表示します．
-<li>$H_KEYWORDには，大文字小文字の区別はありません．
-<li>$H_KEYWORDを半角スペースで区切って，複数の$H_KEYWORDを指定すると，
-それら全てを含む$H_MESGのみを検索することができます．
-<li>アイコンで検索する場合は，
-「アイコン」をチェックした後，探したい$H_MESGのアイコンを選んでください．
-</ul>
-</p>";
-$H_NOTFOUND = "該当する$H_MESGは見つかりませんでした．";
-$H_FOUNDNO = "件の$H_MESGが見つかりました．";
-$H_ALIASTITLE = "新規登録/登録内容の変更";
-$H_ALIASNEWCOM = "$H_ALIASの新規登録/登録内容の変更を行ないます．ただし悪戯防止のため，変更は，登録の際と同じマシンでなければできません．変更できない場合は，<a href=\"mailto:$MAINT\">$MAINT</a>までメイルでお願いします．";
-$H_ALIASNEWPUSH = "登録/変更する";
-$H_ALIASDELETE = "削除";
-$H_ALIASDELETECOM = "上記$H_ALIASを削除します．同じく登録の際と同じマシンでなければ削除できません．";
-$H_ALIASDELETEPUSH = "削除する";
-$H_ALIASREFERPUSH = "$H_ALIAS一覧を参照する";
-$H_ALIASCHANGED = "設定しました．";
-$H_ALIASENTRIED = "登録しました．";
-$H_ALIASDELETED = "消去しました．";
-$H_AORI_ALIAS = "投稿の際，「$H_FROM」の部分に以下の登録名(「#....」)を入力すると，登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．";
 $H_BACKART = "以前に書き込まれた$H_MESGへ";
 $H_NEXTART = "以降に書き込まれた$H_MESGへ";
 $H_TOP = "↑";
