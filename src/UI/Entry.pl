@@ -290,8 +290,10 @@ __EOF__
     else
     {
 	# HTTP-Cookiesを使う．
-	$msg .=<<__EOF__;
+	$msg .=<<__EOF__ if ( $entryType != 3 );
 <input name="cookies" type="hidden" value="on">
+__EOF__
+	$msg .=<<__EOF__;
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
 $H_URL_S:<br>
 <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
