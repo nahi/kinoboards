@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl5
+#!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 4.24 1996-09-11 10:27:51 nakahiro Exp $
+# $Id: kb.cgi,v 4.25 1996-09-13 14:19:04 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -1030,6 +1030,10 @@ sub SendMail {
     # subject，メールのファイル名，引用記事(0なら無し)，宛先
     local($Subject, $Message, $Id, @To) = @_;
 
+    # 付加ヘッダの生成
+    local($ExtensionHeader) = "X-Kb-System: $SYSTEM_NAME\n";
+    $ExtensionHeader .= "X-Kb-Board: $BOARDNAME\nX-Kb-Articleid: $Id\n" if ($BOARDNAME && $Id);
+
     # 引用記事
     if ($Id) {
 
@@ -1050,7 +1054,7 @@ sub SendMail {
     }
 
     # 送信する
-    &Fatal(9, '') unless (&cgi'SendMail($MAINT_NAME, $MAINT, $Subject, $Message, @To));
+    &Fatal(9, '') unless (&cgi'SendMail($MAINT_NAME, $MAINT, $Subject, $ExtensionHeader, $Message, @To));
 
 }
 
