@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.22 1996-09-09 07:39:54 nakahiro Exp $
+# $Id: kb.cgi,v 4.23 1996-09-11 08:33:42 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -116,12 +116,6 @@ $ICON_HEIGHT = 20;
 $ICON_WIDTH = 20;
 
 #
-# 引用フラグ
-#
-$QUOTE_ON = 1;
-$NO_QUOTE = 0;
-
-#
 # エスケープコード
 #
 $NULL_LINE = "__br__";
@@ -132,7 +126,7 @@ $AND_MARK = '__amp__';
 
 
 # トラップ
-$SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = 'DoKill';
+$SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
 sub DoKill {
     &unlock();			# unlock
     exit(1);			# error exit.
@@ -165,7 +159,7 @@ MAIN: {
     local($URL) = $cgi'TAGS{'url'};
 
     # まずはロック
-    &lock;
+    &lock();
 
     # コマンドタイプによる分岐
     if ($Command eq "e") {
@@ -179,13 +173,13 @@ MAIN: {
 
     } elsif (($Command eq "n")
 	     || (($Command eq "m") && ($Com eq $H_POSTNEWARTICLE))) {
-	&Entry($NO_QUOTE, 0);
+	&Entry('', 0);
     } elsif (($Command eq "f")
 	     || (($Command eq "m") && ($Com eq $H_REPLYTHISARTICLE))) {
-	&Entry($NO_QUOTE, $Id);
+	&Entry('', $Id);
     } elsif (($Command eq "q")
 	     || (($Command eq "m") && ($Com eq $H_REPLYTHISARTICLEQUOTE))) {
-	&Entry($QUOTE_ON, $Id);
+	&Entry('quote', $Id);
     } elsif (($Command eq "p") && ($Com ne "x")) {
 	&Preview();
     } elsif (($Command eq "x")
@@ -218,7 +212,7 @@ MAIN: {
     }
 
     # ロックを外す
-    &unlock;
+    &unlock();
 
 }
 
@@ -226,7 +220,7 @@ MAIN: {
 ###
 ## おしまい
 #
-exit 0;
+exit(0);
 
 
 ###
@@ -253,8 +247,7 @@ sub Entry {
 
     # 本文(引用ありなら元記事を挿入)
     print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
-    &QuoteOriginalArticle($Id, $BOARD)
-	if (($Id != 0) && ($QuoteFlag == $QUOTE_ON));
+    &QuoteOriginalArticle($Id, $BOARD) if (($Id != 0) && ($QuoteFlag eq 'quote'));
     print("</textarea><br>\n");
 
     # フッタ部分を表示
@@ -478,7 +471,7 @@ __EOF__
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
         ? print("<strong>$H_SUBJECT</strong>: $Subject<br>\n")
-            : printf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"> $Subject<br>\n", &GetIconURLFromTitle($Icon));
+            : printf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
 
     # お名前
     if ($Url eq "http://" || $Url eq '') {
@@ -802,7 +795,7 @@ __EOF__
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	print("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+	printf("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
     }
 
     # お名前
@@ -1187,7 +1180,7 @@ sub SortArticle {
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $SORT_MSG");
 
-    &BoardHeader;
+    &BoardHeader();
 
     print("<hr>\n");
 
@@ -1323,7 +1316,7 @@ sub ViewTitle {
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $VIEW_MSG");
 
-    &BoardHeader;
+    &BoardHeader();
 
     print("<hr>\n");
 
@@ -2014,9 +2007,7 @@ sub BoardHeader {
     local($File) = &GetPath($BOARD, $BOARD_FILE_NAME);
 
     open(HEADER, "<$File") || &Fatal(1, $File);
-    while(<HEADER>){
-        print("$_");
-    }
+    while(<HEADER>){ print("$_"); }
     close(HEADER);
 
 }
@@ -2113,7 +2104,7 @@ sub GetFormattedTitle {
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	$String = sprintf("<strong>$Id .</strong> $Link$Thread [$Name] $Date");
     } else {
-	$String = sprintf("<strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Link$Thread [$Name] $Date", &GetIconURLFromTitle($Icon));
+	$String = sprintf("<strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Link$Thread [$Name] $Date", &GetIconURLFromTitle($Icon));
     }
 
     return($String);
@@ -2132,7 +2123,7 @@ sub GetFormattedAbstract {
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	$String = sprintf("<li><strong>$Id .</strong> $Title [$Name] $Date", &GetIconURLFromTitle($Icon));
     } else {
-	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Title [$Name] $Date", &GetIconURLFromTitle($Icon));
+	$String = sprintf("<li><strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Title [$Name] $Date", &GetIconURLFromTitle($Icon));
     }
 
     return($String);
@@ -2153,7 +2144,7 @@ sub ShowFormattedLinkToFollowedArticle {
 	if (($Icon eq $H_NOICON) || (! $Icon)) {
 	    print("<strong>$H_ORIG</strong>: [$BOARDNAME: $Src] <a href=\"$Link\">$Subject</a><br>\n");
 	} else {
-	    printf("<strong>$H_ORIG</strong>: [$BOARDNAME: $Src] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURLFromTitle($Icon));
+	    printf("<strong>$H_ORIG</strong>: [$BOARDNAME: $Src] <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURLFromTitle($Icon));
 	}
     } elsif ($Src =~ /^http:/) {
 	print("<strong>$H_ORIG</strong>: <a href=\"$Link\">$Link</a><br>\n");
@@ -2318,9 +2309,7 @@ sub lock {
 }
 
 # アンロック
-sub unlock {
-    unlink($LOCK_FILE);
-}
+sub unlock { unlink($LOCK_FILE); }
 
 
 ###
@@ -2361,7 +2350,7 @@ __EOF__
     if (($Icon eq $H_NOICON) || (! $Icon)) {
 	print("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] $Subject<br>\n");
     } else {
-	printf("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
+	printf("<strong>$H_SUBJECT</strong>: [$BOARDNAME: $Id] <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject<br>\n", &GetIconURLFromTitle($Icon));
     }
 
     # お名前
@@ -2620,5 +2609,5 @@ $FatalInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．
     }
     
     &MsgFooter();
-    exit 0;
+    exit(0);
 }
