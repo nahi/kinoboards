@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 2.0 1995-12-19 14:26:56 nakahiro Exp $
+# $Id: kb.cgi,v 2.1 1995-12-19 18:46:12 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 2.0  1995-12-19 14:26:56  nakahiro
+# Revision 2.1  1995-12-19 18:46:12  nakahiro
+# send mail
+#
+# Revision 2.0  1995/12/19 14:26:56  nakahiro
 # user writable alias file.
 #
 # Revision 1.11  1995/12/19 05:00:54  nakahiro
@@ -74,11 +77,14 @@
 #	×	まとめ読みの時、threadをわかりやすくする工夫を
 #	×	安全なタグのみ投稿を許す(→あみさんのtag_secure.plをinclude)
 #	×	aliasの登録機能
-#		フォローがついた際の通知機能
+#	×	フォローがついた際の通知機能
+#		メールのFromは$MAINTの方が良い
+#		Preview画面で相対リンクが外れる
 #		「上へ」「下へ」のリンク機能の追加(次/前は廃止?)
 #		中身はEUC、ファイルはJISで
 #		Subjectの先頭にIconをつけたい
 #		Boardを自由に選択する
+#		他人でも通知をもらいたい
 #		新しい記事n個にマークをつける(aging機能との兼ね合いでつらい)
 #		記事のキャンセル機能(aging機能との兼ね合いでつらい)
 
@@ -198,7 +204,7 @@ sub Entry {
 	&EntryHeader($BoardName);
 
 	# Subject(フォローなら自動的に文字列を入れる)
-	printf("%s <input name=\"subject\" value=\"%s\" size=\"%s\"><br>\n",
+	printf("%s <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n",
 		$H_SUBJECT,
 		(($Id !=0 ) ? &GetReplySubject($Id, $Board) : ""),
 		$SUBJECT_LENGTH);
@@ -258,7 +264,7 @@ sub FileEntry {
 	&EntryHeader($BoardName);
 
 	# Subject
-	printf("%s <input name=\"subject\" value=\"%s\" size=\"%s\"><br>\n",
+	printf("%s <input name=\"subject\" type=\"text\" value=\"%s\" size=\"%s\"><br>\n",
 		$H_SUBJECT, &GetReplySubjectFromFile($File), $SUBJECT_LENGTH);
 
 	# 本文(引用ありなら元記事を挿入)
@@ -309,9 +315,10 @@ sub EntryHeader {
 sub EntryUserInformation {
 
 	# 名前とメールアドレス、URL。
-	print("$H_FROM <input name=\"name\" size=\"$NAME_LENGTH\"><br>\n");
-	print("$H_MAIL <input name=\"mail\" size=\"$MAIL_LENGTH\"><br>\n");
-	print("$H_URL <input name=\"url\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
+	print("$H_FROM <input name=\"name\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
+	print("$H_MAIL <input name=\"mail\" type=\"text\" size=\"$MAIL_LENGTH\"><br>\n");
+	print("$H_URL <input name=\"url\" type=\"text\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
+	print("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
 
 	print("<p><a href=\"$PROGRAM?c=as\">ここ</a>に登録されている方は、「$H_FROM」に「#...」と書くと、自動的に補完されます。<a href=\"$PROGRAM?c=an\">登録はこちら</a>。</p>\n");
 
@@ -383,11 +390,11 @@ sub QuoteOriginalArticle {
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
 
-	open(TMP, "$QuoteFile") || &MyFatal(1, $QuoteFile);
+	open(TMP, "$KC2IN $QuoteFile |") || &MyFatal(1, $QuoteFile);
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
+		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -399,7 +406,7 @@ sub QuoteOriginalArticle {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^<!-- Article Begin -->$/);
+		$QuoteFlag = 1 if (/^$COM_ARTICLE_BEGIN$/);
 
 	}
 	close(TMP);
@@ -418,11 +425,11 @@ sub QuoteOriginalFile {
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
 
-	open(TMP, "cat $File | $KC2IN |") || &MyFatal(1, $File);
+	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
+		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -434,7 +441,7 @@ sub QuoteOriginalFile {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^<!-- Article Begin -->$/);
+		$QuoteFlag = 1 if (/^$COM_ARTICLE_BEGIN$/);
 
 	}
 	close(TMP);
@@ -448,6 +455,7 @@ sub QuoteOriginalFile {
 
 ###
 ## プレビュー画面
+## (ここだけはcgi'を変数に落してない。汚い。数が多いので…… ^^;)
 #
 sub Preview {
 
@@ -476,7 +484,7 @@ sub Preview {
 	print("を押して書き込んで下さい。</p>\n");
 
 	# 確認する記事の表示
-	open(TMP, "<$TmpFile");
+	open(TMP, "$TmpFile");
 	while(<TMP>) {
 		print($_);
 	}
@@ -552,9 +560,10 @@ sub MakeTemporaryFile {
 	# テンポラリファイルに書き出す。
 	open(TMP, ">$TmpFile") || &MyFatal(1, $TmpFile);
 
-	# まずヘッダ。
+	# 題
 	printf(TMP "<strong>$H_SUBJECT</strong> %s<br>\n", $cgi'TAGS{'subject'});
 
+	# お名前
 	if ($cgi'TAGS{'url'} eq "http://" || $cgi'TAGS{'url'} eq "") {
 		# URLがない場合
 		printf(TMP "<strong>$H_FROM</strong> %s<br>\n", $Name);
@@ -563,23 +572,33 @@ sub MakeTemporaryFile {
 		printf(TMP "<strong>$H_FROM</strong> <a href=\"%s\">%s</a><br>\n", $cgi'TAGS{'url'}, $Name);
 	}
 
+	# メール
 	printf(TMP "<strong>$H_MAIL</strong> <a href=\"mailto:%s\">&lt;%s&gt;</a><br>\n",
 		$cgi'TAGS{'mail'}, $cgi'TAGS{'mail'});
-#	print(TMP "<strong>$H_HOST</strong> $RemoteHost<br>\n");
-# kinotropeではgethostbyaddrも使えないようなので、現状でホスト名は省略
+
+	# マシン
+	print(TMP "<strong>$H_HOST</strong> $RemoteHost<br>\n");
+
+	# 投稿日
 	print(TMP "<strong>$H_DATE</strong> $InputDate<br>\n");
 
-	# 引用の場合
+	# ▼反応(引用の場合)
 	if ($cgi'TAGS{'id'} != 0) {
 		printf(TMP "<strong>$H_REPLY</strong> [$BoardName: %d] <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n", $cgi'TAGS{'id'});
 	} elsif ($cgi'TAGS{'file'} ne '') {
 		printf(TMP "<strong>$H_REPLY</strong> <a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n");
 	}
 
+	# 反応があったらメール
+	print(TMP "$COM_FMAIL_BEGIN\n");
+	printf(TMP "%s\n", $cgi'TAGS{'mail'}) if ($cgi'TAGS{'fmail'} eq "on");
+	print(TMP "$COM_FMAIL_END\n");
+
+	# 切れ目
 	print(TMP "------------------------<br>\n");
 
 	# article begin
-	print(TMP "<!-- Article Begin -->\n");
+	print(TMP "$COM_ARTICLE_BEGIN\n");
 
 	# TextType用前処理
 	print(TMP "<pre>\n") if ($TextType eq $H_PRE);
@@ -592,7 +611,7 @@ sub MakeTemporaryFile {
 	print(TMP "</pre>\n") if ($TextType eq $H_PRE);
 
 	# article end
-	print(TMP "<!-- Article End -->\n");
+	print(TMP "$COM_ARTICLE_END\n");
 	print(TMP "<hr>\n");
 	close(TMP);
 
@@ -660,8 +679,10 @@ sub MakeNewArticle {
 
 		# subjectを取り出す。
 		if (/^<strong>$H_SUBJECT<\/strong> (.*)<br>$/) {$Subject = $1; }
+
 		# 日付を取り出す。
 		if (/^<strong>$H_DATE<\/strong> (.*)<br>$/) {$InputDate = $1; }
+
 		# 名前を取り出す。
 		if (/^<strong>$H_FROM<\/strong> <a[^>]*>(.*)<\/a><br>$/) {
 			$Name = $1;
@@ -701,7 +722,7 @@ sub MakeNewArticle {
 	print(ART "<hr>\n");
 
 	# 記事ヘッダの始まり
-	print(ART "<!-- Header Begin -->\n");
+	print(ART "$COM_HEADER_BEGIN\n");
 
 	# ボディの先頭にボード名と記事番号、題を入れる
 	printf(ART "<strong>$H_SUBJECT</strong> [$BoardName: %d] $Subject<br>\n", $ArticleId);
@@ -795,7 +816,28 @@ sub ArticleWasFollowed {
 	# フォローした記事ファイル
 	local($FollowArticleFile) = &GetArticleFileName($FollowArticleId, '');
 
-	# 追加
+	# 反応メールのフラグ
+	local(@Fmail) = ();
+
+	# 元ファイルから反応メールの宛先を取り出す
+	open(FART, "$ArticleFile") || &MyFatal(1, $ArticleFile);
+	while(<FART>) {
+		if (/^$COM_FMAIL_BEGIN$/) {
+			while(<FART>) {
+				chop;
+				last if (/^$COM_FMAIL_END$/);
+				push(@Fmail, $_);
+			}
+		}
+	}
+	close(FART);
+
+	# 必要ならメールを送る。
+	&FollowMail(&GetURL($Board, &GetArticleFileName($Id, '')),
+		&GetURL($Board, &GetArticleFileName($FollowArticleId, '')),
+		$Name, @Fmail) if (@Fmail[0] ne "");
+
+	# 後ろにフォロー情報を追加
 	open(FART, ">>$ArticleFile") || &MyFatal(1, $ArticleFile);
 	print(FART "<li><a href=\"$FollowArticleFile\">$Fsubject</a> ← $Fname さん\n");
 	close(FART);
@@ -848,7 +890,7 @@ sub AddTitleFollow {
 
 	# タイトルファイルに追加
 	open(TTMP, ">$TmpFile") || &MyFatal(1, $TmpFile);
-	open(TITLE, "$File") || &MyFatal(1, $File);
+	open(TITLE, "$KC2IN $File |") || &MyFatal(1, $File);
 
 	while(<TITLE>) {
 		print(TTMP $_);
@@ -925,6 +967,25 @@ sub AddAllFile {
 
 
 ###
+## 反応があったことをメールする。
+#
+sub FollowMail {
+
+	# 宛先
+	local($URL, $FollowURL, $Name, @To) = @_;
+
+	# Subject
+	local($Subject) = "Your article was followed.";
+
+	# Message
+	local($Message) = "あなたがきのぼーずに書き込んだ記事、\n$URL\nに対して、$Nameさんから反応がありました。\nお時間のある時に\n$FollowURL\nを御覧下さい。\n\nでは。";
+
+	# メール送信
+	&SendMail($Subject, $Message, @To);
+}
+
+
+###
 ## ログファイルのロック関係
 #
 
@@ -932,7 +993,6 @@ sub AddAllFile {
 sub lock {
 	flock(LOCK, $LOCK_EX);
 }
-
 
 # アンロック
 sub unlock {
@@ -961,7 +1021,7 @@ sub SortArticle {
 				: $ALL_FILE_NAME));
 	local(@lines);
 
-	open(ALL, "$File") || &MyFatal(1, $File);
+	open(ALL, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<ALL>) {
 		(/^<li>/) && (s/href=\"/href=\"$SYSTEM_DIR_URL\/$Board\//)
 			&& push(@lines, $_);
@@ -1011,14 +1071,15 @@ sub NewArticle {
 	# 最新記事番号を取得
 	local($ArticleToId) = &GetArticleId($ArticleNumFile);
 
-	# 取ってくる最初の記事番号を取得
-	local($ArticleFromId) =
-		(($ArticleToId > $Num) ? ($ArticleToId - $Num + 1) : 1);
+	# 記事数が足りない場合の調整
+	$Num = $ArticleToId if ($ArticleToId < $Num);
 
+	# 取ってくる最初の記事番号を取得
+	local($ArticleFromId) = $ArticleToId - $Num + 1;
 	local($i, $File);
 
 	# 表示画面の作成
-	&MsgHeader($NEWARTICLE_MSG);
+	&MsgHeader("$NEWARTICLE_MSG: $Num");
 
 	print("<p>記事数: $Num ($ArticleToId 〜 $ArticleFromId)</p>");
 
@@ -1027,11 +1088,14 @@ sub NewArticle {
 	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
 		print("<a href=\"\#$i\">$i</a> //\n");
 	}
+	print("</p><p>\n");
+	print("↑の数字をクリックすると、そのIDの記事に飛びます。\n");
+	print("新しい記事ほど上の方にあります。\n");
 	print("</p>\n");
 
 	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
-		print("<br><hr><br>\n");
-		print("<strong><a name=\"$i\">ID = $i</a></strong><br>\n");
+		print("<a name=\"$i\">　</a><br>\n");
+		print("<hr>\n");
 		&ViewOriginalArticle($i, $Board);
 	}
 
@@ -1111,11 +1175,9 @@ sub ThreadArticleMain {
 
 	} else {
 
-		# 区切り
-		print("<hr>\n");
-
 		# 元記事の表示
-		print("<strong><a name=\"$Id\">ID = $Id</a></strong><br>\n");
+		print("<a name=\"$Id\">　</a><br>\n");
+		print("<hr>\n");
 		&ViewOriginalArticle($Id, $Board);
 
 	}
@@ -1153,11 +1215,11 @@ sub GetFollowIdList {
 	# リスト
 	local(@Result) = ();
 
-	open(TMP, "$File") || &MyFatal(1, $File);
+	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<TMP>) {
 
 		# フォロー部分開始の判定
-		$QuoteFlag = 1 if (/^<!-- Article End -->$/);
+		$QuoteFlag = 1 if (/^$COM_ARTICLE_END$/);
 
 		# フォローIdの取得
 		if (($QuoteFlag == 1) &&
@@ -1186,7 +1248,7 @@ sub PrintAbstract {
 	local($Subject, $InputDate, $Name);
 
 	# 記事ファイルからSubject等を取り出す
-	open(TMP, "$File") || &MyFatal(1, $File);
+	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<TMP>) {
 
 		# subjectを取り出す。
@@ -1266,7 +1328,7 @@ sub SearchArticleList {
 	print("<dl>\n");
 
 	# ファイルを開く
-	open(TITLE, "$File") || &MyFatal(1, $File);
+	open(TITLE, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<TITLE>) {
 		$Title = $_;
 		next unless (/^<li>.*href=\"([^\"]*)\"/);
@@ -1303,7 +1365,7 @@ sub SearchArticleKeyword {
 	local($File, $Key) = @_;
 
 	# 検索する
-	open(ARTICLE, "$File") || &MyFatal(1, $File);
+	open(ARTICLE, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<ARTICLE>) {
 		# ヒット?
 		(/$Key/) && return($_);
@@ -1331,10 +1393,10 @@ sub AliasNew {
 	print("<p>\n");
 	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"am\">\n");
-	print("$H_ALIAS <input name=\"alias\" value=\"#\" size=\"$NAME_LENGTH\"><br>\n");
-	print("$H_FROM <input name=\"name\" size=\"$NAME_LENGTH\"><br>\n");
-	print("$H_MAIL <input name=\"email\" size=\"$MAIL_LENGTH\"><br>\n");
-	print("$H_URL <input name=\"url\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
+	print("$H_ALIAS <input name=\"alias\" type=\"text\" value=\"#\" size=\"$NAME_LENGTH\"><br>\n");
+	print("$H_FROM <input name=\"name\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
+	print("$H_MAIL <input name=\"email\" type=\"text\" size=\"$MAIL_LENGTH\"><br>\n");
+	print("$H_URL <input name=\"url\" type=\"text\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
 	print("<input type=\"submit\" value=\"ここ\">を押すと、\n");
 	print("エイリアスの新規登録/登録内容の変更が行なわれます。\n");
 	print("ただし変更は、登録の際と同じマシンでなければできません。\n");
@@ -1349,7 +1411,7 @@ sub AliasNew {
 	print("<p>\n");
 	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"ad\">\n");
-	print("$H_ALIAS <input name=\"alias\" size=\"$NAME_LENGTH\"><br>\n");
+	print("$H_ALIAS <input name=\"alias\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
 	print("<input type=\"submit\" value=\"ここ\">を押すと、\n");
 	print("上記エイリアスが削除されます。\n");
 	print("同じく登録の際と同じマシンでなければ削除できません。\n");
@@ -1544,7 +1606,7 @@ sub CashAliasData {
 	local($A, $N, $E, $H, $U);
 
 	# 放り込む。
-	open(ALIAS, "$File") || &MyFatal(1, $File);
+	open(ALIAS, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<ALIAS>) {
 		chop;
 		($A, $N, $E, $H, $U) = split(/\t/, $_);
@@ -1603,8 +1665,8 @@ sub GetUserInfo {
 	local($A, $N, $E, $H, $U);
 
 	# ファイルを開く
-	open(ALIAS, "$USER_ALIAS_FILE")
-		# ファイルがないのでさようなら。
+	open(ALIAS, "$KC2IN $USER_ALIAS_FILE |")
+		# ファイルがないらしいのでさようなら。
 		|| return('', '', '');
 
 	# 1つ1つチェック。
@@ -1637,7 +1699,8 @@ sub GetBoardInfo {
 	# ボード名
 	local($BoardName);
 
-	open(ALIAS, "$BOARD_ALIAS_FILE") || &MyFatal(1, $BOARD_ALIAS_FILE);
+	open(ALIAS, "$KC2IN $BOARD_ALIAS_FILE |")
+		|| &MyFatal(1, $BOARD_ALIAS_FILE);
 	while(<ALIAS>) {
 
 		chop;
@@ -1715,23 +1778,46 @@ sub ViewOriginalArticle {
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
 
-	open(TMP, "$QuoteFile") || &MyFatal(1, $QuoteFile);
+	open(TMP, "$KC2IN $QuoteFile |") || &MyFatal(1, $QuoteFile);
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
+		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
-			print($_);
+			print(&URLConvert($Board, $_));
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if ((/^<!-- Header Begin -->$/) ||
-					(/^<!-- Article Begin -->$/));
+		$QuoteFlag = 1 if ((/^$COM_HEADER_BEGIN$/) ||
+					(/^$COM_ARTICLE_BEGIN$/));
 
 	}
 	close(TMP);
+
+}
+
+
+###
+## 文字列中に<a href="$ARTICLE_PREFIX.??.html">があったら、
+## 相対を絶対URLに書き換えてから返す。
+#
+sub URLConvert {
+
+	# string
+	local($Board, $String) = @_;
+	local($File, $URL);
+
+	($String =~ m/<a href=\"($ARTICLE_PREFIX\.[^\.]*\.html)\">/)
+		|| return($String);
+
+	$File = $1;
+	$URL = &GetURL($Board, $File);
+
+	$String =~ s/<a href=\"$File\">/<a href=\"$URL\">/g;
+
+	return($String);
 
 }
 
@@ -1747,11 +1833,11 @@ sub ViewOriginalFile {
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
 
-	open(TMP, "cat $File | $KC2IN |") || &MyFatal(1, $File);
+	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
+		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -1759,7 +1845,7 @@ sub ViewOriginalFile {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1 if (/^<!-- Article Begin -->$/);
+		$QuoteFlag = 1 if (/^$COM_ARTICLE_BEGIN$/);
 
 	}
 	close(TMP);
@@ -1852,7 +1938,7 @@ sub GetSubject {
 	local($Subject) = '';
 
 	# 該当ファイルからSubject文字列を取り出す。
-	open(TMP, "$ArticleFile") || &MyFatal(1, $ArticleFile);
+	open(TMP, "$KC2IN $ArticleFile |") || &MyFatal(1, $ArticleFile);
 	while(<TMP>) {
 		if (/^<strong>$H_SUBJECT<\/strong> \[[^\]]*\] (.*)<br>$/) {
 			$Subject = $1;
@@ -1876,7 +1962,7 @@ sub GetSubjectFromFile {
 	# 取り出したSubject
 	local($Title) = '';
 
-	open(TMP, "cat $File | $KC2IN |") || &MyFatal(1, $File);
+	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
 	while(<TMP>) {
 
 		if (/^<[Tt][Ii][Tt][Ll][Ee]>(.*)<\/[Tt][Ii][Tt][Ll][Ee]>$/) {
@@ -1888,6 +1974,44 @@ sub GetSubjectFromFile {
 	# 返す。
 	return($Title);
 
+}
+
+
+###
+## メール送信
+#
+sub SendMail {
+
+	# subject、メールのファイル名、宛先のリスト
+	local($Subject, $Message, @To) = @_;
+	local($File4Mail) = "$TMPDIR/tmp.kb.$$";
+
+	# メール用ファイルを開く
+	open(MAIL, "| $KC2OUT > $File4Mail") || &MyFatal(1, $File4Mail);
+
+	# Toヘッダ
+	foreach (@To) {
+		print(MAIL "To: $_\n");
+	}
+
+	# Ccヘッダ
+	# さすがにうざったかろう。^^;
+	# print(MAIL "Cc: ", $MAINT, "\n");
+
+	# Subjectヘッダ
+	print(MAIL "Subject: $Subject\n\n");
+
+	# 本文
+	print(MAIL "$Message\n");
+
+	# 閉じる
+	close(MAIL);
+
+	# メール送信
+	system("$MAIL2 < $File4Mail");
+
+	# ファイル消去
+	unlink("$File4Mail");
 }
 
 

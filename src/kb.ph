@@ -1,7 +1,10 @@
-# $Id: kb.ph,v 2.0 1995-12-19 14:27:25 nakahiro Exp $
+# $Id: kb.ph,v 2.1 1995-12-19 18:46:21 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 2.0  1995-12-19 14:27:25  nakahiro
+# Revision 2.1  1995-12-19 18:46:21  nakahiro
+# send mail
+#
+# Revision 2.0  1995/12/19 14:27:25  nakahiro
 # user writable alias file.
 #
 # Revision 1.3  1995/12/19 07:24:49  nakahiro
@@ -14,6 +17,7 @@
 
 # kinoBoards: Kinoboards Is Network Opened BOARD System
 
+
 #/////////////////////////////////////////////////////////////////////
 
 
@@ -25,27 +29,43 @@
 # 管理者のe-mail addr.
 #
 $MAINT = "nakahiro@kinotrope.co.jp";
+### $MAINT = "nakahiro@ohara.info.waseda.ac.jp";
 
 #
 # プログラムが存在するディレクトリのURL表示
 #
-# 共用のディレクトリに置く(置かねばならない)場合
-# $PROGRAM_DIR_URL = "/cgi-bin";
 # 自分のディレクトリに置く場合
-$PROGRAM_DIR_URL = "/~nakahiro";
+$PROGRAM_DIR_URL = "http://www.kinotrope.co.jp/~nakahiro";
+# 共用のディレクトリに置く(置かねばならない)場合
+### $PROGRAM_DIR_URL = "http://www.ohara.info.waseda.ac.jp/cgi-bin";
 
 #
 # システムが存在するディレクトリのURL表示
 #
-$SYSTEM_DIR_URL = "/~nakahiro";
+$SYSTEM_DIR_URL = "http://www.kinotrope.co.jp/~nakahiro";
+### $SYSTEM_DIR_URL = "http://www.ohara.info.waseda.ac.jp/person/nakahiro/kb";
 
 # システムが存在するディレクトリ
 $SYSTEM_DIR = "/home/nakahiro/public_html";
+### $SYSTEM_DIR = "/home/common/WWW/DocumentRoot/person/nakahiro/kb";
 
 #
 # 漢字コードコンバータ(入力はUJISへ、出力はJISへ)のパスとオプション
 #
 $KC2IN = "/usr/local/bin/nkf -e";
+$KC2OUT = "/usr/local/bin/nkf -j";
+### $KC2IN = "/usr/local/bin/kc -e";
+### $KC2OUT = "/usr/local/bin/kc -j";
+
+#
+# sendmailのパスとオプション
+#
+$MAIL2 = "/usr/lib/sendmail -oi -t";
+
+#
+# テンポラリファイルを置くディレクトリ
+#
+$TMPDIR = "/var/tmp";
 
 #
 # 著作権表示
@@ -92,6 +112,7 @@ $H_URL = "URL(省略可):";
 $H_DATE = "投稿日:";
 $H_REPLY = "元記事:";
 $H_FOLLOW = "▼反応";
+$H_FMAIL = "反応がついた時にメールで知らせる:";
 
 $H_TEXTTYPE = "入力形式:";
 $H_HTML = "HTML文書";
@@ -176,6 +197,15 @@ $LOCK_FILE = "$SYSTEM_DIR/$LOCK_FILE_NAME";
 $USER_ALIAS_FILE = "$SYSTEM_DIR/$USER_ALIAS_FILE_NAME";
 # ボードエイリアスファイル
 $BOARD_ALIAS_FILE = "$SYSTEM_DIR/$BOARD_ALIAS_FILE_NAME";
+
+#
+# 制御用コメント文
+#
+$COM_ARTICLE_BEGIN = "<!-- Article Begin -->";
+$COM_ARTICLE_END = "<!-- Article End -->";
+$COM_HEADER_BEGIN = "<!-- Header Begin -->";
+$COM_FMAIL_BEGIN = "<!-- Follow Mail Begin";
+$COM_FMAIL_END = "Follow Mail End -->";
 
 #
 # Permission of Title File.
