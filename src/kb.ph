@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.13 1997-01-28 13:05:16 nakahiro Exp $
+# $Id: kb.ph,v 4.14 1997-02-06 17:27:43 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -24,6 +24,7 @@
 
 #
 # 管理者の名前とe-mail addr.
+# メイル送信に使うため，「$MAINT_NAME」はアルファベットのみで指定してください．
 #
 $MAINT_NAME = 'KinoAdmin';
 $MAINT = 'nakahiro@kinotrope.co.jp';
@@ -32,20 +33,27 @@ $MAINT = 'nakahiro@kinotrope.co.jp';
 # サーバが動いているマシンはどれですか?
 # 該当する1行を残してコメントアウトしてください．
 #
-$ARCH = 'UNIX';			# UNIX + Perl4/5
+  $ARCH = 'UNIX';			# UNIX + Perl4/5
+# $ARCH = 'WinNT';			# WinNT + Perl5
+# $ARCH = 'Win95';			# Win95 + Perl5
 # $ARCH = 'Mac';			# Mac + MacPerl
-# $ARCH = 'Win';			# Win95 + Perl5
 
 #
 # UNIXの場合はsendmailのパスとオプションを，
 # Mac or Winの場合はメイルを放り込むファイルを，
-# 指定します．
+# 指定してください．
 #
 $MAIL2 = '/usr/lib/sendmail -oi -t'	if ($ARCH eq 'UNIX');
+$MAIL2 = 'SendMail'			if ($ARCH eq 'WinNT');
+$MAIL2 = 'SendMail'			if ($ARCH eq 'Win95');
 $MAIL2 = ':SendMail'			if ($ARCH eq 'Mac');
-$MAIL2 = 'SendMail'			if ($ARCH eq 'Win');
 #
-# MacPerlやWinPerl5でメイル出すにはどうしたらいい?
+# WinやMacPerlの場合，今のところメイル送信機能がありません．
+# メイルはすべて，上で指定したファイルに書き出されます．
+# あるいはそのファイルを適当に分割し，
+# 1日1回手動で送信するという手もありますね．(^_^;
+# WinNTにはsendmailがあるはずなんだけど……
+#
 
 #
 # システムの設定
@@ -75,7 +83,7 @@ $SYS_BOTTOMTITLE = 0;
 #   1: 下
 $SYS_BOTTOMARTICLE = 1;
 
-# メール送信サービスを利用するか否か(日本語のみ)
+# メイル送信サービスを利用するか否か(日本語のみ)
 # (サーバが動いているマシンがUNIXの場合のみ有効)
 #   0: 利用しない
 #   1: 利用する
@@ -84,7 +92,7 @@ $SYS_FOLLOWMAIL = 1;
 # 記事のヘッダにマシン名を表示するか否か
 #   0: 表示しない
 #   1: 表示する
-$SYS_SHOWHOST = 1;
+$SYS_SHOWHOST = 0;
 
 # 記事のヘッダにコマンド群を表示するか否か
 #   0: 表示しない
@@ -101,7 +109,7 @@ $SYS_NEWARTICLEONLY = 0;
 #   1: 使う
 $SYS_NETSCAPE_EXTENSION = 1;
 
-# 記事投稿時、メールアドレスの入力を必須とするか
+# 記事投稿時、メイルアドレスの入力を必須とするか
 #   0: 必須としない
 #   1: 必須とする
 $SYS_POSTERMAIL = 1;
@@ -112,7 +120,7 @@ $SYS_POSTERMAIL = 1;
 #	「>」や「&gt;」を引用マークにするのは避けて下さい．
 #	トラブルを起こすブラウザが存在します．
 #
-$DEFAULT_QMARK = " ] ";
+$DEFAULT_QMARK = ' ] ';
 
 #
 # 各入力項目の大きさ
@@ -148,19 +156,25 @@ $ALINK_COLOR = "#FF0000";
 $VLINK_COLOR = "#00AA00";
 
 #
+# URLとして許可するscheme
+#
+@URL_SCHEME = ('http', 'ftp', 'gopher');
+
+#
 # メッセージの宣言
 #
 $SYSTEM_NAME = "きのぼーず";
 
 $H_BOARD = "掲示板";
 $H_ICON = "アイコン";
-$H_SUBJECT = "題";
+$H_SUBJECT = "タイトル";
 $H_MESG = "メッセージ";
 $H_ALIAS = "エイリアス";
 $H_FROM = "お名前";
-$H_MAIL = "メールアドレス";
+$H_MAIL = "メイル";
 $H_HOST = "マシン";
-$H_URL = "URL(省略可)";
+$H_URL = "URL";
+$H_URL_S = "URL(省略可)";
 $H_DATE = "投稿日";
 $H_REPLY = "リプライ";
 $H_ORIG = "$H_REPLY元";
@@ -170,8 +184,8 @@ $ENTRY_MSG = "$H_MESGの書き込み";
 $SHOWICON_MSG = "アイコンの説明";
 $PREVIEW_MSG = "書き込みの内容を確認してください";
 $THANKS_MSG = "書き込みありがとうございました";
-$VIEW_MSG = "タイトル一覧($H_REPLY順)";
-$SORT_MSG = "タイトル一覧(日付順)";
+$VIEW_MSG = "$H_SUBJECT一覧($H_REPLY順)";
+$SORT_MSG = "$H_SUBJECT一覧(日付順)";
 $NEWARTICLE_MSG = "最近の$H_MESGをまとめ読み";
 $THREADARTICLE_MSG = "$H_REPLYをまとめ読み";
 $SEARCHARTICLE_MSG = "$H_MESGの検索";
@@ -184,24 +198,21 @@ $ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
 $H_LINE = "------------------------------";
 $H_THREAD = "▼";
 $H_FOLLOW = "▼$H_REPLY";
-$H_FMAIL = "$H_REPLYがあった時にメールで知らせますか?";
-
 $H_TEXTTYPE = "表示形式";
 $H_HTML = "HTMLとして表示する";
 $H_PRE = "そのまま表示する";
-
 $H_NOICON = "なし";
 
 # あおり文
 $H_REPLYMSG = "上の$H_MESGへの$H_REPLYを書き込む";
-$H_AORI = ($SYS_TEXTTYPE)
-    ? "$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにホームページをお持ちの方は$H_URLを書き込んでください．<strong>$H_MESGはメールと同じように，そのまま書いてくださればOKです</strong>．<br>
-ただしHTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，$H_MESGをHTMLとして書いて頂くと，HTML整形を行ないます．"
-    : "$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにホームページをお持ちの方は$H_URLを書き込んでください．<strong>$H_MESGはメールと同じように，そのまま書いてくださればOKです</strong>．";
+$H_AORI_1 = "$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにウェブページをお持ちの方は，ホームページの$H_URLを書き込んでください．";
+$H_AORI_2 = "ただしHTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，$H_MESGをHTMLとして書いて頂くと，表示の時にHTML整形を行ないます．";
 $H_SEEICON = "アイコンの説明";
 $H_SEEALIAS = "$H_ALIASの一覧";
 $H_ALIASENTRY = "登録する";
 $H_ALIASINFO = "「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録なさっている方は，「$H_FROM」に「#...」という登録名を書いてください．自動的に$H_FROMと$H_MAIL，$H_URLが補われます．";
+$H_FMAIL = "$H_REPLYがあった時にメイルで知らせますか?";
+$H_LINK = "$H_MESG中に関連ウェブページへのリンクを張る場合は，「&lt;URL:http://〜&gt;」のように，URLを「&lt;URL:」と「&gt;」で囲んで書き込んでください．自動的にリンクが張られます．";
 $H_PREVIEW_OR_ENTRY = "書き込んだ内容を，";
 $H_PREVIEW = "試しに表示してみる(まだ投稿しません)";
 $H_ENTRY = "$H_MESGを投稿する";
@@ -209,11 +220,12 @@ $H_PUSHHERE_POST = "コマンド実行";
 $H_NOTHING = "ありません";
 $H_ICONINTRO_ENTRY = "では，次のアイコンを使うことができます．";
 $H_ICONINTRO_ARTICLE = "各アイコンは次の機能を表しています．";
-$H_POSTINFO = "必要であれば，戻って書き込みを修正してください．よろしければボタンを押して書き込みましょう．";
+$H_POSTINFO = "必要であれば，ブラウザのBACKボタンで戻って，書き込みを修正してください．よろしければボタンを押して書き込みましょう．";
+$H_DIRECTLINK = "($H_MESGはありません．$H_SUBJECT一覧からは，直接以下のURLにリンクが張られます．リンク先が正しいことを確認してください．)";
 $H_PUSHHERE_PREVIEW = "投稿する";
-$H_THANKSMSG = "書き込みの訂正，取消などは，メールで<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
-$H_BACKTITLE = "タイトル一覧に戻ります";
-$H_BACKORG = "元の記事に戻ります";
+$H_THANKSMSG = "書き込みの訂正，取消などは，メイルで<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
+$H_BACKTITLE = "$H_SUBJECT一覧へ";
+$H_BACKORG = "$H_ORIGの$H_MESGへ";
 $H_NEXTARTICLE = "次の$H_MESGへ";
 $H_POSTNEWARTICLE = "新規に投稿する";
 $H_REPLYTHISARTICLE = "$H_REPLYを書き込む";
@@ -224,9 +236,9 @@ $H_KEYWORD = "キーワード";
 $H_SEARCHKEYWORD = "検索する";
 $H_RESETKEYWORD = "リセットする";
 $H_SEARCHTARGET = "検索範囲";
-$H_SEARCHTARGETSUBJECT = "題";
-$H_SEARCHTARGETPERSON = "名前";
-$H_SEARCHTARGETARTICLE = "メッセージ";
+$H_SEARCHTARGETSUBJECT = "$H_SUBJECT";
+$H_SEARCHTARGETPERSON =  "名前";
+$H_SEARCHTARGETARTICLE = "$H_MESG";
 $H_INPUTKEYWORD = "<p>
 <ul>
 <li>「$H_SEARCHTARGETSUBJECT」，「$H_SEARCHTARGETPERSON」，「$H_SEARCHTARGETARTICLE」の中から，検索する範囲をチェックしてください．
@@ -240,7 +252,7 @@ $H_INPUTKEYWORD = "<p>
 </p>";
 $H_NOTFOUND = "該当する$H_MESGは見つかりませんでした．";
 $H_ALIASTITLE = "新規登録/登録内容の変更";
-$H_ALIASNEWCOM = "$H_ALIASの新規登録/登録内容の変更を行ないます．ただし悪戯防止のため，変更は，登録の際と同じマシンでなければできません．変更できない場合は，<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします．";
+$H_ALIASNEWCOM = "$H_ALIASの新規登録/登録内容の変更を行ないます．ただし悪戯防止のため，変更は，登録の際と同じマシンでなければできません．変更できない場合は，<a href=\"mailto:$MAINT\">$MAINT</a>までメイルでお願いします．";
 $H_ALIASNEWPUSH = "登録/変更する";
 $H_ALIASDELETE = "削除";
 $H_ALIASDELETECOM = "上記$H_ALIASを削除します．同じく登録の際と同じマシンでなければ削除できません．";
@@ -254,7 +266,7 @@ $H_BACKART = "以前に書き込まれた$H_MESGへ";
 $H_NEXTART = "以降に書き込まれた$H_MESGへ";
 $H_TOP = "↑";
 $H_BOTTOM = "↓";
-$H_NOARTICLE = "該当する記事がありません．";
+$H_NOARTICLE = "該当する$H_MESGがありません．";
 
 
 #/////////////////////////////////////////////////////////////////////
