@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.7 2000-05-13 11:56:31 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.8 2000-07-01 12:09:54 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -91,7 +91,7 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 # メインのヘッダファイルの読み込み
 if ( !$KBDIR_PATH || !chdir( $KBDIR_PATH ))
 {
-    print "Content-Type: text/plain; charset=EUC-JP\n\n";
+    print "Content-Type: text/plain; charset=EUC-JP\r\n\r\n";
     print "エラー．管理者様へ:\n";
     print "$0の先頭部分に置かれている\$KBDIR_PATHが，\n";
     print "正しく設定されていません\n";
@@ -157,11 +157,7 @@ $SIG{'INT'} = $SIG{'HUP'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
 sub DoKill
 {
     local( $sig ) = @_;
-    if ( !$PC )
-    {
-	&cgi'unlock_file( $LOCK_FILE );
-	&cgi'unlock_file( $LOCK_FILE_B ) if $LOCK_FILE_B;
-    }
+    &UnlockAll();
     &KbLog( $kinologue'SEV_WARN, "Caught a SIG$sig - shutting down..." );
     exit( 1 );
 }
@@ -2762,7 +2758,7 @@ sub ReLinkExec
     local( $dId, @Daughters, $DaughterId );
 
     # 循環記事の禁止
-    &FatalPriv( 50, '' ) if ( grep( /^$FromId$/, split( /,/, $DB_FID{$ToId} )));
+    &Fatal( 50, '' ) if ( grep( /^$FromId$/, split( /,/, $DB_FID{$ToId} )));
 
     # データ書き換え
     foreach ( 0 .. $#DB_ID )
@@ -4139,13 +4135,26 @@ sub SupersedeDbFile
 
     local( $SupersedeId, $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
     
+    # 訂正済みメッセージのID．
+    $SupersedeId = 0;
+
+    local( $File ) = &getPath( $Board, $DB_FILE_NAME );
+    open( DB, "<$File" ) || &fatal( 1, $File );
+    while ( <DB> )
+    {
+	( $dId, ) = split( /\t/, $_, 2 );
+
+	# later versionが見つかったら，versionを先読みしておく．
+	if ( $dId =~ /^\#-${Id}_(\d+)/ )
+	{
+	    $SupersedeId = $1 if ( $1 > $SupersedeId );
+	}
+    }
     # initial versionは1で，1ずつ増えていく．1，2，…9，10，11，…
-    # later versionはDB中で必ず，younger versionよりも下に出現する．
-    # すなわち10_2，10，10_1は，10_1，10_2，10の順に並ぶものとする．
-    $SupersedeId = 1;
+    $SupersedeId++;	
+    close DB;
 
     local( $dbLine );
-    local( $File ) = &GetPath( $Board, $DB_FILE_NAME );
     local( $TmpFile ) = &GetPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
     open( DBTMP, ">$TmpFile" ) || &Fatal( 1, $TmpFile );
     open( DB, "<$File" ) || &Fatal( 1, $File );
@@ -4160,12 +4169,6 @@ sub SupersedeDbFile
 	chop;
 
 	( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_ );
-
-	# later versionが見つかったら，versionを先読みしておく．
-	if ( "$dId" eq ( sprintf( "#-%s_%s", $Id, $SupersedeId )))
-	{
-	    $SupersedeId++;
-	}
 
 	# 訂正記事の最新版が見つかったら，
 	if ( $dId eq $Id )
