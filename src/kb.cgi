@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# このファイルの変更は2箇所です．
+# このファイルの変更は2箇所です（サーバマシンがWin95/Macの場合は3箇所）．
 #
 # 1. ↑の先頭行で，Perlのパスを指定します．「#!」に続けて指定してください．
 
@@ -12,7 +12,7 @@ $KBDIR_PATH = '';
 # $KBDIR_PATH = 'd:\inetpub\wwwroot\kb';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb';			# Macの場合?
 
-# 3. サーバが動いているマシンがWin95もしくはMacの場合，
+# 3. サーバが動いているマシンがWin95/Macの場合，
 #    $PCを1に設定してください．そうでない場合，この設定は不要です．
 #
 $PC = 0;	# for UNIX / WinNT
@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.22 1999-02-19 04:23:01 nakahiro Exp $
+# $Id: kb.cgi,v 5.23 1999-03-10 08:57:47 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -59,7 +59,7 @@ umask( umask() & 0770 );
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.4.1';		# release
+$KB_RELEASE = '6.5-dev';	# release
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
@@ -1454,13 +1454,17 @@ sub MsgHeader
 	&cgi'Header( 0, 0, 0, 0, 0 );
     }
 
+    local( $titleString ) = $BOARDNAME? "$SYSTEM_NAME - $BOARDNAME - $Title" :
+	"$SYSTEM_NAME - $Title";
+    local( $headerString ) = $BOARDNAME || $SYSTEM_NAME;
+
     local( $msg );
     $msg .= <<__EOF__;
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
 <base href="$BASE_URL">
-<title>$Title - $BOARDNAME - $SYSTEM_NAME</title>
+<title>$titleString</title>
 <LINK REV=MADE HREF="mailto:$MAINT">
 </head>
 __EOF__
@@ -1478,12 +1482,12 @@ __EOF__
     $msg .= ">\n";
 
     $msg .= <<__EOF__;
-<h1>$Message</h1>
+<h1>$headerString</h1>
 
 <p>[
 __EOF__
 
-    $msg .= "$H_BOARD: $BOARDNAME // \n" if ( $BOARD && $BOARDNAME );
+    $msg .= "$Message // \n";
     $msg .= "最新${H_MESG}ID: " . $DB_ID[$#DB_ID] . " // \n" if @DB_ID;
     $msg .= "時刻: " . &GetDateTimeFormatFromUtc( $^T );
     $msg .= <<__EOF__;
@@ -1516,7 +1520,7 @@ __EOF__
 sub MsgFooter
 {
     # ↓これを変更するのも「自由」です．消しても全く問題ありません．
-    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb10.shtml", "KINOBOARDS/$KB_VERSION R$KB_RELEASE" ) . ": Copyright (C) 1995-99 " . &TagA( "http://www.jin.gr.jp/~nakahiro/", "NAKAMURA Hiroshi" ) . ".";
+    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb10.shtml", "KINOBOARDS/$KB_VERSION R$KB_RELEASE" ) . ": Copyright (C) 1995-99 " . &TagA( "http://www.jin.gr.jp/~nahi/", "NAKAMURA Hiroshi" ) . ".";
     # ただし，「俺が全部作ったんだ!」とか書くと，なひの権利を侵害して，
     # やっぱりGPL2に違反することになっちゃうので気をつけてね．(^_^;
 
@@ -1760,9 +1764,11 @@ sub SendMail
 	$FromAddr = $MAINT;
     }
 
-    local( $stat, $errstr ) = &cgi'sendMail( $FromName, $FromAddr,
-	( $MAILFROM_LABEL || $MAINT_NAME ), $MAINT, $Subject, $ExtensionHeader,
-	$Message, $MAILTO_LABEL, @To );
+    local( $SenderFrom, $SenderAddr ) = (( $MAILFROM_LABEL || $MAINT_NAME ),
+	$MAINT );
+    local( $stat, $errstr ) = &cgi'sendMail( $FromName, $FromAddr, $SenderFrom,
+	$SenderAddr, $Subject, $ExtensionHeader, $Message, $MAILTO_LABEL,
+	@To );
     &Fatal( 9, "$BOARDNAME/$Id/$errstr" ) if ( !$stat );
 }
 
@@ -3301,7 +3307,7 @@ sub AddDBFile
 		$mdSubject = $dSubject;
 		$mdIcon = $dIcon;
 		$mdId = $dId;
-		push( @FollowMailTo, $dEmail ) if ( $dFmail ne '' );
+		push( @FollowMailTo, $dEmail ) if $dFmail;
 	    }
 	}
 
