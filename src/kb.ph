@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 5.2 1997-11-26 09:39:13 nakahiro Rel $
+# $Id: kb.ph,v 5.3 1997-12-05 22:45:12 nakahiro Rel $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -31,10 +31,10 @@
 # 「$SYSTEM_NAME」もアルファベットのみにしてください．
 #
 # 例:
-#$MAINT_NAME = 'KinoboardsAdmin';
-#$MAINT = 'nakahiro@kinotrope.co.jp';
-#$SYSTEM_NAME = "(c)KINOBOARDS";
-#
+# $MAINT_NAME = 'KinoboardsAdmin';
+# $MAINT = 'nakahiro@kinotrope.co.jp';
+# $SYSTEM_NAME = "KINOBOARDS/1.0";
+
 $MAINT_NAME = 'YourName';
 $MAINT = 'yourname@your.e-mail.domain';
 $SYSTEM_NAME = "YourSystemName";
@@ -173,7 +173,8 @@ $SYS_F_S = 1;			# 記事の検索
 $SYS_F_B = 1;			# 掲示板一覧の表示
 #
 # これ以下のコマンドは必ず，
-# 「正しくアクセス制限をかけた上で」利用してください．
+# 「正しくアクセス制限をかけた上で」利用してください
+# （詳しくはインストレーションマニュアルを参照してください）．
 # でないと破壊的な悪戯を匿名でやられ放題ですからね．
 #
 # [注意] スクリプトの名前を変えたくらいじゃ絶対に駄目です．
@@ -218,23 +219,26 @@ $MSGICON_WIDTH = 20;
 # 各入力項目の大きさ
 #
 # 題
-$SUBJECT_LENGTH = 45;
+$SUBJECT_LENGTH = 60;
 # 記事行数
 $TEXT_ROWS = 15;
 # 記事幅
-$TEXT_COLS = 50;
+$TEXT_COLS = 65;
 # 名前幅
-$NAME_LENGTH = 45;
+$NAME_LENGTH = 60;
 # E-mail幅
-$MAIL_LENGTH = 45;
+$MAIL_LENGTH = 60;
 # URL幅
-$URL_LENGTH = 37;
+$URL_LENGTH = 52;
 # 検索キーワード幅
-$KEYWORD_LENGTH = 40;
+$KEYWORD_LENGTH = 60;
 
 # タイトル一覧に表示するタイトルの数
 # 0にすると全記事を表示するようになります．
 $DEF_TITLE_NUM = 20;
+
+# フレーム使用時のツリー構造のインデント幅（R5.3では未使用）
+$TREE_INDENT = 1;
 
 #
 # Netscape Extensionの指定
