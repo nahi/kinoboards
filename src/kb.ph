@@ -170,12 +170,19 @@ $SMTP_SERVER = 'localhost';
 #   1: 補う     → 「Subject: [掲示板: 記事番号] 題」
 $SYS_MAILHEADBRACKET = 1;
 
-# 送信するメイルのヘッダ（To:）に書かれる宛先を指定してください．
+# 送信するメイルのヘッダ「To:」に書かれる宛先を指定してください．
 # 省略すると，送信する相手のメイルアドレスがずらずら並びます．
 # 自動配信機能をメイリングリストのようにして使うなら，
 # $MAILTO_LABEL = 'なひきのぼずユーザ <nakahiro@sarion.co.jp>';
 # などとするといいかもしれません．
 $MAILTO_LABEL = '';
+
+# 送信するメイルのヘッダ「From:」に書かれる名前を，
+# システム管理者の名前とは変えたい場合に指定してください．
+# 省略すると，このファイルの先頭で設定した$MAINT_NAMEが使われます．
+# $MAILFROM_LABEL = 'Kinoboards Mail Daemon';
+# など．
+$MAILFROM_LABEL = '';
 
 # 以下はとりあえずそのままで結構です．稼働後，
 #
@@ -193,8 +200,9 @@ $MAILTO_LABEL = '';
 # $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
 # $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
 # $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
-# $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT
-# $AF_INET = 2; $SOCK_STREAM = 1;	# Mac（Macもこれで動くようです．．．）
+# $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
+# $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT/95
+# $AF_INET = 2; $SOCK_STREAM = 1;	# Mac
 #
 # 上にないOSで，どなたか設定に成功した方がありましたら，
 # nakahiro@sarion.co.jpまでお知らせください．m(..m
@@ -244,8 +252,6 @@ $URL_LENGTH = 72;		# URL幅
 $KEYWORD_LENGTH = 60;		# 検索キーワード幅
 $DEF_TITLE_NUM = 20;		# タイトル一覧に表示するタイトルの数
 				# 0にすると全記事を表示するようになります．
-$TREE_INDENT = 1;		# フレーム使用時のツリー構造のインデント幅
-				# （R5.4では使われません）
 
 ###
 ## ○URLとして許可するscheme
@@ -305,7 +311,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.6 1998-04-03 13:26:43 nakahiro Exp $
+# $Id: kb.ph,v 5.7 1998-06-19 07:22:13 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
