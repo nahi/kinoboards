@@ -1,16 +1,16 @@
-#!/usr/local/bin/perl5.00503-debug -d:DProf
-#!/usr/local/bin/perl4.036
 #!/usr/local/bin/perl
 
 
 # このファイルの変更は最低2箇所，最大4箇所です（環境次第です）．
-#
-# 1. ↑の先頭行で，Perlのパスを指定します．「#!」に続けて指定してください．
+
+
+# 1. このファイルの先頭行（↑）で，Perlのパスを指定します．
+#    「#!」に続けて指定してください．
 
 # 2. kbdataディレクトリのフルパスを指定してください（URLではなく，パスです）．
-#    ブラウザからアクセス可能なディレクトリでなくてもかまいません
+#    ブラウザからアクセス可能なディレクトリでなくてもかまいません．
 #
-$KBDIR_PATH = '';
+$KBDIR_PATH = '/home/achilles/nakahiro/kb/tst/';
 # $KBDIR_PATH = '/home/nahi/kbdata/';
 # $KBDIR_PATH = 'd:\securedata\kbdata\';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb:';			# Macの場合?
@@ -25,10 +25,10 @@ $PC = 0;	# for UNIX / WinNT
 #    置く場合は，その別ディレクトリのURLを指定してください（パスではなく，
 #    URLです）．指定するURLは，ブラウザからアクセス可能でなければいけません．
 #    本ファイルと同じディレクトリにicon，styleディレクトリを置く場合は，
-#    特に指定しなくてもかまいません（このままでOKです）．
+#    特に指定しなくてもかまいません（このまま書き換えなくて構いません）．
 #
-#    指定したURLのディレクトリに置かれている，
-#      icon/*.gifがアイコンファイルとして，
+#    指定したURL以下に置かれている，
+#      icon/*がアイコンファイルとして，
 #      style/kbStyle.cssがスタイルシートファイルとして，
 #    それぞれ参照されます．
 #
@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.70 2000-04-21 15:27:08 nakahiro Exp $
+# $Id: kb.cgi,v 5.71 2000-05-02 14:57:11 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -72,7 +72,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7β6';		# release
+$KB_RELEASE = '7.0';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -103,6 +103,7 @@ $ICONDEF_POSTFIX = 'idef';		# アイコンDBファイルのSuffix
 
 # リソースURL
 $RESOURCE_ICON = 'icon';		# アイコンディレクトリ
+$RESOURCE_IMG = 'img';			# イメージディレクトリ
 $RESOURCE_STYLE = 'style';		# スタイルシートディレクトリ
 # 今後は他に，音，背景用画像など．．．?
 
@@ -1961,7 +1962,7 @@ sub hg_supersede_exec_jump_to_new_article
 sub hg_post_exec_jump_to_orig_article
 {
     &fatal( 18, "$_[0]/PostExecJumpToOrigArticle" ) if ( $_[0] ne 'PostExec.xml' );
-    &dumpButtonToArticle( $BOARD, $gOrigId, "$H_ORIGの$H_MESGへ" ) if ( $gOrigId ne '' );
+    &dumpButtonToArticle( $BOARD, $gOrigId, "$H_PARENTへ" ) if ( $gOrigId ne '' );
 }
 
 
@@ -2720,7 +2721,7 @@ sub hg_show_article_original
     local( $fids ) = &getArtParents( $gId );
     if ( $fids ne '' )
     {
-	$gHgStr .= "<p>$H_THREAD_ALL$H_ORIG</p>\n";
+	$gHgStr .= "<p>$H_THREAD_ALL$H_PARENT</p>\n";
 	&dumpOriginalArticles( $fids );
     }
 }
@@ -2767,9 +2768,11 @@ sub hg_search_article_result
 	$iconHash{ $_ } = 1;
     }
 
-    # キーワードが空でなければ，そのキーワードを含む記事のリストを表示
-    if ( $SearchIcon || ( $SearchPostTimeFrom || $SearchPostTimeTo ) ||
-	(( $Key ne '' ) && ( $SearchSubject || $SearchPerson || $SearchArticle )))
+    # キーワード関連検索対象が指定されなかった場合は，キーワードは空扱い．
+    $Key = '' unless ( $SearchSubject || $SearchPerson || $SearchArticle );
+
+    # 対象があれば検索
+    if (( $Key ne '' ) || ( $SearchPostTimeFrom || $SearchPostTimeTo ) || $SearchIcon )
     {
 	&dumpSearchResult( $SearchView, $Key, $SearchSubject, $SearchPerson,
 	    $SearchArticle, $SearchPostTimeFrom, $SearchPostTimeTo,
@@ -2984,7 +2987,6 @@ sub hg_c_top_menu
 	$formStr .= "&nbsp;&nbsp;&nbsp;\n";
     }
 
-
     if ( $BOARD )
     {
 	$tags{ 'b' } = $BOARD;
@@ -3182,6 +3184,12 @@ sub hg_c_icon
     $gHgStr .= &tagComImg( &getIconURL( $src ), $alt );
 }
 
+sub hg_c_img
+{
+    local( $src, $alt, $width, $height ) = split( ',', $_[1], 4 );
+    $gHgStr .= &tagImg( &getImgURL( $src ), $alt, $width, $height, 'kbImg' );
+}
+
 sub hg_b_board_name
 {
     $gHgStr .= $BOARDNAME if $BOARD;
@@ -3249,7 +3257,7 @@ sub hg_b_search_article_form
 
 	$selContents = sprintf( qq[<option%s value="0">&nbsp;</option>\n], ( $SearchIcon == 0 )? ' selected="selected"' : '' );
 	$selContents .= sprintf( qq[<option%s value="1">である</option>\n], ( $SearchIcon == 1 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="3">が$H_ORIGである</option>\n], ( $SearchIcon == 3 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="3">が$H_PARENTである</option>\n], ( $SearchIcon == 3 )? ' selected="selected"' : '' );
 	$selContents .= sprintf( qq[<option%s value="2">という$H_REPLYを持つ</option>\n], ( $SearchIcon == 2 )? ' selected="selected"' : '' );
 	$selContents .= qq(<option value="0">&nbsp;</option>\n);
 	$selContents .= sprintf( qq[<option%s value="11">をスレッド中に含む</option>\n], ( $SearchIcon == 11 )? ' selected="selected"' : '' );
@@ -3482,7 +3490,7 @@ sub dumpArtEntryNormal
     $msg .= "</p>\n<p>\n";
 
     $contents = &tagInputRadio( 'com_p', 'com', 'p', 1 ) . ":\n" .
-	&tagLabel( '試しに表示してみる(まだ投稿しません)', 'com_p', 'P' ) .
+	&tagLabel( '試しに表示してみる(まだ登録しません)', 'com_p', 'P' ) .
 	$HTML_BR;
     local( $doLabel );
     if ( $type eq 'supersede' )
@@ -3491,7 +3499,7 @@ sub dumpArtEntryNormal
     }
     else
     {
-	$doLabel = "$H_MESGを投稿する";
+	$doLabel = "$H_MESGを登録する";
     }
     $contents .= &tagInputRadio( 'com_x', 'com', 'x', 0 ) . ":\n" .
 	&tagLabel( $doLabel, 'com_x', 'X' ) . $HTML_BR;
@@ -3706,7 +3714,7 @@ sub dumpSearchResult
 	$Line = '';
 
 	# アイコンチェック
-	next unless &searchArticleIcon( $dId, $IconType, *iconHash );
+	next if ( $IconType && !&searchArticleIcon( $dId, $IconType, *iconHash ));
 
 	# 投稿時刻を検索
 	if ( $postTime )
@@ -3980,26 +3988,36 @@ sub dumpArtCommand
 
     if ( $reply )
     {
-	$gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=t&id=$id", &tagComImg( $ICON_DOWN, $H_READREPLYALL ), 'M' ) . "\n";
+	$gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=t&id=$id", &tagComImg( $ICON_DOWN, $H_THREAD_L ), 'M' ) . "\n";
     }
     else
     {
-	$gHgStr .= $dlmtS . &tagComImg( $ICON_DOWN_X, $H_READREPLYALL ) . "\n";
+	$gHgStr .= $dlmtS . &tagComImg( $ICON_DOWN_X, $H_THREAD_L ) . "\n";
     }
 
     $gHgStr .= $dlmtL;
 
     if ( $POLICY & 2 )
     {
-	$gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=f&id=$id",
-	    &tagComImg( $ICON_FOLLOW, $H_REPLYTHISARTICLE ), 'R' ) . "\n" .
-	    $dlmtS . &linkP( "b=$BOARD_ESC&c=q&id=$id",
-	    &tagComImg( $ICON_QUOTE, $H_REPLYTHISARTICLEQUOTE ), 'Q' ) . "\n";
+	if ( $SYS_REPLYQUOTE )
+	{
+	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=f&id=$id", &tagComImg( $ICON_FOLLOW, $H_REPLYTHISARTICLE ), 'R' ) . "\n";
+	}
+	else
+	{
+	    $gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=q&id=$id", &tagComImg( $ICON_QUOTE, $H_REPLYTHISARTICLE ), 'Q' ) . "\n";
+	}
     }
     else
     {
-	$gHgStr .= $dlmtS . &tagComImg( $ICON_FOLLOW_X, $H_REPLYTHISARTICLE ) .
-	    "\n" . $dlmtS . &tagComImg( $ICON_QUOTE_X, $H_REPLYTHISARTICLEQUOTE ) . "\n";
+	if ( $SYS_REPLYQUOTE )
+	{
+	    $gHgStr .= $dlmtS . &tagComImg( $ICON_FOLLOW_X, $H_REPLYTHISARTICLE ) . "\n";
+	}
+	else
+	{
+	    $gHgStr .= $dlmtS . &tagComImg( $ICON_QUOTE_X, $H_REPLYTHISARTICLE ) . "\n";
+	}
     }
 
     if ( $SYS_AUTH )
@@ -4023,8 +4041,7 @@ sub dumpArtCommand
     if ( $SYS_COMICON == 1 )
     {
 	$gHgStr .= $dlmtL;
-	$gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=h", &tagComImg( $ICON_HELP,
-	    'ヘルプ' ), 'H', '', '', 'list' ) . "\n";
+	$gHgStr .= $dlmtS . &linkP( "b=$BOARD_ESC&c=h", &tagComImg( $ICON_HELP, 'ヘルプ' ), 'H', '', '', 'message' ) . "\n";
     }
     $gHgStr .= qq(</p>\n);
 }
@@ -4077,7 +4094,7 @@ sub dumpArtHeader
     if ( $origId )
     {
 	( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dHost, $dName ) = &getArtInfo( $origId );
-	$gHgStr .= "<strong>$H_ORIG:</strong> ";
+	$gHgStr .= "<strong>$H_PARENT:</strong> ";
 	&dumpArtSummary( $origId, $dAids, $dDate, $dTitle, $dIcon, $dName, 0 );
 	$gHgStr .= $HTML_BR;
     }
@@ -4253,8 +4270,7 @@ sub dumpArtSummary
     {
 	local( $fId );
 	$fId = &getArtParentTop( $id );
-	$gHgStr .= ' ' . &linkP( "b=$BOARD_ESC&c=t&id=$fId", $H_THREAD_ALL, '',
-	    $H_THREAD_ALL_L ) . ' ';
+	$gHgStr .= ' ' . &linkP( "b=$BOARD_ESC&c=t&id=$fId", $H_THREAD_ALL, '', $H_THREAD_ALL_L ) . ' ';
     }
 
     $gHgStr .= &tagArtImg( $icon ) . " <small>$id.</small> " .
@@ -4263,8 +4279,7 @@ sub dumpArtSummary
 
     if ( $aids )
     {
-	$gHgStr .= ' ' . &linkP( "b=$BOARD_ESC&c=t&id=$id", $H_THREAD, '',
-	    $H_THREAD_L );
+	$gHgStr .= ' ' . &linkP( "b=$BOARD_ESC&c=t&id=$id", $H_THREAD, '', $H_THREAD_L );
     }
 
     $gHgStr .= " [$name] ";
@@ -4665,10 +4680,33 @@ sub pageLink
 
 
 ###
+## tagImg - イメージタグのフォーマット
+#
+# - SYNOPSIS
+#	&tagImg( $src, $alt, $width, $height, $class );
+#
+# - ARGS
+#	$src		ソースイメージのURL
+#	$alt		altタグ用の文字列
+#	$width		width
+#	$height		height
+#	$class		class用文字列
+#
+# - DESCRIPTION
+#	イメージを表示用タグにフォーマットする．
+#
+sub tagImg
+{
+    local( $src, $alt, $width, $height, $class ) = @_;
+    qq(<img src="$src" alt="$alt" width="$width" height="$height" class="$class" />);
+}
+
+
+###
 ## tagComImg - コマンドアイコン用イメージタグのフォーマット
 #
 # - SYNOPSIS
-#	&tagComImg( $src, $alt, $textP );
+#	&tagComImg( $src, $alt );
 #
 # - ARGS
 #	$src		ソースイメージのURL
@@ -4687,11 +4725,11 @@ sub tagComImg
     local( $src, $alt ) = @_;
     if ( $SYS_COMICON == 1 )
     {
-	qq(<img src="$src" alt="$alt" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" class="kbComIcon" />);
+	&tagImg( $src, $alt, $COMICON_WIDTH, $COMICON_HEIGHT, 'kbComIcon' );
     }
     elsif ( $SYS_COMICON == 2 )
     {
-	qq(<img src="$src" alt="$alt" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" class="kbComIcon" />$alt);
+	&tagImg( $src, $alt, $COMICON_WIDTH, $COMICON_HEIGHT, 'kbComIcon' ) . $alt;
     }
     else
     {
@@ -4723,7 +4761,7 @@ sub tagArtImg
     elsif ( $SYS_ICON )
     {
 	local( $src ) = &getIconUrlFromTitle( $icon );
-	qq(<img src="$src" alt="[$icon]" width="$MSGICON_WIDTH" height="$MSGICON_HEIGHT" class="kbMsgIcon" />);
+	&tagImg( $src, "[$icon]", $MSGICON_WIDTH, $MSGICON_HEIGHT, 'kbMsgIcon' );
     }
     else
     {
@@ -6527,16 +6565,16 @@ sub getStyleSheetURL
 
 
 ###
-## getIconURL - アイコンgifのURLの取得
+## getIconURL - アイコンファイルのURLの取得
 #
 # - SYNOPSIS
 #	&getIconURL( $file );
 #
 # - ARGS
-#	$file		アイコンgifファイル名
+#	$file		アイコンファイル名
 #
 # - DESCRIPTION
-#	アイコンgifファイルのURL名を作り出す．
+#	アイコンファイルのURL名を作り出す．
 #
 # - RETURN
 #	URLを表す文字列
@@ -6549,7 +6587,29 @@ sub getIconURL
 
 
 ###
-## getIconUrlFromTitle - アイコンgifのURLの取得
+## getImgURL - イメージ用URLの取得
+#
+# - SYNOPSIS
+#	&getImgURL( $file );
+#
+# - ARGS
+#	$file		イメージファイル名
+#
+# - DESCRIPTION
+#	イメージファイルのURL名を作り出す．
+#
+# - RETURN
+#	URLを表す文字列
+#
+sub getImgURL
+{
+    local( $file ) = @_;
+    $KB_RESOURCE_URL? "$KB_RESOURCE_URL$RESOURCE_IMG/$file" : "$RESOURCE_IMG/$file";
+}
+
+
+###
+## getIconUrlFromTitle - アイコンファイルURLの取得
 #
 # - SYNOPSIS
 #	&getIconUrlFromTitle( $icon );
@@ -6558,7 +6618,7 @@ sub getIconURL
 #	$icon		アイコンID
 #
 # - DESCRIPTION
-#	アイコンIDから，そのアイコンに対応するgifファイルのURLを取得．
+#	アイコンIDから，そのIDに対応するアイコンファイルのURLを取得．
 #	新着アイコンも記事アイコン扱い．
 #
 # - RETURN
@@ -6901,7 +6961,7 @@ sub cacheBoardIcon
 
 
 ###
-## getIconPath - アイコンgifDBファイルのパス名の取得
+## getIconPath - アイコンDBファイルのパス名の取得
 #
 sub getIconPath
 {
