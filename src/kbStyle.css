@@ -2,9 +2,9 @@
  * kbStyle.css: CSS style definition file for KINOBOARDS.
  */
 
-/* $Id: kbStyle.css,v 5.2 1999-08-26 09:05:39 nakahiro Exp $ */
+/* $Id: kbStyle.css,v 5.3 1999-08-28 08:33:09 nakahiro Exp $ */
 
-/* general definition */
+/* General definition */
 body
 {
     background: #EEEEEE;
@@ -24,22 +24,10 @@ h1
     margin: 2%;
 }
 
-p.kbStatus
-{
-    text-align: right;
-    font-weight: bold;
-    margin-bottom: 0;
-}    
-
 dt
 {
     margin-left: 1em;
     margin-top: 2ex;
-}
-
-span.accessKey
-{
-    text-decoration: underline;
 }
 
 address
@@ -52,3 +40,25 @@ address
     font-variant: normal;
     font-weight: normal;
 }
+
+/* KINOBOARDS specific definition */
+
+span.kbAccessKey { text-decoration: underline; }
+
+img.kbComIcon { border-style: none; }
+img.kbMsgIcon { border-style: none; }
+
+p.kbStatus
+{
+    text-align: right;
+    font-weight: bold;
+}    
+
+span.kbTitle {}
+
+div.kbTopMenu {}
+
+div.kbArticle {}
+div.kbArticle p.command {}
+div.kbArticle p.header {}
+div.kbArticle div.body {}
