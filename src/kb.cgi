@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.29 1999-06-16 13:58:32 nakahiro Exp $
+# $Id: kb.cgi,v 5.30 1999-06-16 14:35:29 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -747,15 +747,7 @@ sub ViewOriginalArticle
 
     # 記事番号，題
     $msg .= "<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> ";
-    if (( $Icon eq $H_NOICON ) || ( $Icon eq '' ))
-    {
-	$msg .= $Subject;
-    }
-    else
-    {
-	$msg .= &TagMsgImg( &GetIconUrlFromTitle( $Icon, $BOARD ), $Icon ) .
-	    $Subject;
-    }
+    $msg .= &TagMsgImg( $Icon ) . $Subject;
 
     # お名前
     if ( $Url eq '' )
@@ -1554,13 +1546,8 @@ sub GetFormattedTitle
 	    $H_THREAD_ALL );
     }
 
-    if ( $icon && ( $icon ne $H_NOICON ))
-    {
-	$TITLE_STR .= ' ' . &TagMsgImg( &GetIconUrlFromTitle( $icon, $BOARD ),
-	    "$icon" );
-    }
-
-    $TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=e&id=$id", $title || $id );
+    $TITLE_STR .= ' ' . &TagMsgImg( $icon ) . ' ' .
+	&TagA( "$PROGRAM?b=$BOARD&c=e&id=$id", $title || $id );
 
     if ( $SYS_F_T && $aids )
     {
@@ -1572,7 +1559,7 @@ sub GetFormattedTitle
 
     if ( $DB_NEW{$id} )
     {
-	$TITLE_STR .= ' ' . &TagMsgImg( $ICON_NEW, $H_NEWARTICLE );
+	$TITLE_STR .= ' ' . &TagMsgImg( $H_NEWARTICLE );
     }
 
     $TITLE_STR;
@@ -1621,11 +1608,10 @@ sub TagComImg
 ## TagMsgImg - 記事アイコン用イメージタグのフォーマット
 #
 # - SYNOPSIS
-#	TagMsgImg( $src, $alt );
+#	TagMsgImg( $icon );
 #
 # - ARGS
-#	$src		ソースイメージのURL
-#	$alt		altタグ用の文字列
+#	$icon		アイコンタイプ
 #
 # - DESCRIPTION
 #	イメージを表示用タグにフォーマットする．
@@ -1635,8 +1621,17 @@ sub TagComImg
 #
 sub TagMsgImg
 {
-    local( $src, $alt ) = @_;
-    "<img src=\"$src\" alt=\"$alt\" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\" BORDER=\"0\">";
+    local( $icon ) = @_;
+
+    if ( $SYS_ICON && $icon && ( $icon ne $H_NOICON ))
+    {
+	local( $src ) = &GetIconUrlFromTitle( $icon, $BOARD );
+	return "<img src=\"$src\" alt=\"[$icon]\" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\" BORDER=\"0\">";
+    }
+    else
+    {
+	return "[$icon]";
+    }
 }
 
 
@@ -4122,6 +4117,7 @@ sub GetIconPath
 #
 # - DESCRIPTION
 #	アイコンIDから，そのアイコンに対応するgifファイルのURLを取得．
+#	新着アイコンも記事アイコン扱い．
 #
 # - RETURN
 #	URLを表す文字列
@@ -4129,6 +4125,7 @@ sub GetIconPath
 sub GetIconUrlFromTitle
 {
     local( $icon, $board ) = @_;
+    return $ICON_NEW if ( $icon eq $H_NEWARTICLE );
 
     # prepare
     &CacheIconDb( $board ) if ( $ICON_DB_CACHE ne $board );

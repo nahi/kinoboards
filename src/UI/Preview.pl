@@ -104,14 +104,8 @@ __EOF__
     &cgiprint'Cache( "$H_HR\n<p>\n" );
 
     # 題
-    if (( $Icon eq $H_NOICON ) || ( !$Icon ))
-    {
-        &cgiprint'Cache( "<strong>$H_SUBJECT</strong>: $Subject" );
-    }
-    else
-    {
-	&cgiprint'Cache( "<strong>$H_SUBJECT</strong>: ", &TagMsgImg( &GetIconUrlFromTitle($Icon, $BOARD), "$Icon " ), $Subject );
-    }
+    &cgiprint'Cache( "<strong>$H_SUBJECT</strong>: ", &TagMsgImg( $Icon ),
+	$Subject );
 
     # お名前
     if ( $Url ne '' )

@@ -39,7 +39,7 @@ __EOF__
 	if ( $SYS_BLIST_NEWICON_DATE &&
 	    (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
 	{
-	    $newIcon = " " . &TagMsgImg( $ICON_NEW, $H_NEWARTICLE );
+	    $newIcon = " " . &TagMsgImg( $H_NEWARTICLE );
 	}
 	else
 	{

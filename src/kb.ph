@@ -397,7 +397,7 @@ $H_ORIG_TOP = "オリジナル";
 $H_LINE = "<p>------------------------------</p>";
 $H_THREAD_ALL = "▲";
 $H_THREAD = "▼";
-$H_NEWARTICLE = "[new!]";
+$H_NEWARTICLE = "new!";
 $H_HR = "<hr>";
 
 $H_TEXTTYPE = "書き込み形式";
@@ -436,7 +436,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.15 1999-06-16 11:34:41 nakahiro Exp $
+# $Id: kb.ph,v 5.16 1999-06-16 14:35:30 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System

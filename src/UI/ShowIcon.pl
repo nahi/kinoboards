@@ -34,7 +34,7 @@ ShowIcon:
 <li>$H_THREAD : その$H_MESGの$H_REPLYをまとめて表示します．
 __EOF__
 
-	$msg .= '<li>' . &TagMsgImg( $ICON_NEW, $H_NEWARTICLE ) .
+	$msg .= '<li>' . &TagMsgImg( $H_NEWARTICLE ) .
 	     " : 最近書き込まれた$H_MESG\n";
 
 	$msg .= '<li>' . &TagComImg( $ICON_BLIST, $H_BACKBOARD, 2 ) . "\n";
@@ -64,15 +64,14 @@ $H_BOARD「$BOARDNAME」では，各アイコンは次のような意味です．
 <li>$H_THREAD : その$H_MESGの$H_REPLYをまとめて表示します．
 <br><br>
 __EOF__
-	$msg .= '<li>' . &TagMsgImg( $ICON_NEW, $H_NEWARTICLE ) .
+	$msg .= '<li>' . &TagMsgImg( $H_NEWARTICLE ) .
 	    " : 最近書き込まれた$H_MESG\n<br><br>\n";
 
 	local( $IconTitle );
 	foreach $IconTitle (@ICON_TITLE)
 	{
 	    $msg .= '<li>' .
-		&TagMsgImg( &GetIconUrlFromTitle( $IconTitle, $BOARD ),
-		    $IconTitle ) . " : " .
+		&TagMsgImg( $IconTitle ) . " : " .
 		    ( $ICON_HELP{$IconTitle} || $IconTitle ) . "\n";
 	}
 	$msg .= "</ul>\n";
