@@ -11,6 +11,7 @@
 #
 # NOTE
 #  Why I use ruby for this type of work!?
+#  You may do it with make instead of this script. :-)
 
 def usage
   usageStr = <<"EOM"
@@ -35,7 +36,7 @@ Dir.chdir( target )
 `rm -rf KB`
 
 # CVS export
-`cvs export -r #{ tag } KB/COPYING KB/README KB/doc/html KB/src`
+`cvs export -r #{ tag } KB/COPYING KB/README KB/doc/html KB/src KB/tools`
 
 # add redist dir
 `cp -pr redist KB`
@@ -50,7 +51,8 @@ Dir.chdir( target )
 `mkdir KB/kb/log`
 
 # set mode
-`chmod 700 KB KB/doc KB/doc/html KB/redist`
+`chmod 700 KB KB/doc KB/doc/html KB/redist KB/tools`
+`chmod 700 KB/tools/*`
 `chmod 400 KB/COPYING KB/README KB/doc/html/* KB/redist/*`
 `chmod 777 KB/kb KB/kb/test KB/kb/board KB/kb/log`
 `chmod 755 KB/kb/UI KB/kb/icons`
