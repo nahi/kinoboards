@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.35 1999-09-03 10:54:50 nakahiro Exp $
+# $Id: cgi.pl,v 2.36 1999-09-22 14:13:59 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -659,6 +659,10 @@ sub SecureHtmlEx
     local( $srcString, $tag, $need, $feature, $markuped );
 
     $string =~ s/\\>/__EscapedGt\377__/go;
+    $string =~ s/&amp;?/&/g;
+    $string =~ s/&quot;?/"/g;
+    $string =~ s/&lt;?/</g;
+    $string =~ s/&gt;?/>/g;
     TAGS: while (( $tag, $need ) = each( %nVec ))
     {
 	$srcString = $string;
