@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.28.2.2 1999-09-24 14:21:28 nakahiro Exp $
+# $Id: cgi.pl,v 2.28.2.3 1999-10-15 04:47:01 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -225,7 +225,7 @@ sub GetHttpDateTimeFromUtc
 
 ###
 ## Decoding CGI variables
-## CAUTION! functioon decode sets global variable, TAGS.
+## CAUTION! function decode sets global variable, TAGS.
 #
 sub Decode
 {
