@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="ISO-2022-JP"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link rev="MADE" href="mailto:nakahiro@sarion.co.jp" />
+<link rel="INDEX" href="./" />
+<link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen" />
+<title>KINOBOARDS UI Definition - KINOBOARDS/1.0R7</title>
+</head>
+<body>
+
+<div class="header">
+<h1>
+KINOBOARDS UI Definition
+</h1>
+
+<p class="status">
+Last modified: August 7, 2000<br />
+Created: August 7, 2000
+</p>
+</div>
+
+<hr />
+
+<div class="main">
+<h2>0. このドキュメントの目的</h2>
+
+<p>
+きのぼずが表示する画面は，UIディレクトリの中に収められているXMLファイル（以後UI定義ファイルと呼ぶことにします）を元に生成されています．
+このドキュメントは，各種UI定義ファイルについて説明するためのものです．
+</p>
+
+<p>
+UI定義ファイルは基本的にXHTMLそのままですが，一部きのぼず固有のタグを入れることができます．
+きのぼず固有タグについては，
+<a href="htmlEmbedding.html">KINOBOARDS HTML Embedding</a>
+ドキュメントを参照してください．
+</p>
+
+<p>
+本文書が対象としているKINOBOARDSのバージョンは，
+KINOBOARDS version 1.0 release 7（KINOBOARDS/1.0R7.3以降）
+です．
+</p>
+
+<p>
+きのぼずのUI定義ファイルには，以下のものがあります．
+個々について説明します．
+</p>
+
+<ul>
+<li><a href="#BoardList.xml">BoardList.xml: 掲示板一覧</a></li>
+<li><a href="#ThreadTitle.xml">ThreadTitle.xml: タイトル一覧（スレッド）</a></li>
+<li><a href="#SortTitle.xml">SortTitle.xml: タイトル一覧（日付順）</a></li>
+<li><a href="#ThreadArticle.xml">ThreadArticle.xml: メッセージ一覧（スレッド）</a></li>
+<li><a href="#SortArticle.xml">SortArticle.xml: メッセージ一覧（日付順）</a></li>
+<li><a href="#ShowArticle.xml">ShowArticle.xml: 単一メッセージ表示</a></li>
+<li><a href="#ShowThread.xml">ShowThread.xml: リプライメッセージをまとめて表示</a></li>
+<li><a href="#PostNewEntry.xml">PostNewEntry.xml: 新規メッセージ投稿</a></li>
+<li><a href="#PostReplyEntry.xml">PostReplyEntry.xml: リプライメッセージの投稿</a></li>
+<li><a href="#PostPreview.xml">PostPreview.xml: メッセージ投稿の確認</a></li>
+<li><a href="#PostExec.xml">PostExec.xml: メッセージ投稿の実施結果</a></li>
+<li><a href="#SupersedeEntry.xml">SupersedeEntry.xml: メッセージ訂正</a></li>
+<li><a href="#SupersedePreview.xml">SupersedePreview.xml: メッセージ訂正の確認</a></li>
+<li><a href="#SupersedeExec.xml">SupersedeExec.xml: メッセージ訂正の実施結果</a></li>
+<li><a href="#DeletePreview.xml">DeletePreview.xml: メッセージ削除の確認</a></li>
+<li><a href="#DeleteExec.xml">DeleteExec.xml: メッセージ削除の実施結果</a></li>
+<li><a href="#SearchArticle.xml">SearchArticle.xml: メッセージ検索</a></li>
+<li><a href="#ShowIcon.xml">ShowIcon.xml: メッセージアイコン一覧</a></li>
+<li><a href="#Login.xml">Login.xml: ログイン</a></li>
+<li><a href="#UserEntry.xml">UserEntry.xml: 新規ユーザの登録</a></li>
+<li><a href="#UserConfig.xml">UserConfig.xml: ユーザ情報の変更</a></li>
+<li><a href="#AdminConfig.xml">AdminConfig.xml: 管理者パスワード設定変更</a></li>
+<li><a href="#BoardEntry.xml">BoardEntry.xml: 新規掲示板作成</a></li>
+<li><a href="#BoardConfig.xml">BoardConfig.xml: 掲示板設定変更</a></li>
+<li><a href="#Help.xml">Help.xml: ヘルプ</a></li>
+<li><a href="#Fatal.xml">Fatal.xml: エラー</a></li>
+</ul>
+
+<h2 id="BoardList.xml">BoardList.xml: 掲示板一覧</h2>
+
+<p>
+システムに登録されている掲示板の一覧を表示する時に使われます．
+</p>
+
+<p>
+きのぼずタグのうち，
+<a href="htmlEmbedding.html#board">掲示板タグ</a>は使えません．
+</p>
+
+<h2 id="ThreadTitle.xml">ThreadTitle.xml: タイトル一覧（スレッド）</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="SortTitle.xml">SortTitle.xml: タイトル一覧（日付順）</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="ThreadArticle.xml">ThreadArticle.xml: メッセージ一覧（スレッド）</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="SortArticle.xml">SortArticle.xml: メッセージ一覧（日付順）</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="ShowArticle.xml">ShowArticle.xml: 単一メッセージ表示</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="ShowThread.xml">ShowThread.xml: リプライメッセージをまとめて表示</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="PostNewEntry.xml">PostNewEntry.xml: 新規メッセージ投稿</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="PostReplyEntry.xml">PostReplyEntry.xml: リプライメッセージの投稿</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="PostPreview.xml">PostPreview.xml: メッセージ投稿の確認</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="PostExec.xml">PostExec.xml: メッセージ投稿の実施結果</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="SupersedeEntry.xml">SupersedeEntry.xml: メッセージ訂正</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="SupersedePreview.xml">SupersedePreview.xml: メッセージ訂正の確認</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="SupersedeExec.xml">SupersedeExec.xml: メッセージ訂正の実施結果</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="DeletePreview.xml">DeletePreview.xml: メッセージ削除の確認</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="DeleteExec.xml">DeleteExec.xml: メッセージ削除の実施結果</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="SearchArticle.xml">SearchArticle.xml: メッセージ検索</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="ShowIcon.xml">ShowIcon.xml: メッセージアイコン一覧</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="Login.xml">Login.xml: ログイン</h2>
+
+<p>
+(To be written...)
+</p>
+
+<p>
+きのぼずタグのうち，
+<a href="htmlEmbedding.html#board">掲示板タグ</a>は使えません．
+</p>
+
+<h2 id="UserEntry.xml">UserEntry.xml: 新規ユーザの登録</h2>
+
+<p>
+(To be written...)
+</p>
+
+<p>
+きのぼずタグのうち，
+<a href="htmlEmbedding.html#board">掲示板タグ</a>は使えません．
+</p>
+
+<h2 id="UserConfig.xml">UserConfig.xml: ユーザ情報の変更</h2>
+
+<p>
+(To be written...)
+</p>
+
+<p>
+きのぼずタグのうち，
+<a href="htmlEmbedding.html#board">掲示板タグ</a>は使えません．
+</p>
+
+<h2 id="AdminConfig.xml">AdminConfig.xml: 管理者パスワード設定変更</h2>
+
+<p>
+(To be written...)
+</p>
+
+<p>
+きのぼずタグのうち，
+<a href="htmlEmbedding.html#board">掲示板タグ</a>は使えません．
+</p>
+
+<h2 id="BoardEntry.xml">BoardEntry.xml: 新規掲示板作成</h2>
+
+<p>
+(To be written...)
+</p>
+
+<p>
+きのぼずタグのうち，
+<a href="htmlEmbedding.html#board">掲示板タグ</a>は使えません．
+</p>
+
+<h2 id="BoardConfig.xml">BoardConfig.xml: 掲示板設定変更</h2>
+
+<p>
+(To be written...)
+</p>
+
+<p>
+きのぼずタグのうち，
+<a href="htmlEmbedding.html#board">掲示板タグ</a>は使えません．
+</p>
+
+<h2 id="Help.xml">Help.xml: ヘルプ</h2>
+
+<p>
+(To be written...)
+</p>
+
+<h2 id="Fatal.xml">Fatal.xml: エラー</h2>
+
+<p>
+(To be written...)
+</p>
+
+</div>
+
+<hr />
+
+<div class="footer">
+<address>
+<a href="http://www.jin.gr.jp/~nahi/kb/">KINOBOARDS: Kinoboards Is Network Opened BOARD System</a>.<br />
+Copyright &copy; 1995-2000
+<a href="http://www.jin.gr.jp/~nahi/">NAKAMURA, Hiroshi</a>.
+</address>
+</div>
+</body>
+</html>
