@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.0 1998-08-21 16:54:55 nakahiro Exp $
+# $Id: cgi.pl,v 2.1 1998-08-28 19:21:04 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -17,142 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-
-# INTERFACE
-#
-#
-# $cgi'SERVER_NAME;
-#	CGIが稼働しているWWWサーバのFQDN
-#	（ただし最後の「.」は無し; 以下同様）が設定されます．
-#	ex. → www.foo.bar.jp
-#
-# $cgi'SERVER_PORT;
-#	WWWサーバで稼働しているhttpdの占有ポート番号が設定されます．
-#	ex. → 80
-#
-# $cgi'REMOTE_HOST;
-#	CGIを起動したWWWクライアント（ブラウザ）のFQDN，
-#	もしくはIPアドレス（WWWサーバの設定次第）が設定されます．
-#	ex. → ika.tako.jp
-#
-# $cgi'SCRIPT_NAME;
-#	起動されたCGIのサイト中相対URLが設定されます．
-#	ex. → /cgi-bin/foo/bar.cgi
-#
-# $cgi'CGIDIR_NAME;
-#	起動されたCGIが置かれているディレクトリの相対URLが設定されます．
-#	ex. → /cgi-bin/foo
-#
-# $cgi'CGIPROG_NAME;
-#	起動されたCGIのファイル名（パス名を除く）が設定されます．
-#	ex. → bar.cgi
-#
-# $cgi'SYSDIR_NAME;
-#	起動したCGIのパス名（ファイル名を除く）が設定されます．
-#	ex. → /cgi-bin/foo/
-#
-# $cgi'PATH_INFO;
-#	CGIに付加されたパス情報が設定されます．
-#	ex. /foo.cgi/bar/baz → '/bar/baz'
-#
-# $cgi'PATH_TRANSLATED;
-#	CGIに付加されたパス情報を，
-#	実際のマシン上のパスに変換した文字列が設定されます．
-#	ex. /foo.cgi/~foo → '/usr/local/etc/httpd/htdocs/foo'
-#
-# $cgi'PROGRAM;
-#	CGI中，actionで呼び出すべきプログラム名が設定されます．
-#	ex. → /cgi-bin/foo.cgi
-#	ex. → foo.cgi
-#
-# &cgi'lock( $file );
-#	$fileで指定されたロックファイル名を使い，
-#	perl programを排他的にロックします．
-#	（ロックするファイルを指定するのではないことに注意）．
-#	メンテナンスロック中なら
-#	（実行ユーザで削除できないロックファイルが既に存在するなら），
-#	2を，通常のロックが無事行えれば1を，
-#	なんらかの理由で行えなければ0を返します．
-#
-#	※Win95やMacではこの関数を呼ばないようにしてください．
-#	  ロックできません(涙)．
-#
-# &cgi'unlock( $file );
-#	$fileで指定されたロックファイル名を使い，
-#	かけられた排他ロックを外します．
-#	返り値はありません．
-#
-# &cgi'Header( $utcFlag, $utcStr, $cookieFlag, $cookieStr );
-#	標準出力に対し，CGIプログラムが送信すべきHTTPヘッダを出力します．
-#	$utcFlagが0以外の場合，$utcStrで指定されたUTC時間が，
-#	プログラムの最終更新時間になります．$utcStrが空の場合は現在時です．
-#	$cookieFlagが0以外の場合，$cookieStrで指定された文字列が，
-#	HTTP Cookiesとして相手ブラウザに送られます．
-#	返り値はありません．
-#
-# &cgi'GetHttpDateTimeFromUtc( $utc );
-#	$utcで指定されたUTC時間から，HTTP Date/Timeフォーマットの時間文字列を
-#	作り出します．返り値はその文字列です．
-#	数字でない文字列を与えると，
-#	UNIX origin timeのHTTP Date/Timeフォーマットを返します．
-#
-# &cgi'Decode;
-#	ブラウザからCGIプログラムに送信されたフォームの入力内容，
-#	あるいはURLのサーチパート(「〜.cgi?foo=bar」の，「?」以降の部分)を
-#	解析し，%cgi'TAGSに格納します．
-#	例えば'name'というフォームへの入力内容は$cgi'TAGS{'name'}で，
-#	「〜.cgi?foo=bar」というURLのfooの値は$cgi'TAGS{'foo'}で，
-#	参照することができます．
-#	%cgi'TAGSを破壊します．返り値はありません．
-#
-# &cgi'Cookie;
-#	ブラウザからCGIプログラムに送信されたHTTP Cookiesを解析し，
-#	%cgi'COOKIESに格納します．
-#	例えばHTTP Cookiesが'foo=bar'という文字列であれば，
-#	$cgi'COOKIES{'foo'}に'bar'が格納されます．
-#	%cgi'COOKIESを破壊します．返り値はありません．
-#
-# &cgi'sendMail( $fromName, $fromEmail, $subject, $extension, $message,
-#		$labelTo, @to );
-#	メイルを送信します．
-#		$fromName: 送り主の名前
-#		$fromEmail: 送り主のE-Mail addr.
-#		$subject: メイルのsubject文字列
-#		$extension: メイルのextension header文字列
-#		$message: 本文である文字列
-#		$labelTo: 「To:」ヘッダに使う文字列．ここを空にすると，
-#			「To:」ヘッダには，@toで指定したアドレスが並びます．
-#		@to: 宛先のE-Mail addr.のリスト
-#	送信が無事行えれば1を，なんらかの理由で行えなければ0を返します．
-#	$SMTP_SERVERにサーバのホスト名，
-#	もしくはIPアドレスを指定しておいてください．
-#	OSによっては，$AF_INETと$SOCK_STREAMの値も変更する必要があります．
-#	$AF_INET = 2, $SOCK_STREAM = 2	... SonOS 5.*(Solaris 2.*)
-#	$AF_INET = 2, $SOCK_STREAM = 1	... SunOS 4.*, HP-UX, AIX, IRIX, Linux,
-#					    FreeBSD, WinNT, Mac
-#
-# &cgi'SecureHtml( *string );
-#	*stringで指定された文字列のうち，指定した安全なタグのみを残し，
-#	あとはHTML encodeしてしまいます．
-#	使用を許可するタグおよびフィーチャは，@cgi'HTML_TAGSで指定します．
-#	返り値はありません．
-#
-# &cgiprint'Init;
-# &cgiprint'Cache( $string );
-# &cgiprint'Flush;
-#	CGIプログラムからブラウザに送信する文字列を，
-#	ISO-2022-jp（いわゆるJIS）に変換し，標準出力に吐き出します．
-#	高速化のためにキャッシュを持っています．
-#	Initはキャッシュのクリアを，
-#	Cacheは表示文字列のキャッシュを，
-#	Flushはキャッシュされている文字列の送信を行います．
-#	キャッシュが適当なサイズになったら自動的にFlushされるので，
-#	キャッシュした文字列の大きさを気にする必要はありません．
-#	'<html><title>...</title>'のキャッシュの前に一度&cgiprint'Initして，
-#	後はすべてのprintを&cgiprint'Cache($string)にし，
-#	'</html>'の後で&cgiprint'Flushするとよいでしょう．
-#	返り値はありません．
 
 
 require( 'jcode.pl' );
@@ -176,6 +40,9 @@ $AF_INET = 2; $SOCK_STREAM = 1;
 # AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, IRIX, Linux, FreeBSD,
 #					WinNT, Mac
 # AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*(Solaris 2.*)
+
+$CRLF = "\xd\xa";		# cannot use \r\n
+				# because of MacPerl's !ox#*& behavior...
 
 $HTTP_COOKIES_NEVER_EXPIRED = 'Thu, 31-Dec-2029 23:59:59 GMT';
 
@@ -447,19 +314,19 @@ sub SendMail {
     &smtpInit( "S" ) || return 0;
 
     # helo!
-    &smtpMsg( "S", "helo $SERVER_NAME\r\n" ) || return 0;
+    &smtpMsg( "S", "helo $SERVER_NAME$CRLF" ) || return 0;
     # from
-    &smtpMsg( "S", "mail from: <$fromEmail>\r\n" ) || return 0;
+    &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) || return 0;
     # rcpt to
     foreach ( @to ) {
-	&smtpMsg( "S", "rcpt to: <$_>\r\n" ) || return 0;
+	&smtpMsg( "S", "rcpt to: <$_>$CRLF" ) || return 0;
     }
     # data block
-    &smtpMsg( "S", "data\r\n" ) || return 0;
+    &smtpMsg( "S", "data$CRLF" ) || return 0;
     # mail header and body
-    &smtpMsg( "S", "$header" . "\r\n" . "$body" . "." . "\r\n" ) || return 0;
+    &smtpMsg( "S", "$header$CRLF$body" . ".$CRLF" ) || return 0;
     # quit
-    &smtpMsg( "S", "quit\r\n" ) || return 0;
+    &smtpMsg( "S", "quit$CRLF" ) || return 0;
 
     # success!
     1;
@@ -510,19 +377,19 @@ sub sendMail {
     &smtpInit( "S" ) || return 0;
 
     # helo!
-    &smtpMsg( "S", "helo $SERVER_NAME\r\n" ) || return 0;
+    &smtpMsg( "S", "helo $SERVER_NAME$CRLF" ) || return 0;
     # from
-    &smtpMsg( "S", "mail from: <$fromEmail>\r\n" ) || return 0;
+    &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) || return 0;
     # rcpt to
     foreach ( @to ) {
-	&smtpMsg( "S", "rcpt to: <$_>\r\n" ) || return 0;
+	&smtpMsg( "S", "rcpt to: <$_>$CRLF" ) || return 0;
     }
     # data block
-    &smtpMsg( "S", "data\r\n" ) || return 0;
+    &smtpMsg( "S", "data$CRLF" ) || return 0;
     # mail header and body
-    &smtpMsg( "S", "$header" . "\r\n" . "$body" . "." . "\r\n" ) || return 0;
+    &smtpMsg( "S", "$header$CRLF$body" . ".$CRLF" ) || return 0;
     # quit
-    &smtpMsg( "S", "quit\r\n" ) || return 0;
+    &smtpMsg( "S", "quit$CRLF" ) || return 0;
 
     # success!
     1;
@@ -567,21 +434,21 @@ sub smtpHeader {
     if ( $labelTo ) {
 	$encode = &jcode'getcode( *labelTo );
 	$labelTo = &main'mimeencode( $labelTo ) if ( defined( $encode ));
-	$header .= "$labelTo\r\n";
+	$header .= "$labelTo$CRLF";
     }
     else {
 	# should we encode those with MIME Base64?
-	$header .= join( ",\r\n\t", @to );
-	$header .= "\r\n";
+	$header .= join( ",$CRLF\t", @to );
+	$header .= $CRLF;
     }
-    $header .= "From: $from\r\n";
-    $header .= "Reply-To: $from\r\n";
-    $header .= "Sendar: $from\r\n";
-    $header .= "Subject: $subject\r\n";
-    $header .= "Content-type: text/plain; charset=ISO-2022-JP\r\n";
+    $header .= "From: $from$CRLF";
+    $header .= "Reply-To: $from$CRLF";
+    $header .= "Sendar: $from$CRLF";
+    $header .= "Subject: $subject$CRLF";
+    $header .= "Content-type: text/plain; charset=ISO-2022-JP$CRLF";
     if ( $extension ) {
-	$header .= join( "\r\n", split( /\n/, $extension ));
-	$header .= "\r\n";
+	$header .= join( $CRLF, split( /\n/, $extension ));
+	$header .= $CRLF;
     }
 
     $header;
@@ -612,7 +479,7 @@ sub smtpBody {
     &jcode'convert( *message, 'jis' );
     foreach ( split( /\n/, $message )) {
 	s/^\.$/\.\./o;		# `.' is the end of the message.
-	$body .= "$_\r\n";
+	$body .= "$_$CRLF";
     }
 
     $body;
@@ -677,7 +544,7 @@ sub smtpInit {
 #
 # - ARGS
 #	$sh		socket handle's name
-#	$message	message with \r\n
+#	$message	message with CRLF
 #
 # - DESCRIPTION
 #	send a message to MTA and check the result.
@@ -947,7 +814,7 @@ sub GetUserInfo {
 ## CreateUserDb - create new user db.
 #
 # - SYNOPSIS
-#	&kinoauth'CreateUesrDb( $userdb );
+#	&cgiauth'CreateUesrDb( $userdb );
 #
 # - ARGS
 #	$userdb		new user db.
@@ -983,7 +850,7 @@ sub CreateUserDb {
 ## AddUser - add new user.
 #
 # - SYNOPSIS
-#	&kinoauth'AddUser( $userdb, $user, $passwd, @userInfo );
+#	&cgiauth'AddUser( $userdb, $user, $passwd, @userInfo );
 #
 # - ARGS
 #	$userdb		user db.
@@ -1029,7 +896,7 @@ sub AddUser {
 ## SetUserPasswd - set user passwd.
 #
 # - SYNOPSIS
-#	&kinoauth'SetUserPasswd( $userdb, $user, $passwd );
+#	&cgiauth'SetUserPasswd( $userdb, $user, $passwd );
 #
 # - ARGS
 #	$userdb		user db.
@@ -1077,7 +944,7 @@ sub SetUserPasswd {
 ## SetUserInfo - set user info.
 #
 # - SYNOPSIS
-#	&kinoauth'SetUserInfo( $userdb, $user, @userInfo );
+#	&cgiauth'SetUserInfo( $userdb, $user, @userInfo );
 #
 # - ARGS
 #	$userdb		user db.
