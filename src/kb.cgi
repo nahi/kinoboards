@@ -1,6 +1,6 @@
 #!/usr/local/bin/GNU/perl
 #
-# $Id: kb.cgi,v 4.3 1996-04-24 18:55:32 nakahiro Exp $
+# $Id: kb.cgi,v 4.4 1996-04-24 19:45:40 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -138,6 +138,8 @@ $NULL_LINE = "__br__";
 # ダブルクオート
 #
 $DOUBLE_QUOTE = "__dq__";
+$GREATER_THAN = '__gt__';
+$LESSER_THAN = '__lt__';
 
 
 ###
@@ -719,12 +721,16 @@ sub MakeArticleFile {
 sub DQEncode {
     local($_) = @_;
     s/\"/$DOUBLE_QUOTE/g;
+    s/\>/$GREATER_THAN/g;
+    s/\</$LESSER_THAN/g;
     return($_);
 }
 
 sub DQDecode {
     local($_) = @_;
     s/$DOUBLE_QUOTE/\"/g;
+    s/$GREATER_THAN/\>/g;
+    s/$LESSER_THAN/\</g;
     return($_);
 }
 
@@ -1218,7 +1224,7 @@ sub SendMail {
 sub URLEntry {
 
     # 引用あり/なしと、URL
-    local($QuoteFlag, $URL) = @_;
+    local($QuoteFlag, $Url) = @_;
 
     # Board名称の取得
     local($BoardName) = &GetBoardInfo($BOARD);
@@ -1229,7 +1235,7 @@ sub URLEntry {
     local($PlainURL) = '';
 
     # split
-    $Name = (($PlainURL = $URL) =~ s/\#(.*)$//o) ? $1 : '';
+    $Name = (($PlainURL = $Url) =~ s/\#(.*)$//o) ? $1 : '';
 
     if ($PlainURL =~ m!http://([^:]*):([0-9]*)(/.*)$!io) {
 	$Server = $1;
@@ -2376,15 +2382,14 @@ sub ShowFormattedLinkToFollowedArticle {
     # 参照先の取得
     local($Link) = ($Src =~ /^http:/) ? $Src : "$PROGRAM?b=$BOARD&c=e&id=$Src";
 
-
     if ($Src != 0) {
 	if (($Icon eq $H_NOICON) || (! $Icon)) {
 	    print("<strong>$H_REPLY</strong> [$BoardName: $Src] <a href=\"$Link\">$Subject</a><br>\n");
 	} else {
 	    printf("<strong>$H_REPLY</strong> [$BoardName: $Src] <img src=\"%s\" alt=\"$Icon\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURL($Icon));
 	}
-    } elsif ($Qurl ne '') {
-	print("<strong>$H_REPLY</strong> <a href=\"Link\">$Subject</a><br>\n");
+    } elsif ($Src ne '') {
+	print("<strong>$H_REPLY</strong> <a href=\"$Link\">$Link</a><br>\n");
     }
 }
 
