@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.32 1996-12-02 10:01:32 nakahiro Exp $
+# $Id: kb.cgi,v 4.33 1997-01-28 13:04:51 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -35,7 +35,7 @@ $PATH_INFO = $ENV{'PATH_INFO'};
 $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 ($CGIPROG_NAME = $SCRIPT_NAME) =~ s#^(.*/)##;
 $SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO/" : "$1");
-$SCRIPT_URL = "http://$SERVER_NAME:$SERVER_PORT$SCRIPT_NAME";
+$SCRIPT_URL = "http://$SERVER_NAME:$SERVER_PORT$SCRIPT_NAME$PATH_INFO";
 $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : $CGIPROG_NAME);
 
 
@@ -63,12 +63,12 @@ $| = 1;
 # VersionとRelease番号
 #
 $KB_VERSION = '1.0';
-$KB_RELEASE = '3.0';
+$KB_RELEASE = '3.2pre';
 
 #
 # 著作権表示
 #
-$ADDRESS = sprintf("KINOBOARDS/%s R%s: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.", $KB_VERSION, $KB_RELEASE);
+$ADDRESS = sprintf("KINOBOARDS/%s R%s: Copyright (C) 1995, 96, 97 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.", $KB_VERSION, $KB_RELEASE);
 
 #
 # ファイル
@@ -154,8 +154,8 @@ $ERR_F_CANNOTLOCKSYSTEM = 999;
 # トラップ
 $SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
 sub DoKill {
-    &unlock();			# unlock
-    exit(1);			# error exit.
+    &unlock;
+    exit(1);
 }
 
 
@@ -165,7 +165,7 @@ sub DoKill {
 MAIN: {
 
     # まずはロック
-    &lock();
+    &lock;
 
     # 標準入力(POST)または環境変数(GET)のデコード．
     &cgi'decode;
@@ -207,38 +207,38 @@ MAIN: {
 	     || (($Command eq "m") && ($Com eq $H_REPLYTHISARTICLEQUOTE))) {
 	&Entry('quote', $Id);
     } elsif (($Command eq "p") && ($Com ne "x")) {
-	&Preview();
+	&Preview;
     } elsif (($Command eq "x")
 	     || (($Command eq "p") && ($Com eq "x"))) {
-	&Thanks();
+	&Thanks;
 
     } elsif ($Command eq "v") {
-	&ViewTitle();
+	&ViewTitle;
     } elsif ($Command eq "r") {
-	&SortArticle();
+	&SortArticle;
     } elsif ($Command eq "l") {
-	&NewArticle();
+	&NewArticle;
 
     } elsif ($Command eq "s") {
-	&SearchArticle();
+	&SearchArticle;
     } elsif ($Command eq "i") {
-	&ShowIcon();
+	&ShowIcon;
 
     } elsif ($Command eq "an") {
-	&AliasNew();
+	&AliasNew;
     } elsif ($Command eq "am") {
 	&AliasMod($Alias, $Name, $Email, $URL);
     } elsif ($Command eq "ad") {
 	&AliasDel($Alias);
     } elsif ($Command eq "as") {
-	&AliasShow();
+	&AliasShow;
 
     } else {
 	print("illegal command was given.\n");
     }
 
     # ロックを外す
-    &unlock();
+    &unlock;
 
 }
 
@@ -277,7 +277,7 @@ sub Entry {
     print("</textarea></p>\n");
 
     # フッタ部分を表示
-    &EntryFooter();
+    &EntryFooter;
 
 }
 
@@ -317,8 +317,7 @@ __EOF__
 	while(<ICON>) {
 
 	    # Version Check
-	    &VersionCheck('Icon', $1), next
-		if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	    &VersionCheck('Icon', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	    # コメント文はキャンセル
 	    next if (/^\#/o);
@@ -389,7 +388,7 @@ __EOF__
 </form>
 __EOF__
 
-    &MsgFooter();
+    &MsgFooter;
 }
 
 
@@ -432,8 +431,7 @@ sub QuoteOriginalArticle {
     while(<TMP>) {
 
 	# Version Check
-	&VersionCheck('Article', $1), next
-	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+	&VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 
 	# 引用のための変換
 	s/\&//go;
@@ -531,7 +529,7 @@ __EOF__
     # お約束
     print("</form>\n");
 
-    &MsgFooter();
+    &MsgFooter;
 }
 
 
@@ -546,7 +544,7 @@ sub CheckArticle {
 
     # エイリアスチェック
     $_ = $Name;
-    if (/^#.*$/) {
+    if (/^\#.*$/) {
         ($Tmp, $Email, $Url) = &GetUserInfo($_);
 	&Fatal($ERR_UNKNOWNALIAS, $Name) if ($Tmp eq '');
 	$Name = $Tmp;
@@ -575,7 +573,7 @@ sub CheckArticle {
 sub Thanks {
 
     # 新たに記事を生成する
-    &MakeNewArticle();
+    local($Id) = &MakeNewArticle;
 
     # 表示画面の作成
     &MsgHeader($THANKS_MSG);
@@ -588,11 +586,18 @@ $H_THANKSMSG
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="v">
 <input name="num" type="hidden" value="$DEF_TITLE_NUM">
-<input type="submit" value="$H_BACK">
+<input type="submit" value="$H_BACKTITLE">
+</form>
+
+<form action="$PROGRAM" method="POST">
+<input name="b" type="hidden" value="$BOARD">
+<input name="c" type="hidden" value="e">
+<input name="id" type="hidden" value="$Id">
+<input type="submit" value="$H_BACKORG">
 </form>
 __EOF__
 
-    &MsgFooter();
+    &MsgFooter;
 }
 
 
@@ -602,23 +607,17 @@ __EOF__
 sub MakeNewArticle {
 
     # 日付を取り出す．
-    local($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
-	= localtime(time);
+    local($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
     local($InputDate) = sprintf("%d/%d(%02d:%02d)", $mon + 1, $mday, $hour, $min);
 
     # 入力された記事情報
-    local($Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article,
-	  $Qurl, $Fmail)
-	= ($cgi'TAGS{'id'}, $cgi'TAGS{'texttype'}, $cgi'TAGS{'name'},
-	   $cgi'TAGS{'mail'}, $cgi'TAGS{'url'}, $cgi'TAGS{'icon'},
-	   $cgi'TAGS{'subject'}, $cgi'TAGS{'article'},
-	   $cgi'TAGS{'qurl'}, $cgi'TAGS{'fmail'});
+    local($Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Qurl, $Fmail) = ($cgi'TAGS{'id'}, $cgi'TAGS{'texttype'}, $cgi'TAGS{'name'}, $cgi'TAGS{'mail'}, $cgi'TAGS{'url'}, $cgi'TAGS{'icon'}, $cgi'TAGS{'subject'}, $cgi'TAGS{'article'}, $cgi'TAGS{'qurl'}, $cgi'TAGS{'fmail'});
 
     # 入力された記事情報のチェック
     ($Name, $Email, $Url, $Icon) = &CheckArticle($Name, $Email, $Url, $Subject, $Icon, *Article);
 
     # 新しい記事番号を取得(まだ記事番号は増えてない)
-    local($ArticleId) = &GetNewArticleId();
+    local($ArticleId) = &GetNewArticleId;
 
     # 正規のファイルの作成
     &MakeArticleFile($TextType, $Article, $ArticleId);
@@ -628,7 +627,10 @@ sub MakeNewArticle {
     &AddDBFile($ArticleId, $Id, $InputDate, $Subject, $Icon, $REMOTE_HOST, $Name, $Email, $Url, $Fmail);
 
     # 新しい記事番号を書き込む
-    &AddArticleId();
+    &AddArticleId;
+
+    # 元記事へのリンクのために
+    return($Id);
 
 }
 
@@ -697,14 +699,12 @@ sub AddArticleId {
     local($TmpFile) = &GetPath($BOARD, $ARTICLE_NUM_TMP_FILE_NAME);
 
     # 新しい記事番号
-    local($ArticleId) = &GetNewArticleId();
+    local($ArticleId) = &GetNewArticleId;
 
     # Open Tmp File
     open(AID, ">$TmpFile") || &Fatal($ERR_FILE, $TmpFile);
-
     # 記事ID
     print(AID "$ArticleId\n");
-
     close(AID);
 
     # 更新
@@ -737,8 +737,7 @@ sub AddDBFile {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1)
-	    if (m/^\# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	print(DBTMP "$_"), next if (/^\#/);
 	print(DBTMP "$_"), next if (/^$/);
@@ -871,8 +870,7 @@ __EOF__
     while(<TMP>) {
 
 	# Version Check
-	&VersionCheck('Article', $1), next
-	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+	&VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 
 	# 表示
 	&cgi'KPrint($_);
@@ -886,31 +884,29 @@ __EOF__
     # 反応記事
     &cgi'KPrint("$H_FOLLOW\n");
 
-    print("<ul>\n");
-
     if ($Aids) {
 
 	# 反応記事があるなら…
 	foreach $Aid (@AidList) {
 
-	    # 反応記事情報の抽出
-	    ($aFid, $aAids, $aDate, $aSubject, $aIcon, $aRemoteHost, $aName) = &GetArticlesInfo($Aid);
+	    # フォロー記事の木構造の取得
+	    # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
+	    local(@FollowIdTree) = &GetFollowIdTree($Aid);
 
-	    # 表示
-	    &cgi'KPrint(sprintf("<li>%s\n", &GetFormattedTitle($Aid, $aAids, $aIcon, $aSubject, $aName, $aDate)));
+	    # メイン関数の呼び出し(記事概要)
+	    &ThreadArticleMain('subject only', @FollowIdTree);
+
 	}
 
     } else {
 
 	# 反応記事無し
-	&cgi'KPrint("<li>$H_NOTHING\n");
+	&cgi'KPrint("<ul>\n<li>$H_NOTHING\n</ul>\n");
 
     }
 
-    print("</ul>\n");
-
     # お約束
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -923,28 +919,21 @@ sub ThreadArticle {
     # 元記事のIdを取得
     local($Id) = @_;
 
+    # フォロー記事の木構造の取得
+    # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
+    local(@FollowIdTree) = &GetFollowIdTree($Id);
+
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $THREADARTICLE_MSG");
 
-    # 元記事の表示
-    local($Fid) = &GetArticlesInfo($Id);
-    if ($Fid) {
-	print("<ul>\n");
-	&ShowLinksToFollowedArticle($F_HEADITEM_LI, split(/,/, $Fid));
-	print("</ul>\n");
-    }
-
     # メイン関数の呼び出し(記事概要)
-    print("<ul>\n");
-    &ThreadArticleMain('subject only', $Id);
-    print("</ul>\n");
-
-    print("<hr>\n");
+    &ThreadArticleMain('subject only', @FollowIdTree);
 
     # メイン関数の呼び出し(記事)
-    &ThreadArticleMain('', $Id);
+    &ThreadArticleMain('', @FollowIdTree);
 
-    &MsgFooter();
+    &MsgFooter;
+
 }
 
 
@@ -954,40 +943,110 @@ sub ThreadArticle {
 sub ThreadArticleMain {
 
     # Idの取得
-    local($SubjectOnly, $Id) = @_;
-
-    # フォロー記事のIdの取得
-    local(@FollowIdList) = &GetFollowIdList($Id);
+    local($SubjectOnly, $Head, @Tail) = @_;
 
     # 記事概要か，記事そのものか．
     if ($SubjectOnly) {
 
-	# 記事概要の表示
-	&PrintAbstract($Id);
+	if ($Head eq '(') {
+	    print("<ul>\n");
+	} elsif ($Head eq ')') {
+	    print("</ul>\n");
+	} else {
+	    &PrintAbstract($Head);
+	}
 
     } else {
 
-	# 元記事の表示(コマンド付き, 元記事なし)
-	&ViewOriginalArticle($Id, 'command', '');
+	if (($Head ne '(') && ($Head ne ')')) {
+	    # 元記事の表示(コマンド付き, 元記事なし)
+	    print("<hr>\n");
+	    &ViewOriginalArticle($Head, 'command', '');
+	}
 
     }
 
-    # フォロー記事の表示
-    foreach (@FollowIdList) {
+    # 再帰
+    &ThreadArticleMain($SubjectOnly, @Tail) if @Tail;
 
-	# 区切り
-	print("<hr>\n") unless ($SubjectOnly);
+}
 
-	# 記事概要なら箇条書
-	print("<ul>\n") if ($SubjectOnly);
-	
-	# 再帰
-	&ThreadArticleMain($SubjectOnly, $_, $BOARD);
 
-	# 記事概要なら箇条書閉じ
-	print("</ul>\n") if ($SubjectOnly);
+###
+## フォロー記事のIdの木構造を取り出す．
+##
+## ex. '( a ( b ( c d ) e ( f ) ) g ( h ) )'というリスト
+##
+## a - b - c
+##       - d
+##     e - f
+## g - h
+##
+#
+sub GetFollowIdTree {
+
+    # Id
+    local($Id) = @_;
+
+    # DBファイル
+    local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
+
+    # リプライ記事情報(効率化のため大域変数; 汚いなぁ)
+    @AIDLIST = ();
+
+    # 取り込み
+    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
+    while(<DB>) {
+
+	# Version Check
+	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+
+	# コメント文はキャンセル
+	next if (/^\#/o);
+	next if (/^$/o);
+	chop;
+
+	($dId, $dFid, $dAids) = split(/\t/, $_, 4);
+
+	# 取り込み
+	$AIDLIST[$dId] = $dAids if ($dId > 0);
 
     }
+
+    # で，再帰的に木構造を取り出す．
+    local(@Result) = ('(', &GetFollowIdTreeMain($Id), ')');
+
+    # 開放
+    undef(@AIDLIST);
+
+    # 返す
+    return(@Result);
+
+}
+
+sub GetFollowIdTreeMain {
+
+    # Id
+    local($Id) = @_;
+
+    # 再帰停止条件
+    return() unless $Id;
+
+    # フォロー記事取り出し
+    local(@AidList) = split(/,/, $AIDLIST[$Id]);
+
+    # なけりゃ停止
+    return($Id) unless @AidList;
+
+    # 再帰
+    local(@Result) = ($Id, '(');
+    local(@ChildResult) = ();
+    foreach (@AidList) {
+	@ChildResult = &GetFollowIdTreeMain($_);
+	push(Result, @ChildResult) if @ChildResult;
+    }
+    return(@Result, ')');
+
 }
 
 
@@ -1013,8 +1072,7 @@ sub GetFollowIdList {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	next if (/^\#/);
 	next if (/^$/);
@@ -1067,8 +1125,7 @@ sub GetUserInfo {
     while(<ALIAS>) {
 	
 	# Version Check
-	&VersionCheck('Alias', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('Alias', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 
 	next if (/^$/);
 	chop;
@@ -1106,7 +1163,20 @@ sub FollowMail {
     local($MailSubject) = "The article was followed.";
 
     # Message
-    local($Message) = "$SYSTEM_NAMEからのお知らせです．\n\n$Dateに「$BOARDNAME」に対して「$Name」さんが書いた，\n「$Subject」\n$URL\nに対して，\n「$Fname」さんから\n「$Fsubject」という題での反応がありました．\n\nお時間のある時に\n$FURL\nを御覧下さい．\n\nでは失礼します．";
+    local($Message) = "$SYSTEM_NAMEからのお知らせです．
+
+$Dateに「$BOARDNAME」に対して「$Name」さんが書いた，
+「$Subject」
+$URL
+に対して，
+「$Fname」さんから
+「$Fsubject」という題での反応がありました．
+
+お時間のある時に
+$FURL
+を御覧下さい．
+
+では失礼します．";
 
     # メール送信
     &SendMail($MailSubject, $Message, $Fid, $To);
@@ -1139,8 +1209,7 @@ sub SendMail {
 	while(<TMP>) {
 
 	    # Version Check
-	    &VersionCheck('Article', $1), next
-		if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+	    &VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 
 	    # タグは要らない
 	    s/<[^>]*>//go;
@@ -1219,8 +1288,7 @@ __EOF__
 	while(<ICON>) {
 
 	    # Version Check
-	    &VersionCheck('Icon', $1), next
-		if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	    &VersionCheck('Icon', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	    # コメント文はキャンセル
 	    next if (/^\#/o);
@@ -1237,7 +1305,7 @@ __EOF__
 
     }
 
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -1262,7 +1330,7 @@ sub SortArticle {
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $SORT_MSG");
 
-    &BoardHeader();
+    &BoardHeader;
 
     print("<hr>\n");
 
@@ -1300,7 +1368,7 @@ sub SortArticle {
 	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
     }
 
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -1325,8 +1393,7 @@ sub GetTitle {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	# コメント文はキャンセル
 	next if (/^\#/o);
@@ -1399,7 +1466,7 @@ sub ViewTitle {
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $VIEW_MSG");
 
-    &BoardHeader();
+    &BoardHeader;
 
     print("<hr>\n");
 
@@ -1438,7 +1505,7 @@ sub ViewTitle {
 	&cgi'KPrint("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if (@Lines && (($#Lines + 1) == $Num));
     }
 
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -1597,11 +1664,11 @@ sub NewArticle {
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="v">
 <input name="num" type="hidden" value="$DEF_TITLE_NUM">
-<input type="submit" value="$H_BACK">
+<input type="submit" value="$H_BACKTITLE">
 </form>
 __EOF__
 
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -1612,10 +1679,7 @@ __EOF__
 sub SearchArticle {
 
     # キーワード，検索範囲を拾う
-    local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon)
-	= ($cgi'TAGS{'key'}, $cgi'TAGS{'searchsubject'},
-	   $cgi'TAGS{'searchperson'}, $cgi'TAGS{'searcharticle'},
-	   $cgi'TAGS{'searchicon'}, $cgi'TAGS{'icon'});
+    local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon) = ($cgi'TAGS{'key'}, $cgi'TAGS{'searchsubject'}, $cgi'TAGS{'searchperson'}, $cgi'TAGS{'searcharticle'}, $cgi'TAGS{'searchicon'}, $cgi'TAGS{'icon'});
 
     # 表示画面の作成
     &MsgHeader("$BOARDNAME: $SEARCHARTICLE_MSG");
@@ -1638,11 +1702,11 @@ $H_INPUTKEYWORD
 <ul>
 __EOF__
 
-    &cgi'KPrint(sprintf("<li>$H_SEARCHTARGETSUBJECT: <input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchSubject) ? 'CHECKED' : '')));
-    &cgi'KPrint(sprintf("<li>$H_SEARCHTARGETPERSON: <input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchPerson) ? 'CHECKED' : '')));
-    &cgi'KPrint(sprintf("<li>$H_SEARCHTARGETARTICLE: <input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>", (($SearchArticle) ? 'CHECKED' : '')));
+    &cgi'KPrint(sprintf("<li><input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETSUBJECT\n", (($SearchSubject) ? 'CHECKED' : '')));
+    &cgi'KPrint(sprintf("<li><input name=\"searchperson\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETPERSON\n", (($SearchPerson) ? 'CHECKED' : '')));
+    &cgi'KPrint(sprintf("<li><input name=\"searcharticle\" type=\"checkbox\" value=\"on\" %s>: $H_SEARCHTARGETARTICLE", (($SearchArticle) ? 'CHECKED' : '')));
 
-    &cgi'KPrint(sprintf("<li>$H_ICON: <input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s> // ", (($SearchIcon) ? 'CHECKED' : '')));
+    &cgi'KPrint(sprintf("<li><input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // ", (($SearchIcon) ? 'CHECKED' : '')));
 
     # アイコンの選択
     print("<SELECT NAME=\"icon\">\n");
@@ -1655,8 +1719,7 @@ __EOF__
     while(<ICON>) {
 
 	# Version Check
-	&VersionCheck('Icon', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('Icon', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	# コメント文はキャンセル
 	next if (/^\#/o);
@@ -1680,13 +1743,11 @@ __EOF__
 __EOF__
 
     # キーワードが空でなければ，そのキーワードを含む記事のリストを表示
-    if (($SearchIcon)
-	|| (($Key) && ($SearchSubject || ($SearchPerson || $SearchArticle)))) {
-	&SearchArticleList($Key, $SearchSubject, $SearchPerson, $SearchArticle,
-			   $SearchIcon, $Icon);
+    if (($SearchIcon) || (($Key) && ($SearchSubject || ($SearchPerson || $SearchArticle)))) {
+	&SearchArticleList($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon);
     }
 
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -1717,8 +1778,7 @@ sub SearchArticleList {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	next if (/^\#/);
 	next if (/^$/);
@@ -1804,8 +1864,7 @@ sub SearchArticleKeyword {
     while($Line = <ARTICLE>) {
 
 	# Version Check
-	&VersionCheck('Article', $1), next
-	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+	&VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 
 	# クリア
 	@NewKeyList = ();
@@ -1883,7 +1942,7 @@ $H_ALIASDELETECOM<br>
 __EOF__
     
     # お約束
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -1927,7 +1986,7 @@ sub AliasMod {
     
     # エイリアスファイルに書き出し
     &WriteAliasData($USER_ALIAS_FILE);
-    
+
     # 表示画面の作成
     &MsgHeader($ALIASMOD_MSG);
     &cgi'KPrint("<p>$H_ALIAS: <strong>$A</strong>:\n");
@@ -1936,7 +1995,7 @@ sub AliasMod {
     } else {
 	&cgi'KPrint("$H_ALIASENTRIED</p>\n");
     }
-    &MsgFooter();
+    &MsgFooter;
     
 }
 
@@ -1996,7 +2055,7 @@ sub AliasDel {
     # 表示画面の作成
     &MsgHeader($ALIASDEL_MSG);
     &cgi'KPrint("<p>$H_ALIAS: <strong>$A</strong>: $H_ALIASDELETED</p>\n");
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -2041,7 +2100,7 @@ __EOF__
     # リスト閉じる
     print("</dl>\n");
     
-    &MsgFooter();
+    &MsgFooter;
 
 }
 
@@ -2063,7 +2122,7 @@ sub CashAliasData {
 
 	# Version Check
 	&VersionCheck('Alias', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	    if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 
 	next if (/^$/);
 	chop;
@@ -2096,13 +2155,11 @@ sub WriteAliasData {
     open(ALIAS, ">$TmpFile") || &Fatal($ERR_FILE, $TmpFile);
 
     # バージョン情報を書き出す
-    printf(ALIAS "# Kb-System-Id: %s/%s\n", $KB_VERSION, $KB_RELEASE);
+    printf(ALIAS "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE);
 
     # 順に．
     foreach $Alias (sort keys(%Name)) {
-	($Name{$Alias}) && printf(ALIAS "%s\t%s\t%s\t%s\t%s\n",
-				  $Alias, $Name{$Alias}, $Email{$Alias},
-				  $Host{$Alias}, $URL{$Alias});
+	($Name{$Alias}) && printf(ALIAS "%s\t%s\t%s\t%s\t%s\n", $Alias, $Name{$Alias}, $Email{$Alias}, $Host{$Alias}, $URL{$Alias});
     }
     close(ALIAS);
 
@@ -2122,8 +2179,7 @@ sub BoardHeader {
     open(HEADER, "<$File") || &Fatal($ERR_FILE, $File);
     while(<HEADER>){
 	# Version Check
-	&VersionCheck('Header', $1), next
-	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+	&VersionCheck('Header', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 	# 表示する
 	&cgi'KPrint("$_");
     }
@@ -2194,8 +2250,7 @@ sub GetBoardInfo {
     while(<ALIAS>) {
 
 	# Version Check
-	&VersionCheck('Board', $1), next
-	    if (m/^\# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('Board', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	next if (/^\#/);
 	next if (/^$/);
@@ -2245,21 +2300,28 @@ sub ShowLinksToFollowedArticle {
     local($Id);
     local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name);
 
-    foreach $Id (reverse(@IdList)) {
-
-	# $Id == 0ならキャンセル
-	next unless $Id;
-
+    # オリジナル記事
+    if ($#IdList > 0) {
+	$Id = @IdList[$#IdList];
 	($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
-
-	# トップから順に表示する
 	if ($HeadItem eq $F_HEADITEM_REPLY) {
-	    &cgi'KPrint("<strong>$H_ORIG</strong>: ");
+	    &cgi'KPrint("<strong>$H_ORIG_TOP:</strong> ");
 	} else {
 	    print("<li>");
 	}
 	&cgi'KPrint(&GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date) . "<br>\n");
     }
+
+    # 元記事
+    $Id = @IdList[0];
+    ($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
+    if ($HeadItem eq $F_HEADITEM_REPLY) {
+	&cgi'KPrint("<strong>$H_ORIG:</strong> ");
+    } else {
+	print("<li>");
+    }
+    &cgi'KPrint(&GetFormattedTitle($Id, $Aids, $Icon, $Subject, $Name, $Date) . "<br>\n");
+
 }
 
 
@@ -2274,10 +2336,10 @@ sub CheckAlias {
     ($String eq '') && &Fatal($ERR_NOTFILLED, '');
 
     # `#'で始まってる?
-    ($String =~ (/^#/)) || &Fatal($ERR_ILLEGALSTRING, 'alias');
+    ($String =~ (/^\#/)) || &Fatal($ERR_ILLEGALSTRING, $H_ALIAS);
 
     # 1文字じゃだめ
-    (length($String) > 1) || &Fatal($ERR_ILLEGALSTRING, 'alias');
+    (length($String) > 1) || &Fatal($ERR_ILLEGALSTRING, $H_ALIAS);
 
 }
 
@@ -2363,6 +2425,7 @@ sub MsgHeader {
     
     &cgi'header;
     &cgi'KPrint(<<__EOF__);
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <html>
 <head>
 <title>$Message</title>
@@ -2413,6 +2476,8 @@ __EOF__
 # ロック
 sub lock {
 
+    return unless ($ARCH eq 'UNIX');
+
     local($TimeOut) = 0;
     local($Flag) = 0;
 
@@ -2432,7 +2497,10 @@ sub lock {
 }
 
 # アンロック
-sub unlock { unlink($LOCK_FILE); }
+sub unlock {
+    return unless ($ARCH eq 'UNIX');
+    unlink($LOCK_FILE);
+}
 
 
 ###
@@ -2502,8 +2570,7 @@ __EOF__
     while(<TMP>) {
 
 	# Version Check
-	&VersionCheck('Article', $1), next
-	    if (m/^<!-- Kb-System-Id: ([0-9\.]*\/[0-9\.]*) -->$/o);
+	&VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 
 	# 表示
 	&cgi'KPrint("$_");
@@ -2524,8 +2591,9 @@ sub GetArticleFileName {
 
     # Boardが空ならBoardディレクトリ内から相対，
     # 空でなければシステムから相対
-    # (MacPerlでは「:$Borad:$Id」とすべきらしい)
-    return(($Board) ? "$Board/$Id" : "$Id");
+    return(($Board) ? "$Board/$Id" : "$Id") if ($ARCH eq 'UNIX');
+    return(($Board) ? ":$Board:$Id" : "$Id") if ($ARCH eq 'Mac');
+    return(($Board) ? "$Board/$Id" : "$Id") if ($ARCH eq 'Win');
 
 }
 
@@ -2538,8 +2606,10 @@ sub GetPath {
     # BoardとFile
     local($Board, $File) = @_;
 
-    # 返す(MacPerlでは「:$Board:$File」とすべきらしい)
-    return("$Board/$File");
+    # 返す
+    return("$Board/$File") if ($ARCH eq 'UNIX');
+    return(":$Board:$File") if ($ARCH eq 'Mac');
+    return("$Board/$File") if ($ARCH eq 'Win');
 
 }
 
@@ -2552,8 +2622,10 @@ sub GetIconPath {
     # BoardとFile
     local($File) = @_;
 
-    # 返す(MacPerlでは「:$ICON_DIR:$File」とすべきらしい)
-    return("$ICON_DIR/$File");
+    # 返す
+    return("$ICON_DIR/$File") if ($ARCH eq 'UNIX');
+    return(":$ICON_DIR:$File") if ($ARCH eq 'Mac');
+    return("$ICON_DIR/$File") if ($ARCH eq 'Win');
 
 }
 
@@ -2589,8 +2661,7 @@ sub GetIconURLFromTitle {
     while(<ICON>) {
 
 	# Version Check
-	&VersionCheck('Icon', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('Icon', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	# コメント文はキャンセル
 	next if (/^\#/o);
@@ -2626,8 +2697,7 @@ sub GetArticlesInfo {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	next if (/^\#/);
 	next if (/^$/);
@@ -2728,7 +2798,7 @@ sub Fatal {
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    &unlock() if ($FatalNo != $ERR_F_CANNOTLOCKSYSTEM);
+    &unlock if ($FatalNo != $ERR_F_CANNOTLOCKSYSTEM);
 
     # 表示画面の作成
     &MsgHeader($ERROR_MSG);
