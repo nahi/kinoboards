@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.23 1999-03-10 08:57:47 nakahiro Exp $
+# $Id: kb.cgi,v 5.24 1999-06-09 10:04:01 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -88,7 +88,7 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 # メインのヘッダファイルの読み込み
 if ( !$KBDIR_PATH )
 {
-    print "Content-Type: text/plain; EUC-JP\n\n";
+    print "Content-Type: text/plain; charset=EUC-JP\n\n";
     print "エラー．管理者様へ:\n";
     print "kb.cgiの先頭部分に置かれている\$KBDIR_PATHが，\n";
     print "正しく設定されていません\n";
@@ -1093,7 +1093,7 @@ sub PageLink
 
     $str .= ' // ';
 
-    if ( $num && ( $#DB_ID - $old - $num > 0 ))
+    if ( $num && ( $#DB_ID - $old - $num >= 0 ))
     {
 	$str .= &TagA( "$PROGRAM?b=$BOARD&c=$com&num=$num&old=$backOld&rev=$rev", "$H_BACKART$H_BOTTOM" );
     }
@@ -3955,10 +3955,10 @@ sub GetBoardInfo
 ## CacheIconDb - アイコンDBの全読み込み
 #
 # - SYNOPSIS
-#	CacheIconDb($Board);
+#	CacheIconDb($board);
 #
 # - ARGS
-#	$Board		掲示板ID
+#	$board		掲示板ID
 #
 # - DESCRIPTION
 #	アイコンDBを読み込んで連想配列に放り込む．
@@ -3967,16 +3967,17 @@ sub GetBoardInfo
 # - RETURN
 #	なし
 #
-$ICON_DB_CACHE = 0;
+$ICON_DB_CACHE = '';
 
 sub CacheIconDb
 {
-    return if $ICON_DB_CACHE;
+    local( $board ) = @_;
+    return if ( $ICON_DB_CACHE eq $board );
 
     local( $FileName, $IconTitle, $IconHelp );
 
     @ICON_TITLE = %ICON_FILE = %ICON_HELP = ();
-    open( ICON, &GetIconPath( "$BOARD.$ICONDEF_POSTFIX" ))
+    open( ICON, &GetIconPath( "$board.$ICONDEF_POSTFIX" ))
 	|| ( open( ICON, &GetIconPath( "$DEFAULT_ICONDEF" ))
 	    || &Fatal( 1, &GetIconPath( "$DEFAULT_ICONDEF" )));
     while ( <ICON> )
@@ -3991,7 +3992,7 @@ sub CacheIconDb
     }
     close ICON;
 
-    $ICON_DB_CACHE = 1;		# cached
+    $ICON_DB_CACHE = $board;		# cached
 }
 
 
@@ -4133,8 +4134,8 @@ sub GetIconPath
 #	GetIconUrlFromTitle($Icon, $Board);
 #
 # - ARGS
-#	$Icon		アイコンID
-#	$Board		掲示板ID
+#	$icon		アイコンID
+#	$board		掲示板ID
 #
 # - DESCRIPTION
 #	アイコンIDから，そのアイコンに対応するgifファイルのURLを取得．
@@ -4144,29 +4145,16 @@ sub GetIconPath
 #
 sub GetIconUrlFromTitle
 {
-    local( $Icon, $Board ) = @_;
+    local( $icon, $board ) = @_;
 
-    if ( $Board eq $BOARD )
-    {
-	&CacheIconDb unless $ICON_DB_CACHE;
-	return "$ICON_DIR/" . $ICON_FILE{$Icon};
-    }
+    # prepare
+    &CacheIconDb( $board ) if ( $ICON_DB_CACHE ne $board );
 
-    local( $FileName, $Title, $TargetFile );
+    # check
+    return '' unless $ICON_FILE{ $icon };
 
-    open( ICON, &GetIconPath( "$Board.$ICONDEF_POSTFIX" ))
-	|| ( open( ICON, &GetIconPath( "$DEFAULT_ICONDEF" ))
-	    || &Fatal( 1, &GetIconPath( "$DEFAULT_ICONDEF" )));
-    while ( <ICON> )
-    {
-	next if ( /^\#/o || /^$/o );
-	chop;
-	( $FileName, $Title ) = split( /\t/, $_, 3 );
-	if ( $Title eq $Icon ) { $TargetFile = $FileName; }
-    }
-    close ICON;
-
-    $TargetFile? "$ICON_DIR/$TargetFile" : '';
+    # return
+    "$ICON_DIR/" . $ICON_FILE{$icon};
 }
 
 
