@@ -2,11 +2,11 @@
 ## Fatal - エラー表示
 #
 # - SYNOPSIS
-#	Fatal($FatalNo, $FatalInfo);
+#	Fatal($errno, $errInfo);
 #
 # - ARGS
-#	$FatalNo	エラー番号(詳しくは関数内部を参照のこと)
-#	$FatalInfo	エラー情報
+#	$errno	エラー番号(詳しくは関数内部を参照のこと)
+#	$errInfo	エラー情報
 #
 # - DESCRIPTION
 #	エラーを表す画面をブラウザに送信する．
@@ -15,85 +15,116 @@
 #	なし
 #
 Fatal: {
-    local($FatalNo, $FatalInfo) = ($gVarFatalNo, $gVarFatalInfo);
-    local($ErrString);
+    local( $errno, $errInfo ) = ( $gVarFatalNo, $gVarFatalInfo );
+    local( $msg );
 
-    if ($FatalNo == 1) {
+    if ( $errno == 1 ) {
 
-	$ErrString = "File: $FatalInfoが存在しない，あるいはpermissionの設定が間違っています．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで，上記ファイル名をお知らせ下さい．";
+	$severity = $kinologue'SEV_CAUTION;
+	$msg = "File: $errInfoが存在しない，あるいはpermissionの設定が間違っています．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで，上記ファイル名をお知らせ下さい．";
 
-    } elsif ($FatalNo == 2) {
+    } elsif ( $errno == 2 ) {
 
-	$ErrString = "入力されていない項目があります．戻ってもう一度やり直してみてください．";
+	$severity = $kinologue'SEV_INFO;
+	$msg = "入力されていない項目があります．戻ってもう一度やり直してみてください．";
 
-    } elsif ($FatalNo == 3) {
+    } elsif ( $errno == 3 ) {
 
-	$ErrString = "題や名前，メイルアドレスに，タブ文字か改行が入ってしまっています．戻ってもう一度やり直してみてください．";
+	$severity = $kinologue'SEV_INFO;
+	$msg = "題や名前，メイルアドレスに，タブ文字か改行が入ってしまっています．戻ってもう一度やり直してみてください．";
 
-    } elsif ($FatalNo == 4) {
+    } elsif ( $errno == 4 ) {
 
-	$ErrString = "題中にHTMLタグ，タブ文字，改行文字を入れることは禁じられています．戻って違う題に書き換えてください．";
+	$severity = $kinologue'SEV_INFO;
+	$msg = "題中にHTMLタグ，タブ文字，改行文字を入れることは禁じられています．戻って違う題に書き換えてください．";
 
-    } elsif ($FatalNo == 5) {
+    } elsif ( $errno == 5 ) {
 
-	$ErrString = "登録されているエイリアスのものと，マシン名が一致しません．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
+	$severity = $kinologue'SEV_ERROR;
+	$msg = "登録されているエイリアスのものと，マシン名が一致しません．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
 
-    } elsif ($FatalNo == 6) {
+    } elsif ( $errno == 6) {
 
-	$ErrString = "「$FatalInfo」というエイリアスは，登録されていません．";
+	$severity = $kinologue'SEV_WARN;
+	$msg = "「$errInfo」というエイリアスは，登録されていません．";
 
-    } elsif ($FatalNo == 7) {
+    } elsif ( $errno == 7 ) {
 
-	$ErrString = "$FatalInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．";
+	$severity = $kinologue'SEV_INFO;
+	$msg = "$errInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．";
 
-    } elsif ($FatalNo == 8) {
+    } elsif ( $errno == 8 ) {
 
-	$ErrString = "次の記事はまだ投稿されていません．";
+	$severity = $kinologue'SEV_INFO;
+	$msg = "次の記事はまだ投稿されていません．";
 
-    } elsif ($FatalNo == 9) {
+    } elsif ( $errno == 9 ) {
 
-	$ErrString = "メイルが送信できませんでした．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
+	$severity = $kinologue'SEV_CAUTION;
+	$msg = "メイルが送信できませんでした．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
 
-    } elsif ($FatalNo == 10) {
+    } elsif ( $errno == 10 ) {
 
-	$ErrString = ".dbと.articleidの整合性が取れていません．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
+	$severity = $kinologue'SEV_CAUTION;
+	$msg = ".dbと.articleidの整合性が取れていません．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
 
-    } elsif ($FatalNo == 11) {
+    } elsif ( $errno == 11 ) {
 
-	$ErrString = "$FatalInfoというIDに対応する$H_BOARDは，存在しません．";
+	$severity = $kinologue'SEV_ERROR;
+	$msg = "$errInfoというIDに対応する$H_BOARDは，存在しません．";
 
-    } elsif ($FatalNo == 50) {
+    } elsif ( $errno == 12 ) {
 
-	$ErrString = "リプライ関係が循環してしまいます．どうしてもリプライ先を変更したい場合，リプライ先を一度新着扱いにしてから，リプライをかけかえてください．";
+	$severity = $kinologue'SEV_INFO;
+	$msg = "この$H_BOARDでは，$H_MESGの最大サイズは$SYS_MAXARTSIZEバイトということになっています（あなたの$H_MESGは$errInfoバイトです）．";
 
-    } elsif ($FatalNo == 99) {
+    } elsif ( $errno == 50 ) {
 
-	$ErrString ="この$H_BOARDでは，このコマンドは実行できません．";
+	$severity = $kinologue'SEV_INFO;
+	$msg = "リプライ関係が循環してしまいます．どうしてもリプライ先を変更したい場合，リプライ先を一度新着扱いにしてから，リプライをかけかえてください．";
 
-    } elsif ($FatalNo == 999) {
+    } elsif ( $errno == 99 ) {
 
-	$ErrString ="システムのロックに失敗しました．混み合っているようですので，数分待ってからもう一度アクセスしてください．何度アクセスしてもロックされている場合，メンテナンス中である可能性もあります．";
+	$severity = $kinologue'SEV_WARN;
+	$msg ="この$H_BOARDでは，このコマンドは実行できません．";
+
+    } elsif ( $errno == 999 ) {
+
+	$severity = $kinologue'SEV_WARN;
+	$msg ="システムのロックに失敗しました．混み合っているようですので，数分待ってからもう一度アクセスしてください．";
+
+    } elsif ( $errno == 1000 ) {
+
+	$severity = $kinologue'SEV_FATAL;
+	$msg ="ログファイルへの書き込みに失敗しました．";
+
+    } elsif ( $errno == 1001 ) {
+
+	$severity = $kinologue'SEV_WARN;
+	$msg ="現在管理者によるメンテナンス中です．しばらくお待ちください．";
 
     } else {
 
-	$ErrString = "エラー番号不定: $FatalInfo<br>お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$mEmail\">$mEmail</a>までお知らせください．";
+	$severity = $kinologue'SEV_ANY;
+	$msg = "エラー番号不定（$errInfo）";
 
     }
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    if ($FatalNo != 999) { &cgi'unlock($LOCK_FILE); }
+    &cgi'unlock( $LOCK_FILE ) if (( $errno != 999 ) && ( $errno != 1001 ));
+
+    # log a log(except logging failure).
+    &KbLog( $severity, "$msg" ) if ( $errno != 1000 );
 
     # 表示画面の作成
     &MsgHeader('Error!', "$SYSTEM_NAME: ERROR!");
-
-    &cgiprint'Cache("<p>$ErrString</p>\n");
-
-    if ($BOARD ne '') {	&PrintButtonToTitleList($BOARD); }
+    &cgiprint'Cache("<p>$msg</p>\n");
+    &PrintButtonToTitleList( $BOARD ) if ( $BOARD ne '' );
     &PrintButtonToBoardList;
-
     &MsgFooter;
-    exit(0);
+
+    exit( 0 );
 }
 
 1;

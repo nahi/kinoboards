@@ -32,7 +32,7 @@ Preview: {
     if ($Id ne '') { ($rFid) = &GetArticlesInfo($Id); } else { $rFid = ''; }
 
     # 入力された記事情報のチェック
-    $Article = &CheckArticle($BOARD, $TextType, *Name, *Email, *Url, *Subject, *Icon, $Article);
+    $Article = &CheckArticle($BOARD, *Name, *Email, *Url, *Subject, *Icon, $Article);
 
     # 確認画面の作成
     &MsgHeader('Message preview', "$BOARDNAME: 書き込みの内容を確認してください");
@@ -112,19 +112,14 @@ __EOF__
     &cgiprint'Cache("</p>\n$H_LINE\n");
 
     # TextType用前処理
-    if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE)) {
-	&cgiprint'Cache("<p><pre>");
+    if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PLAIN)) {
+	&PlainArticleToHtml( *Article );
     }
 
     # 記事
     $Article = &DQDecode($Article);
     $Article = &ArticleEncode($Article);
     &cgiprint'Cache("$Article\n");
-
-    # TextType用後処理
-    if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE)) {
-	&cgiprint'Cache("</pre></p>\n");
-    }
 
     &MsgFooter;
 }

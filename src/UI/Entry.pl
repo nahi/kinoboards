@@ -88,7 +88,7 @@ __EOF__
     if ($SYS_ICON) {
 	&CashIconDb($BOARD);	# アイコンDBをキャッシュ
 	&cgiprint'Cache("$H_ICON:\n<SELECT NAME=\"icon\">\n<OPTION SELECTED>$H_NOICON\n");
-	foreach $IconTitle (sort keys(%ICON_FILE)) {
+	foreach $IconTitle (@ICON_TITLE) {
 	    &cgiprint'Cache("<OPTION>$IconTitle\n");
 	}
 	&cgiprint'Cache("</SELECT>\n");
@@ -105,7 +105,7 @@ __EOF__
 	&cgiprint'Cache(<<__EOF__);
 $H_TEXTTYPE:
 <SELECT NAME="texttype">
-<OPTION SELECTED>$H_PRE
+<OPTION SELECTED>$H_PLAIN
 <OPTION>$H_HTML
 </SELECT>
 </p>

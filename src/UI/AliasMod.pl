@@ -17,52 +17,62 @@
 #
 AliasMod: {
 
-    local($A, $N, $E, $U, $HitFlag, $Alias);
+    local( $alias, $name, $eMail, $url, $hitFlag );
 
-    $A = $cgi'TAGS{'alias'};
-    $N = $cgi'TAGS{'name'};
-    $E = $cgi'TAGS{'email'};
-    $U = $cgi'TAGS{'url'};
+    $alias = $cgi'TAGS{'alias'};
+    $name = $cgi'TAGS{'name'};
+    $eMail = $cgi'TAGS{'email'};
+    $url = $cgi'TAGS{'url'};
     
     # マシンがマッチしたか
     #	0 ... エイリアスがマッチしない
     #	2 ... マッチしてデータを変更した
-    $HitFlag = 0;
+    $hitFlag = 0;
 
     # 文字列チェック
-    &AliasCheck($A, $N, $E, $U);
+    &AliasCheck( $alias, $name, $eMail, $url );
     
     # エイリアスの読み込み
     &CashAliasData;
     
     # 1行ずつチェック
-    foreach $Alias (sort keys(%Name)) {
-	next if ($A ne $Alias);
-	$HitFlag = 2;		# 合ったら2を設定．マシン名は無視．
-    }
-    
-    # 新規登録
-    if ($HitFlag == 0) {
-	$Alias = $A;
+    foreach (sort keys(%Name)) {
+	next if ( $_ ne $alias );
+	$hitFlag = 2;		# 合ったら2を設定．
     }
     
     # データの登録
-    $Name{$Alias} = $N;
-    $Email{$Alias} = $E;
-    $Host{$Alias} = $REMOTE_HOST;
-    $URL{$Alias} = $U;
+    $Name{ $alias } = $name;
+    $Email{ $alias } = $eMail;
+    $Host{ $alias } = $cgi'REMOTE_HOST;
+    $URL{ $alias } = $url;
     
     # エイリアスファイルに書き出し
     &WriteAliasData;
 
     # 表示画面の作成
-    &MsgHeader('Alias modified', "$H_ALIASが設定されました");
-    &cgiprint'Cache("<p>$H_ALIAS: <strong>$A</strong>:\n");
-    if ($HitFlag == 2) {
-	&cgiprint'Cache("設定しました．</p>\n");
+    &MsgHeader( 'Alias modified', "$H_ALIASが設定されました" );
+
+    &cgiprint'Cache( "<p>$H_ALIAS: <strong>$alias</strong>:\n" );
+    if ( $hitFlag == 2 ) {
+	&cgiprint'Cache( "登録を変更しました．</p>\n" );
     } else {
-	&cgiprint'Cache("登録しました．</p>\n");
+	&cgiprint'Cache( "新規に登録しました．</p>\n" );
     }
+
+    &cgiprint'Cache(<<__EOF__);
+<p>
+<dl>
+<dt>$H_FROM
+<dd>$name
+<dt>$H_MAIL
+<dd>$eMail
+<dt>$H_URL
+<dd>$url
+</dl>
+</p>
+__EOF__
+
     &MsgFooter;
     
 }
