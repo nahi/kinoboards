@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl5
+#!/usr/local/bin/GNU/perl
 #
-# $Id: kb.cgi,v 4.6 1996-04-25 13:07:32 nakahiro Exp $
+# $Id: kb.cgi,v 4.7 1996-04-30 16:05:46 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -71,8 +71,6 @@ $ADDRESS = "KINOBOARDS: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co
 #
 # ファイル
 #
-# ロックファイル
-$LOCK_FILE = ".lock.kb";
 # 記事番号ファイル
 $ARTICLE_NUM_FILE_NAME = ".articleid";
 # 掲示板別configuratinファイル
@@ -89,6 +87,12 @@ $USER_ALIAS_FILE = "kinousers";
 $BOARD_ALIAS_FILE = "kinoboards";
 # デフォルトのアイコン定義ファイル
 $DEFAULT_ICONDEF = "all.idef";
+# ロックファイル
+$LOCK_FILE = ".lock.kb";
+# ロック元ファイル
+$LOCK_ORG = ".lock.kb.org";
+# ロック時のリトライ回数
+$LOCK_WAIT = 10;
 
 #
 # prefix of quote file.
@@ -334,7 +338,7 @@ sub EntryHeader {
 		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
 	    chop;
-	    ($FileName, $Title) = split(/\t/, $_);
+	    ($FileName, $Title) = split(/\t/, $_, 2);
 	    print("<OPTION>$Title\n");
 	}
 	close(ICON);
@@ -425,9 +429,6 @@ sub QuoteOriginalArticle {
     # ファイルを開く
     open(TMP, "<$QuoteFile") || &MyFatal(1, $QuoteFile);
     while(<TMP>) {
-
-	# コード変換
-	&jcode'convert(*_, 'euc');
 
 	# 引用のための変換
 	s/&/&amp;/go;
@@ -784,7 +785,9 @@ sub AddDBFile {
     open(DB, "<$File") || &MyFatal(1, $File);
 
     while(<DB>) {
+
 	chop;
+
 	($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon,
 	 $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
 	
@@ -1047,9 +1050,9 @@ sub GetFollowIdList {
     # 取り込み
     open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
     while(<DB>) {
-	chop;
 
 	next if (/^\#/);
+	chop;
 
 	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
 	 $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
@@ -1108,9 +1111,6 @@ sub GetUserInfo {
     # 1つ1つチェック。
     while(<ALIAS>) {
 	
-	# コード変換
-	&jcode'convert(*_, 'euc');
-
 	chop;
 	
 	# 分割
@@ -1475,27 +1475,34 @@ sub SortArticle {
     # 表示する個数を取得
     local($Num) = @_;
 
-    # 記事番号を収めるファイル
-    local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
-
     # DBファイル
     local($DBFile) = &GetPath($BOARD, $DB_FILE_NAME);
 
-    # 最新記事番号を取得
-    local($ArticleToId) = &GetArticleId($ArticleNumFile);
-
-    # 記事数が足りない場合の調整
-    $Num = $ArticleToId if ($ArticleToId < $Num);
+    # 記事番号を収めるファイル
+    local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
 
     # Board名称の取得
     local($BoardName) = &GetBoardInfo($BOARD);
 
-    # 取ってくる最初の記事番号を取得
-    local($ArticleFromId) = $ArticleToId - $Num + 1;
+    # 最新記事番号を取得
+    local($ArticleToId) = &GetArticleId($ArticleNumFile);
+    local($ArticleFromId) = 0;
+
     local($ListFlag) = 0;
     local(@Lines) = ();
     local($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
 	  $Url, $Fmail) = (0, '', '', '', '', '', '', '', '', '', '');
+
+    # 数字が0なら最初から全て
+    if ($Num == 0) {
+	$ArticleFromId = 1;
+    } else {
+	# 記事数が足りない場合の調整
+	$Num = $ArticleToId if ($ArticleToId < $Num);
+
+	# 取ってくる最初の記事番号を取得
+	$ArticleFromId = $ArticleToId - $Num + 1;
+    }
 
     # lockをかける
     &lock();
@@ -1504,9 +1511,9 @@ sub SortArticle {
     open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
 
     while(<DB>) {
-	chop;
 
 	next if (/^\#/);
+	chop;
 
 	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
 	 $Url, $Fmail) = split(/\t/, $_);
@@ -1595,9 +1602,9 @@ sub ViewTitle {
     # 取り込み。DBファイルがなければ何も表示しない。
     open(DB, "<$DBFile") || &MyFatal(1, $DBFile);
     while(<DB>) {
-	chop;
 
 	next if (/^\#/);
+	chop;
 
 	($Id, $Fid, $Aids, $Date, $Title, $Icon, $RemoteHost, $Name, $Email,
 	 $Url, $Fmail) = split(/\t/, $_);
@@ -1961,9 +1968,6 @@ sub SearchArticleKeyword {
     open(ARTICLE, "<$File") || &MyFatal(1, $File);
     while(<ARTICLE>) {
 
-	# コード変換
-	&jcode'convert(*_, 'euc');
-
 	# TAGを取り除く
 	s/<[^>]*>//go;
 
@@ -2199,11 +2203,10 @@ sub CashAliasData {
     open(ALIAS, "<$File") || &MyFatal(1, $File);
     while(<ALIAS>) {
 	
-	# コード変換
-	&jcode'convert(*_, 'euc');
-
 	chop;
+
 	($A, $N, $E, $H, $U) = split(/\t/, $_);
+
 	$Name{$A} = $N;
 	$Email{$A} = $E;
 	$Host{$A} = $H;
@@ -2324,12 +2327,9 @@ sub GetBoardInfo {
 	|| &MyFatal(1, $BOARD_ALIAS_FILE);
     while(<ALIAS>) {
 	
-	# コード変換
-	&jcode'convert(*_, 'euc');
-
 	chop;
-	# マッチしなきゃ次へ。
 	next unless (/^$Alias\t(.*)$/);
+
 	$BoardName = $1;
 	return($BoardName);
     }
@@ -2488,21 +2488,28 @@ sub MsgFooter {
 # ロック
 sub lock {
 
-    # ロックファイルを開く
-    open(LOCK, "$LOCK_FILE") || &MyFatal(1, $LOCK_FILE);
+    local($TimeOut) = 0;
+    local(*LOCKORG);
 
-    # ロックをかける
-    flock(LOCK, $LOCK_EX);
+    srand(time|$$);
+
+    open(LOCKORG, ">$LOCK_ORG") || &MyFatal(1, $LOCK_ORG);
+    close(LOCKORG);
+
+    for($TimeOut = 0; $TimeOut < $LOCK_WAIT; $TimeOut++) {
+	last if link($LOCK_ORG, $LOCK_FILE);
+	select(undef, undef, undef, (rand(6)+5)/10);
+    }
+
+    unlink($LOCK_ORG);
+
+    &MyFatal(80, $TimeOut) unless ($TimeOut < $LOCK_WAIT);
+
 }
 
 # アンロック
 sub unlock {
-
-    # ロック外す
-    flock(LOCK, $LOCK_UN);
-
-    # ロックファイルを閉じる
-    close(LOCK);
+    unlink($LOCK_FILE);
 }
 
 
@@ -2580,15 +2587,7 @@ sub ViewOriginalArticle {
 
     # 記事の中身
     open(TMP, "<$QuoteFile") || &MyFatal(1, $QuoteFile);
-    while(<TMP>) {
-
-	# コード変換
-	&jcode'convert(*_, 'euc');
-
-	# 表示
-	print("$_");
-
-    }
+    while(<TMP>) { print("$_"); }
     close(TMP);
 
 }
@@ -2670,9 +2669,9 @@ sub GetArticlesInfo {
     # 取り込み。DBファイルがなければ0/''を返す。
     open(DB, "<$DBFile");
     while(<DB>) {
-	chop;
 
 	next if (/^\#/);
+	chop;
 
 	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
 	 $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
@@ -2754,6 +2753,9 @@ sub MyFatal {
 	print("Try later.</p>\n");
     } elsif ($MyFatalNo == 11) {
 	print("<p>次の記事はまだ投稿されていません。</p>\n");
+    } elsif ($MyFatalNo == 80) {
+	print("<p>システムのロックに失敗しました。</p>\n");
+	print("<p>混み合っているようです。戻ってもう一度。</p>\n");
     } else {
 	print("<p>エラー番号不定: お手数ですが、");
 	print("このエラーが生じた状況を");
