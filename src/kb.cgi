@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.38 1999-06-21 13:09:25 nakahiro Exp $
+# $Id: kb.cgi,v 5.39 1999-06-21 13:56:21 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -1474,11 +1474,11 @@ __EOF__
 
 __EOF__
 
-    local( $select ) = "";
     if ( $SYS_HEADER_MENU )
     {
-	$select .= "表示画面: \n<select name=\"c\">\n<option value=\"v\">\n";
-	$select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n<option value=\"v\">\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' ) if $SYS_F_B;
+	local( $select );
+	$select .= "表示画面: \n<select name=\"c\">\n";
+#	$select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n<option value=\"v\">\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' ) if $SYS_F_B;
 	$select .= sprintf( "<option %s value=\"v\">$H_SUBJECT一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'v' )? 'selected' : '' );
 	$select .= sprintf( "<option %s value=\"r\">$H_SUBJECT一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'r' )? 'selected' : '' ) if $SYS_F_R;
 	$select .= sprintf( "<option %s value=\"vt\">$H_MESG一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'vt' )? 'selected' : '' );
@@ -1488,12 +1488,12 @@ __EOF__
 	$select .= sprintf( "<option %s value=\"n\">新規書き込み\n", ( $cgi'TAGS{'c'} eq 'n' )? 'selected' : '' ) if $SYS_F_N;
 	$select .= sprintf( "<option %s value=\"i\">使えるアイコン一覧\n", ( $cgi'TAGS{'c'} eq 'i' )? 'selected' : '' );
 	$select .= "</select>\n // 表示件数: <input name=\"num\" type=\"text\" size=\"3\" value=\"" . ( $cgi'TAGS{'num'} || $DEF_TITLE_NUM ) . "\"> ";
+	local( %tags ) = ( 'b', $BOARD );
+	local( $str );
+	&TagForm( *str, *tags, "表示", 0, *select );
+	$msg .= $str;
     }
 
-    local( %tags ) = ( 'b', $BOARD );
-    local( $str );
-    &TagForm( *str, *tags, "表示", 0, *select );
-    $msg .= $str;
     $msg .= "$H_HR\n";
 
     &cgiprint'Init;
