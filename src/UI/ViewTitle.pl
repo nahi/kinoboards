@@ -27,7 +27,7 @@ ViewTitle: {
     %ADDFLAG = ();		# it's static.
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
@@ -42,7 +42,7 @@ ViewTitle: {
     }
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
     # 表示する個数を取得
     $Num = $cgi'TAGS{'num'};
@@ -63,15 +63,15 @@ ViewTitle: {
 
     # 表示画面の作成
     if ($ComType == 2) {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: 新たなリプライ先の指定");
+	&MsgHeader('Title view (threaded)', "新たなリプライ先の指定");
     } elsif ($ComType == 3) {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: 指定された$H_MESGのリプライ先を変更しました");
+	&MsgHeader('Title view (threaded)', "指定された$H_MESGのリプライ先を変更しました");
     } elsif ($ComType == 4) {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: 移動先の指定");
+	&MsgHeader('Title view (threaded)', "移動先の指定");
     } elsif ($ComType == 5) {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: 指定された$H_MESGを移動しました");
+	&MsgHeader('Title view (threaded)', "指定された$H_MESGを移動しました");
     } else {
-	&MsgHeader('Title view (threaded)', "$BOARDNAME: $H_SUBJECT一覧($H_REPLY順)");
+	&MsgHeader('Title view (threaded)', "$H_SUBJECT一覧($H_REPLY順)");
     }
 
     if ($ComType == 0) {
@@ -83,7 +83,7 @@ ViewTitle: {
 	&BoardHeader('maint');
 
 	if ($ComType == 3) {
-	    &cgiprint'Cache("<p>\n<ul>\n<li><a href=\"$PROGRAM?b=$BOARD&c=ce&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'} . "\">今の変更を元に戻す</a>\n</ul>\n</p>");
+	    &cgiprint'Cache("<p>\n<ul>\n<li>" . &TagA( "$PROGRAM?b=$BOARD&c=ce&rtid=" . $cgi'TAGS{'roid'} . "&rfid=" . $cgi'TAGS{'rfid'}, "今の変更を元に戻す" ) . "\n</ul>\n</p>");
 	}
 
 	&cgiprint'Cache(<<__EOF__);
@@ -115,9 +115,9 @@ __EOF__
     &cgiprint'Cache("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
     } else {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
     }
 
     &cgiprint'Cache("<p><ul>\n");
@@ -131,9 +131,9 @@ __EOF__
 
 	# 古いのから処理
 	if (($ComType == 2) && ($DB_FID{$cgi'TAGS{'rfid'}} ne '')) {
-	    &cgiprint'Cache("<li><a href=\"$PROGRAM?b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">[どの$H_MESGへのリプライでもなく，新着$H_MESGにする]</a>\n");
+	    &cgiprint'Cache("<li>" . &TagA( "$PROGRAM?b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[どの$H_MESGへのリプライでもなく，新着$H_MESGにする]" ) . "\n");
 	} elsif ($ComType == 4) {
-	    &cgiprint'Cache("<li><a href=\"$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">[全記事の先頭に移動する(このページの先頭，ではありません)]</a>\n");
+	    &cgiprint'Cache("<li>" . &TagA( "$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[全記事の先頭に移動する(このページの先頭，ではありません)]" ) . "\n");
 	}
 
 	for($IdNum = $From; $IdNum <= $To; $IdNum++) {
@@ -154,9 +154,9 @@ __EOF__
 
 	# 新しいのから処理
 	if (($ComType == 2) && ($DB_FID{$cgi'TAGS{'rfid'}} ne '')) {
-	    &cgiprint'Cache("<li><a href=\"$PROGRAM?b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">[どの$H_MESGへのリプライでもなく，新着$H_MESGにする]</a>\n");
+	    &cgiprint'Cache("<li>" . &TagA( "$PROGRAM?b=$BOARD&c=ce&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[どの$H_MESGへのリプライでもなく，新着$H_MESGにする]" ) . "\n");
 	} elsif ($ComType == 4) {
-	    &cgiprint'Cache("<li><a href=\"$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">[全記事の先頭に移動する(このページの先頭，ではありません)]</a>\n");
+	    &cgiprint'Cache("<li>" . &TagA( "$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[全記事の先頭に移動する(このページの先頭，ではありません)]" ) . "\n");
 	}
 
 	for($IdNum = $To; $IdNum >= $From; $IdNum--) {
@@ -175,9 +175,9 @@ __EOF__
     &cgiprint'Cache("</ul></p>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=v&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
     } else {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=v&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
     }
 
     &MsgFooter;
@@ -217,28 +217,27 @@ sub ViewTitleNodeMaint {
     # リンク先変更コマンド(From)
     # 移動コマンド(From)
     if ($SYS_F_MV) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=ct&rfid=$Id&roid=" . $DB_FID{$Id} . "$AddNum\">$H_RELINKFROM_MARK</a>\n");
+	&cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=ct&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum, $H_RELINKFROM_MARK ) . "\n");
 	if ($DB_FID{$Id} eq '') {
-	    &cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=mvt&rfid=$Id&roid=" . $DB_FID{$Id} . "$AddNum\">$H_REORDERFROM_MARK</a>\n");
+	    &cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=mvt&rfid=$Id&roid=" . $DB_FID{$Id} . $AddNum, $H_REORDERFROM_MARK ) . "\n");
 	}
     }
 
     # 削除コマンド
     if ($SYS_F_D) {
-	&cgiprint'Cache(<<__EOF__);
-<a href="$PROGRAM?b=$BOARD&c=dp&id=$Id">$H_DELETE_ICON</a>
-<a href="$PROGRAM?b=$BOARD&c=f&s=on&id=$Id">$H_SUPERSEDE_ICON</a>
+	&cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=dp&id=$Id", $H_DELETE_ICON ) . "\n" );
+	&cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=f&s=on&id=$Id", $H_SUPERSEDE_ICON ) . "\n" );
 __EOF__
     }
 
     # 移動コマンド(To)
     if ($SYS_F_MV && ($ComType == 4) && ($FromId ne $Id) && ($DB_FID{$Id} eq '') && ($FromId ne $Id)) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=mve&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">$H_REORDERTO_MARK</a>\n");
+	&cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=mve&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . $AddNum, $H_REORDERTO_MARK ) . "\n" );
     }
 
     # リンク先変更コマンド(To)
     if ($SYS_F_MV && ($ComType == 2) && ($FromId ne $Id) && (! grep(/^$FromId$/, split(/,/, $DB_AIDS{$Id}))) && (! grep(/^$FromId$/, split(/,/, $DB_FID{$Id})))) {
-	&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=ce&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . "$AddNum\">$H_RELINKTO_MARK</a>\n");
+	&cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=ce&rtid=$Id&rfid=$FromId&roid=" . $cgi'TAGS{'roid'} . $AddNum, $H_RELINKTO_MARK ) . "\n" );
     }
 
     $ADDFLAG{$Id} = 1;		# 整形済み
