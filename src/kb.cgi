@@ -16,7 +16,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.9 1998-04-06 06:18:17 nakahiro Exp $
+# $Id: kb.cgi,v 5.10 1998-04-07 02:21:53 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -672,7 +672,7 @@ sub QuoteOriginalArticleWithoutQMark {
 sub BoardHeader {
     local( $Type ) = @_;
 
-    local @BoardHeader;
+    local( @BoardHeader );
 
     &GetBoardHeader( $BOARD, *BoardHeader );
     foreach ( @BoardHeader ) { &cgiprint'Cache( $_ ); }
@@ -1994,7 +1994,7 @@ sub ReLinkExec {
 sub ReOrderExec {
     local( $FromId, $ToId, $Board ) = @_;
 
-    local @Move;
+    local( @Move );
 
     # 移動する記事たちを集める
     @Move = ( $FromId, &CollectDaughters( $FromId ));
@@ -2025,7 +2025,7 @@ sub ReOrderExec {
 sub CollectDaughters {
     local( $Id ) = @_;
 
-    local @Return;
+    local( @Return );
 
     foreach ( split(/,/, $DB_AIDS{$Id} )) {
 	push( @Return, $_ );
