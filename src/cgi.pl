@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.26 1999-06-18 10:14:24 nakahiro Exp $
+# $Id: cgi.pl,v 2.27 1999-06-24 14:24:34 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -52,23 +52,30 @@ $SERVER_PORT = $ENV{'SERVER_PORT'};
 $REMOTE_HOST = $ENV{'REMOTE_HOST'};
 $REMOTE_ADDR = $ENV{'REMOTE_ADDR'};
 $REMOTE_USER = $ENV{'REMOTE_USER'};
-$SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $REQUEST_URI = $ENV{'REQUEST_URI'};
+$SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $PATH_INFO = $ENV{'PATH_INFO'};
-$PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
+
+# PROGRAM
+( $PROGRAM = $REQUEST_URI ) =~ s/\?.*$//o;
 
 # IIS ...
 if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO ))
 {
     $PATH_INFO = '';
-    $PATH_TRANSLATED = '';
 }
 
-$SCRIPT_NAME =~ s!/index.cgi$!/!o;
-$SCRIPT_NAME =~ s!/default.asp$!/!o;
-( $CGIDIR_NAME, $CGIPROG_NAME ) = $SCRIPT_NAME =~ m!^(.*/)([^/]*)$!o;
-$SYSDIR_NAME = ( $PATH_INFO? "$PATH_INFO/" : $CGIDIR_NAME );
-$PROGRAM = ( $PATH_INFO? "$SCRIPT_NAME$PATH_INFO" : $CGIPROG_NAME );
+# BASE_URL
+if ( $PATH_INFO )
+{
+    $BASE_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$PATH_INFO/";
+}
+else
+{
+    local( $cgidir ) = substr( $SCRIPT_NAME, 0, rindex( $SCRIPT_NAME, '/' ));
+    $BASE_URL = "http://$SERVER_NAME$SERVER_PORT_STRING$cgidir/";
+}
+
 
 
 # Locking
