@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.34 1999-08-28 08:31:57 nakahiro Exp $
+# $Id: cgi.pl,v 2.35 1999-09-03 10:54:50 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -1103,38 +1103,12 @@ sub Header
     if ( $cookieFlag )
     {
 	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, *cookieList,
-		    $expire );
+	    $expire );
     }
     else
     {
 	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0, undef, 0 );
     }
-}
-
-
-###
-## LinkTagWithAuth - create A tag format.
-#
-# - SYNOPSIS
-#	LinkTagWithAuth( $url, $markUp );
-#
-# - ARGS
-#	$url		URL.
-#	$markUp		markup-ed text.
-#
-# - DESCRIPTION
-#	create A tag format from given data.
-#	for authentication, 'kinoU=...' and 'kinoP=...' is added.
-#
-# - RETURN
-#	formatted string.
-#
-sub LinkTagWithAuth
-{
-    local( $url, $markUp ) = @_;
-    local( $urlStr ) = $url . ( grep( /\?/, $url ) ? '&' : '?' ) .
-	"kinoU=$UID&kinoP=$PASSWD";
-    "<a href=\"$urlStr\">$markUp</a>";
 }
 
 
