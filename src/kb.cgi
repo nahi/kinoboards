@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl
+#!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.5 1996-04-25 11:58:51 nakahiro Exp $
+# $Id: kb.cgi,v 4.6 1996-04-25 13:07:32 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -2395,7 +2395,7 @@ sub ShowFormattedLinkToFollowedArticle {
 	} else {
 	    printf("<strong>$H_REPLY</strong> [$BoardName: $Src] <img src=\"%s\" alt=\"$Icon\"><a href=\"$Link\">$Subject</a><br>\n", &GetIconURL($Icon));
 	}
-    } elsif ($Src ne '') {
+    } elsif ($Src =~ /^http:/) {
 	print("<strong>$H_REPLY</strong> <a href=\"$Link\">$Link</a><br>\n");
     }
 }
