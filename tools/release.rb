@@ -54,6 +54,7 @@ end
 
 # create test board
 `cp -pr KB/kbdata/board KB/kbdata/test`
+`cat KB/kbdata/board/kb.board | sed 's/board/test/g' > KB/kbdata/test/kb.board`
 
 # create logdir
 `mkdir KB/kbdata/log`
