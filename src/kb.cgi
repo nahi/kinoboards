@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.16 1998-11-05 18:28:12 nakahiro Exp $
+# $Id: kb.cgi,v 5.17 1998-11-05 22:03:59 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-98 NAKAMURA Hiroshi.
@@ -3255,6 +3255,7 @@ sub GetBoardHeader
     while ( <HEADER> )
     {
 	s/__PROGRAM__/$PROGRAM/g;
+	s/__BOARD__/$Board/g;
 	push( @BoardHeader, $_ );
     }
     close HEADER;
