@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.3 1998-09-14 16:43:29 nakahiro Exp $
+# $Id: cgi.pl,v 2.4 1998-09-14 19:32:13 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -96,7 +96,8 @@ $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $PATH_INFO = $ENV{'PATH_INFO'};
 $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 
-if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO )) {
+if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO ))
+{
     $PATH_INFO = '';
     $PATH_TRANSLATED = '';
 }
@@ -111,33 +112,40 @@ $PROGRAM = ( $PATH_INFO ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME" );
 #
 
 # ロック
-sub lock {
+sub lock
+{
     local( $lockFile ) = @_;
 
-    if ( $] =~ /^5/o ) {
+    if ( $] =~ /^5/o )
+    {
 	# for perl5
 	return &lock_flock( $lockFile );
     }
-    else {
+    else
+    {
 	# for perl4
 	return &lock_link( $lockFile );
     }
 }
 
 # アンロック
-sub unlock {
-    if ( $] =~ /^5/o ) {
+sub unlock
+{
+    if ( $] =~ /^5/o )
+    {
 	# for perl5
 	&unlock_flock;
     }
-    else {
+    else
+    {
 	# for perl4
 	&unlock_link( @_ );
     }
 }
 
 # lock with symlink
-sub lock_link {
+sub lock_link
+{
     local( $lockFile ) = @_;
 
     local( $lockWait ) = 10;		# [sec]
@@ -150,7 +158,8 @@ sub lock_link {
 
     unlink( $lockFile ) if ( -M "$lockFile" > $lockFileTimeout );
 
-    for ( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
+    for ( $timeOut = 0; $timeOut < $lockWait; $timeOut++ )
+    {
 	open( LOCKORG, ">$lockFile.org" ) || return( 0 );
 	close( LOCKORG );
 	$lockFlag = 1, last if ( link( "$lockFile.org", $lockFile ));
@@ -161,24 +170,23 @@ sub lock_link {
     $lockFlag;
 }
 
-sub unlock_link {
+sub unlock_link
+{
     local( $lockFile ) = @_;
-
     unlink( $lockFile );
 }
 
 # lock with flock.
-sub lock_flock {
+sub lock_flock
+{
     local( $lockFile ) = @_;
-
     local( $LockEx, $LockUn ) = ( 2, 8 );
     open( LOCK, ">>$lockFile" ) || return 2;
     flock( LOCK, $LockEx ) || return 0;
-
     1;
 }
-sub unlock_flock {
-
+sub unlock_flock
+{
     local( $LockEx, $LockUn ) = ( 2, 8 );
     flock( LOCK, $LockUn );
     close( LOCK );
@@ -190,17 +198,21 @@ sub unlock_flock {
 #
 # $ENV{'SERVER_PROTOCOL'} 200 OK
 # Server: $ENV{'SERVER_SOFTWARE'}
-sub Header {
-    local( $utcFlag, $utcStr, $cookieFlag, $cookieStr, $cookieExpire ) = @_;
-
+sub Header
+{
+    local( $utcFlag, $utcStr, $cookieFlag, *cookieStr, $cookieExpire ) = @_;
     print( "Content-type: text/html; charset=" . $CHARSET_MAP{ $CHARSET } . "\n" );
     $cgiprint'CHARSET = $CHARSET;
 
     # Header for HTTP Cookies.
-    if ( $cookieFlag ) {
-	print( "Set-Cookie: $cookieStr;" );
-	print( " expires=$HTTP_COOKIES_NEVER_EXPIRED;" ) if ( !$cookieExpire );
-	print( "\n" );
+    if ( $cookieFlag )
+    {
+	foreach ( @cookieStr )
+	{
+	    print( "Set-Cookie: $_;" );
+	    print( " expires=$HTTP_COOKIES_NEVER_EXPIRED;" ) if ( !$cookieExpire );
+	    print( "\n" );
+	}
     }
 
     # Header for Last-Modified.
@@ -215,12 +227,11 @@ sub Header {
 ###
 ## format as HTTP Date/Time
 #
-sub GetHttpDateTimeFromUtc {
+sub GetHttpDateTimeFromUtc
+{
     local( $utc ) = @_;
-
     $utc = 0 if ( $utc !~ /^\d+$/ );
     local( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime( $utc );
-
     sprintf( "%s, %02d-%s-%02d %02d:%02d:%02d GMT", ( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' )[ $wday ], $mday, ( 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' )[ $mon ], $year, $hour, $min, $sec );
 }
 
@@ -229,28 +240,32 @@ sub GetHttpDateTimeFromUtc {
 ## CGI変数のデコード
 ## CAUTION! functioon decode sets global variable, TAGS.
 #
-sub Decode {
-
+sub Decode
+{
     local( $args, $readSize, $key, $term, $value, $encode );
-
-    if ( $ENV{ 'REQUEST_METHOD' } eq "POST" ) {
+    if ( $ENV{ 'REQUEST_METHOD' } eq "POST" )
+    {
 	$readSize = read( STDIN, $args, $ENV{ 'CONTENT_LENGTH' } );
 	$args = '' if ( $readSize != $ENV{ 'CONTENT_LENGTH' } );
     }
-    else {
+    else
+    {
 	$args = $ENV{ 'QUERY_STRING' };
     }
 
-    foreach $term ( split( '&', $args )) {
+    foreach $term ( split( '&', $args ))
+    {
 	( $key, $value ) = split( /=/, $term, 2 );
 	$value =~ tr/+/ /;
 	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack( "C", hex( $1 ))/ge;
 	$encode = &jcode'getcode( *value );
 
-	if ( !defined( $encode )) {
+	if ( !defined( $encode ))
+	{
 	    $TAGS{ $key } = $value;
 	}
-	else {
+	else
+	{
 	    &jcode'convert( *value, 'euc', $encode, "z" );
 	    $TAGS{ $key } = $value;
 	}
@@ -264,10 +279,11 @@ sub Decode {
 ###
 ## HTTP Cookiesのデコード
 #
-sub Cookie {
-
+sub Cookie
+{
     local( $key, $value, $term );
-    foreach $term ( split( ";\s*", $ENV{ 'HTTP_COOKIE' })) {
+    foreach $term ( split( /;\s*/, $ENV{ 'HTTP_COOKIE' }))
+    {
 	( $key, $value ) = split( /=/, $term, 2 );
 	$COOKIES{ $key } = $value;
     }
@@ -299,9 +315,9 @@ sub Cookie {
 # - RETURN
 #	1 if succeed, 0 if failed.
 #
-sub SendMail {
+sub SendMail
+{
     local( $fromName, $fromEmail, $subject, $extension, $message, @to ) = @_;
-
     local( $labelTo ) = '';
     local( $header, $body );
 
@@ -322,7 +338,8 @@ sub SendMail {
     # from
     &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) || return 0;
     # rcpt to
-    foreach ( @to ) {
+    foreach ( @to )
+    {
 	&smtpMsg( "S", "rcpt to: <$_>$CRLF" ) || return 0;
     }
     # data block
@@ -362,13 +379,14 @@ sub SendMail {
 # - RETURN
 #	1 if succeed, 0 if failed.
 #
-sub sendMail {
+$SMTP_ERRSTR = '';
+sub sendMail
+{
     local( $fromName, $fromEmail, $subject, $extension, $message, $labelTo,
 	@to ) = @_;
-
     local( $header, $body );
 
-    return 0 if ( !( $fromEmail && $subject && $message && @to ));
+    return( 0, '' ) if ( !( $fromEmail && $subject && $message && @to ));
 
     # creating header
     $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension,
@@ -378,22 +396,23 @@ sub sendMail {
     $body = &smtpBody( *message );
 
     # initialize connection
-    &smtpInit( "S" ) || return 0;
+    &smtpInit( "S" ) || return( 0, $SMTP_ERRSTR );
 
     # helo!
-    &smtpMsg( "S", "helo $SERVER_NAME$CRLF" ) || return 0;
+    &smtpMsg( "S", "helo $SERVER_NAME$CRLF" ) || return( 0, $SMTP_ERRSTR );
     # from
-    &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) || return 0;
+    &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) || return( 0, $SMTP_ERRSTR );
     # rcpt to
-    foreach ( @to ) {
-	&smtpMsg( "S", "rcpt to: <$_>$CRLF" ) || return 0;
+    foreach ( @to )
+    {
+	&smtpMsg( "S", "rcpt to: <$_>$CRLF" ) || return( 0, $SMTP_ERRSTR );
     }
     # data block
-    &smtpMsg( "S", "data$CRLF" ) || return 0;
+    &smtpMsg( "S", "data$CRLF" ) || return( 0, $SMTP_ERRSTR );
     # mail header and body
-    &smtpMsg( "S", "$header$CRLF$body" . ".$CRLF" ) || return 0;
+    &smtpMsg( "S", "$header$CRLF$body" . ".$CRLF" ) || return( 0, $SMTP_ERRSTR );
     # quit
-    &smtpMsg( "S", "quit$CRLF" ) || return 0;
+    &smtpMsg( "S", "quit$CRLF" ) || return( 0, $SMTP_ERRSTR );
 
     # success!
     1;
@@ -417,7 +436,8 @@ sub sendMail {
 # - RETURN
 #	header string.
 #
-sub smtpHeader {
+sub smtpHeader
+{
     local( *fromName, *fromEmail, *subject, *extension, *labelTo, *to ) = @_;
 
     local( $header, $from, $encode );
@@ -435,12 +455,14 @@ sub smtpHeader {
 
     # creating header
     $header = "To: ";
-    if ( $labelTo ) {
+    if ( $labelTo )
+    {
 	$encode = &jcode'getcode( *labelTo );
 	$labelTo = &main'mimeencode( $labelTo ) if ( defined( $encode ));
 	$header .= "$labelTo$CRLF";
     }
-    else {
+    else
+    {
 	# should we encode those with MIME Base64?
 	$header .= join( ",$CRLF\t", @to );
 	$header .= $CRLF;
@@ -450,7 +472,8 @@ sub smtpHeader {
     $header .= "Sendar: $from$CRLF";
     $header .= "Subject: $subject$CRLF";
     $header .= "Content-type: text/plain; charset=ISO-2022-JP$CRLF";
-    if ( $extension ) {
+    if ( $extension )
+    {
 	$header .= join( $CRLF, split( /\n/, $extension ));
 	$header .= $CRLF;
     }
@@ -475,13 +498,13 @@ sub smtpHeader {
 # - RETURN
 #	body string.
 #
-sub smtpBody {
+sub smtpBody
+{
     local( *message ) = @_;
-
     local( $body ) = '';
-
     &jcode'convert( *message, 'jis' );
-    foreach ( split( /\n/, $message )) {
+    foreach ( split( /\n/, $message ))
+    {
 	s/^\.$/\.\./o;		# `.' is the end of the message.
 	$body .= "$_$CRLF";
     }
@@ -506,9 +529,9 @@ sub smtpBody {
 # - RETURN
 #	1 if succeed, 0 if failed.
 #
-sub smtpInit {
+sub smtpInit
+{
     local( $sh ) = @_;
-
     local( $sockAddr ) = 'S n a4 x8';
     local( $smtpPort ) = 'smtp';		# 25
     local( $proto, $port, $smtpAddr, $sock, $oldStream );
@@ -517,18 +540,32 @@ sub smtpInit {
     $proto = ( getprotobyname( 'tcp' ))[2];
     $port = ( $smtpPort =~ /^\d+$/ ) ? $smtpPort : ( getservbyname( $smtpPort,
 	'tcp' ))[2];
-    if ( $SMTP_SERVER =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ ) {
+    if ( $SMTP_SERVER =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ )
+    {
 	$smtpAddr = pack( 'C4', $1, $2, $3, $4 );
     }
-    else {
+    else
+    {
 	$smtpAddr = ( gethostbyname( $SMTP_SERVER ))[4];
     }
-    return 0 if ( !$smtpAddr );
+    if ( !$smtpAddr )
+    {
+	$SMTP_ERRSTR = 'cannot find IP addr of my smtp server.';
+	return 0;
+    }
     $sock = pack( $sockAddr, $AF_INET, $port, $smtpAddr );
 
     # create connection...
-    socket( $sh, $AF_INET, $SOCK_STREAM, $proto ) || return 0;
-    connect( $sh, $sock ) || return 0;
+    if ( !socket( $sh, $AF_INET, $SOCK_STREAM, $proto ))
+    {
+	$SMTP_ERRSTR = 'create socket failed.';
+	return 0;
+    }
+    if ( !connect( $sh, $sock ))
+    {
+	$SMTP_ERRSTR = 'create connection failed.';
+	return 0;
+    }
     $oldStream = select( $sh ); $| = 1; select( $oldStream );
 
     # check the result code of the connection
@@ -556,18 +593,20 @@ sub smtpInit {
 # - RETURN
 #	1 if succeed, 0 if failed.
 #
-sub smtpMsg {
+sub smtpMsg
+{
     local( $sh, $message ) = @_;
-
     local( $back );
-
     print( $sh $message ) if $message;
     $back = <${sh}>;
-    if ( $back =~ /^[45]/o ) {
+    if ( $back =~ /^[45]/o )
+    {
 	close( $sh );
+	$SMTP_ERRSTR = $back;
 	return 0;
     }
-    else {
+    else
+    {
 	return 1;
     }
 }
@@ -583,14 +622,16 @@ sub smtpMsg {
 $F_HTML_TAGS_PARSED = 0;
 %NEED = %FEATURE = ();
 
-sub SecureHtml {
+sub SecureHtml
+{
     local( *string ) = @_;
-
     local( $srcString, $tag, $need, $feature, $markuped );
 
     # HTML_TAGSの解析（一度だけ実施）
-    if ( $F_HTML_TAGS_PARSED != 1 ) {
-	while( @HTML_TAGS ) {
+    if ( $F_HTML_TAGS_PARSED != 1 )
+    {
+	while( @HTML_TAGS )
+	{
 	    $tag = shift( @HTML_TAGS );
 	    $NEED{ $tag } = shift( @HTML_TAGS );
 	    $FEATURE{ $tag } = shift( @HTML_TAGS );
@@ -599,21 +640,26 @@ sub SecureHtml {
     }
 
     $string =~ s/\\>/__EscapedGt\376__/go;
-    while (( $tag, $need ) = each( %NEED )) {
+    while (( $tag, $need ) = each( %NEED ))
+    {
 	$srcString = $string;
 	$string = '';
-	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~
-		m!<$tag()>!i) ) {
+	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~ m!<$tag()>!i) )
+	{
 	    $srcString = $';
 	    $string .= $`;
-	    if ( $1 ) {
+	    if ( $1 )
+	    {
 		( $feature = " $1" ) =~ s/\\"/__EscapedQuote\376__/go;
 	    }
-	    else {
+	    else
+	    {
 		$feature = '';
 	    }
-	    if ( &SecureFeature( $tag, $FEATURE{ $tag }, $feature )) {
-		if ( $srcString =~ m!</$tag>!i ) {
+	    if ( &SecureFeature( $tag, $FEATURE{ $tag }, $feature ))
+	    {
+		if ( $srcString =~ m!</$tag>!i )
+		    {
 		    $srcString = $';
 		    $markuped = $`;
 		    $feature =~ s/&/__amp\376__/go;
@@ -621,17 +667,20 @@ sub SecureHtml {
 		    $string .= "__$tag Open$feature\376__" . $markuped .
 			"__$tag Close\376__";
 		}
-		elsif ( !$need ) {
+		elsif ( !$need )
+		{
 		    $feature =~ s/&/__amp\376__/go;
 		    $feature =~ s/"/__quot\376__/go;
 		    $string .= "__$tag Open$feature\376__";
 		}
-		else {
+		else
+		{
 		    $string .= "<$tag$feature>" . $srcString;
 		    last;
 		}
 	    }
-	    else {
+	    else
+	    {
 		$string .= "<$tag$feature>";
 	    }
 	}
@@ -643,7 +692,8 @@ sub SecureHtml {
     $string =~ s/"/&quot;/g;
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;
-    while (( $tag, $need ) = each( %NEED )) {
+    while (( $tag, $need ) = each( %NEED ))
+    {
         $string =~ s!__$tag Open([^\376]*)\376__!<$tag$1>!g;
         $string =~ s!__$tag Close\376__!</$tag>!g;
 	$string =~ s!__amp\376__!&!go;
@@ -655,19 +705,21 @@ sub SecureHtml {
 ###
 ## Featureは安全か?
 #
-sub SecureFeature {
+sub SecureFeature
+{
     local( $tag, $allowedFeatures, $features ) = @_;
-
     local( @allowed, $feature, $ret );
 
     return 1 unless ( $features );
     @allowed = split( /\//, $allowedFeatures );
     $ret = 1;
 
-    while ( $features ) {
+    while ( $features )
+    {
 	$feature = &GetFeatureName( *features );
 	$value = &GetFeatureValue( *features );
-	if ( !$value ) {
+	if ( !$value )
+	{
 	    $value = $features;
 	    $features = '';
 	}
@@ -680,7 +732,8 @@ sub SecureFeature {
 ###
 ## Feature名を取得
 #
-sub GetFeatureName {
+sub GetFeatureName
+{
     local( *string ) = @_;
     $string = '' unless ( $string =~ s/^\s*([^=\s]*)\s*=\s*"// );
     $1;
@@ -690,7 +743,8 @@ sub GetFeatureName {
 ###
 ## Featureの値を取得
 #
-sub GetFeatureValue {
+sub GetFeatureValue
+{
     local( *string ) = @_;
     $string = '' unless ( $string =~ s/^([^"]*)"// );
     $1;
@@ -750,28 +804,33 @@ $F_COOKIE_RESET = "CookieReset\376";
 #		3 ... $user was not found in DB.
 #		4 ... password incorrect.
 #
-sub CheckUser {
+sub CheckUser
+{
     local( $userdb ) = @_;
-
-    if ( $AUTH_TYPE == 1 ) {
+    if ( $AUTH_TYPE == 1 )
+    {
 	# with HTTP-Cookies
 
-	if ( $cgi'TAGS{'kinoU'} ) {
+	if ( $cgi'TAGS{'kinoU'} )
+	{
 	    # authentication data in TAGS.
 	    return( &CheckUserPasswd( $userdb, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} ));
 	}
-	elsif ( $cgi'COOKIES{'kinoauth'} ) {
+	elsif ( $cgi'COOKIES{'kinoauth'} )
+	{
 	    # authentication succeed if HTTP-Cookie was set.
 	    return( &GetUserInfo( $userdb, $cgi'COOKIES{'kinoauth'} ));
 	}
     }
-    elsif (( $AUTH_TYPE == 2 ) && $cgi'REMOTE_USER ) {
+    elsif (( $AUTH_TYPE == 2 ) && $cgi'REMOTE_USER )
+    {
 	# with Server Authentication
 
 	# authentication successes if REMOTE_USER was set.
 	return( &GetUserInfo( $userdb, $cgi'REMOTE_USER ));
     }
-    elsif ( $cgi'TAGS{'kinoU'} ) {
+    elsif ( $cgi'TAGS{'kinoU'} )
+    {
 	# with direct URL Authentication
 
 	# authentication data in TAGS.
@@ -806,7 +865,8 @@ sub CheckUser {
 #		2 ... cannot open DB file.
 #		3 ... $uid was not found in DB.
 #
-sub GetUserInfo {
+sub GetUserInfo
+{
     local( $userdb, $user ) = @_;
 
     # no password check.
@@ -829,7 +889,8 @@ sub GetUserInfo {
 # - RETURN
 #	1 if succeed. 0 if failed.
 #
-sub CreateUserDb {
+sub CreateUserDb
+{
     local( $userdb ) = @_;
 
     # already exists.
@@ -840,8 +901,8 @@ sub CreateUserDb {
     close( USERDB );
 
     # add guest user with no passwd.
-    if ( !defined( &AddUser( $userdb, $ADMIN, '', ())) ||
-	!defined( &AddUser( $userdb, $GUEST, '', ()))) {
+    if ( !defined( &AddUser( $userdb, $ADMIN, '', ())) || !defined( &AddUser( $userdb, $GUEST, '', ())))
+    {
 	unlink( $userdb );
 	return( 0 );
     }
@@ -870,15 +931,18 @@ sub CreateUserDb {
 #	1 if failed ( user entry duplicated ).
 #	2 if failed ( unknown ).
 #
-sub AddUser {
+sub AddUser
+{
     local( $userdb, $user, $passwd, @userInfo ) = @_;
     local( $id, $newLine );
     local( $dId, $dUser );
 
     open( USERDB, "<$userdb" ) || return 2;
-    while( <USERDB> ) {
+    while( <USERDB> )
+    {
 	( $dId, $dUser ) = split( /\t/, $_, 3 );
-	if ( $dUser eq $user ) {
+	if ( $dUser eq $user )
+	{
 	    close( USERDB );
 	    return 1;
 	}
@@ -914,7 +978,8 @@ sub AddUser {
 #	returns 1 if succeed.
 #	0 if failed.
 #
-sub SetUserPasswd {
+sub SetUserPasswd
+{
     local( $userdb, $user, $passwd ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
@@ -922,16 +987,19 @@ sub SetUserPasswd {
 
     open( USERDBTMP, ">$tmpFile" ) || return( 0 );
     open( USERDB, "<$userdb" ) || return( 0 );
-    while( <USERDB> ) {
+    while( <USERDB> )
+    {
 	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
 	chop;
 	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, $dInfo ) = split( /\t/, $_ );
 
-	if ( $dUser eq $user ) {
+	if ( $dUser eq $user )
+	{
 	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dAddTime, $dAddHost, ( substr( crypt( $passwd, $dId ), 2 )), $dInfo );
 	    $found = 1;
 	}
-	else {
+	else
+	{
 	    print( USERDBTMP $_ . "\n" );
 	}
     }
@@ -962,7 +1030,8 @@ sub SetUserPasswd {
 #	returns 1 if succeed.
 #	0 if failed.
 #
-sub SetUserInfo {
+sub SetUserInfo
+{
     local( $userdb, $user, @userInfo ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
@@ -970,16 +1039,19 @@ sub SetUserInfo {
 
     open( USERDBTMP, ">$tmpFile" ) || return( 0 );
     open( USERDB, "<$userdb" ) || return( 0 );
-    while( <USERDB> ) {
+    while( <USERDB> )
+    {
 	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
 	chop;
 	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo ) = split( /\t/, $_ );
 
-	if ( $dUser eq $user ) {
+	if ( $dUser eq $user )
+	{
 	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, join( "\t", @userInfo ));
 	    $found = 1;
 	}
-	else {
+	else
+	{
 	    print( USERDBTMP $_ . "\n" );
 	}
     }
@@ -1013,22 +1085,27 @@ sub SetUserInfo {
 # - RETURN
 #	nothing.
 #
-sub Header {
+sub Header
+{
     local( $lastModifiedP, $lastModifiedTime, $user, $cookieExpire ) = @_;
 
-    if ( $user eq '' ) {
+    if ( $user eq '' )
+    {
 	# no cookies
 	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0 );
     }
-    elsif ( $user eq $F_COOKIE_RESET ) {
+    elsif ( $user eq $F_COOKIE_RESET )
+    {
 	# not numeric. reset.
 	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, "kinoauth=", $cookieExpire );
     }
-    elsif ( $UID eq $cgi'COOKIES{'kinoauth'} ) {
+    elsif ( $UID eq $cgi'COOKIES{'kinoauth'} )
+    {
 	# no cookies
 	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0 );
     }
-    else {
+    else
+    {
 	# set
 	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, "kinoauth=$UID", $cookieExpire );
     }
@@ -1054,7 +1131,8 @@ sub Header {
 # - RETURN
 #	formatted string.
 #
-sub LinkTagWithAuth {
+sub LinkTagWithAuth
+{
     local( $url, $markUp, $uid, $passwd ) = @_;
     local( $urlStr ) = $url . ( grep( /\?/, $url ) ? '&' : '?' ) .
 	"kinoU=$uid&kinoP=$passwd";
@@ -1088,30 +1166,36 @@ sub LinkTagWithAuth {
 #		3 ... $user was not found in DB.
 #		4 ... password incorrect.
 #
-sub CheckUserPasswd {
+sub CheckUserPasswd
+{
     local( $userdb, $user, $passwd ) = @_;
     local( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo );
 
     return( 1 ) if ( !$user );
 
     open( USERDB, "<$userdb" ) || return( 2 );
-    while( <USERDB> ) {
+    while( <USERDB> )
+    {
 	next if ( /^\#/o || /^$/o );
 	chop;
 	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo ) = split( /\t/, $_ );
 
-	if ( $dUser eq $user ) {
+	if ( $dUser eq $user )
+	{
 	    close( USERDB );
-	    if (( $passwd eq $dPasswd ) || ( substr( crypt( $passwd, $dId ), 2 ) eq $dPasswd )) {
+	    if (( $passwd eq $dPasswd ) || ( substr( crypt( $passwd, $dId ), 2 ) eq $dPasswd ))
+	    {
 		$UID = $dId;
 		return( 0, $dUser, $dPasswd, @dInfo );
 	    }
 	    return( 4 );
 	}
 
-	if ( $dId eq $user ) {
+	if ( $dId eq $user )
+	{
 	    close( USERDB );
-	    if ( !defined( $passwd )) {
+	    if ( !defined( $passwd ))
+	    {
 		$UID = $dId;
 		return( 0, $dUser, $dPasswd, @dInfo );
 	    }
@@ -1141,12 +1225,14 @@ sub CheckUserPasswd {
 #	returns generated new user id.
 #	undef if failed.
 #
-sub NewId {
+sub NewId
+{
     local( $userdb ) = @_;
     local( $dId, $maxId );
     $maxId = 0;
     open( USERDB, "<$userdb" ) || return( undef );
-    while( <USERDB> ) {
+    while( <USERDB> )
+    {
 	next if ( /^\#/o || /^$/o );
 	chop;
 	( $dId = $_ ) =~ s/\t.*$//o;
@@ -1172,11 +1258,13 @@ sub NewId {
 # - RETURN
 #	returns created password.
 #
-sub CreateNewPasswd {
+sub CreateNewPasswd
+{
     local( $passwd, $n );
     local( $i ) = $DEFAULT_PASSWD_LENGTH;
 
-    while( --$i >= 0 ) {
+    while( --$i >= 0 )
+    {
 	$n = 97 + int( rand( 36 ));
 	$n = $n - 75 if ( $n >= 123 );
 	$passwd .= sprintf( "%c", $n );
@@ -1197,12 +1285,14 @@ $CHARSET = 'jis';
 
 sub Init { $STR = ''; }
 
-sub Cache {
+sub Cache
+{
     $STR .= shift;
     &Flush if ( length( $STR ) > $BUFLIMIT );
 }
 
-sub Flush {
+sub Flush
+{
     &jcode'convert( *STR, $CHARSET );
     print( $STR );
     &Init;
