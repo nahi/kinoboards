@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl
+#!/usr/local/bin/perl4.036a-debug
 #
-# $Id: kb.cgi,v 5.5 1997-11-26 09:41:07 nakahiro Rel $
+# $Id: kb.cgi,v 5.6 1997-12-16 12:24:30 nakahiro Rel $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -30,7 +30,27 @@ $[ = 0;				# zero origined
 $| = 1;				# pipe flushed
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '5.2';		# release
+$KB_RELEASE = '5.3';		# release
+
+# ディレクトリ
+$ICON_DIR = 'icons';				# アイコンディレクトリ
+$UI_DIR = 'UI';					# UIディレクトリ
+
+# ファイル
+$BOARD_ALIAS_FILE = 'kinoboards';		# 掲示板DB
+$CONF_FILE_NAME = 'kb.conf';			# 掲示板別configuratinファイル
+$ARRIVEMAIL_FILE_NAME = '.kbmail';		# 掲示板別新規メイル送信先DB
+$BOARD_FILE_NAME = '.board';			# タイトルリストヘッダDB
+$DB_FILE_NAME = '.db';				# 記事DB
+$ARTICLE_NUM_FILE_NAME = '.articleid';		# 記事番号DB
+$USER_ALIAS_FILE = 'kinousers';			# ユーザDB
+$DEFAULT_ICONDEF = 'all.idef';			# アイコンDB
+$LOCK_FILE = '.lock.kb';			# ロックファイル
+## $LOCK_FILE = 'kb.lock';				# ロックファイル
+$LOGFILE = 'kb.klg';				# ログファイル
+# Suffix
+$TMPFILE_SUFFIX = 'tmp';			# DBテンポラリファイルのSuffix
+$ICONDEF_POSTFIX = 'idef';			# アイコンDBファイルのSuffix
 
 # ヘッダファイルの読み込み
 if ( -s "$HEADER_FILE" ) { require( $HEADER_FILE ); }
@@ -44,12 +64,19 @@ if ( $cgi'PATH_TRANSLATED ne '' ) {
     if ( !chdir( $cgi'PATH_TRANSLATED )) {
 	die( "cannot chdir to `$cgi'PATH_TRANSLATED'" );
     }
-    if ( -s "cgi'$HEADER_FILE" ) { require( $HEADER_FILE ); }
+    if ( -s "$HEADER_FILE" ) { require( $HEADER_FILE ); }
+}
+
+# socket.ph
+if ( $SYS_MAIL && ( !defined( $AF_INET ) || !defined( $SOCK_STREAM ))) {
+    eval( "require( \"socket.ph\" );" ) || &Fatal( 13, '' );
 }
 
 # 読み込みファイルの設定に応じた大域変数の設定
 $cgi'ARCH = $ARCH;
-$cgi'MAIL2 = $MAIL2;
+$cgi'SMTP_SERVER = $SMTP_SERVER;
+$cgi'AF_INET = $AF_INET;
+$cgi'SOCK_STREAM = $SOCK_STREAM;
 $kinologue'SEV_THRESHOLD = $kinologue'SEV_WARN;
 
 $PROGNAME = $cgi'CGIPROG_NAME;
@@ -65,24 +92,6 @@ if ( $TIME_ZONE ) { $ENV{'TZ'} = $TIME_ZONE; }
 if ( $BOARDLIST_URL eq '-' ) { $BOARDLIST_URL = "$PROGRAM?c=bl"; }
 $ADDRESS = sprintf("Maintenance: <a href=\"mailto:%s\">%s</a><br><a href=\"http://www.kinotrope.co.jp/~nakahiro/kb10.shtml\">KINOBOARDS/%s R%s</a>: Copyright (C) 1995, 96, 97 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.", $MAINT, $MAINT_NAME, $KB_VERSION, $KB_RELEASE);
 
-# ディレクトリ
-$ICON_DIR = 'icons';				# アイコンディレクトリ
-# ファイル
-$BOARD_ALIAS_FILE = 'kinoboards';		# 掲示板DB
-$CONF_FILE_NAME = '.kbconf';			# 掲示板別configuratinファイル
-$ARRIVEMAIL_FILE_NAME = '.kbmail';		# 掲示板別新規メイル送信先DB
-$BOARD_FILE_NAME = '.board';			# タイトルリストヘッダDB
-$DB_FILE_NAME = '.db';				# 記事DB
-$ARTICLE_NUM_FILE_NAME = '.articleid';		# 記事番号DB
-$USER_ALIAS_FILE = 'kinousers';			# ユーザDB
-$DEFAULT_ICONDEF = 'all.idef';			# アイコンDB
-$LOCK_FILE = '.lock.kb';			# ロックファイル
-## $LOCK_FILE = 'kb.lock';				# ロックファイル
-$LOGFILE = 'kb.klg';				# ログファイル
-# Suffix
-$TMPFILE_SUFFIX = 'tmp';			# DBテンポラリファイルのSuffix
-$ICONDEF_POSTFIX = 'idef';			# アイコンDBファイルのSuffix
-
 # アイコンファイル相対URL
 $ICON_BLIST = "$ICON_DIR/blist.gif";		# 掲示板一覧へ
 $ICON_TLIST = "$ICON_DIR/tlist.gif";		# タイトル一覧へ
@@ -97,9 +106,8 @@ $ICON_DELETE = "$ICON_DIR/delete.gif";		# 削除
 $ICON_SUPERSEDE = "$ICON_DIR/supersede.gif";	# 訂正
 
 # シグナルハンドラ
-$SIG{'INT'} = 'DEFAULT';
 $SIG{'QUIT'} = 'IGNORE';
-$SIG{'HUP'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
+$SIG{'INT'} = $SIG{'HUP'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
 sub DoKill {
     local( $sig ) = @_;
     &cgi'unlock( $LOCK_FILE );
@@ -130,62 +138,210 @@ sub DoKill {
 #
 MAIN: {
 
-    local( $boardConfFile, $c, $com, $lockResult );
-
-    $lockResult = &cgi'lock( $LOCK_FILE );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
+    local( $boardConfFileP, $c, $com );
 
     # 標準入力(POST)または環境変数(GET)のデコード．
     &cgi'Decode;
 
-    # 頻繁に使うので大域変数を使う(汚ない)
-    $BOARDNAME = &GetBoardInfo( $BOARD = $cgi'TAGS{'b'} );
-    # セキュリティのため，一応，ね．
-    if ( $BOARDNAME =~ m!/!o ) { &Fatal( 11, $BOARDNAME ); }
+    # 頻繁に使うので大域変数を使う
+    # このファイルは読み込みのみなのでロックは要らない
+    if ( $BOARD = $cgi'TAGS{'b'} ) {
+	( $BOARDNAME, $boardConfFileP ) = &GetBoardInfo( $BOARD );
+	if ( $BOARDNAME =~ m!/!o ) { &Fatal( 11, $BOARDNAME ); }
+    }
 
     # 掲示板固有セッティングを読み込む
-    $boardConfFile = &GetPath( $BOARD, $CONF_FILE_NAME );
-    if ( -s "$boardConfFile" ) { require( "$boardConfFile" ); }
-
-    # DBを大域変数にキャッシュ
-    if ( $BOARD ) { &DbCash( $BOARD ); }
+    if ( $boardConfFileP ) {
+	local( $boardConfFile ) = &GetPath( $BOARD, $CONF_FILE_NAME );
+	eval( "require( \"$boardConfFile\" );" ) || &Fatal( 1, $boardConfFile );
+    }
 
     # 値の抽出
     $c = $cgi'TAGS{'c'};
     $com = $cgi'TAGS{'com'};
 
     # コマンドタイプによる分岐
-    &ShowArticle,	last if ( $c eq 'e' );
-    &ThreadArticle,	last if ( $SYS_F_T && ( $c eq 't' ));
-    &Entry( 0 ),	last if ( $SYS_F_N && ( $c eq 'n' ));
-    &Entry( 1 ),	last if ( $SYS_F_N && ( $c eq 'f' ));
-    &Entry( 2 ),	last if ( $SYS_F_N && ( $c eq 'q' ));
-    &Preview,		last if ( $SYS_F_N && ( $c eq 'p' ) && ( $com ne 'x' ));
-    &Thanks,		last if ( $SYS_F_N && ( $c eq 'x' ));
-    &Thanks,		last if ( $SYS_F_N && ( $c eq 'p' ) && ( $com eq 'x' ));
-    &ViewTitle( 0 ),	last if ( $c eq 'v' );
-    &SortArticle,	last if ( $SYS_F_R && ( $c eq 'r' ));
-    &NewArticle,	last if ( $SYS_F_L && ( $c eq 'l' ));
-    &SearchArticle,	last if ( $SYS_F_S && ( $c eq 's' ));
-    &ShowIcon,		last if ( $c eq 'i' );
-    &AliasNew,		last if ( $SYS_ALIAS && ( $c eq 'an' ));
-    &AliasMod,		last if ( $SYS_ALIAS && ( $c eq 'am' ));
-    &AliasDel,		last if ( $SYS_ALIAS && ( $c eq 'ad' ));
-    &AliasShow,		last if ( $SYS_ALIAS && ( $c eq 'as' ));
-    &BoardList,		last if ( $SYS_F_B && ( $c eq 'bl' ));
+
+    ### View - 木構造表示
+    if ( $c eq 'tr' ) {
+	$gVarComType = 0;
+	require( &GetPath( $UI_DIR, 'View.pl' ));
+	last;
+    }
+
+    ### ShowArticle - 単一記事の表示
+    if ( $c eq 'e' ) {
+	require( &GetPath( $UI_DIR, 'ShowArticle.pl' ));
+	last;
+    }
+
+    ### ThreadArticle - フォロー記事を全て表示．
+    if ( $SYS_F_T && ( $c eq 't' )) {
+	require( &GetPath( $UI_DIR, 'ThreadArticle.pl' ));
+	last;
+    }
+
+    if ( $SYS_F_N ) {
+	### Entry - 書き込み画面の表示
+	if ( $c eq 'n' ) {
+	    $gVarQuoteFlag = 0;
+	    require( &GetPath( $UI_DIR, 'Entry.pl' ));
+	    last;
+	}
+	if ( $c eq 'f' ) {
+	    $gVarQuoteFlag = 1;
+	    require( &GetPath( $UI_DIR, 'Entry.pl' ));
+	    last;
+	}
+	if ( $c eq 'q' ) {
+	    $gVarQuoteFlag = 2;
+	    require( &GetPath( $UI_DIR, 'Entry.pl' ));
+	    last;
+	}
+
+	### Preview - プレビュー画面の表示
+	if (( $c eq 'p' ) && ( $com ne 'x' )) {
+	    require( &GetPath( $UI_DIR, 'Preview.pl' ));
+	    last;
+	}
+
+	### Thanks - 登録後画面の表示
+	if (( $c eq 'x' ) || (( $c eq 'p' ) && ( $com eq 'x' ))) {
+	    require( &GetPath( $UI_DIR, 'Thanks.pl' ));
+	    last;
+	}
+    }
+
+    ### ViewTitle - スレッド別表示
+    if ( $c eq 'v' ) {
+	$gVarComType = 0;
+	require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	last;
+    }
+
+    ### SortArticle - 日付順にソート
+    if ( $SYS_F_R && ( $c eq 'r' )) {
+	require( &GetPath( $UI_DIR, 'SortArticle.pl' ));
+	last;
+    }
+
+    ### NewArticle - 新しい記事をまとめて表示
+    if ( $SYS_F_L && ( $c eq 'l' )) {
+	require( &GetPath( $UI_DIR, 'NewArticle.pl' ));
+	last;
+    }
+
+    ### SearchArticle - 記事の検索(表示画面の作成)
+    if ( $SYS_F_S && ( $c eq 's' )) {
+	require( &GetPath( $UI_DIR, 'SearchArticle.pl' ));
+	last;
+    }
+
+    ### ShowIcon - アイコン表示画面
+    if ( $c eq 'i' ) {
+	require( &GetPath( $UI_DIR, 'ShowIcon.pl' ));
+	last;
+    }
+
+    if ( $SYS_ALIAS ) {
+	### AliasNew - エイリアスの登録と変更画面の表示
+	if ( $c eq 'an' ) {
+	    require( &GetPath( $UI_DIR, 'AliasNew.pl' ));
+	    last;
+	}
+	### AliasMod - ユーザエイリアスの登録/変更
+	if ( $c eq 'am' ) {
+	    require( &GetPath( $UI_DIR, 'AliasMod.pl' ));
+	    last;
+	}
+	### AliasDel - ユーザエイリアスの削除
+	if ( $c eq 'ad' ) {
+	    require( &GetPath( $UI_DIR, 'AliasDel.pl' ));
+	    last;
+	}
+	### AliasShow - ユーザエイリアス参照画面の表示
+	if ( $c eq 'as' ) {
+	    require( &GetPath( $UI_DIR, 'AliasShow.pl' ));
+	    last;
+	}
+    }
+
+    ### BoardList - 掲示板一覧の表示
+    if ( $SYS_F_B && ( $c eq 'bl' )) {
+	require( &GetPath( $UI_DIR, 'BoardList.pl' ));
+	last;
+    }
 
     # 以下は管理用
-    &ViewTitle( 1 ),	last if ( $SYS_F_MT && ( $c eq 'vm' ));
-    &DeletePreview,	last if ( $SYS_F_D && ( $c eq 'dp' ));
-    &DeleteExec( 0 ),	last if ( $SYS_F_D && ( $c eq 'de' ));
-    &DeleteExec( 1 ),	last if ( $SYS_F_D && ( $c eq 'det' ));
-    &ArriveMailEntry,   last if ( $SYS_F_AM && ( $c eq 'mp' ));
-    &ArriveMailExec,    last if ( $SYS_F_AM && ( $c eq 'me' ));
-    &ViewTitle( 2 ),	last if ( $SYS_F_MV && ( $c eq 'ct' ));
-    &ViewTitle( 3 ),	last if ( $SYS_F_MV && ( $c eq 'ce' ));
-    &ViewTitle( 4 ),	last if ( $SYS_F_MV && ( $c eq 'mvt' ));
-    &ViewTitle( 5 ),	last if ( $SYS_F_MV && ( $c eq 'mve' ));
+    if ( $SYS_F_MT ) {
+	if ( $c eq 'mtr' ) {
+	    $gVarComType = 1;
+	    require( &GetPath( $UI_DIR, 'View.pl' ));
+	    last;
+	}
+	if ( $c eq 'vm' ) {
+	    $gVarComType = 1;
+	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    last;
+	}
+    }
+
+    if ( $SYS_F_MV ) {
+	if  ( $c eq 'ct' ) {
+	    $gVarComType = 2;
+	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    last;
+	}
+	if ( $c eq 'ce' ) {
+	    $gVarComType = 3;
+	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    last;
+	}
+	if ( $c eq 'mvt' ) {
+	    $gVarComType = 4;
+	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    last;
+	}
+	if ( $c eq 'mve' ) {
+	    $gVarComType = 5;
+	    require( &GetPath( $UI_DIR, 'ViewTitle.pl' ));
+	    last;
+	}
+    }
+
+    if ( $SYS_F_D ) {
+	### DeletePreview - 削除記事の確認
+	if ( $c eq 'dp' ) {
+	    require( &GetPath( $UI_DIR, 'DeletePreview.pl' ));
+	    last;
+	}
+
+	### DeleteExec - 記事の削除
+	if ( $c eq 'de' ) {
+	    $gVarThreadFlag = 0;
+	    require( &GetPath( $UI_DIR, 'DeleteExec.pl' ));
+	    last;
+	}
+	if ( $c eq 'det' ) {
+	    $gVarThreadFlag = 1;
+	    require( &GetPath( $UI_DIR, 'DeleteExec.pl' ));
+	    last;
+	}
+    }
+
+    if ( $SYS_F_AM ) {
+	### ArriveMailEntry - メイル自動配信先の指定
+	if ( $c eq 'mp' ) {
+	    require( &GetPath( $UI_DIR, 'ArriveMailEntry.pl' ));
+	    last;
+	}
+
+	### ArriveMailExec - メイル自動配信先の設定
+	if ( $c eq 'me' ) {
+	    require( &GetPath( $UI_DIR, 'ArriveMailExec.pl' ));
+	    last;
+	}
+    }
 
     # デフォルト
 
@@ -197,7 +353,6 @@ MAIN: {
 
 }
 
-&cgi'unlock( $LOCK_FILE );
 exit( 0 );
 
 
@@ -208,94 +363,26 @@ exit( 0 );
 # 不要なプログラムをコンパイルしないようにするため．
 # 各関数のリファレンスは，UIディレクトリ内の各ファイルを参照のこと．
 
-### BoardList - 掲示板一覧の表示
-sub BoardList { require(&GetPath('UI', 'BoardList.pl')); }
-
-### Entry - 書き込み画面の表示
-sub Entry {
-    ($gVarQuoteFlag) = @_;
-    require(&GetPath('UI', 'Entry.pl'));
-    undef($gVarQuoteFlag);
-}
-
-### Preview - プレビュー画面の表示
-sub Preview { require(&GetPath('UI', 'Preview.pl')); }
-
-### Thanks - 登録後画面の表示
-sub Thanks { require(&GetPath('UI', 'Thanks.pl')); }
-
-### ShowArticle - 単一記事の表示
-sub ShowArticle { require(&GetPath('UI', 'ShowArticle.pl')); }
-
-### ThreadArticle - フォロー記事を全て表示．
-sub ThreadArticle { require(&GetPath('UI', 'ThreadArticle.pl')); }
-
-### ShowIcon - アイコン表示画面
-sub ShowIcon { require(&GetPath('UI', 'ShowIcon.pl')); }
-
-### SortArticle - 日付順にソート
-sub SortArticle { require(&GetPath('UI', 'SortArticle.pl')); }
-
-### ViewTitle - スレッド別表示
-sub ViewTitle {
-    ($gVarComType) = @_;
-    require(&GetPath('UI', 'ViewTitle.pl'));
-    undef($gVarComType);
-}
-
-### NewArticle - 新しい記事をまとめて表示
-sub NewArticle { require(&GetPath('UI', 'NewArticle.pl')); }
-
-### SearchArticle - 記事の検索(表示画面の作成)
-sub SearchArticle { require(&GetPath('UI', 'SearchArticle.pl')); }
-
-### AliasNew - エイリアスの登録と変更画面の表示
-sub AliasNew { require(&GetPath('UI', 'AliasNew.pl')); }
-
-### AliasMod - ユーザエイリアスの登録/変更
-sub AliasMod { require(&GetPath('UI', 'AliasMod.pl')); }
-
-### AliasDel - ユーザエイリアスの削除
-sub AliasDel { require(&GetPath('UI', 'AliasDel.pl')); }
-
-### AliasShow - ユーザエイリアス参照画面の表示
-sub AliasShow { require(&GetPath('UI', 'AliasShow.pl')); }
-
-### DeletePreview - 削除記事の確認
-sub DeletePreview { require(&GetPath('UI', 'DeletePreview.pl')); }
-
-### DeleteExec - 記事の削除
-sub DeleteExec {
-    ($gVarThreadFlag) = @_;
-    require(&GetPath('UI', 'DeleteExec.pl'));
-    undef($gVarThreadFlag);
-}
-
-### ArriveMailEntry - メイル自動配信先の指定
-sub ArriveMailEntry { require(&GetPath('UI', 'ArriveMailEntry.pl')); }
-
-### ArriveMailExec - メイル自動配信先の設定
-sub ArriveMailExec { require(&GetPath('UI', 'ArriveMailExec.pl')); }
 
 ### Fatal - エラー表示
 sub Fatal {
-    ($gVarFatalNo, $gVarFatalInfo) = @_;
-    require(&GetPath('UI', 'Fatal.pl'));
-    undef($gVarFatalNo, $gVarFatalInfo);
+    ( $gVarFatalNo, $gVarFatalInfo ) = @_;
+    require( &GetPath( $UI_DIR, 'Fatal.pl' ));
+#    undef( $gVarFatalNo, $gVarFatalInfo );
 }
 
 ### ArriveMail - 記事が到着したことをメイル
 sub ArriveMail {
-    ($gName, $gSubject, $gId, @gTo) = @_;
-    require(&GetPath('UI', 'ArriveMail.pl'));
-    undef($gName, $gSubject, $gId, @gTo);
+    ( $gName, $gSubject, $gId, @gTo ) = @_;
+    require( &GetPath($UI_DIR, 'ArriveMail.pl' ));
+#    undef( $gName, $gSubject, $gId, @gTo );
 }
 
 ### FollowMail - 反応があったことをメイル
 sub FollowMail {
-    ($gName, $gDate, $gSubject, $gId, $gFname, $gFsubject, $gFid, @gTo) = @_;
-    require(&GetPath('UI', 'FollowMail.pl'));
-    undef($gName, $gDate, $gSubject, $gId, $gFname, $gFsubject, $gFid, @gTo);
+    ( $gName, $gDate, $gSubject, $gId, $gFname, $gFsubject, $gFid, @gTo ) = @_;
+    require( &GetPath( $UI_DIR, 'FollowMail.pl' ));
+#    undef( $gName, $gDate, $gSubject, $gId, $gFname, $gFsubject, $gFid, @gTo );
 }
 
 
@@ -660,15 +747,7 @@ sub BoardHeader {
     &GetBoardHeader($BOARD, *BoardHeader);
     foreach(@BoardHeader) { &cgiprint'Cache($_); }
 
-    if ($SYS_F_MT && ($Type eq 'normal')) {
- 	&cgiprint'Cache(<<__EOF__);
-<p>
-<ul>
-<li><a href="$PROGRAM?c=vm&b=$BOARD&num=$DEF_TITLE_NUM">管理用のタイトル一覧画面へ</a>
-</ul>
-</p>
-__EOF__
-    } elsif ($Type eq 'maint') {
+    if ($Type eq 'maint') {
 	&cgiprint'Cache("<p>\n<ul>\n");
 	if ($SYS_F_AM) {
 	    &cgiprint'Cache("<li><a href=\"$PROGRAM?c=mp&b=$BOARD\">自動メイル配信先を設定する</a>\n");
@@ -1112,7 +1191,7 @@ sub CheckArticle {
 	&Fatal( 12, $length ) if ( $length > $SYS_MAXARTSIZE );
     }
 
-    $article;
+    return( $article );
 }
 
 
@@ -1466,8 +1545,10 @@ sub GetFormattedTitle {
     $Thread = (($SYS_F_T && $Aids) ? " <a href=\"$PROGRAM?b=$Board&c=t&id=$Id\">$H_THREAD</a>" : '');
 
     if (($Icon eq $H_NOICON) || ($Icon eq '')) {
+#	$String = sprintf("$IdStr$Link [%s] $InputDate", ($Name || $MAINT_NAME));
 	$String = sprintf("$IdStr$Link$Thread [%s] $InputDate", ($Name || $MAINT_NAME));
     } else {
+#	$String = sprintf("$IdStr<img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Link [%s] $InputDate", &GetIconUrlFromTitle($Icon, $Board), ($Name || $MAINT_NAME));
 	$String = sprintf("$IdStr<img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Link$Thread [%s] $InputDate", &GetIconUrlFromTitle($Icon, $Board), ($Name || $MAINT_NAME));
     }
 
@@ -1967,7 +2048,7 @@ sub DbCash {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('DB', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 	next if (/^\#/o || /^$/o);
 	chop;
 
@@ -2072,7 +2153,7 @@ sub AddDBFile {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 	print(DBTMP "$_"), next if (/^\#/o || /^$/o);
 	chop;
 
@@ -2166,7 +2247,7 @@ sub UpdateArticleDb {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	print(DBTMP "$_"), next if (/^\#/o || /^$/o);
 
@@ -2214,7 +2295,7 @@ sub DeleteArticleFromDbFile {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	print(DBTMP "$_"), next if (/^\#/o || /^$/o);
 
@@ -2269,7 +2350,7 @@ sub ReOrderArticleDb {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	print(DBTMP "$_"), next if (/^\#/o);
 	print(DBTMP "$_"), next if (/^$/o);
@@ -2393,7 +2474,7 @@ sub GetArticleBody {
     $QuoteFile = &GetArticleFileName($Id, $Board);
     open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
     while(<TMP>) {
-	&VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
+#	&VersionCheck('Article', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 	push(@ArticleBody, $_);
     }
     close(TMP);
@@ -2493,7 +2574,7 @@ sub GetArriveMailTo {
     open(ARMAIL, "<$ArriveMailFile") || return;
     while(<ARMAIL>) {
     	# Version Check
-	&VersionCheck('ARRIVEMAIL', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('ARRIVEMAIL', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 	next if ((! $CommentFlag) && (/^\#/o || /^$/o));
 	chop;
 	push(@ArriveMail, $_);
@@ -2558,7 +2639,7 @@ sub CashAliasData {
     while(<ALIAS>) {
 
 	# Version Check
-	&VersionCheck('Alias', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
+#	&VersionCheck('Alias', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 	next if (/^$/o);
 	chop;
 
@@ -2600,7 +2681,7 @@ sub GetUserInfo {
     while(<ALIAS>) {
 	
 	# Version Check
-	&VersionCheck('Alias', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
+#	&VersionCheck('Alias', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 	next if (/^$/o);
 	chop;
 	
@@ -2687,7 +2768,7 @@ sub GetAllBoardInfo {
     while(<ALIAS>) {
 
 	# Version Check
-	&VersionCheck('Board', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('Board', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 	next if (/^\#/o || /^$/o);
 	chop;
 	($BoardId, $BName, $BInfo) = split(/\t/, $_, 3);
@@ -2714,23 +2795,25 @@ sub GetAllBoardInfo {
 #	掲示板名
 #
 sub GetBoardInfo {
-    local($Alias) = @_;
-    local($BoardName, $dAlias, $dBoardName);
+    local( $Alias ) = @_;
+    local( $dAlias, $dBoardName, $dBoardConf );
 
-    open(ALIAS, "<$BOARD_ALIAS_FILE") || &Fatal(1, $BOARD_ALIAS_FILE);
+    open( ALIAS, "<$BOARD_ALIAS_FILE" ) || &Fatal( 1, $BOARD_ALIAS_FILE );
     while(<ALIAS>) {
 
 	# Version Check
-	&VersionCheck('Board', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('Board', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 	next if (/^\#/o || /^$/o);
 	chop;
-	($dAlias, $dBoardName) = split(/\t/, $_, 3);
-	if ($Alias eq $dAlias) { $BoardName = $dBoardName; }
+	( $dAlias, $dBoardName, $dBoardConf ) = split( /\t/, $_, 4 );
+	if ( $Alias eq $dAlias ) {
+	    close( ALIAS );
+	    return( $dBoardName, $dBoardConf );
+	}
     }
-    close(ALIAS);
+    close( ALIAS );
 
-    return($BoardName);
-
+    &Fatal( 11, $Alias );
 }
 
 
@@ -2768,7 +2851,7 @@ sub CashIconDb {
     while(<ICON>) {
 
 	# Version Check
-	&VersionCheck('Icon', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('Icon', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 	next if (/^\#/o || /^$/o);
 	chop;
 	($FileName, $IconTitle, $IconHelp) = split(/\t/, $_, 3);
@@ -2809,7 +2892,7 @@ sub GetBoardHeader {
     open(HEADER, "<$File") || &Fatal(1, $File);
     while(<HEADER>){
 	# Version Check
-	&VersionCheck('Header', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
+#	&VersionCheck('Header', $1), next if (m/^<!-- Kb-System-Id: ([^\/]*\/.*) -->$/o);
 	push(@BoardHeader, $_);
     }
     close(HEADER);
@@ -2931,7 +3014,7 @@ sub GetIconUrlFromTitle {
     while(<ICON>) {
 
 	# Version Check
-	&VersionCheck('Icon', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('Icon', $1), next if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 	next if (/^\#/o || /^$/o);
 	chop;
 	($FileName, $Title) = split(/\t/, $_, 3);
@@ -2985,7 +3068,7 @@ sub SupersedeDbFile {
     while(<DB>) {
 
 	# Version Check
-	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
+#	&VersionCheck('DB', $1) if (m/^\# Kb-System-Id: ([^\/]*\/.*)$/o);
 
 	print(DBTMP "$_"), next if (/^\#/o || /^$/o);
 	chop;
