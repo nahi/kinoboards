@@ -56,12 +56,26 @@ Entry:
     }
     elsif ( $entryType == 1 )
     {
+	if ( $SYS_ALIAS == 3 )
+	{
+	    &cgi'Cookie();
+	    ( $DefName, $DefEmail, $DefUrl ) = split( /$COLSEP/,
+		$cgi'COOKIES{ 'kb10info' });
+	}
+	$DefUrl = $DefUrl || 'http://';
 	local( $fId, $aids, $date, $subject ) = &GetArticlesInfo( $Id );
 	$DefSubject = $subject;
 	&GetReplySubject( *DefSubject );
     }
     elsif ( $entryType == 2 )
     {
+	if ( $SYS_ALIAS == 3 )
+	{
+	    &cgi'Cookie();
+	    ( $DefName, $DefEmail, $DefUrl ) = split( /$COLSEP/,
+		$cgi'COOKIES{ 'kb10info' });
+	}
+	$DefUrl = $DefUrl || 'http://';
 	local( $fId, $aids, $date, $subject ) = &GetArticlesInfo( $Id );
 	$DefSubject = $subject;
 	&GetReplySubject( *DefSubject );
