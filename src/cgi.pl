@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.4 1996-08-20 09:44:48 nakahiro Exp $
+# $Id: cgi.pl,v 1.5 1996-08-21 16:52:28 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -41,22 +41,21 @@ sub header {
 #
 sub decode {
 
-    local($args, $n_read, $tag, $value);
+    local($Args, $Nread, $Tag, $Term, $Value) = ('', '', '', '', '');
 
     ($ENV{'REQUEST_METHOD'} eq "POST")
-	? ($n_read = read(STDIN, $args, $ENV{'CONTENT_LENGTH'}))
-	    : ($args = $ENV{'QUERY_STRING'});
+	? ($Nread = read(STDIN, $Args, $ENV{'CONTENT_LENGTH'}))
+	    : ($Args = $ENV{'QUERY_STRING'});
 
-    foreach (split('&', $args)) {
-	($tag, $value) = split(/=/, $_, 2);
-	$value =~ tr/+/ /;
-	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack("C", hex($1))/ge;
-	$_ = $value;
-	unless (/[\033\200-\377]/) {
-	    $TAGS{$tag} = $value;
+    foreach $Term (split('&', $Args)) {
+	($Tag, $Value) = split(/=/, $Term, 2);
+	$Value =~ tr/+/ /;
+	$Value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack("C", hex($1))/ge;
+	unless ($Value =~ /[\033\200-\377]/) {
+	    $TAGS{$Tag} = $Value;
 	} else {
-	    &jcode'convert(*_, 'euc');
-	    $TAGS{$tag} = $_;
+	    &jcode'convert(*Value, 'euc');
+	    $TAGS{$Tag} = $Value;
 	}
 	$TAGS{$tag} =~ s/\r\n/\n/go;
 	$TAGS{$tag} =~ s/\r/\n/go;
