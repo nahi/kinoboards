@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.29 1998-02-21 21:38:51 nakahiro Exp $
+# $Id: cgi.pl,v 1.30 1998-03-16 18:08:20 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -157,7 +157,8 @@
 #	返り値はありません．
 
 
-require('jcode.pl');
+require( 'jcode.pl' );
+require( 'mimew.pl' );
 
 
 ###
@@ -273,7 +274,7 @@ sub lock_link {
     return( 2 ) if (( -e $lockFile ) && ( ! -w $lockFile ));
 
     if ( -M "$lockFile" > $lockFileTimeout ) { unlink( $lockFile ); }
-    for( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
+    for ( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
 	open( LOCKORG, ">$lockFile.org" ) || return( 0 );
 	close( LOCKORG );
 	$lockFlag = 1, last if ( link( "$lockFile.org", $lockFile ));
@@ -393,8 +394,7 @@ sub Cookie {
 #
 # - SYNOPSIS
 #	require( 'cgi.pl' );
-#	&cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message,
-#		@to );
+#	&cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message, @to );
 #
 # - ARGS
 #	$fromName	from name
@@ -412,11 +412,28 @@ sub Cookie {
 #
 sub SendMail {
     local( $fromName, $fromEmail, $subject, $extension, $message, @to ) = @_;
-    local( $from ) = "$fromName <$fromEmail>";
+    local( $from, $encode );
     local( $sockAddr ) = 'S n a4 x8';
     local( $port, $smtpAddr, $sock, $oldStream, $back, $toFirst );
 
     return( 0 ) if ( !( $fromEmail && $subject && $message && @to ));
+
+    # mime encoding
+    $encode = &jcode'getcode( *fromName );
+    if ( defined( $encode )) {
+	$fromName = &main'mimeencode( $fromName );
+    }
+    $from = "$fromName <$fromEmail>";
+
+    $encode = &jcode'getcode( *subject );
+    if ( defined( $encode )) {
+	$subject = &main'mimeencode( $subject );
+    }
+
+    $encode = &jcode'getcode( *extension );
+    if ( defined( $encode )) {
+	$extension = &main'mimeencode( $extension );
+    }
 
     # preparing for smtp connection...
     $proto = (getprotobyname( 'tcp' ))[2];
@@ -488,8 +505,8 @@ sub SendMail {
     }
     print( S "\r\n" );
     print( S "From: $from\r\n" );
-    print( S "Reply-To: $from\r\n" );# block replying to all rcps...
-    print( S "Errors-To: $from\r\n" );
+    print( S "Reply-To: $from\r\n" );
+    print( S "Sendar: $from\r\n" );
     print( S "Subject: $subject\r\n" );
     print( S "Content-type: text/plain; charset=ISO-2022-JP\r\n" );
     if ( $extension ) {
