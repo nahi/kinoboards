@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.10 1998-11-05 18:26:32 nakahiro Exp $
+# $Id: cgi.pl,v 2.11 1998-12-10 11:07:38 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -217,13 +217,15 @@ sub Header
 	    elsif ( $cookieExpire =~ /^\d+$/ )
 	    {
 		# called by UTC.
-		print( " expires=", &GetHttpDateTimeFromUtc( $cookieExpire ), ";\n" );
+		print( " expires=", &GetHttpDateTimeFromUtc( $cookieExpire ), ";" );
 	    }
 	    else
 	    {
 		# called by string.
-		print( " expires=$cookieExpire;\n" );
+		print( " expires=$cookieExpire;" );
 	    }
+
+	    print( "\n" );
 	}
     }
 
@@ -458,21 +460,33 @@ sub smtpHeader
 
     # mime encoding of Japanese multi-byte char in header.
     $encode = &jcode'getcode( *fromName );
-    $fromName = &main'mimeencode( $fromName ) if ( defined( $encode ));
+    if ( defined( $encode ))
+    {
+	$fromName = join( $CRLF, split( /\n/, &main'mimeencode( $fromName )));
+    }
     $from = "$fromName <$fromEmail>";
 
     $encode = &jcode'getcode( *subject );
-    $subject = &main'mimeencode( $subject ) if ( defined( $encode ));
+    if ( defined( $encode ))
+    {
+	$subject = join( $CRLF, split( /\n/, &main'mimeencode( $subject )));
+    }
 
     $encode = &jcode'getcode( *extension );
-    $extension = &main'mimeencode( $extension ) if ( defined( $encode ));
+    if ( defined( $encode ))
+    {
+	$extension = join( $CRLF, split( /\n/, &main'mimeencode( $extension )));
+    }
 
     # creating header
     $header = "To: ";
     if ( $labelTo )
     {
 	$encode = &jcode'getcode( *labelTo );
-	$labelTo = &main'mimeencode( $labelTo ) if ( defined( $encode ));
+	if ( defined( $encode ))
+	{
+	    $labelTo = join( $CRLF, split( /\n/, &main'mimeencode( $labelTo )));
+	}
 	$header .= "$labelTo$CRLF";
     }
     else
@@ -657,11 +671,11 @@ sub SecureHtmlEx
     local( $srcString, $tag, $need, $feature, $markuped );
 
     $string =~ s/\\>/__EscapedGt\376__/go;
-    while (( $tag, $need ) = each( %nVec ))
+    TAGS: while (( $tag, $need ) = each( %nVec ))
     {
 	$srcString = $string;
 	$string = '';
-	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~ m!<$tag()>!i) )
+	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~ m!<$tag()>!i ))
 	{
 	    $srcString = $';
 	    $string .= $`;
@@ -692,8 +706,8 @@ sub SecureHtmlEx
 		}
 		else
 		{
-		    $string .= "<$tag$feature>";
-		    last;
+		    $string .= "<$tag$feature>" . $srcString;
+		    last TAGS;
 		}
 	    }
 	    else
