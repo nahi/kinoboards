@@ -8,9 +8,9 @@
 # 1. ↑の先頭行で，Perlのパスを指定します．「#!」に続けて指定してください．
 
 # 2. kbディレクトリのフルパスを指定してください（URLではなく，パスです）．
-#    !! KB/1.0R6.4以降，この設定は必須となりました !!
+#    ウェブからアクセス可能なディレクトリでなくてもかまいません
 #
-$KBDIR_PATH = '';
+$KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst/';
 # $KBDIR_PATH = '/home/nahi/public_html';
 # $KBDIR_PATH = 'd:\inetpub\wwwroot\kb';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb';			# Macの場合?
@@ -21,9 +21,17 @@ $KBDIR_PATH = '';
 $PC = 0;	# for UNIX / WinNT
 # $PC = 1;	# for Win95 / Mac
 
-# 4. サーバがCGIWRAPを利用している場合，以下のコメントを外し，
-#    kbディレクトリのURLを指定してください（今度はパスではなく，URLです）．
-#    そうでない人は，変更の必要はありません．コメントのままでOKです．
+# 4. アイコンおよびスタイルシートファイルを，
+#    本ファイルとは別のディレクトリに置く場合は，
+#    その別ディレクトリのURLを指定してください（パスではなく，URLです）．
+#    ウェブからアクセス可能なディレクトリでなければいけません．
+#    本ファイルと同じディレクトリにicon，styleディレクトリを置く場合は，
+#    特に指定しなくてもかまいません（このままでOKです）．
+#
+#    指定したURLのディレクトリに置かれている，
+#      icon/*.gifがアイコンファイルとして，
+#      style/kbStyle.cssがスタイルシートファイルとして，
+#    それぞれ参照されます．
 #
 # $KB_RESOURCE_URL = '/~nahi/kb/';
 
@@ -34,7 +42,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.54 2000-02-24 14:53:06 nakahiro Exp $
+# $Id: kb.cgi,v 5.55 2000-02-25 06:19:41 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -65,14 +73,14 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7β3';		# release
+$KB_RELEASE = '7β4';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
 
 # ディレクトリ
 $SYS_DIR = '.';				# システムディレクトリ
-$ICON_DIR = 'icons';			# アイコンディレクトリ
+$ICON_DIR = 'idef';			# アイコン定義ディレクトリ
 $UI_DIR = 'UI';				# UIディレクトリ
 $LOG_DIR = 'log';			# ログディレクトリ
 $BOARDSRC_DIR = 'board';		# 掲示板ソースディレクトリ
@@ -84,7 +92,6 @@ $ARRIVEMAIL_FILE_NAME = 'kb.mail';	# 掲示板別新規メイル送信先DB
 $HEADER_FILE_NAME = 'kb.board';		# タイトルリストヘッダDB
 $DB_FILE_NAME = 'kb.db';		# 記事DB
 $ARTICLE_NUM_FILE_NAME = 'kb.aid';	# 記事番号DB
-$CSS_FILE = 'kbStyle.css';		# スタイルシートファイル
 $USER_FILE = 'kb.user';			# ユーザ用DB
 $DEFAULT_ICONDEF = 'all.idef';		# アイコンDB
 $LOCK_FILE = 'kb.lock';			# ロックファイル
@@ -96,7 +103,8 @@ $TMPFILE_SUFFIX = 'tmp';		# DBテンポラリファイルのSuffix
 $ICONDEF_POSTFIX = 'idef';		# アイコンDBファイルのSuffix
 
 # リソースURL
-$RESOURCE_ICON = 'icons';		# アイコンディレクトリ
+$RESOURCE_ICON = 'icon';		# アイコンディレクトリ
+$RESOURCE_STYLE = 'style';		# スタイルシートディレクトリ
 # 今後は他に，音，背景用画像など．．．?
 
 # CGIと同一ディレクトリにあるヘッダファイルの読み込み
@@ -674,12 +682,12 @@ sub UILogin
     {
 	$UNAME = '';
     }
-    &htmlGen( 'Login.html' );
+    &htmlGen( 'Login.xml' );
 }
 
 sub hg_login_form
 {
-    &Fatal( 18, "$_[0]/LoginForm" ) if ( $_[0] ne 'Login.html' );
+    &Fatal( 18, "$_[0]/LoginForm" ) if ( $_[0] ne 'Login.xml' );
 
     local( %tags, $msg );
     $msg = &TagLabel( $H_FROM, 'kinoU', 'N' ) . ': ' . &TagInputText( 'text',
@@ -706,12 +714,12 @@ sub hg_login_form
 #
 sub UIAdminConfig
 {
-    &htmlGen( 'AdminConfig.html' );
+    &htmlGen( 'AdminConfig.xml' );
 }
 
 sub hg_admin_config_form
 {
-    &Fatal( 18, "$_[0]/AdminConfigForm" ) if ( $_[0] ne 'AdminConfig.html' );
+    &Fatal( 18, "$_[0]/AdminConfigForm" ) if ( $_[0] ne 'AdminConfig.xml' );
 
     local( %tags, $msg );
     $msg = &TagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' . &TagInputText(
@@ -763,12 +771,12 @@ sub UIUserEntry
 {
     # ユーザ情報をクリア
     $UNAME = $cgiauth'F_COOKIE_RESET if ( $SYS_AUTH == 1 );
-    &htmlGen( 'UserEntry.html' );
+    &htmlGen( 'UserEntry.xml' );
 }
 
 sub hg_user_entry_form
 {
-    &Fatal( 18, "$_[0]/UserEntryForm" ) if ( $_[0] ne 'UserEntry.html' );
+    &Fatal( 18, "$_[0]/UserEntryForm" ) if ( $_[0] ne 'UserEntry.xml' );
 
     local( %tags, $msg );
     $msg = &TagLabel( $H_FROM, 'kinoU', 'N' ) . ': ' . &TagInputText( 'text',
@@ -845,12 +853,12 @@ sub UIUserEntryExec
 #
 sub UIUserConfig
 {
-    &htmlGen( 'UserConfig.html' );
+    &htmlGen( 'UserConfig.xml' );
 }
 
 sub hg_user_config_form
 {
-    &Fatal( 18, "$_[0]/UserConfigForm" ) if ( $_[0] ne 'UserConfig.html' );
+    &Fatal( 18, "$_[0]/UserConfigForm" ) if ( $_[0] ne 'UserConfig.xml' );
 
     if ( $POLICY & 8 )
     {
@@ -944,12 +952,12 @@ sub UIUserConfigExec
 #
 sub UIBoardEntry
 {
-    &htmlGen( 'BoardEntry.html' );
+    &htmlGen( 'BoardEntry.xml' );
 }
 
 sub hg_board_entry_form
 {
-    &Fatal( 18, "$_[0]/BoardEntryForm" ) if ( $_[0] ne 'BoardEntry.html' );
+    &Fatal( 18, "$_[0]/BoardEntryForm" ) if ( $_[0] ne 'BoardEntry.xml' );
 
     local( %tags, $msg );
     $msg = &TagLabel( "$H_BOARD略称", 'name', 'B' ) . ': ' . &TagInputText(
@@ -1007,12 +1015,12 @@ sub UIBoardConfig
     # unlock system
     &UnlockAll();
 
-    &htmlGen( 'BoardConfig.html' );
+    &htmlGen( 'BoardConfig.xml' );
 }
 
 sub hg_board_config_form
 {
-    &Fatal( 18, "$_[0]/BoardConfigForm" ) if ( $_[0] ne 'BoardConfig.html' );
+    &Fatal( 18, "$_[0]/BoardConfigForm" ) if ( $_[0] ne 'BoardConfig.xml' );
 
     local( %tags, $msg );
     $msg = &TagLabel( "「$BOARD」$H_BOARDを利用", 'valid', 'V' ) . ': ' .
@@ -1062,7 +1070,7 @@ sub UIBoardConfigExec
 #
 sub UIBoardList
 {
-    &htmlGen( 'BoardList.html' );
+    &htmlGen( 'BoardList.xml' );
 }
 
 
@@ -1101,7 +1109,7 @@ sub UIPostNewEntry
     }
 
     $gEntryType = 'normal';		# 新規
-    &htmlGen( 'PostNewEntry.html' );
+    &htmlGen( 'PostNewEntry.xml' );
 }
 
 sub UIPostReplyEntry
@@ -1150,7 +1158,7 @@ sub UIPostReplyEntry
     &UnlockBoard();
 
     $gEntryType = 'reply';		# リプライ
-    &htmlGen( 'PostReplyEntry.html' );
+    &htmlGen( 'PostReplyEntry.xml' );
 }
 
 sub UISupersedeEntry
@@ -1192,12 +1200,12 @@ sub UISupersedeEntry
     &UnlockBoard();
 
     $gEntryType = 'supersede';		# 修正
-    &htmlGen( 'SupersedeEntry.html' );
+    &htmlGen( 'SupersedeEntry.xml' );
 }
 
 sub hg_post_reply_entry_orig_article
 {
-    if ( $_[0] ne 'PostReplyEntry.html' )
+    if ( $_[0] ne 'PostReplyEntry.xml' )
     {
 	&Fatal( 18, "$_[0]/PostReplyEntryOrigArticle" );
     }
@@ -1207,7 +1215,7 @@ sub hg_post_reply_entry_orig_article
 
 sub hg_supersede_entry_orig_article
 {
-    if ( $_[0] ne 'SupersedeEntry.html' )
+    if ( $_[0] ne 'SupersedeEntry.xml' )
     {
 	&Fatal( 18, "$_[0]/SupersedeEntryOrigArticle" );
     }
@@ -1223,7 +1231,7 @@ sub hg_supersede_entry_orig_article
 sub UIPostPreview
 {
     &UIPostPreviewMain( 'post' );
-    &htmlGen( 'PostPreview.html' );
+    &htmlGen( 'PostPreview.xml' );
 }
 
 sub UISupersedePreview
@@ -1234,7 +1242,7 @@ sub UISupersedePreview
     }
 
     &UIPostPreviewMain( 'supersede' );
-    &htmlGen( 'SupersedePreview.html' );
+    &htmlGen( 'SupersedePreview.xml' );
 }
 
 sub UIPostPreviewMain
@@ -1288,7 +1296,7 @@ sub UIPostPreviewMain
 
 sub hg_post_preview_form
 {
-    &Fatal( 18, "$_[0]/PostPreviewForm" ) if ( $_[0] ne 'PostPreview.html' );
+    &Fatal( 18, "$_[0]/PostPreviewForm" ) if ( $_[0] ne 'PostPreview.xml' );
 
     require( 'mimer.pl' );
 
@@ -1311,34 +1319,34 @@ sub hg_post_preview_form
 
 sub hg_supersede_preview_form
 {
-    if ( $_[0] ne 'SupersedePreview.html' )
+    if ( $_[0] ne 'SupersedePreview.xml' )
     {
 	&Fatal( 18, "$_[0]/SupersedePreviewForm" );
     }
 
-    &hg_post_preview_form( 'PostPreview.html', 1 );
+    &hg_post_preview_form( 'PostPreview.xml', 1 );
 }
 
 sub hg_post_preview_body
 {
-    &Fatal( 18, "$_[0]/PostPreviewBody" ) if ( $_[0] ne 'PostPreview.html' );
+    &Fatal( 18, "$_[0]/PostPreviewBody" ) if ( $_[0] ne 'PostPreview.xml' );
     &DumpArtBody( '', 0, 1, $gOrigId, 0, $^T, $gSubject, $gIcon, 0, $gName,
 	$gEmail, $gUrl, $gArticle );
 }
 
 sub hg_supersede_preview_body
 {
-    if ( $_[0] ne 'SupersedePreview.html' )
+    if ( $_[0] ne 'SupersedePreview.xml' )
     {
 	&Fatal( 18, "$_[0]/SupersedePreviewBody" );
     }
 
-    &hg_post_preview_body( 'PostPreview.html' );
+    &hg_post_preview_body( 'PostPreview.xml' );
 }
 
 sub hg_supersede_preview_orig_article
 {
-    if ( $_[0] ne 'SupersedePreview.html' )
+    if ( $_[0] ne 'SupersedePreview.xml' )
     {
 	&Fatal( 18, "$_[0]/SupersedePreviewOrigArticle" );
     }
@@ -1355,7 +1363,7 @@ sub UIPostExec
 {
     local( $previewFlag ) = @_;
     &UIPostExecMain( $previewFlag, 'post' );
-    &htmlGen( 'PostExec.html' );
+    &htmlGen( 'PostExec.xml' );
 }
 
 sub UISupersedeExec
@@ -1367,7 +1375,7 @@ sub UISupersedeExec
 
     local( $previewFlag ) = @_;
     &UIPostExecMain( $previewFlag, 'supersede' );
-    &htmlGen( 'SupersedeExec.html' );
+    &htmlGen( 'SupersedeExec.xml' );
 }
 
 sub UIPostExecMain
@@ -1457,7 +1465,7 @@ sub UIPostExecMain
 
 sub hg_post_exec_jump_to_new_article
 {
-    if ( $_[0] ne 'PostExec.html' )
+    if ( $_[0] ne 'PostExec.xml' )
     {
 	&Fatal( 18, "$_[0]/PostExecJumpToNewArticle" );
     }
@@ -1467,7 +1475,7 @@ sub hg_post_exec_jump_to_new_article
 
 sub hg_supersede_exec_jump_to_new_article
 {
-    if ( $_[0] ne 'SupersedeExec.html' )
+    if ( $_[0] ne 'SupersedeExec.xml' )
     {
 	&Fatal( 18, "$_[0]/SupersedeExecJumpToNewArticle" );
     }
@@ -1477,7 +1485,7 @@ sub hg_supersede_exec_jump_to_new_article
 
 sub hg_post_exec_jump_to_orig_article
 {
-    if ( $_[0] ne 'PostExec.html' )
+    if ( $_[0] ne 'PostExec.xml' )
     {
 	&Fatal( 18, "$_[0]/PostExecJumpToOrigArticle" );
     }
@@ -1531,12 +1539,12 @@ sub UIThreadArticle
 	$gADDFLAG{$DB_ID[$IdNum]} = 2;
     }
 
-    &htmlGen( 'ThreadArticle.html' );
+    &htmlGen( 'ThreadArticle.xml' );
 }
 
 sub hg_thread_article_tree
 {
-    if ( $_[0] ne 'ThreadArticle.html' )
+    if ( $_[0] ne 'ThreadArticle.xml' )
     {
 	&Fatal( 18, "$_[0]/ThreadArticleTree" );
     }
@@ -1624,7 +1632,7 @@ sub hg_thread_article_tree
 
 sub hg_thread_article_body
 {
-    if ( $_[0] ne 'ThreadArticle.html' )
+    if ( $_[0] ne 'ThreadArticle.xml' )
     {
 	&Fatal( 18, "$_[0]/ThreadArticleBody" );
     }
@@ -1728,12 +1736,12 @@ sub UIThreadTitle
 	$gADDFLAG{$DB_ID[$IdNum]} = 2;
     }
 
-    &htmlGen( 'ThreadTitle.html' );
+    &htmlGen( 'ThreadTitle.xml' );
 }
 
 sub hg_thread_title_board_header
 {
-    if ( $_[0] ne 'ThreadTitle.html' )
+    if ( $_[0] ne 'ThreadTitle.xml' )
     {
 	&Fatal( 18, "$_[0]/ThreadTitleBoardHeader" )
 	}
@@ -1790,7 +1798,7 @@ EOS
 
 sub hg_thread_title_tree
 {
-    &Fatal( 18, "$_[0]/ThreadTitleTree" ) if ( $_[0] ne 'ThreadTitle.html' );
+    &Fatal( 18, "$_[0]/ThreadTitleTree" ) if ( $_[0] ne 'ThreadTitle.xml' );
 
     local( $AddNum ) = "&num=$gNum&old=$gOld&rev=$gRev";
 
@@ -2051,12 +2059,12 @@ sub UISortTitle
 
     $gPageLinkStr = &PageLink( 'r', $Num, $Old, $Rev, '' );
 
-    &htmlGen( 'SortTitle.html' );
+    &htmlGen( 'SortTitle.xml' );
 }
 
 sub hg_sort_title_tree
 {
-    &Fatal( 18, "$_[0]/SortTitleTree" ) if ( $_[0] ne 'SortTitle.html' );
+    &Fatal( 18, "$_[0]/SortTitleTree" ) if ( $_[0] ne 'SortTitle.xml' );
 
     $gHgStr .= "<ul>\n";
 
@@ -2110,12 +2118,12 @@ sub UIShowThread
     @gFollowIdTree = ();
     &GetFollowIdTree( $id, *gFollowIdTree );
 
-    &htmlGen( 'ShowThread.html' );
+    &htmlGen( 'ShowThread.xml' );
 }
 
 sub hg_show_thread_title
 {
-    &Fatal( 18, "$_[0]/ShowThreadTitle" ) if ( $_[0] ne 'ShowThread.html' );
+    &Fatal( 18, "$_[0]/ShowThreadTitle" ) if ( $_[0] ne 'ShowThread.xml' );
 
     local( $tmp, $subject );
     ( $tmp, $tmp, $tmp, $subject ) = &GetTreeTopArticlesInfo( *gFollowIdTree );
@@ -2124,7 +2132,7 @@ sub hg_show_thread_title
 
 sub hg_show_thread_title_tree
 {
-    if ( $_[0] ne 'ShowThread.html' )
+    if ( $_[0] ne 'ShowThread.xml' )
     {
 	&Fatal( 18, "$_[0]/ShowThreadTitleTree" );
     }
@@ -2134,7 +2142,7 @@ sub hg_show_thread_title_tree
 
 sub hg_show_thread_msg_body
 {
-    if ( $_[0] ne 'ShowThread.html' )
+    if ( $_[0] ne 'ShowThread.xml' )
     {
 	&Fatal( 18, "$_[0]/ShowThreadMsgBody" );
     }
@@ -2144,7 +2152,7 @@ sub hg_show_thread_msg_body
 
 sub hg_show_thread_back_to_title_button
 {
-    if ( $_[0] ne 'ShowThread.html' )
+    if ( $_[0] ne 'ShowThread.xml' )
     {
 	&Fatal( 18, "$_[0]/ShowThreadBackToTitleButton" );
     }
@@ -2169,12 +2177,12 @@ sub UISortArticle
 
     $gPageLinkStr = &PageLink( 'l', $gNum, $gOld, $gRev, '' );
 
-    &htmlGen( 'SortArticle.html' );
+    &htmlGen( 'SortArticle.xml' );
 }
 
 sub hg_sort_article_body
 {
-    &Fatal( 18, "$_[0]/SortArticleBody" ) if ( $_[0] ne 'SortArticle.html' );
+    &Fatal( 18, "$_[0]/SortArticleBody" ) if ( $_[0] ne 'SortArticle.xml' );
 
     local( $vRev ) = $gRev? 1-$SYS_BOTTOMARTICLE : $SYS_BOTTOMARTICLE;
     local( $To ) = $#DB_ID - $gOld;
@@ -2228,26 +2236,26 @@ sub UIShowArticle
     # 未投稿記事は読めない
     &Fatal( 8, '' ) if ( $gSubject eq '' );
 
-    &htmlGen( 'ShowArticle.html' );
+    &htmlGen( 'ShowArticle.xml' );
 }
 
 sub hg_show_article_title
 {
-    &Fatal( 18, "$_[0]/ShowArticleTitle" ) if ( $_[0] ne 'ShowArticle.html' );
+    &Fatal( 18, "$_[0]/ShowArticleTitle" ) if ( $_[0] ne 'ShowArticle.xml' );
 
     $gHgStr .= $gSubject;
 }
 
 sub hg_show_article_body
 {
-    &Fatal( 18, "$_[0]/ShowArticleBody" ) if ( $_[0] ne 'ShowArticle.html' );
+    &Fatal( 18, "$_[0]/ShowArticleBody" ) if ( $_[0] ne 'ShowArticle.xml' );
 
     &DumpArtBody( $cgi'TAGS{'id'}, 1, 1 );
 }
 
 sub hg_show_article_reply
 {
-    &Fatal( 18, "$_[0]/ShowArticleReply" ) if ( $_[0] ne 'ShowArticle.html' );
+    &Fatal( 18, "$_[0]/ShowArticleReply" ) if ( $_[0] ne 'ShowArticle.xml' );
 
     &DumpReplyArticles( split( /,/, $gAids ));
 }
@@ -2258,12 +2266,12 @@ sub hg_show_article_reply
 #
 sub UISearchArticle
 {
-    &htmlGen( 'SearchArticle.html' );
+    &htmlGen( 'SearchArticle.xml' );
 }
 
 sub hg_search_article_result
 {
-    if ( $_[0] ne 'SearchArticle.html' )
+    if ( $_[0] ne 'SearchArticle.xml' )
     {
 	&Fatal( 18, "$_[0]/SearchArticleResult" );
     }
@@ -2315,12 +2323,12 @@ sub UIDeletePreview
     # 未投稿記事は読めない
     &Fatal( 8, '' ) if ( $subject eq '' );
 
-    &htmlGen( 'DeletePreview.html' );
+    &htmlGen( 'DeletePreview.xml' );
 }
 
 sub hg_delete_preview_form
 {
-    if ( $_[0] ne 'DeletePreview.html' )
+    if ( $_[0] ne 'DeletePreview.xml' )
     {
 	&Fatal( 18, "$_[0]/DeletePreviewForm" );
     }
@@ -2338,7 +2346,7 @@ sub hg_delete_preview_form
 
 sub hg_delete_preview_body
 {
-    if ( $_[0] ne 'DeletePreview.html' )
+    if ( $_[0] ne 'DeletePreview.xml' )
     {
 	&Fatal( 18, "$_[0]/DeletePreviewBody" );
     }
@@ -2348,7 +2356,7 @@ sub hg_delete_preview_body
 
 sub hg_delete_preview_reply
 {
-    if ( $_[0] ne 'DeletePreview.html' )
+    if ( $_[0] ne 'DeletePreview.xml' )
     {
 	&Fatal( 18, "$_[0]/DeletePreviewReply" );
     }
@@ -2384,12 +2392,12 @@ sub UIDeleteExec
 
     &UnlockBoard();
 
-    &htmlGen( 'DeleteExec.html' );
+    &htmlGen( 'DeleteExec.xml' );
 }
 
 sub hg_delete_exec_back_to_title_button
 {
-    if ( $_[0] ne 'DeleteExec.html' )
+    if ( $_[0] ne 'DeleteExec.xml' )
     {
 	&Fatal( 18, "$_[0]/DeleteExecBackToTitleButton" );
     }
@@ -2403,7 +2411,7 @@ sub hg_delete_exec_back_to_title_button
 #
 sub UIShowIcon
 {
-    &htmlGen( 'ShowIcon.html' );
+    &htmlGen( 'ShowIcon.xml' );
 }
 
 
@@ -2412,7 +2420,7 @@ sub UIShowIcon
 #
 sub UIHelp
 {
-    &htmlGen( 'Help.html' );
+    &htmlGen( 'Help.xml' );
 }
 
 
@@ -2422,7 +2430,7 @@ sub UIHelp
 sub UIFatal
 {
     ( $gMsg ) = @_;
-    &htmlGen( 'Fatal.html' );
+    &htmlGen( 'Fatal.xml' );
 }
 
 sub hg_fatal_msg
@@ -2441,14 +2449,8 @@ sub hg_s_title
 <meta http-equiv="Content-Style-Type" content="text/css" />
 <link rev="MADE" href="mailto:$MAINT" />
 EOS
-    if ( $BOARD && ( -s &GetPath( $BOARD, $CSS_FILE )))
-    {
-	$gHgStr .= qq(<link rel="StyleSheet" href="$BOARD/$CSS_FILE" type="text/css" media="screen" />);
-    }
-    else
-    {
-	$gHgStr .= qq(<link rel="StyleSheet" href="$CSS_FILE" type="text/css" media="screen" />);
-    }
+
+    $gHgStr .= sprintf( qq(<link rel="StyleSheet" href="%s" type="text/css" media="screen" />), &GetStyleSheetURL( $STYLE_FILE )) if $STYLE_FILE;
 }
 
 sub hg_s_address
@@ -6337,7 +6339,7 @@ sub FatalStr
 
     if ( $severity >= $kinologue'SEV_CAUTION )
     {
-	$msg .= "大変お手数ですが，このメッセージ全文のコピーと，エラーが生じた状況を，" . &TagA( $MAINT, "mailto:$MAINT" ) . "までお知らせ頂けると助かります．";
+	$msg .= "大変お手数ですが，このページのURL（" . $cgi'REQUEST_URI . "），このメッセージ全文のコピーと，エラーが生じた状況を，" . &TagA( $MAINT, "mailto:$MAINT" ) . "までお知らせ頂けると助かります．";
     }
 
     return ( $severity, $msg );
@@ -7139,11 +7141,6 @@ sub AddBoardDb
     $dest = &GetPath( $name, $ARTICLE_NUM_FILE_NAME );
     &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
 
-#    # スタイルシートファイルの作成（コピー）
-#    $src = &GetPath( $BOARDSRC_DIR, $CSS_FILE );
-#    $dest = &GetPath( $name, $CSS_FILE );
-#    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
-
     # 自動送信メイルDBの作成
     &UpdateArriveMailDb( $name, *arriveMail );
 
@@ -7275,7 +7272,7 @@ sub GetAllBoardInfo
     {
 	next if ( /^\#/o || /^$/o );
 	chop;
-	( $bId, $bName, $bInfo ) = split( /\t/, $_, 3 );
+	( $bId, $bName, $bInfo ) = split( /\t/, $_, 4 );
 	push( @board, $bId );
 	$boardName{ $bId } = $bName;
 	$boardInfo{ $bId } = $bInfo;
@@ -7297,7 +7294,7 @@ sub GetAllBoardInfo
 #	掲示板DBから，掲示板情報を取ってくる．
 #
 # - RETURN
-#	掲示板名
+#	掲示板名，固有設定の有無，のリスト
 #
 sub GetBoardInfo
 {
@@ -7455,6 +7452,28 @@ sub GetIconPath
     {
 	"$ICON_DIR/$File";
     }
+}
+
+
+###
+## GetStyleSheetURL - スタイルシートファイルのURLの取得
+#
+# - SYNOPSIS
+#	&GetStyleSheetURL( $name );
+#
+# - ARGS
+#	$name		スタイルシートファイルの名前
+#
+# - DESCRIPTION
+#	スタイルシートファイルのURLを作り出す．
+#
+# - RETURN
+#	URLを表す文字列
+#
+sub GetStyleSheetURL
+{
+    local( $name ) = @_;
+    $KB_RESOURCE_URL? "$KB_RESOURCE_URL$RESOURCE_STYLE/$name" : "$RESOURCE_STYLE/$hame";
 }
 
 
