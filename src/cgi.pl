@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.8 1996-09-13 14:18:02 nakahiro Exp $
+# $Id: cgi.pl,v 1.9 1996-09-21 07:27:51 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -23,7 +23,9 @@
 ## cgi用パッケージ
 #
 package cgi;
+
 $MAIL2 = ((defined $'MAIL2) ? $'MAIL2 : "/usr/lib/sendmail -oi -t");
+$WAITPID_NONBLOCKMODE = ((defined $'WAITPID_NONBLOCKMODE) ? $'WAITPID_NONBLOCKMODE : 0);
 
 
 ###
@@ -87,50 +89,59 @@ sub SendMail {
     # 本文以外には日本語を入れないように!
     local($FromName, $FromEmail, $Subject, $Extension, $Message, @To) = @_;
 
-    local($ToFirst) = 1;
+    local($Pid);
 
-    # メール用ファイルを開く
-    open(MAIL, "| $MAIL2") || return(0);
+    # 安全のため，forkする
+    unless ($Pid = fork()) {
 
-    # Toヘッダ
-    foreach (@To) {
+	local($ToFirst) = 1;
 
-	if ($ToFirst) {
-	    print(MAIL "To: $_");
-	    $ToFirst = 0;
-	} else {
-	    print(MAIL ",\n\t$_");
+	# メール用ファイルを開く
+	open(MAIL, "| $MAIL2") || die;
+
+	# Toヘッダ
+	foreach (@To) {
+
+	    if ($ToFirst) {
+		print(MAIL "To: $_");
+		$ToFirst = 0;
+	    } else {
+		print(MAIL ",\n\t$_");
+	    }
+
+	}
+	print(MAIL "\n");
+    
+	# Fromヘッダ，Errors-Toヘッダ
+	$_ = "$FromName <$FromEmail>";
+	print(MAIL "From: $_\n");
+	print(MAIL "Errors-To: $_\n");
+
+	# Subjectヘッダ
+	print(MAIL "Subject: $Subject\n");
+
+	# 付加ヘッダ
+	if ($Extension) {
+	    &jcode'convert(*Extension, 'jis');
+	    print(MAIL $Extension);
 	}
 
+	# ヘッダ終わり
+	print(MAIN "\n");
+
+	# 本文
+	&jcode'convert(*Message, 'jis');
+	print(MAIL "$Message\n");
+
+	# 送信する
+	close(MAIL);
+	exit(0);
+
     }
-    print(MAIL "\n");
-    
-    # Fromヘッダ，Errors-Toヘッダ
-    $_ = "$FromName <$FromEmail>";
-    print(MAIL "From: $_\n");
-    print(MAIL "Errors-To: $_\n");
-
-    # Subjectヘッダ
-    print(MAIL "Subject: $Subject\n");
-
-    # 付加ヘッダ
-    if ($Extension) {
-	&jcode'convert(*Extension, 'jis');
-	print(MAIL $Extension);
-    }
-
-    # ヘッダ終わり
-    print(MAIN "\n");
-
-    # 本文
-    &jcode'convert(*Message, 'jis');
-    print(MAIL "$Message\n");
-
-    # 送信する
-    close(MAIL);
+    waitpid($Pid, $WAITPID_NONBLOCKMODE);
 
     # 送信した
-    return(1);
+    return(! $?);
 
 }
 
