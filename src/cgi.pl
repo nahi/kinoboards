@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.60 1998-03-30 14:52:13 nakahiro Exp $
+# $Id: cgi.pl,v 1.61 1998-04-03 16:49:08 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -113,18 +113,23 @@
 #	$cgi'COOKIES{'foo'}に'bar'が格納されます．
 #	%cgi'COOKIESを破壊します．返り値はありません．
 #
-# &cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message, @to );
+# &cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message, $labelTo, @to );
 #	メイルを送信します．
 #		$fromName: 送り主の名前
 #		$fromEmail: 送り主のE-Mail addr.
 #		$subject: メイルのsubject文字列
 #		$extension: メイルのextension header文字列
 #		$message: 本文である文字列
+#		$labelTo: 「To:」ヘッダに使う文字列．ここを空にすると，
+#			「To:」ヘッダには，@toで指定したアドレスが並びます．
 #		@to: 宛先のE-Mail addr.のリスト
+#	送信が無事行えれば1を，なんらかの理由で行えなければ0を返します．
 #	$SMTP_SERVERにサーバのホスト名，
 #	もしくはIPアドレスを指定しておいてください．
 #	OSによっては，$AF_INETと$SOCK_STREAMの値も変更する必要があります．
-#	送信が無事行えれば1を，なんらかの理由で行えなければ0を返します．
+#	$AF_INET = 2, $SOCK_STREAM = 2	... SonOS 5.*(Solaris 2.*)
+#	$AF_INET = 2, $SOCK_STREAM = 1	... SunOS 4.*, HP-UX, AIX, Linux,
+#					    FreeBSD, WinNT, Mac
 #
 # &cgi'SecureHtml( *string );
 #	*stringで指定された文字列のうち，指定した安全なタグのみを残し，
@@ -160,18 +165,15 @@ package cgi;
 
 
 $SMTP_SERVER = 'localhost';
-# $SMTP_SERVER = 'mailsvr';
+# $SMTP_SERVER = 'mailhost';
 # or
-# $SMTP_SERVER = 'mailsvr.foo.bar.baz.jp';
+# $SMTP_SERVER = 'mailhost.foo.bar.baz.jp';
 # or
 # $SMTP_SERVER = '123.123.123.123';
 
 $AF_INET = 2; $SOCK_STREAM = 1;
-# AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, Linux, FreeBSD
-# AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*
-
-$SMTP_PORT = 'smtp';
-srand( $^T|$$ );
+# AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, Linux, FreeBSD, WinNT, Mac
+# AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*(Solaris 2.*)
 
 @HTML_TAGS = (
      # タグ名, 閉じ必須か否か, 使用可能なfeature
@@ -220,9 +222,14 @@ $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $PATH_INFO = $ENV{'PATH_INFO'};
 $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 
-($CGIDIR_NAME, $CGIPROG_NAME) = $SCRIPT_NAME =~ m!^(..*)/([^/]*)$!o;
-$SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO/" : "$CGIDIR_NAME/");
-$PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME");
+if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO )) {
+    $PATH_INFO = '';
+    $PATH_TRANSLATED = '';
+}
+
+( $CGIDIR_NAME, $CGIPROG_NAME ) = $SCRIPT_NAME =~ m!^(..*)/([^/]*)$!o;
+$SYSDIR_NAME = ( $PATH_INFO ? "$PATH_INFO/" : "$CGIDIR_NAME/" );
+$PROGRAM = ( $PATH_INFO ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME" );
 
 
 ###
@@ -232,13 +239,14 @@ $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME");
 # ロック
 sub lock {
     local( $lockFile ) = @_;
+
     if ( $] =~ /^5/o ) {
 	# for perl5
-	return( &lock_flock( $lockFile ));
+	return &lock_flock( $lockFile );
     }
     else {
 	# for perl4
-	return( &lock_link( $lockFile ));
+	return &lock_link( $lockFile );
     }
 }
 
@@ -257,39 +265,46 @@ sub unlock {
 # lock with symlink
 sub lock_link {
     local( $lockFile ) = @_;
+
     local( $lockWait ) = 10;		# [sec]
     local( $lockFileTimeout ) = .004;	# 5.76 [min]
-    local( $timeOut ) = 0;
     local( $lockFlag ) = 0;
+    local( $timeOut );
 
     # locked for maintenance by admin.
-    return( 2 ) if (( -e $lockFile ) && ( ! -w $lockFile ));
+    return 2 if (( -e $lockFile ) && ( ! -w $lockFile ));
 
-    if ( -M "$lockFile" > $lockFileTimeout ) { unlink( $lockFile ); }
+    unlink( $lockFile ) if ( -M "$lockFile" > $lockFileTimeout );
+
     for ( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
 	open( LOCKORG, ">$lockFile.org" ) || return( 0 );
 	close( LOCKORG );
 	$lockFlag = 1, last if ( link( "$lockFile.org", $lockFile ));
 	unlink( "$lockFile.org" );
-	sleep( 1 );
+	sleep 1;
     }
+
     $lockFlag;
 }
 
 sub unlock_link {
     local( $lockFile ) = @_;
+
     unlink( $lockFile );
 }
 
 # lock with flock.
 sub lock_flock {
     local( $lockFile ) = @_;
+
     local( $LockEx, $LockUn ) = ( 2, 8 );
-    open( LOCK, ">>$lockFile" ) || return( 2 );
-    flock( LOCK, $LockEx ) || return( 0 );
+    open( LOCK, ">>$lockFile" ) || return 2;
+    flock( LOCK, $LockEx ) || return 0;
+
     1;
 }
 sub unlock_flock {
+
     local( $LockEx, $LockUn ) = ( 2, 8 );
     flock( LOCK, $LockUn );
     close( LOCK );
@@ -307,15 +322,12 @@ sub Header {
     print( "Content-type: text/html\n" );
 
     # Header for HTTP Cookies.
-    if ( $cookieFlag ) {
-	printf( "Set-Cookie: $cookieStr; domain=%s; path=%s\n", $SERVER_NAME, $CGIDIR_NAME );
-    }
+    printf( "Set-Cookie: $cookieStr; domain=%s; path=%s\n", $SERVER_NAME, $CGIDIR_NAME ) if ( $cookieFlag );
 
     # Header for Last-Modified.
-    if ( $utcFlag ) {
-	printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || $^T ));
-    }
+    printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || $^T )) if ( $utcFlag );
 
+    # now, the end of Head Block.
     print( "\n" );
 
 }
@@ -326,7 +338,8 @@ sub Header {
 #
 sub GetHttpDateTimeFromUtc {
     local( $utc ) = @_;
-    if ( $utc !~ /^\d+$/ ) { $utc = 0; }
+
+    $utc = 0 if ( $utc !~ /^\d+$/ );
     local( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime( $utc );
 
     sprintf( "%s, %02d-%s-%02d %02d:%02d:%02d GMT", ( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' )[ $wday ], $mday, ( 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' )[ $mon ], $year, $hour, $min, $sec );
@@ -338,6 +351,7 @@ sub GetHttpDateTimeFromUtc {
 ## CAUTION! functioon decode sets global variable, TAGS.
 #
 sub Decode {
+
     local( $args, $readSize, $key, $term, $value, $encode );
 
     if ( $ENV{ 'REQUEST_METHOD' } eq "POST" ) {
@@ -372,6 +386,7 @@ sub Decode {
 ## HTTP Cookiesのデコード
 #
 sub Cookie {
+
     local( $key, $value, $term );
     foreach $term ( split( ";\s*", $ENV{ 'HTTP_COOKIE' })) {
 	( $key, $value ) = split( /=/, $term, 2 );
@@ -381,7 +396,7 @@ sub Cookie {
 
 
 ###
-## SendMail - sending mail
+## SendMail - sending mail [ old style before cgi.pl/1.60 ]
 #
 #
 # - SYNOPSIS
@@ -397,143 +412,278 @@ sub Cookie {
 #	@to		list of recipients
 #
 # - DESCRIPTION
-#	send a mail with smtp.
+#	Send a mail with smtp.
+#	This function is used before cgi.pl/1.60.
+#	Use &sendMail though it's only for backward compatibility.
 #
 # - RETURN
 #	1 if succeed, 0 if failed.
 #
 sub SendMail {
     local( $fromName, $fromEmail, $subject, $extension, $message, @to ) = @_;
-    local( $from, $encode );
-    local( $sockAddr ) = 'S n a4 x8';
-    local( $port, $smtpAddr, $sock, $oldStream, $back, $toFirst );
 
-    return( 0 ) if ( !( $fromEmail && $subject && $message && @to ));
+    local( $labelTo ) = '';
+    local( $header, $body );
 
-    # mime encoding
-    $encode = &jcode'getcode( *fromName );
-    if ( defined( $encode )) {
-	$fromName = &main'mimeencode( $fromName );
-    }
-    $from = "$fromName <$fromEmail>";
+    return 0 if ( !( $fromEmail && $subject && $message && @to ));
 
-    $encode = &jcode'getcode( *subject );
-    if ( defined( $encode )) {
-	$subject = &main'mimeencode( $subject );
-    }
+    # creating header
+    $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension, *labelTo, *to );
 
-    $encode = &jcode'getcode( *extension );
-    if ( defined( $encode )) {
-	$extension = &main'mimeencode( $extension );
-    }
+    # creating body
+    $body = &smtpBody( *message );
 
-    # preparing for smtp connection...
-    $proto = (getprotobyname( 'tcp' ))[2];
-    $port = ( $SMTP_PORT =~ /^\d+$/ ) ? $SMTP_PORT : (getservbyname( $SMTP_PORT, 'tcp' ))[2];
-    if ( $SMTP_SERVER =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ ) {
-	$smtpAddr = pack( 'C4', $1, $2, $3, $4 );
-    }
-    else {
-	$smtpAddr = (gethostbyname( $SMTP_SERVER ))[4];
-    }
-    return( 0 ) if ( !$smtpAddr );
-
-    $sock = pack( $sockAddr, $AF_INET, $port, $smtpAddr );
-
-    # create connection...
-    socket( S, $AF_INET, $SOCK_STREAM, $proto ) || return( 0 );
-    connect( S, $sock ) || return( 0 );
-    $oldStream = select( S ); $| = 1; select( $oldStream );
-    $back = <S>;
-    if ( !&checkSmtpResult( $back )) {
-	close( S );
-	return( 0 );
-    }
+    # initialize connection
+    &smtpInit( "S" ) || return 0;
 
     # helo!
-    print( S "helo $SERVER_NAME\r\n" );
-    $back = <S>;
-    if ( !&checkSmtpResult( $back )) {
-	close( S );
-	return( 0 );
-    }
-
+    &smtpMsg( "S", "helo $SERVER_NAME\r\n" ) || return 0;
     # from
-    print( S "mail from: <$fromEmail>\r\n" );
-    $back = <S>;
-    if ( !&checkSmtpResult( $back )) {
-	close( S );
-	return( 0 );
-    }
-
+    &smtpMsg( "S", "mail from: <$fromEmail>\r\n" ) || return 0;
     # rcpt to
     foreach ( @to ) {
-	print( S "rcpt to: <$_>\r\n" );
-	$back = <S>;
-	if ( !&checkSmtpResult( $back )) {
-	    close( S );
-	    return( 0 );
-	}
+	&smtpMsg( "S", "rcpt to: <$_>\r\n" ) || return 0;
     }
-
     # data block
-    print( S "data\r\n" );
-    $back = <S>;
-    if ( !&checkSmtpResult( $back )) {
-	close( S );
-	return( 0 );
-    }
-
-    # mail header
-    $toFirst = 1;
-    foreach ( @to ) {
-	if ( $toFirst ) {
-	    print( S "To: $_" );
-	    $toFirst = 0;
-	}
-	else {
-	    print( S ",\r\n\t$_" );
-	}
-    }
-    print( S "\r\n" );
-    print( S "From: $from\r\n" );
-    print( S "Reply-To: $from\r\n" );
-    print( S "Sendar: $from\r\n" );
-    print( S "Subject: $subject\r\n" );
-    print( S "Content-type: text/plain; charset=ISO-2022-JP\r\n" );
-    if ( $extension ) {
-	foreach ( split( /\n/, $extension )) {
-	    print( S "$_\r\n" );
-	}
-    }
-    print( S "\r\n" );
-
-    # mail body
-    &jcode'convert( *message, 'jis' );
-    foreach ( split( /\n/, $message )) {
-	s/^\.$/\.\./o;		# `.' is the end of the message.
-	print( S "$_\r\n" );
-    }
-
-    # end of the body
-    print( S ".\r\n" );		# `.' is the e... yes, you know. :)
-    $back = <S>;
-    if ( !&checkSmtpResult( $back )) {
-	close( S );
-	return( 0 );
-    }
-
+    &smtpMsg( "S", "data\r\n" ) || return 0;
+    # mail header and body
+    &smtpMsg( "S", "$header" . "\r\n" . "$body" . "." . "\r\n" ) || return 0;
     # quit
-    print( S "quit\r\n" );
-    $back = <S>;
+    &smtpMsg( "S", "quit\r\n" ) || return 0;
 
     # success!
     1;
 }
 
-sub checkSmtpResult {
-    local( $str ) = @_;
-    $str !~ /^[45]/o;
+
+###
+## sendMail - sending mail [ new style after cgi.pl/1.61 ]
+#
+#
+# - SYNOPSIS
+#	require( 'cgi.pl' );
+#	&cgi'sendMail( $fromName, $fromEmail, $subject, $extension, $message, $labelTo, @to );
+#
+# - ARGS
+#	$fromName	from name
+#	$fromEmail	from e-mail addr.
+#	$subject	subject
+#	$extension	extension header
+#	$message	message
+#	$labelTo	recipients label for `To: '.
+#			@to is used if omitted $labelTo.
+#	@to		list of recipients
+#
+# - DESCRIPTION
+#	send a mail with smtp.
+#
+# - RETURN
+#	1 if succeed, 0 if failed.
+#
+sub sendMail {
+    local( $fromName, $fromEmail, $subject, $extension, $message, $labelTo, @to ) = @_;
+
+    local( $header, $body );
+
+    return 0 if ( !( $fromEmail && $subject && $message && @to ));
+
+    # creating header
+    $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension, *labelTo, *to );
+
+    # creating body
+    $body = &smtpBody( *message );
+
+    # initialize connection
+    &smtpInit( "S" ) || return 0;
+
+    # helo!
+    &smtpMsg( "S", "helo $SERVER_NAME\r\n" ) || return 0;
+    # from
+    &smtpMsg( "S", "mail from: <$fromEmail>\r\n" ) || return 0;
+    # rcpt to
+    foreach ( @to ) {
+	&smtpMsg( "S", "rcpt to: <$_>\r\n" ) || return 0;
+    }
+    # data block
+    &smtpMsg( "S", "data\r\n" ) || return 0;
+    # mail header and body
+    &smtpMsg( "S", "$header" . "\r\n" . "$body" . "." . "\r\n" ) || return 0;
+    # quit
+    &smtpMsg( "S", "quit\r\n" ) || return 0;
+
+    # success!
+    1;
+}
+
+
+###
+## smtpHeader - create smtp header
+#
+#
+# - SYNOPSIS
+#	&smtpHeader( $fromName, $fromEmail, $subject, $extension, $labelTo, @to );
+#
+# - ARGS
+#	same as &sendMail.
+#
+# - DESCRIPTION
+#	create smtp header.
+#
+# - RETURN
+#	header string.
+#
+sub smtpHeader {
+    local( *fromName, *fromEmail, *subject, *extension, *labelTo, *to ) = @_;
+
+    local( $header, $from, $encode );
+
+    # mime encoding of Japanese multi-byte char in header.
+    $encode = &jcode'getcode( *fromName );
+    $fromName = &main'mimeencode( $fromName ) if ( defined( $encode ));
+    $from = "$fromName <$fromEmail>";
+
+    $encode = &jcode'getcode( *subject );
+    $subject = &main'mimeencode( $subject ) if ( defined( $encode ));
+
+    $encode = &jcode'getcode( *extension );
+    $extension = &main'mimeencode( $extension ) if ( defined( $encode ));
+
+    # creating header
+    $header = "To: ";
+    if ( $labelTo ) {
+	$encode = &jcode'getcode( *labelTo );
+	$labelTo = &main'mimeencode( $labelTo ) if ( defined( $encode ));
+	$header .= "$labelTo\r\n";
+    }
+    else {
+	# should we encode those with MIME Base64?
+	$header .= join( ",\r\n\t", @to );
+	$header .= "\r\n";
+    }
+    $header .= "From: $from\r\n";
+    $header .= "Reply-To: $from\r\n";
+    $header .= "Sendar: $from\r\n";
+    $header .= "Subject: $subject\r\n";
+    $header .= "Content-type: text/plain; charset=ISO-2022-JP\r\n";
+    if ( $extension ) {
+	$header .= join( "\r\n", split( /\n/, $extension ));
+	$header .= "\r\n";
+    }
+
+    $header;
+}
+
+
+###
+## smtpBody - create smtp body
+#
+#
+# - SYNOPSIS
+#	&smtpBody( *message );
+#
+# - ARGS
+#	$message	message body.
+#
+# - DESCRIPTION
+#	create smtp body.
+#
+# - RETURN
+#	body string.
+#
+sub smtpBody {
+    local( *message ) = @_;
+
+    local( $body ) = '';
+
+    &jcode'convert( *message, 'jis' );
+    foreach ( split( /\n/, $message )) {
+	s/^\.$/\.\./o;		# `.' is the end of the message.
+	$body .= "$_\r\n";
+    }
+
+    $body;
+}
+
+
+###
+## smtpInit - initialize a connection with MTA
+#
+#
+# - SYNOPSIS
+#	&smtpInit( $sh );
+#
+# - ARGS
+#	$sh		socket handle's name.
+#
+# - DESCRIPTION
+#	initialize a connection with MTA and check the result.
+#
+# - RETURN
+#	1 if succeed, 0 if failed.
+#
+sub smtpInit {
+    local( $sh ) = @_;
+
+    local( $sockAddr ) = 'S n a4 x8';
+    local( $smtpPort ) = 'smtp';		# 25
+    local( $proto, $port, $smtpAddr, $sock, $oldStream );
+
+    # preparing for smtp connection...
+    $proto = ( getprotobyname( 'tcp' ))[2];
+    $port = ( $smtpPort =~ /^\d+$/ ) ? $smtpPort : ( getservbyname( $smtpPort, 'tcp' ))[2];
+    if ( $SMTP_SERVER =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ ) {
+	$smtpAddr = pack( 'C4', $1, $2, $3, $4 );
+    }
+    else {
+	$smtpAddr = ( gethostbyname( $SMTP_SERVER ))[4];
+    }
+    return 0 if ( !$smtpAddr );
+    $sock = pack( $sockAddr, $AF_INET, $port, $smtpAddr );
+
+    # create connection...
+    socket( $sh, $AF_INET, $SOCK_STREAM, $proto ) || return 0;
+    connect( $sh, $sock ) || return 0;
+    $oldStream = select( $sh ); $| = 1; select( $oldStream );
+
+    # check the result code of the connection
+    &smtpMsg( $sh, "" ) || return 0;
+
+    # initialize succeed!
+    return 1;
+}
+
+
+###
+## smtpMsg - send a message to MTA
+#
+#
+# - SYNOPSIS
+#	&smtpMsg( $sh, $message );
+#
+# - ARGS
+#	$sh		socket handle's name
+#	$message	message with \r\n
+#
+# - DESCRIPTION
+#	send a message to MTA and check the result.
+#
+# - RETURN
+#	1 if succeed, 0 if failed.
+#
+sub smtpMsg {
+    local( $sh, $message ) = @_;
+
+    local( $back );
+
+    print( $sh $message ) if $message;
+    $back = <${sh}>;
+    if ( $back =~ /^[45]/o ) {
+	close( $sh );
+	return 0;
+    }
+    else {
+	return 1;
+    }
 }
 
 
@@ -549,8 +699,8 @@ $F_HTML_TAGS_PARSED = 0;
 
 sub SecureHtml {
     local( *string ) = @_;
-    local( $srcString ) = '';
-    local( $tag, $need, $feature, $markuped );
+
+    local( $srcString, $tag, $need, $feature, $markuped );
 
     # HTML_TAGSの解析（一度だけ実施）
     if ( $F_HTML_TAGS_PARSED != 1 ) {
@@ -614,10 +764,13 @@ sub SecureHtml {
 #
 sub SecureFeature {
     local( $tag, $allowedFeatures, $features ) = @_;
-    return( 1 ) unless ( $features );
-    local( @allowed ) = split( /\//, $allowedFeatures );
-    local( $feature );
-    local( $ret ) = 1;
+
+    local( @allowed, $feature, $ret );
+
+    return 1 unless ( $features );
+    @allowed = split( /\//, $allowedFeatures );
+    $ret = 1;
+
     while ( $features ) {
 	$feature = &GetFeatureName( *features );
 	$value = &GetFeatureValue( *features );
@@ -663,7 +816,7 @@ sub Init { $STR = ''; }
 
 sub Cache {
     $STR .= shift;
-    if ( length( $STR ) > $BUFLIMIT ) { &Flush; }
+    &Flush if ( length( $STR ) > $BUFLIMIT );
 }
 
 sub Flush {
