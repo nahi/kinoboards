@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.34 1999-06-18 13:55:43 nakahiro Exp $
+# $Id: kb.cgi,v 5.35 1999-06-18 14:12:16 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -115,7 +115,6 @@ $cgi'AF_INET = $AF_INET;
 $cgi'SOCK_STREAM = $SOCK_STREAM;
 $cgi'CHARSET = $CHARSET;
 @cgi'TAG_ALLOWED = ( 'article', 'subject', 'key' );
-$FF_LOG = ( $SYS_LOG == 1 ) ? $kinologue'FF_HTML : $kinologue'FF_PLAIN;
 if (( $cgi'SERVER_PORT != 80 ) && ( $SYS_PORTNO == 1 ))
 {
     $SERVER_PORT_STRING = ":$cgi'SERVER_PORT";
@@ -1788,7 +1787,10 @@ sub KbLog
 	local( $logfile ) = ( $severity >= $kinologue'SEV_ERROR )?
 	    "$LOG_DIR/$ERROR_LOG" :
 	    "$LOG_DIR/$ACCESS_LOG";
-	&kinologue'KlgLog( $severity, $msg, $PROGNAME, $logfile, $FF_LOG )
+	$logfile .= ( $SYS_LOG == 1 )? '.html' : '.txt';
+
+	&kinologue'KlgLog( $severity, $msg, $PROGNAME, $logfile,
+	    ( $SYS_LOG == 1 )? $kinologue'FF_HTML : $kinologue'FF_PLAIN )
 	    || &Fatal( 1000, '' );
     }
 }
