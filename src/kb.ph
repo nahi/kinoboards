@@ -1,8 +1,8 @@
-# $Id: kb.ph,v 2.2 1996-01-20 08:53:39 nakahiro Exp $
+# $Id: kb.ph,v 3.0 1996-01-20 14:01:35 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 2.2  1996-01-20 08:53:39  nakahiro
-# bakup
+# Revision 3.0  1996-01-20 14:01:35  nakahiro
+# oow1
 #
 # Revision 2.1  1995/12/19 18:46:21  nakahiro
 # send mail
@@ -32,8 +32,8 @@
 ##
 # 管理者のe-mail addr.
 #
-$MAINT = "nakahiro@kinotrope.co.jp";
-### $MAINT = "nakahiro@ohara.info.waseda.ac.jp";
+$MAINT = "nakahiro\@kinotrope.co.jp";
+### $MAINT = "nakahiro\@ohara.info.waseda.ac.jp";
 
 
 ##
@@ -63,18 +63,6 @@ $SYSTEM_DIR = "/home/nakahiro/public_html";
 
 
 ##
-# 漢字コードコンバータ(入力はUJISへ、出力はJISへ)のパスとオプション
-#
-#	nkfが著名。シェルから'whichi nkf'と打ち込んで、
-#	出てきたパスを書いて下さい。
-#	
-$KC2IN = "/usr/local/bin/nkf -e";
-$KC2OUT = "/usr/local/bin/nkf -j";
-### $KC2IN = "/usr/local/bin/kc -e";
-### $KC2OUT = "/usr/local/bin/kc -j";
-
-
-##
 # sendmailのパスとオプション
 #
 $MAIL2 = "/usr/lib/sendmail -oi -t";
@@ -95,11 +83,28 @@ $ADDRESS = "Copyright 1995 <a href=\"http://www.kinotrope.co.jp/\">kinotrope Co.
 #
 
 #
+# システムの設定
+#
+# 入力文書タイプ(HTML or PRE)の選択を行うか否か(0: 行わない, 1: 行う)
+$SYS_TEXTTYPE = 1;
+# エイリアスを利用するか否か(0: 行わない, 1: 行う)
+$SYS_ALIAS = 1;
+# 引用時にタグを残すか否か(0: 残さない, 1: 残す)
+$SYS_TAGINQUOTE = 1;
+# 新規投稿記事が、上に増えていくか、下に増えていくか(0: 上, 1: 下)。
+$SYS_BOTTOMTITLE = 1;
+
+#
+# 背景色の指定
+#
+$BG_COLOR = "#FF.FF.FF";
+
+#
 # メッセージの宣言
 #
 $SYSTEM_NAME = "きのぼーず";
 
-$ENTRY_MSG = "$SYSTEM_NAMEへの書き込み";
+$ENTRY_MSG = "$SYSTEM_NAME への書き込み";
 $SHOWICON_MSG = "アイコンの確認";
 $PREVIEW_MSG = "書き込みの内容を確認して下さい";
 $THANKS_MSG = "書き込みありがとうございました";
@@ -133,9 +138,37 @@ $H_PRE = "整形済み文書";
 $H_NOICON = "なし";
 
 # あおり文
+$H_REPLYMSG = "上の記事に反応する";
 $H_AORI = "普通に書き込んで下さい。ブラウザの端での自動的な折り返しは行なわず、書いたまま表示されます。<br>HTMLのわかる方は、「$H_TEXTTYPE」を「$H_HTML」にしてHTMLとして書いて頂くと、HTML整形を行ないます。";
+$H_SEEICON = "アイコンを見る";
+$H_SEEALIAS = "エイリアスを見る";
+$H_ALIASENTRY = "登録する";
+$H_ALIASINFO = "エイリアスに登録されている方は、「$H_FROM」に「#...」と書くと、自動的に補完されます。";
+$H_ENTRYINFO = "入力できましたら、記事を確認しましょう(まだ投稿しません)。";
+$H_PUSHHERE = "ここを押してください";
+$H_ICONINTRO = "「$BoardName」では次のアイコンを使うことができます。";
+$H_POSTINFO = "以下の記事を確認したら、書き込みましょう。";
+$H_THANKSMSG = "書き込みの訂正、取消などはメールでお願いいたします。";
+$H_BACK = "戻る";
+$H_NEXTARTICLE = "次の記事へ";
+$H_REPLYTHISARTICLE = "記事に反応";
+$H_REPLYTHISARTICLEQUOTE = "引用して反応";
+$H_READREPLYALL = "反応をまとめ読み";
+$H_REPLYNOTE = " ← %s さん";
+$H_ARTICLES = "記事数";
+$H_JUMPID = "↑の数字をクリックすると、そのIDの記事に飛びます。新しい記事ほど上の方にあります。";
+$H_KEYWORD = "キーワード";
+$H_INPUTKEYWORD = "$H_KEYWORD を入力してくたら、";
+$H_NOTFOUND = "該当する記事は見つかりませんでした。";
+$H_ALIASTITLE = "新規登録/登録内容の変更";
+$H_ALIASNEWCOM = "エイリアスの新規登録/登録内容の変更が行なわれます。ただし変更は、登録の際と同じマシンでなければできません。変更できない場合は、<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします。";
+$H_ALIASDELETE = "削除";
+$H_ALIASDELETECOM = "上記エイリアスが削除されます。同じく登録の際と同じマシンでなければ削除できません。";
+$H_ALIASREFERCOM = "エイリアスを参照できます。";
+$H_ALIASCHANGED = "変更しました。";
+$H_ALIASENTRIED = "登録しました。";
+$H_ALIASDELETED = "消去しました。";
 
-# エイリアス参照の際のヘッダ
 $H_AORI_ALIAS = "投稿の際、「お名前」の部分に以下の「#....」を入力すると、登録されているお名前とe-mail addr.、URLが自動的に補われます。";
 
 #
@@ -236,6 +269,8 @@ $ICON_DIR = "$SYSTEM_DIR/$ICON_DIR_NAME";
 #
 # 制御用コメント文
 #
+$COM_TITLE_BEGIN = "<!-- Title List Begin -->";
+$COM_TITLE_END = "<!-- Title List End -->";
 $COM_ARTICLE_BEGIN = "<!-- Article Begin -->";
 $COM_ARTICLE_END = "<!-- Article End -->";
 $COM_HEADER_BEGIN = "<!-- Header Begin -->";

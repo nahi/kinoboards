@@ -1,10 +1,10 @@
-#!/usr/local/bin/perl
+#!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 2.2 1996-01-20 08:53:19 nakahiro Exp $
+# $Id: kb.cgi,v 3.0 1996-01-20 14:01:13 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 2.2  1996-01-20 08:53:19  nakahiro
-# backup
+# Revision 3.0  1996-01-20 14:01:13  nakahiro
+# oow1
 #
 # Revision 2.1  1995/12/19 18:46:12  nakahiro
 # send mail
@@ -156,7 +156,7 @@ sub Entry {
 	if ($Id != 0) {
 		&ViewOriginalArticle($Id, $Board);
 		print("<hr>\n");
-		print("<h2>上の記事に反応する</h2>");
+		print("<h2>$H_REPLYMSG</h2>");
 	}
 
 	# お約束
@@ -177,11 +177,13 @@ sub Entry {
 		$SUBJECT_LENGTH);
 
 	# TextType
-	print("$H_TEXTTYPE\n");
-	print("<SELECT NAME=\"texttype\">\n");
-	print("<OPTION SELECTED>$H_PRE\n");
-	print("<OPTION>$H_HTML\n");
-	print("</SELECT><BR>\n");
+	if ($SYS_TEXTTYPE) {
+		print("$H_TEXTTYPE\n");
+		print("<SELECT NAME=\"texttype\">\n");
+		print("<OPTION SELECTED>$H_PRE\n");
+		print("<OPTION>$H_HTML\n");
+		print("</SELECT><BR>\n");
+	}
 
 	# 本文(引用ありなら元記事を挿入)
 	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
@@ -219,7 +221,7 @@ sub FileEntry {
 	# 引用ファイルの表示
 	&ViewOriginalFile($File);
 	print("<hr>\n");
-	print("<h2>上の記事に反応する</h2>");
+	print("<h2>$H_REPLYMSG</h2>");
 
 	# お約束
 	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
@@ -240,11 +242,13 @@ sub FileEntry {
 		$H_SUBJECT, &GetReplySubjectFromFile($File), $SUBJECT_LENGTH);
 
 	# TextType
-	print("$H_TEXTTYPE\n");
-	print("<SELECT NAME=\"texttype\">\n");
-	print("<OPTION SELECTED>$H_PRE\n");
-	print("<OPTION>$H_HTML\n");
-	print("</SELECT><BR>\n");
+	if ($SYS_TEXTTYPE) {
+		print("$H_TEXTTYPE\n");
+		print("<SELECT NAME=\"texttype\">\n");
+		print("<OPTION SELECTED>$H_PRE\n");
+		print("<OPTION>$H_HTML\n");
+		print("</SELECT><BR>\n");
+	}
 
 	# 本文(引用ありなら元記事を挿入)
 	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
@@ -302,8 +306,8 @@ sub EntryIcon {
 
 	# 一つ一つ表示
 	open(ICON, "$ICON_DIR/$Board.$ICONDEF_POSTFIX")
-		|| open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF");
+		|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
+		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
 		chop;
 		($FileName, $Title) = split(/\t/, $_);
@@ -311,7 +315,7 @@ sub EntryIcon {
 	}
 	close(ICON);
 	print("</SELECT>\n");
-	print("(<a href=\"$PROGRAM/$Board?c=i\">アイコンを見る</a>)<BR>\n");
+	print("(<a href=\"$PROGRAM/$Board?c=i\">$H_SEEICON</a>)<BR>\n");
 
 }
 
@@ -327,8 +331,11 @@ sub EntryUserInformation {
 	print("$H_URL <input name=\"url\" type=\"text\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
 	print("$H_FMAIL <input name=\"fmail\" type=\"checkbox\" value=\"on\"><br>\n");
 
-	print("<p><a href=\"$PROGRAM?c=as\">ここ</a>に登録されている方は、「$H_FROM」に「#...」と書くと、自動的に補完されます。<a href=\"$PROGRAM?c=an\">登録はこちら</a>。</p>\n");
-
+	if ($SYS_ALIAS) {
+		print("<p><a href=\"$PROGRAM?c=as\">$H_SEEALIAS</a> // \n");
+		print("<a href=\"$PROGRAM?c=an\">$H_ALIASENTRY</a></p>\n");
+		print("<p>$H_ALIASINFO</p>\n");
+	}
 }
 
 
@@ -337,9 +344,9 @@ sub EntryUserInformation {
 #
 sub EntrySubmitButton {
 
-	print("<p>入力できましたら、\n");
-	print("<input type=\"submit\" value=\"ここ\">\n");
-	print("を押して記事を確認しましょう(まだ投稿しません)。</p>\n");
+	print("<p>$H_ENTRYINFO\n");
+	print("<input type=\"submit\" value=\"$H_PUSHHERE\">\n");
+	print("</p>\n");
 
 }
 
@@ -396,8 +403,11 @@ sub QuoteOriginalArticle {
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
 
-	open(TMP, "$KC2IN $QuoteFile |") || &MyFatal(1, $QuoteFile);
+	open(TMP, "<$QuoteFile") || &MyFatal(1, $QuoteFile);
 	while(<TMP>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
 		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
@@ -406,8 +416,12 @@ sub QuoteOriginalArticle {
 		if ($QuoteFlag == 1) {
 			s/&/&amp;/go;
 			s/\"//go;
-			s/<//go;
-			s/>//go;
+			if ($SYS_TAGINQUOTE) {
+				s/<//go;
+				s/>//go;
+			} else {
+				s/<[^>]*>//go;
+			}
 			print($DEFAULT_QMARK, $_);
 		}
 
@@ -431,8 +445,11 @@ sub QuoteOriginalFile {
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
 
-	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(TMP, "<$File") || &MyFatal(1, $File);
 	while(<TMP>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
 		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
@@ -471,13 +488,13 @@ sub ShowIcon {
 
 	# 表示画面の作成
 	&MsgHeader("$SHOWICON_MSG");
-	print("<p>「$BoardName」では次のアイコンを使うことができます。</p>\n");
+	print("<p>$H_ICONINTRO</p>\n");
 	print("<p><dl>\n");
 
 	# 一つ一つ表示
 	open(ICON, "$ICON_DIR/$Board.$ICONDEF_POSTFIX")
-		|| open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF");
+		|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
+		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
 		chop;
 		($FileName, $Title) = split(/\t/, $_);
@@ -522,9 +539,8 @@ sub Preview {
 		$cgi'TAGS{'id'});
 
 	# あおり文
-	print("<p>以下の記事を確認したら、");
-	print("<input type=\"submit\" value=\"ここ\">");
-	print("を押して書き込んで下さい。</p>\n");
+	print("<p>$H_POSTINFO");
+	print("<input type=\"submit\" value=\"$H_PUSHHERE\"></p>\n");
 
 	# 確認する記事の表示
 	open(TMP, "$TmpFile");
@@ -558,7 +574,7 @@ sub MakeTemporaryFile {
 	local($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
 		= localtime(time);
 	local($InputDate)
-		= sprintf("%d月%d日%02d時%02d分", $mon + 1, $mday, $hour, $min);
+		= sprintf("%d/%d %02d:%02d", $mon + 1, $mday, $hour, $min);
 	# 本文と名前
 	local($Text, $Name) = ($cgi'TAGS{'article'}, $cgi'TAGS{'name'});
 
@@ -651,14 +667,14 @@ sub MakeTemporaryFile {
 	print(TMP "$COM_ARTICLE_BEGIN\n");
 
 	# TextType用前処理
-	print(TMP "<pre>\n") if ($TextType eq $H_PRE);
+	print(TMP "<pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
 	# 記事
 	$Text = &tag_secure'decode($Text);
 	printf(TMP "%s\n", $Text);
 
 	# TextType用後処理
-	print(TMP "</pre>\n") if ($TextType eq $H_PRE);
+	print(TMP "</pre>\n") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
 
 	# article end
 	print(TMP "$COM_ARTICLE_END\n");
@@ -694,9 +710,9 @@ sub Thanks {
 	# 表示画面の作成
 	&MsgHeader("$THANKS_MSG");
 
-	print("<p>書き込みの訂正、取消などはメールでお願いいたします。</p>");
+	print("<p>$H_THANKSMSG</p>");
 	print("<form action=\"$TitleFileURL\">\n");
-	print("<input type=\"submit\" value=\"リストを見る\">\n");
+	print("<input type=\"submit\" value=\"$H_BACK\">\n");
 	print("</form>\n");
 
 	&MsgFooter;
@@ -740,15 +756,13 @@ sub MakeNewArticle {
 
 	# 記事ヘッダの作成
 	printf(ART "<title>[$BoardName: %d] $Subject</title>\n", $ArticleId);
-	print(ART "<body>\n");
-	print(ART "<a href=\"$TITLE_FILE_NAME\">戻る</a> // ");
-	printf(ART "<a href=\"%s\">前へ</a> // ",
-		&GetArticleFileName(($ArticleId - 1), ''));
-	printf(ART "<a href=\"%s\">次へ</a> // ",
+	print(ART "<body bgcolor=\"$BG_COLOR\">\n");
+	print(ART "<a href=\"$TITLE_FILE_NAME\">$H_BACK</a> // ");
+	printf(ART "<a href=\"%s\">$H_NEXTARTICLE</a> // ",
 		&GetArticleFileName(($ArticleId + 1), ''));
-	print(ART "反応 ( <a href=\"$PROGRAM/$Board?c=q&id=$ArticleId\">引用有り</a> / ");
-	print(ART "<a href=\"$PROGRAM/$Board?c=f&id=$ArticleId\">無し</a> ) // ");
-	print(ART "<a href=\"$PROGRAM/$Board?c=t&id=$ArticleId\">まとめ読み</a>\n");
+	print(ART "<a href=\"$PROGRAM/$Board?c=f&id=$ArticleId\">$H_REPLYTHISARTICLE</a> // ");
+	print(ART "<a href=\"$PROGRAM/$Board?c=q&id=$ArticleId\">$H_REPLYTHISARTICLEQUOTE</a> // ");
+	print(ART "<a href=\"$PROGRAM/$Board?c=t&id=$ArticleId\">$H_READREPLYALL</a>\n");
 	print(ART "<hr>\n");
 
 	# 記事ヘッダの始まり
@@ -873,7 +887,7 @@ sub ArticleWasFollowed {
 
 	# 後ろにフォロー情報を追加
 	open(FART, ">>$ArticleFile") || &MyFatal(1, $ArticleFile);
-	print(FART "<li>$Ficon<a href=\"$FollowArticleFile\">$Fsubject</a> ← $Fname さん\n");
+	printf(FART "<li>$Ficon<a href=\"$FollowArticleFile\">$Fsubject</a> $H_REPLYNOTE\n", $Fname);
 	close(FART);
 }
 
@@ -897,17 +911,20 @@ sub AddTitleNormal {
 
 	# タイトルファイルに追加
 	open(TTMP, ">$TmpFile") || &MyFatal(1, $TmpFile);
-	open(TITLE, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(TITLE, "<$File") || &MyFatal(1, $File);
 
 	while(<TITLE>) {
 
-		# タイトルリスト終了?
-		if (/$COM_TITLE_END/) {
-			$TitleListFlag = 0;
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
-			# 追加する。
-			printf(TTMP "<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile) if (! $AddFlag);
-		}
+		# 上に追加指定で、タイトルリスト開始なら追加
+		printf(TTMP "<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile)
+		    if ((! $SYS_BOTTOMTITLE) && (/$COM_TITLE_BEGIN/));
+
+		# 下に追加指定で、タイトルリスト終了なら追加
+		printf(TTMP "<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile)
+		    if (($SYS_BOTTOMTITLE) && (/$COM_TITLE_END/));
 
 		# そのまま書き出す。
 		print(TTMP $_);
@@ -961,9 +978,12 @@ sub AddTitleFollow {
 
 	# タイトルファイルに追加
 	open(TTMP, ">$TmpFile") || &MyFatal(1, $TmpFile);
-	open(TITLE, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(TITLE, "<$File") || &MyFatal(1, $File);
 
 	while(<TITLE>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
 		# タイトルリスト終了?
 		if (/$COM_TITLE_END/) {
@@ -971,7 +991,8 @@ sub AddTitleFollow {
 
 			# 見つかんなかったということは、
 			# エージングされてるらしいので、単に追加。
-			printf(TTMP "<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile);
+			# これも$SYS_TITLEBOTTOMに従ったほうがいいのかなぁ。
+			printf(TTMP "<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Subject</a> [$Name] $InputDate\n\n", $ArticleFile) if (! $AddFlag);
 		}
 
 		# そのまま書き出す。
@@ -1073,8 +1094,12 @@ sub SortArticle {
 				: $ALL_FILE_NAME));
 	local(@lines);
 
-	open(ALL, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(ALL, "<$File") || &MyFatal(1, $File);
 	while(<ALL>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
+
 		(/^<li>/) && (s/href=\"/href=\"$SYSTEM_DIR_URL\/$Board\//)
 			&& push(@lines, $_);
 	}
@@ -1133,17 +1158,14 @@ sub NewArticle {
 	# 表示画面の作成
 	&MsgHeader("$NEWARTICLE_MSG: $Num");
 
-	print("<p>記事数: $Num ($ArticleToId 〜 $ArticleFromId)</p>");
+	print("<p>$H_ARTICLES: $Num ($ArticleToId - $ArticleFromId)</p>");
 
 	# nameへのリンクを表示
 	print("<p> //\n");
 	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
 		print("<a href=\"\#$i\">$i</a> //\n");
 	}
-	print("</p><p>\n");
-	print("↑の数字をクリックすると、そのIDの記事に飛びます。\n");
-	print("新しい記事ほど上の方にあります。\n");
-	print("</p>\n");
+	print("</p><p>$H_JUMPID</p>\n");
 
 	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
 		print("<a name=\"$i\">　</a><br>\n");
@@ -1267,8 +1289,11 @@ sub GetFollowIdList {
 	# リスト
 	local(@Result) = ();
 
-	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(TMP, "<$File") || &MyFatal(1, $File);
 	while(<TMP>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
 		# フォロー部分開始の判定
 		$QuoteFlag = 1 if (/^$COM_ARTICLE_END$/);
@@ -1299,7 +1324,7 @@ sub PrintAbstract {
 	local($Icon, $Subject, $InputDate, $Name);
 
 	# 記事ファイルからSubject等を取り出す
-	($Icon, $Subject, $InputDate, $Name) = &GetHeader("$KC2IN $File |");
+	($Icon, $Subject, $InputDate, $Name) = &GetHeader("$File");
 
 	print("<li><strong>$Id .</strong> $Icon<a href=\"\#$Id\">$Subject</a> [$Name] $InputDate\n");
 
@@ -1330,10 +1355,9 @@ sub SearchArticle {
 	print("<input name=\"type\" type=\"hidden\" value=\"$Type\">\n");
 
 	# キーワード入力部
-	print("<p>キーワードを入力したら、");
-	print("<input type=\"submit\" value=\"ここ\">");
-	print("を押して下さい。</p>\n");
-	print("<p>検索するキーワード:\n");
+	print("<p>$H_INPUTKEYWORD");
+	print("<input type=\"submit\" value=\"$H_PUSHHERE\"></p>\n");
+	print("<p>$H_KEYWORD:\n");
 	print("<input name=\"key\" size=\"$KEYWORD_LENGTH\"></p>\n");
 	print("<hr>\n");
 
@@ -1364,8 +1388,12 @@ sub SearchArticleList {
 	print("<dl>\n");
 
 	# ファイルを開く
-	open(TITLE, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(TITLE, "<$File") || &MyFatal(1, $File);
 	while(<TITLE>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
+
 		$Title = $_;
 		next unless (/^<li>.*href=\"([^\"]*)\"/);
 		$ArticleFile = &GetPath($Board, $1);
@@ -1384,7 +1412,7 @@ sub SearchArticleList {
 	close(TITLE);
 
 	# ヒットしなかったら
-	print("<dt>該当する記事は見つかりませんでした。\n")
+	print("<dt>$H_NOTFOUND\n")
 		unless ($HitFlag = 1);
 
 	# リスト閉じる
@@ -1401,8 +1429,12 @@ sub SearchArticleKeyword {
 	local($File, $Key) = @_;
 
 	# 検索する
-	open(ARTICLE, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(ARTICLE, "<$File") || &MyFatal(1, $File);
 	while(<ARTICLE>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
+
 		# ヒット?
 		(/$Key/) && return($_);
 	}
@@ -1425,7 +1457,7 @@ sub AliasNew {
 	&MsgHeader("$ALIASNEW_MSG");
 
 	# 新規登録/登録内容の変更
-	print("<p>新規登録/登録内容の変更</p>\n");
+	print("<p>$H_ALIASTITLE</p>\n");
 	print("<p>\n");
 	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"am\">\n");
@@ -1433,24 +1465,20 @@ sub AliasNew {
 	print("$H_FROM <input name=\"name\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
 	print("$H_MAIL <input name=\"email\" type=\"text\" size=\"$MAIL_LENGTH\"><br>\n");
 	print("$H_URL <input name=\"url\" type=\"text\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
-	print("<input type=\"submit\" value=\"ここ\">を押すと、\n");
-	print("エイリアスの新規登録/登録内容の変更が行なわれます。\n");
-	print("ただし変更は、登録の際と同じマシンでなければできません。\n");
-	print("変更できない場合は、\n");
-	print("<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします。\n");
+	print("<input type=\"submit\" value=\"$H_PUSHHERE\">\n");
+	print("$H_ALIASNEWCOM\n");
 	print("</form></p>\n");
 
 	print("<hr>\n");
 
 	# 削除
-	print("<p>削除</p>\n");
+	print("<p>$H_ALIASDELETE</p>\n");
 	print("<p>\n");
 	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"ad\">\n");
 	print("$H_ALIAS <input name=\"alias\" type=\"text\" size=\"$NAME_LENGTH\"><br>\n");
-	print("<input type=\"submit\" value=\"ここ\">を押すと、\n");
-	print("上記エイリアスが削除されます。\n");
-	print("同じく登録の際と同じマシンでなければ削除できません。\n");
+	print("<input type=\"submit\" value=\"$H_PUSHHERE\">\n");
+	print("$H_ALIASDELETECOM\n");
 	print("</form></p>\n");
 
 	print("<hr>\n");
@@ -1459,8 +1487,8 @@ sub AliasNew {
 	print("<p>\n");
 	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
 	print("<input name=\"c\" type=\"hidden\" value=\"as\">\n");
-	print("<input type=\"submit\" value=\"ここ\">を押すと、\n");
-	print("エイリアスを参照できます。\n");
+	print("<input type=\"submit\" value=\"$H_PUSHHERE\">\n");
+	print("$H_ALIASREFERCOM\n");
 	print("</form></p>\n");
 
 	# お約束
@@ -1514,11 +1542,11 @@ sub AliasMod {
 
 	# 表示画面の作成
 	&MsgHeader("$ALIASMOD_MSG");
-	print("<p>$H_ALIAS <strong>$A</strong>のデータを\n");
+	print("<p>$H_ALIAS <strong>$A</strong>:\n");
 	if ($HitFlag == 2) {
-		print("変更しました。</p>\n");
+		print("$H_ALIASCHANGED</p>\n");
 	} else {
-		print("登録しました。</p>\n");
+		print("$H_ALIASENTRIED</p>\n");
 	}
 	&MsgFooter;
 
@@ -1587,7 +1615,7 @@ sub AliasDel {
 
 	# 表示画面の作成
 	&MsgHeader("$ALIASDEL_MSG");
-	print("<p>$H_ALIAS <strong>$A</strong>のデータを消去しました。</p>\n");
+	print("<p>$H_ALIAS <strong>$A</strong>: $H_ALIASDELETED</p>\n");
 	&MsgFooter;
 
 }
@@ -1606,7 +1634,7 @@ sub AliasShow {
 	&MsgHeader("$ALIASSHOW_MSG");
 	# あおり文
 	print("<p>$H_AORI_ALIAS</p>\n");
-	print("<p><a href=\"$PROGRAM?c=an\">エイリアスの新規登録/変更/削除を行なう。</a></p>\n");
+	print("<p><a href=\"$PROGRAM?c=an\">$H_ALIASTITLE</a></p>\n");
 
 	# リスト開く
 	print("<dl>\n");
@@ -1642,8 +1670,12 @@ sub CashAliasData {
 	local($A, $N, $E, $H, $U);
 
 	# 放り込む。
-	open(ALIAS, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(ALIAS, "<$File") || &MyFatal(1, $File);
 	while(<ALIAS>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
+
 		chop;
 		($A, $N, $E, $H, $U) = split(/\t/, $_);
 		$Name{$A} = $N;
@@ -1697,12 +1729,16 @@ sub GetUserInfo {
 	local($A, $N, $E, $H, $U);
 
 	# ファイルを開く
-	open(ALIAS, "$KC2IN $USER_ALIAS_FILE |")
+	open(ALIAS, "<$USER_ALIAS_FILE")
 		# ファイルがないらしいのでさようなら。
 		|| return('', '', '');
 
 	# 1つ1つチェック。
 	while(<ALIAS>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
+
 		chop;
 
 		# 分割
@@ -1731,9 +1767,12 @@ sub GetBoardInfo {
 	# ボード名
 	local($BoardName);
 
-	open(ALIAS, "$KC2IN $BOARD_ALIAS_FILE |")
+	open(ALIAS, "<$BOARD_ALIAS_FILE")
 		|| &MyFatal(1, $BOARD_ALIAS_FILE);
 	while(<ALIAS>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
 		chop;
 		# マッチしなきゃ次へ。
@@ -1804,7 +1843,7 @@ sub MsgHeader {
 
 	&cgi'header;
 	print("<title>$Message</title>", "\n");
-	print("<body>\n");
+	print("<body bgcolor=\"$BG_COLOR\">\n");
 	print("<h1>$Message</h1>\n");
 	print("<hr>\n");
 }
@@ -1861,8 +1900,11 @@ sub ViewOriginalArticle {
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
 
-	open(TMP, "$KC2IN $QuoteFile |") || &MyFatal(1, $QuoteFile);
+	open(TMP, "<$QuoteFile") || &MyFatal(1, $QuoteFile);
 	while(<TMP>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
 		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
@@ -1893,8 +1935,11 @@ sub ViewOriginalFile {
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
 
-	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(TMP, "<$File") || &MyFatal(1, $File);
 	while(<TMP>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
 		# 引用終了の判定
 		$QuoteFlag = 0 if (/^$COM_ARTICLE_END$/);
@@ -2016,8 +2061,8 @@ sub GetIconURL {
 
 	# 一つ一つ表示
 	open(ICON, "$ICON_DIR/$Board.$ICONDEF_POSTFIX")
-		|| open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
-		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF");
+		|| (open(ICON, "$ICON_DIR/$DEFAULT_ICONDEF")
+		|| &MyFatal(1, "$ICON_DIR/$DEFAULT_ICONDEF"));
 	while(<ICON>) {
 		chop;
 		($FileName, $Title) = split(/\t/, $_);
@@ -2044,8 +2089,12 @@ sub GetSubject {
 	local($Icon, $Subject) = ('', '');
 
 	# 該当ファイルからSubject文字列を取り出す。
-	open(TMP, "$KC2IN $ArticleFile |") || &MyFatal(1, $ArticleFile);
+	open(TMP, "<$ArticleFile") || &MyFatal(1, $ArticleFile);
 	while(<TMP>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
+
 		if (/^<strong>$H_SUBJECT<\/strong> \[[^\]]*\] (<img src=[^>]*> )(.*)<br>$/) {
 			$Icon = $1;
 			$Subject = $2;
@@ -2071,7 +2120,7 @@ sub GetHeader {
 	local($Icon, $Subject, $Date, $Name, @Fmail) = ('', '', '', '', ());
 
 	# ファイルを開く。
-	open(TMP, "$File") || &MyFatal(1, $File);
+	open(TMP, "<$File") || &MyFatal(1, $File);
 	while(<TMP>) {
 
 		# subjectを取り出す。
@@ -2124,8 +2173,11 @@ sub GetSubjectFromFile {
 	# 取り出したSubject
 	local($Title) = '';
 
-	open(TMP, "$KC2IN $File |") || &MyFatal(1, $File);
+	open(TMP, "<$File") || &MyFatal(1, $File);
 	while(<TMP>) {
+
+		# コード変換
+		&jcode'convert(*_, 'euc');
 
 		if (/^<[Tt][Ii][Tt][Ll][Ee]>(.*)<\/[Tt][Ii][Tt][Ll][Ee]>$/) {
 			$Title = $1;
@@ -2148,24 +2200,33 @@ sub SendMail {
 	local($Subject, $Message, @To) = @_;
 
 	# メール用ファイルを開く
-	open(MAIL, "| $KC2OUT | $MAIL2") || &MyFatal(9, '');
+	open(MAIL, "| $MAIL2") || &MyFatal(9, '');
 
 	# Toヘッダ
 	foreach (@To) {
+
+		# コード変換
+		&jcode'convert(*_, 'jis');
+
 		print(MAIL "To: $_\n");
 	}
 
 	# Fromヘッダ
-	print(MAIL "From: $MAINT\n");
-
 	# Errors-Toヘッダ
-	print(MAIL "Errors-To: $MAINT\n");
+	$_ = $MAINT;
+	&jcode'convert(*_, 'jis');
+	print(MAIL "From: $_\n");
+	print(MAIL "Errors-To: $_\n");
 
 	# Subjectヘッダ
-	print(MAIL "Subject: $Subject\n\n");
+	$_ = $Subject;
+	&jcode'convert(*_, 'jis');
+	print(MAIL "Subject: $_\n\n");
 
 	# 本文
-	print(MAIL "$Message\n");
+	$_ = $Message;
+	&jcode'convert(*_, 'jis');
+	print(MAIL "$_\n");
 
 	# 送信する
 	close(MAIL);
