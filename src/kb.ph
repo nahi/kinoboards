@@ -106,12 +106,6 @@ $SYS_ICON = 1;
   #   1: 必須にしない（指定しなくてもよい）
   $SYS_ALLOWNOICON = 1;
   
-# コマンドアイコンを利用しますか?
-#   0: 利用しない(コマンドはテキストで表示する)
-#   1: 利用する
-#   2: コマンドアイコンと同時にテキストも表示する
-$SYS_COMICON = 1;
-
 # 最近の記事に，[new!]アイコン（黄色の旗）をつけますか?
 #   0: つけない．
 #   1: 最近の記事n個に[new!]アイコンをつける．
@@ -179,6 +173,13 @@ $SYS_REVERSE = 1;
 $SYS_COMMAND = 1;
 
   # 上で「0: 表示しない」を設定した場合，以下の設定は意味がありません．
+
+  # コマンドアイコンを利用しますか?
+  #   0: 利用しない(コマンドはテキストで表示する)
+  #   1: 利用する
+  #   2: コマンドアイコンと同時にテキストも表示する
+  $SYS_COMICON = 1;
+
   # まとめ読みの際は，各記事のヘッダにコマンド群を表示しますか?
   # 表示しないと見た目はすっきりしますが，
   # 例えば「最近の記事まとめ読み」から直接リプライすることができなくなる，
@@ -211,16 +212,13 @@ $SYS_NETSCAPE_EXTENSION = 1;
   $ALINK_COLOR = "";
   $VLINK_COLOR = "";
 
-# タイトル一覧(リプライ順)における，スレッドの表示形式を選んでください．
-#   管理者用のタイトル一覧の表示形式は変更されません．
-#   タイトル一覧(日付順)の表示形式は変更されません．
+# タイトル一覧における，スレッドの表示形式を選んでください．
 #
-#   0: 1ページに表示する記事数が一定になるように適当にスレッドを切る
-#      （これがR5.*以前までの形式です）．
+#   0: 1ページに表示するメッセージ数が一定になるように適当にスレッドを切る．
 #
 #   1: 存在するリプライは全て表示する．
 #
-#   2: リプライは一切表示せず，新着記事のみ表示する．
+#   2: リプライは一切表示せず，先頭のメッセージのみ表示する．
 #
 $SYS_THREAD_FORMAT = 0;
 
@@ -294,28 +292,29 @@ $SYS_MAIL = 1 + 2;
   # R6.4以降，「From:」ヘッダには記事投稿者が入ります．
   $MAILFROM_LABEL = '';
 
-  # CGIが動くサーバ（普通はWWWサーバです．メイルサーバじゃありません）
-  # の，OSのタイプに合致する行だけ，先頭の「#」を取り除いてください．
+  # CGIが動くサーバ（普通はWWWサーバです．メイルサーバのことではありません）
+  # に合わせて，$AF_INETと$SOCK_STREAMを設定してください．
   # OSのタイプは，telnetして「uname -sr」というコマンドでわかります．
   # telnetできない場合，プロバイダもしくは管理者さんに問い合わせてください．
   #
-  # 以下を見て頂ければわかる通り，
-  # 多くのOSで，$AF_INETを2，$SOCK_STREAMを1に設定します．
+  # 各OSにおける設定値は，以下を参照してください．
+  #   $AF_INET = 2; $SOCK_STREAM = 1;	# SunOS 4.*
+  #   $AF_INET = 2; $SOCK_STREAM = 2;	# SunOS 5.*(Solaris 2.*)
+  #   $AF_INET = 2; $SOCK_STREAM = 1;	# HP-UX
+  #   $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
+  #   $AF_INET = 2; $SOCK_STREAM = 2;	# Cobalt OS 2.2(Linux 2.0.33)
+  #   $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
+  #   $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
+  #   $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
+  #   $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT/95
+  #   $AF_INET = 2; $SOCK_STREAM = 1;	# Mac with MacPerl
+  # この他の組み合わせを御存知の方がありましたら，
+  # なひ(nahi@keynauts.com)まで御連絡ください．
+  #
+  # 上記の通り，多くのOSで，$AF_INETを2，$SOCK_STREAMを1に設定します．
   # サーバがSolaris/2.*もしくはCobaltの人だけ，
   # $SOCK_STREMを2に設定してください．
   #
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# SunOS 4.*
-  # $AF_INET = 2; $SOCK_STREAM = 2;	# SunOS 5.*(Solaris 2.*)
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# HP-UX
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
-  # $AF_INET = 2; $SOCK_STREAM = 2;	# Cobalt OS 2.2(Linux 2.0.33)
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT/95
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# Mac with MacPerl
-  # この他の組み合わせを御存知の方がありましたら，
-  # なひ(nahi@keynauts.com)まで御連絡ください．
   $AF_INET = 2;
   $SOCK_STREAM = 1;
 
@@ -427,7 +426,7 @@ $H_NEWARTICLE = "new!";
 $H_HR = "<hr>";
 
 $H_TEXTTYPE = "書き込み形式";
-@H_TTLABEL = ( "そのまま表示", "HTMLに変換", "HTMLで入力" );
+@H_TTLABEL = ( "そのまま表示（要改行）", "HTMLに変換（段落タグ挿入）", "HTMLで入力" );
 @H_TTMSG = ( "「$H_TEXTTYPE」を「$H_TTLABEL[0]」にして$H_MESGを書くと，表示の際にそのまま表示されます．", "「$H_TTLABEL[1]」にすると，空行を段落の区切としてHTMLに自動変換します．", "「$H_TTLABEL[2]」にしてHTMLとして書くと，表示の時にHTML整形されます．" );
 
 $H_NOICON = "なし";
@@ -462,7 +461,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.21.2.1 1999-09-24 14:19:51 nakahiro Exp $
+# $Id: kb.ph,v 5.21.2.2 2000-02-14 18:22:52 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
