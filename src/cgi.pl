@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.13 1998-12-24 22:45:17 nakahiro Exp $
+# $Id: cgi.pl,v 2.14 1999-01-20 03:19:55 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -107,12 +107,6 @@ $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $PATH_INFO = $ENV{'PATH_INFO'};
 $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 
-if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO ))
-{
-    $PATH_INFO = '';
-    $PATH_TRANSLATED = '';
-}
-
 ( $CGIDIR_NAME, $CGIPROG_NAME ) = $SCRIPT_NAME =~ m!^(..*)/([^/]*)$!o;
 $SYSDIR_NAME = ( $PATH_INFO ? "$PATH_INFO/" : "$CGIDIR_NAME/" );
 $PROGRAM = ( $PATH_INFO ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME" );
@@ -123,39 +117,39 @@ $PROGRAM = ( $PATH_INFO ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME" );
 #
 
 # ロック
-sub lock
+sub lock_file
 {
     local( $lockFile ) = @_;
 
     if ( $] =~ /^5/o )
     {
 	# for perl5
-	return &lock_flock( $lockFile );
+	return &lock_file_flock( $lockFile );
     }
     else
     {
 	# for perl4
-	return &lock_link( $lockFile );
+	return &lock_file_link( $lockFile );
     }
 }
 
 # アンロック
-sub unlock
+sub unlock_file
 {
     if ( $] =~ /^5/o )
     {
 	# for perl5
-	&unlock_flock;
+	&unlock_file_flock;
     }
     else
     {
 	# for perl4
-	&unlock_link( @_ );
+	&unlock_file_link( @_ );
     }
 }
 
 # lock with symlink
-sub lock_link
+sub lock_file_link
 {
     local( $lockFile ) = @_;
 
@@ -181,14 +175,14 @@ sub lock_link
     $lockFlag;
 }
 
-sub unlock_link
+sub unlock_file_link
 {
     local( $lockFile ) = @_;
     unlink( $lockFile );
 }
 
 # lock with flock.
-sub lock_flock
+sub lock_file_flock
 {
     local( $lockFile ) = @_;
     local( $LockEx, $LockUn ) = ( 2, 8 );
@@ -196,7 +190,7 @@ sub lock_flock
     flock( LOCK, $LockEx ) || return 0;
     1;
 }
-sub unlock_flock
+sub unlock_file_flock
 {
     local( $LockEx, $LockUn ) = ( 2, 8 );
     flock( LOCK, $LockUn );
