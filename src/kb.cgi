@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.27 1996-09-17 17:07:57 nakahiro Exp $
+# $Id: kb.cgi,v 4.28 1996-09-19 13:43:19 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -135,6 +135,11 @@ $AND_MARK = '__amp__';
 #
 $F_HEADITEM_REPLY = 2;
 $F_HEADITEM_LI = 1;
+
+#
+# エラーコード
+#
+$ERR_F_CANNOTRENAME = 99;
 
 # トラップ
 $SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
@@ -690,7 +695,7 @@ sub AddArticleId {
     close(AID);
 
     # 更新
-    rename($TmpFile, $File);
+    &Rename($TmpFile, $File);
 
 }
 
@@ -754,7 +759,7 @@ sub AddDBFile {
     close(DBTMP);
 
     # DBを更新する
-    rename($TmpFile, $File);
+    &Rename($TmpFile, $File);
 
 }
 
@@ -2072,7 +2077,7 @@ sub WriteAliasData {
     close(ALIAS);
 
     # 更新
-    rename($TmpFile, $File);
+    &Rename($TmpFile, $File);
     
 }
 
@@ -2610,6 +2615,34 @@ sub GetArticlesInfo {
 
 
 ###
+## ファイルのmv(renameがエラーを起こしたので……)
+#
+sub Rename {
+
+    # 古いファイル名，新しいファイル名
+    local($OldFile, $NewFile) = @_;
+
+    local($Size) = (-s $OldFile);
+
+    # 古いファイルのサイズが0ならmvしない．システムをlockしたまま終了．
+    &Fatal($ERR_F_CANNOTRENAME, $NewFile) unless ($Size);
+
+    open(DEST, ">$NewFile") || &Fatal($ERR_FILE, $NewFile);
+    open(SRC, "<$OldFile") || &Fatal($ERR_FILE, $OldFile);
+    while(<SRC>) { print(DEST $_); }
+    close(SRC);
+    close(DEST);
+
+    # サイズが違ったらmvしない．システムをlockしたまま終了．
+    &Fatal($ERR_F_CANNOTRENAME, $NewFile) if ($Size != (-s $NewFile));
+
+    # サイズも一致したので削除
+    unlink($OldFile);
+
+}
+
+
+###
 ## Version Check
 #
 sub VersionCheck {
@@ -2633,7 +2666,7 @@ sub Fatal {
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    &unlock if ($FatalNo != 999);
+    &unlock if (($FatalNo != 999) && ($FatalNo != $ERR_F_CANNOTRENAME));
 
     &MsgHeader($ERROR_MSG);
     
@@ -2696,6 +2729,13 @@ $FatalInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．
 
 	print("<p>
 次の記事はまだ投稿されていません．
+</p>\n");
+
+    } elsif ($FatalNo == $ERR_F_CANNOTRENAME) {
+
+	print("<p>
+「$FatalInfo」というファイルの変更に失敗しました．
+お手数ですが，<a href=\"mailto:$mEmail\">$mEmail</a>までご連絡ください．
 </p>\n");
 
     } elsif ($FatalNo == 999) {
