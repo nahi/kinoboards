@@ -34,7 +34,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.50 1999-09-03 11:03:27 nakahiro Exp $
+# $Id: kb.cgi,v 5.51 1999-09-22 14:24:03 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -83,6 +83,7 @@ $ARRIVEMAIL_FILE_NAME = 'kb.mail';		# 掲示板別新規メイル送信先DB
 $HEADER_FILE_NAME = 'kb.board';			# タイトルリストヘッダDB
 $DB_FILE_NAME = 'kb.db';			# 記事DB
 $ARTICLE_NUM_FILE_NAME = 'kb.aid';		# 記事番号DB
+$CSS_FILE = 'kbStyle.css';			# スタイルシートファイル
 $USER_FILE = 'kb.user';				# ユーザ用DB
 $DEFAULT_ICONDEF = 'all.idef';			# アイコンDB
 $LOCK_FILE = 'kb.lock';				# ロックファイル
@@ -274,6 +275,8 @@ MAIN:
 
     if ( $SYS_AUTH )
     {
+	$SYS_AUTH_DEFAULT = $SYS_AUTH;
+	$SYS_AUTH = 3 if ( $cgi'TAGS{ 'kinoA' } == 3 );
 	if ( $c eq 'lo' )
 	{
 	    # ログイン
@@ -290,7 +293,7 @@ MAIN:
 	{
 	    # ユーザ新規登録実施
 	    &UIUserEntryExec();
-	    $c = 'bl';		# 掲示板一覧へdispatchし，認証へ突入
+	    last;
 	}
 
 	$cgiauth'AUTH_TYPE = $SYS_AUTH;
@@ -643,7 +646,14 @@ exit( 0 );
 sub UILogin
 {
     # ユーザ情報をクリア
-    $UNAME = $cgiauth'F_COOKIE_RESET if ( $SYS_AUTH == 1 );
+    if ( $SYS_AUTH == 1 )
+    {
+	$UNAME = $cgiauth'F_COOKIE_RESET;
+    }
+    else
+    {
+	$UNAME = '';
+    }
     &htmlGen( 'Login.html' );
 }
 
@@ -656,14 +666,17 @@ sub hgLoginForm
 	'kinoU', '', $NAME_LENGTH ) . $HTML_BR;
     $msg .= &TagLabel( $H_PASSWD, 'kinoP', 'P' ) . ': ' . &TagInputText(
 	'password', 'kinoP', '', $PASSWD_LENGTH ) . $HTML_BR;
-    if ( $SYS_AUTH == 3 )
+    if ( $SYS_AUTH_DEFAULT == 1 )
     {
-	%tags = ( 'c', 'bl', 'kinoT', 'plain' );
+	$msg .= &TagInputRadio( 'kinoA_url', 'kinoA', '3', 1 ) . ":\n" .
+	    &TagLabel( 'クッキー(HTTP-Cookies)を使わずに認証する', 'kinoA_url',
+	    'U' ) . $HTML_BR;
+	$msg .= &TagInputRadio( 'kinoA_cookies', 'kinoA', '1', 0 ) . "\n" .
+	    &TagLabel( 'クッキーを使ってこのブラウザに情報を覚えさせる',
+	   'kinoA_cookies', 'C' ) . $HTML_BR;
     }
-    else
-    {
-	%tags = ( 'c', 'bl' );
-    }
+
+    %tags = ( 'c', 'bl', 'kinoT', 'plain' );
     &DumpForm( *tags, '実行', 'リセット', *msg, 1 );
 }
 
@@ -687,7 +700,7 @@ sub hgAdminConfigForm
 	'password', 'confP2', '', $PASSWD_LENGTH ) .
 	'（念のため，もう一度お願いします）' . $HTML_BR;
     %tags = ( 'c', 'acx' );
-    &DumpForm( *tags, '設定', 'リセット', *msg );
+    &DumpForm( *tags, '設定', 'リセット', *msg, 1 );
 }
 
 
@@ -719,8 +732,7 @@ sub UIAdminConfigExec
     &UnlockAll();
 
     # ユーザ情報をクリア
-    $UNAME = $cgiauth'F_COOKIE_RESET if ( $SYS_AUTH == 1 );
-    &htmlGen( 'Login.html' );
+    &UILogin();
 }
 
 
@@ -797,11 +809,8 @@ sub UIUserEntryExec
 	&Fatal( 998, 'Must not reach here(UserEntryExec).' );
     }
 
-    # 下記のようにここで画面を生成してしまいたいところだが，
-    # 先に認証を済ませる必要があるため，戻って認証を通してから
-    # 掲示板一覧にdispatchする．．．
-
-    ## &htmlGen( 'BoardList.html' );
+    # ログイン画面へ
+    &UILogin();
 }
 
 
@@ -900,7 +909,7 @@ sub UIUserConfigExec
     # unlock system
     &UnlockAll();
 
-    &htmlGen( 'BoardList.html' );
+    &UIBoardList();
 }
 
 
@@ -952,7 +961,7 @@ sub UIBoardEntryExec
     &AddBoardDb( $name, $intro, 0, *arriveMail, *header );
     &UnlockAll();
 
-    &htmlGen( 'BoardList.html' );
+    &UIBoardList();
 }
 
 
@@ -1020,7 +1029,7 @@ sub UIBoardConfigExec
     &UpdateBoardDb( $BOARD, $valid, $intro, 0, *arriveMail, *header );
     &UnlockAll();
 
-    &htmlGen( 'BoardList.html' );
+    &UIBoardList();
 }
 
 
@@ -2404,8 +2413,9 @@ sub hgsTitle
 <meta http-equiv="Content-Style-Type" content="text/css">
 <base href="$BASE_URL">
 <link rev="MADE" href="mailto:$MAINT">
-<link rel="StyleSheet" href="kbStyle.css" type="text/css" media="screen">
+<link rel="StyleSheet" href="$CSS_FILE" type="text/css" media="screen">
 EOS
+    $gHgStr .= qq(<link rel="StyleSheet" href="$BOARD/$CSS_FILE" type="text/css" media="screen">) if $BOARD;
 }
 
 sub hgsAddress
@@ -2438,11 +2448,6 @@ sub hgcTopMenu
     local( $select, $contents );
     $select = &TagLabel( "表示画面", 'c', 'W' ) . ": \n";
 
-    $contents = sprintf( qq(<option%s value="lo">$H_LOGIN\n),
-	( $cgi'TAGS{'c'} eq 'lo' )? ' selected' : '' ) if $SYS_AUTH;
-    $contents .= sprintf( qq(<option%s value="bl">$H_BOARD一覧\n),
-	( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
-
     if ( $BOARD )
     {
 	$contents .= sprintf( qq[<option%s value="v">$H_SUBJECT一覧(スレッド)\n], ( $cgi'TAGS{'c'} eq 'v' )? ' selected' : '' );
@@ -2453,6 +2458,11 @@ sub hgcTopMenu
 	$contents .= sprintf( qq(<option%s value="n">$H_POSTNEWARTICLE\n), ( $cgi'TAGS{'c'} eq 'n' )? ' selected' : '' ) if (( $POLICY & 2 ) && ( !$SYS_NEWART_ADMINONLY || ( $POLICY & 8 )));
 	$contents .= sprintf( qq(<option%s value="i">使える$H_ICON一覧\n), ( $cgi'TAGS{'c'} eq 'i' )? ' selected' : '' );
     }
+
+    $contents .= sprintf( qq(<option%s value="bl">$H_BOARD一覧\n),
+	( $cgi'TAGS{'c'} eq 'bl' )? ' selected' : '' );
+    $contents .= sprintf( qq(<option%s value="lo">$H_LOGIN\n),
+	( $cgi'TAGS{'c'} eq 'lo' )? ' selected' : '' ) if $SYS_AUTH;
 
     $select .= &TagSelect( 'c', $contents ) . "\n // " .
 	&TagLabel( "表示件数", 'num', 'Y' ) . ': ' .
@@ -2620,8 +2630,12 @@ sub hgbBoardHeader
 
 sub hgbPostEntryForm
 {
-    &DumpArtEntry( $gDefIcon, $gEntryType, $gId, $gDefSubject, $gDefTextType,
-	$gDefArticle, $gDefName, $gDefEmail, $gDefUrl, $gDefFmail );
+    if ( $POLICY & 2 )
+    {
+	&DumpArtEntry( $gDefIcon, $gEntryType, $gId, $gDefSubject,
+	    $gDefTextType, $gDefArticle, $gDefName, $gDefEmail, $gDefUrl,
+	    $gDefFmail );
+    }
 }
 
 sub hgbSearchArticleForm
@@ -2658,10 +2672,12 @@ sub hgbSearchArticleForm
     &CacheIconDb( $BOARD );
 
     local( $contents, $IconTitle );
-    $contents = sprintf( qq(<option%s>$H_NOICON\n), ( $Icon && ( $Icon ne $H_NOICON ))? '' : ' selected' );
+    $contents = sprintf( qq(<option%s>$H_NOICON\n), ( $Icon &&
+	( $Icon ne $H_NOICON ))? '' : ' selected' );
     foreach $IconTitle ( sort keys( %ICON_FILE ))
     {
-	$contents .= sprintf( "<option%s>$IconTitle\n", ( $Icon eq $IconTitle )? ' selected' : '' );
+	$contents .= sprintf( "<option%s>$IconTitle\n",
+	    ( $Icon eq $IconTitle )? ' selected' : '' );
     }
     $msg .= &TagSelect( 'icon', $contents ) . "\n";
 
@@ -2669,7 +2685,8 @@ sub hgbSearchArticleForm
     $msg .= '(' . &LinkP( "b=$BOARD&c=i", "使える$H_ICON一覧" .
 	&TagAccessKey( 'H' ), 'H' ) . ')\n' . $HTML_BR . $HTML_BR;
 
-    $msg .= &TagLabel( 'キーワード', 'key', 'K' ) . ': ' . &TagInputText( 'text', 'key', $Key, $KEYWORD_LENGTH ) . $HTML_BR;
+    $msg .= &TagLabel( 'キーワード', 'key', 'K' ) . ': ' . &TagInputText(
+	'text', 'key', $Key, $KEYWORD_LENGTH ) . $HTML_BR;
     %tags = ( 'c', 's', 'b', $BOARD );
     &DumpForm( *tags, '検索', 'リセット', *msg );
 }
@@ -3504,6 +3521,7 @@ sub DumpForm
     {
 	$gHgStr .= qq(<input name="kinoU" type="hidden" value="$UNAME">\n);
 	$gHgStr .= qq(<input name="kinoP" type="hidden" value="$PASSWD">\n);
+	$gHgStr .= qq(<input name="kinoA" type="hidden" value="3">\n);
     }
     local( $accessKey );
     if ( $submit =~ /\((\w)\)$/o )
@@ -4121,12 +4139,10 @@ sub CheckArticle
     &CheckEmail( *eMail );
     &CheckURL( *url );
     &CheckSubject( *subject );
+    &CheckIcon( *icon, $board );
 
     # 本文の空チェック．
     &Fatal( 2, $H_MESG ) if ( $article eq '' );
-
-    # アイコンのチェック; おかしけりゃ「無し」に設定．
-    $icon = $H_NOICON if ( !&GetIconUrlFromTitle( $icon, $board ));
 
     if ( $SYS_MAXARTSIZE != 0 )
     {
@@ -4309,6 +4325,31 @@ sub CheckSubject
     {
 	&Fatal( 4, '' ) if ( $String =~ m/[<>]/o );
     }
+}
+
+
+###
+## CheckIcon - 文字列チェック: Icon
+#
+# - SYNOPSIS
+#	CheckIcon( *str, $board );
+#
+# - ARGS
+#	*str		Icon文字列
+#	$board		掲示板ID
+#
+# - DESCRIPTION
+#	Iconの文字列チェックを行なう．
+#	不正な文字列だったらエラー表示ルーチンへ．
+#
+sub CheckIcon
+{
+    local( *str, $board ) = @_;
+
+    # アイコンのチェック; おかしけりゃ「無し」に設定．
+    $str = $H_NOICON if ( !&GetIconUrlFromTitle( $str, $board ));
+
+    &Fatal( 2, $H_ICON ) if ( !$SYS_ALLOWNOICON && ( $str eq $H_NOICON ));
 }
 
 
@@ -5561,7 +5602,7 @@ sub TagSelect
 sub LinkP
 {
     local( $comm, $markUp, $key, $title, $name, $fragment ) = @_;
-    $comm .= "&kinoU=$UNAME&kinoP=$PASSWD" if ( $SYS_AUTH == 3 );
+    $comm .= "&kinoA=3&kinoU=$UNAME&kinoP=$PASSWD" if ( $SYS_AUTH == 3 );
     $comm .= "#$fragment" if ( $fragment ne '' );
     &TagA( "$PROGRAM?$comm", $markUp, $key, $title, $name );
 }
@@ -6837,15 +6878,21 @@ sub AddBoardDb
     mkdir( $name, 0777 ) || &Fatal( 1, $name );
 
     local( $src, $dest );
+
     # 記事DBの作成（コピー）
     $src = &GetPath( $BOARDSRC_DIR, $DB_FILE_NAME );
     $dest = &GetPath( $name, $DB_FILE_NAME );
-    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" ); 
+    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
 
     # 記事数DBの作成（コピー）
     $src = &GetPath( $BOARDSRC_DIR, $ARTICLE_NUM_FILE_NAME );
     $dest = &GetPath( $name, $ARTICLE_NUM_FILE_NAME );
-    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" ); 
+    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
+
+    # スタイルシートファイルの作成（コピー）
+    $src = &GetPath( $BOARDSRC_DIR, $CSS_FILE );
+    $dest = &GetPath( $name, $CSS_FILE );
+    &CopyDb( $src, $dest ) || &Fatal( 20, "$src -&gt; $dest" );
 
     # 自動送信メイルDBの作成
     &UpdateArriveMailDb( $name, *arriveMail );
