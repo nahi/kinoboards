@@ -6,11 +6,11 @@
 # 例:
 # $MAINT_NAME = 'KinoboardsAdmin';
 # $MAINT = 'nahi@keynauts.com';
-# $SYSTEM_NAME = "KINOBOARDS/1.0";
+# $SYSTEM_NAME = 'KINOBOARDS/1.0';
 #
 $MAINT_NAME = 'YourName';
 $MAINT = 'yourname@your.e-mail.domain';
-$SYSTEM_NAME = "YourSystemName";
+$SYSTEM_NAME = 'YourSystemName';
 
 ###
 ## ○タイムゾーン
@@ -100,6 +100,12 @@ $SYS_ALIAS = 3;
 #   1: 利用する
 $SYS_ICON = 1;
 
+  # 上で「1: 利用する」に設定した場合は以下も設定してください．
+  # アイコン指定を必須にしますか?
+  #   0: 必須にする
+  #   1: 必須にしない（指定しなくてもよい）
+  $SYS_ALLOWNOICON = 1;
+  
 # コマンドアイコンを利用しますか?
 #   0: 利用しない(コマンドはテキストで表示する)
 #   1: 利用する
@@ -295,20 +301,23 @@ $SYS_MAIL = 1 + 2;
   #
   # 以下を見て頂ければわかる通り，
   # 多くのOSで，$AF_INETを2，$SOCK_STREAMを1に設定します．
-  # サーバがSolaris/2.*の人だけ，$SOCK_STREMを2に設定してください．
+  # サーバがSolaris/2.*もしくはCobaltの人だけ，
+  # $SOCK_STREMを2に設定してください．
   #
   # $AF_INET = 2; $SOCK_STREAM = 1;	# SunOS 4.*
   # $AF_INET = 2; $SOCK_STREAM = 2;	# SunOS 5.*(Solaris 2.*)
   # $AF_INET = 2; $SOCK_STREAM = 1;	# HP-UX
   # $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
   # $AF_INET = 2; $SOCK_STREAM = 2;	# Cobalt OS 2.2(Linux 2.0.33)
-  $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
   # $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
   # $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
   # $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT/95
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# Mac
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# Mac with MacPerl
   # この他の組み合わせを御存知の方がありましたら，
   # なひ(nahi@keynauts.com)まで御連絡ください．
+  $AF_INET = 2;
+  $SOCK_STREAM = 1;
 
 ###
 ## ○メイル投稿機能の設定
@@ -453,7 +462,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.21 1999-06-25 16:33:27 nakahiro Exp $
+# $Id: kb.ph,v 5.21.2.1 1999-09-24 14:19:51 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
