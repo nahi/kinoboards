@@ -8,9 +8,9 @@
 #    !! KB/1.0R6.4以降，この設定は必須となりました !!
 #
 $KBDIR_PATH = '';
-# $KBDIR_PATH = '/home/nahi/public_html/kb';
-# $KBDIR_PATH = 'd:\inetpub\wwwroot\kb';	# WinNT/Win9xの場合
-# $KBDIR_PATH = 'foo:bar:kb';			# Macの場合?
+# $KBDIR_PATH = '/home/nahi/public_html/kb/';
+# $KBDIR_PATH = 'd:\inetpub\wwwroot\kb\';	# WinNT/Win9xの場合
+# $KBDIR_PATH = 'foo:bar:kb:';			# Macの場合?
 
 # 3. サーバが動いているマシンがWin95/Macの場合，
 #    $PCを1に設定してください．そうでない場合，この設定は不要です．
@@ -22,7 +22,7 @@ $PC = 0;	# for UNIX / WinNT
 #    kbディレクトリのURLを指定してください（今度はパスではなく，URLです）．
 #    そうでない人は，変更の必要はありません．コメントのままでOKです．
 #
-# $ENV{'PATH_INFO'} = '/~nahi/kb';
+# $KB_RESOURCE_URL = '/~nahi/kb/';
 
 
 # 以下は書き換えの必要はありません．
@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.3 1999-10-15 05:14:15 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.4 2000-02-14 18:20:33 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -61,7 +61,7 @@ $COLSEP = "\377";
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.8';		# release
+$KB_RELEASE = '6.9';		# release
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
@@ -105,6 +105,7 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 # インクルードファイルの読み込み
 require( 'cgi.pl' );
 require( 'kinologue.pl' );
+$KB_RESOURCE_URL = $KB_RESOURCE_URL || $cgi'PATH_INFO;
 $REMOTE_INFO = $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR || '(unknown)';
 $REMOTE_INFO .= '-' . $cgi'REMOTE_USER if $cgi'REMOTE_USER; # in BasicAuth
 $PROGRAM = $cgi'PROGRAM;
@@ -125,17 +126,6 @@ else
     $SERVER_PORT_STRING = '';
 }
 
-if ( $cgi'PATH_INFO )
-{
-    $BASE_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgi'PATH_INFO/";
-}
-else
-{
-    local( $cgidir ) = substr( $cgi'SCRIPT_NAME, 0, rindex( $cgi'SCRIPT_NAME, '/' ));
-    $BASE_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgidir/";
-}
-
-
 $SCRIPT_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$PROGRAM";
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 $PROGNAME = "KINOBOARDS/$KB_VERSION R$KB_RELEASE";
@@ -147,18 +137,18 @@ $HTML_TAGS_I18NATTRS = 'LANG/DIR';
 $HTML_TAGS_GENATTRS = "$HTML_TAGS_COREATTRS/$HTML_TAGS_I18NATTRS";
 
 # アイコンファイル相対URL
-$ICON_BLIST = "$ICON_DIR/blist.gif";		# 掲示板一覧へ
-$ICON_TLIST = "$ICON_DIR/tlist.gif";		# タイトル一覧へ
-$ICON_PREV = "$ICON_DIR/prev.gif";		# 前の記事へ
-$ICON_NEXT = "$ICON_DIR/next.gif";		# 次の記事へ
-$ICON_WRITENEW = "$ICON_DIR/writenew.gif";	# 新規書き込み
-$ICON_FOLLOW = "$ICON_DIR/follow.gif";		# リプライ
-$ICON_QUOTE = "$ICON_DIR/quote.gif";		# 引用してリプライ
-$ICON_THREAD = "$ICON_DIR/thread.gif";		# まとめ読み
-$ICON_HELP = "$ICON_DIR/help.gif";		# ヘルプ
-$ICON_DELETE = "$ICON_DIR/delete.gif";		# 削除
-$ICON_SUPERSEDE = "$ICON_DIR/supersede.gif";	# 訂正
-$ICON_NEW = "$ICON_DIR/listnew.gif";		# 新着
+$ICON_BLIST = &GetIconURL( 'blist.gif' );		# 掲示板一覧へ
+$ICON_TLIST = &GetIconURL( 'tlist.gif' );		# タイトル一覧へ
+$ICON_PREV = &GetIconURL( 'prev.gif' );			# 前の記事へ
+$ICON_NEXT = &GetIconURL( 'next.gif' );			# 次の記事へ
+$ICON_WRITENEW = &GetIconURL( 'writenew.gif' );		# 新規書き込み
+$ICON_FOLLOW = &GetIconURL( 'follow.gif' );		# リプライ
+$ICON_QUOTE = &GetIconURL( 'quote.gif' );		# 引用してリプライ
+$ICON_THREAD = &GetIconURL( 'thread.gif' );		# まとめ読み
+$ICON_HELP = &GetIconURL( 'help.gif' );			# ヘルプ
+$ICON_DELETE = &GetIconURL( 'delete.gif' );		# 削除
+$ICON_SUPERSEDE = &GetIconURL( 'supersede.gif' );	# 訂正
+$ICON_NEW = &GetIconURL( 'listnew.gif' );		# 新着
 
 # シグナルハンドラ
 $SIG{'QUIT'} = 'IGNORE';
@@ -557,6 +547,7 @@ sub Fatal
 # - ARGS
 #	$Name		新規記事投稿者名
 #	$Email		新規記事投稿者メイルアドレス
+#	$Date		新規記事投稿時刻
 #	$Subject	新規記事Subject
 #	$Icon		新規記事アイコン
 #	$Id		新規記事ID
@@ -570,25 +561,27 @@ sub Fatal
 #
 sub ArriveMail
 {
-    local( $Name, $Email, $Subject, $Icon, $Id, @To ) = @_;
+    local( $Name, $Email, $Date, $Subject, $Icon, $Id, @To ) = @_;
 
     local( $StrSubject, $MailSubject, $StrFrom, $Message );
-    $StrSubject = ( $Icon eq $H_NOICON )? $Subject : "($Icon) $Subject";
+    $StrSubject = ( !$SYS_ICON || ( $Icon eq $H_NOICON ))? $Subject :
+	"($Icon) $Subject";
     $StrSubject =~ s/<[^>]*>//go;	# タグは要らない
     $StrSubject = &HTMLDecode( $StrSubject );
     $MailSubject = &GetMailSubjectPrefix( $BOARDNAME, $Id ) . $StrSubject;
     $StrFrom = $Email? "$Name <$Email>" : "$Name";
 
-    $Message = "$SYSTEM_NAMEからのお知らせです．
+    $Message = <<__EOF__;
+$SYSTEM_NAMEからのお知らせです．
+$H_BOARD「$BOARDNAME」に対して書き込みがありました．
 
-「$BOARDNAME」に対して「$StrFrom」さんから，
-「$StrSubject」という題での書き込みがありました．
+新着$H_MESG:
+  → $SCRIPT_URL?b=$BOARD&c=e&id=$Id
 
-お時間のある時に
-$SCRIPT_URL?b=$BOARD&c=e&id=$Id
-を御覧下さい．
+__EOF__
 
-では失礼します．";
+    $Message .= &GetArticlePlainText( $Id, $Name, $Email, $Subject, $Icon,
+	$Date );
 
     # メイル送信
     &SendMail( $Name, $Email, $MailSubject, $Message, $Id, @To );
@@ -623,12 +616,12 @@ $SCRIPT_URL?b=$BOARD&c=e&id=$Id
 #
 sub FollowMail
 {
-    local( $Name, $Email, $Date, $Subject, $Icon, $Id, $Fname, $Femail, $Fsubject, $Ficon, $Fid, @To ) = @_;
+    local( $Name, $Email, $Date, $Subject, $Icon, $Id, $Fname, $Femail, $Fdate, $Fsubject, $Ficon, $Fid, @To ) = @_;
     
-    local( $InputDate, $StrSubject, $FstrSubject, $MailSubject, $StrFrom, $FstrFrom, $Message );
+    local( $StrSubject, $FstrSubject, $MailSubject, $StrFrom, $FstrFrom, $Message );
 
-    $InputDate = &GetDateTimeFormatFromUtc( $Date );
-    $StrSubject = ( $Icon eq $H_NOICON )? "$Subject" : "($Icon) $Subject";
+    $StrSubject = ( !$SYS_ICON || ( $Icon eq $H_NOICON ))? "$Subject" :
+	"($Icon) $Subject";
     $StrSubject =~ s/<[^>]*>//go;	# タグは要らない
     $StrSubject = &HTMLDecode( $StrSubject );
     $FstrSubject = ( $Ficon eq $H_NOICON )? $Fsubject : "($Ficon) $Fsubject";
@@ -636,22 +629,27 @@ sub FollowMail
     $FstrSubject = &HTMLDecode( $FstrSubject );
     $MailSubject = &GetMailSubjectPrefix( $BOARDNAME, $Fid ) . $FstrSubject;
     $StrFrom = $Email? "$Name <$Email>" : "$Name";
-    $FstrFrom = $Femail? "$Fname <$Femail>" : "$Fname";
 
-    $Message = "$SYSTEM_NAMEからのお知らせです．
+    local( $ffIds ) = &GetArticlesInfo( $Id );
+    local( $topId ) = ( $ffIds =~ m/([^,]+)$/o );
 
-$InputDateに「$BOARDNAME」に対して「$StrFrom」さんが書いた，
-「$StrSubject」
-$SCRIPT_URL?b=$BOARD&c=e&id=$Id
-に対して，
-「$FstrFrom」さんから
-「$FstrSubject」という題での反応がありました．
+    $Message = <<__EOF__;
+$SYSTEM_NAMEからのお知らせです．
 
-お時間のある時に
-$SCRIPT_URL?b=$BOARD&c=e&id=$Fid
-を御覧下さい．
+$H_BOARD「$BOARDNAME」に
+「$StrFrom」さんが書いた
+「$StrSubject」に
+$H_REPLYがありました．
 
-では失礼します．";
+新着$H_MESG:
+  → $SCRIPT_URL?b=$BOARD&c=e&id=$Fid
+$H_ORIG_TOPからまとめ読み:
+  → $SCRIPT_URL?b=$BOARD&c=t&id=$topId
+
+__EOF__
+
+    $Message .= &GetArticlePlainText( $Fid, $Fname, $Femail, $Fsubject, $Ficon,
+	$Fdate );
 
     # メイル送信
     &SendMail( $Fname, $Femail, $MailSubject, $Message, $Fid, @To );
@@ -1048,7 +1046,7 @@ sub BoardHeader
     if ( $SYS_F_MT )
     {
 	&cgiprint'Cache( "<p>\n<ul>\n" );
-	&cgiprint'Cache( "<li>", &TagA( "$PROGRAM?c=mp&b=$BOARD", "自動メイル配信先を設定する" ), "\n" ) if $SYS_F_AM;
+	&cgiprint'Cache( "<li>", &TagA( "$PROGRAM?c=mp&b=$BOARD", "自動$H_MAIL配信先を設定する" ), "\n" ) if $SYS_F_AM;
 	&cgiprint'Cache( "</ul>\n</p>\n" );
     }
 }
@@ -1468,12 +1466,10 @@ sub MsgHeader
     local( $msg );
     $msg .= <<__EOF__;
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
-<html>
+<html lang="ja">
 <head>
 <link rev="MADE" href="mailto:$MAINT">
-<base href="$BASE_URL">
 <title>$titleString</title>
-<LINK REV=MADE HREF="mailto:$MAINT">
 </head>
 __EOF__
 
@@ -1596,23 +1592,24 @@ sub GetFormattedTitle
 {
     local( $id, $aids, $icon, $title, $name, $origDate,	$flag ) = @_;
 
-    $G_TITLE_STR = "$id.";	# 初期化
+    $G_TITLE_STR = '';	# 初期化
 
     if ( $SYS_F_T && $flag&1 && $DB_FID{$id} )
     {
 	local( $fId ) = $DB_FID{$id};
 	$fId =~ s/^.*,//o;
-	$G_TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$fId",
-	    $H_THREAD_ALL );
+	$G_TITLE_STR .= &TagA( "$PROGRAM?b=$BOARD&c=t&id=$fId",
+	    $H_THREAD_ALL ) . ' ';
     }
 
-    $G_TITLE_STR .= ' ' . &TagMsgImg( $icon ) . ' ' .
+    $G_TITLE_STR .= &TagMsgImg( $icon ) . " <small>$id.</small> " .
 	&TagA( ( $flag&2 )? "$cgi'REQUEST_URI#a$id" :
 	"$PROGRAM?b=$BOARD&c=e&id=$id",	$title || $id );
 
     if ( $SYS_F_T && $aids )
     {
-	$G_TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$id", $H_THREAD );
+	$G_TITLE_STR .= ' ' . &TagA( "$PROGRAM?b=$BOARD&c=t&id=$id",
+	    $H_THREAD );
     }
 
     $G_TITLE_STR .= ' [' . ( $name || $MAINT_NAME ) . '] ' .
@@ -1761,8 +1758,8 @@ sub TagForm
 #
 # - SYNOPSIS
 #	SendMail(
-#	    $FromName,	メイル送信者名
-#	    $FromAddr,	メイル送信者メイルアドレス
+#	    $Name,	メイル送信者名
+#	    $EMail,	メイル送信者メイルアドレス
 #	    $Subject,	メイルのSubject文字列
 #	    $Message,	本文
 #	    $Id,	引用するなら記事ID; 空なら引用ナシ
@@ -1777,40 +1774,87 @@ sub TagForm
 #
 sub SendMail
 {
-    local( $FromName, $FromAddr, $Subject, $Message, $Id, @To ) = @_;
+    local( $Name, $EMail, $Subject, $Message, $Id, @To ) = @_;
 
     local( $ExtensionHeader, @ArticleBody );
 
-    $ExtensionHeader = "X-Kb-System: $SYSTEM_NAME\n";
+    $ExtensionHeader = "X-MLServer: $PROGNAME\n";
+    $ExtensionHeader .= "X-Kb-System: $SYSTEM_NAME\n";
     if (( ! $SYS_MAILHEADBRACKET ) && $BOARDNAME && ($Id ne '' ))
     {
 	$ExtensionHeader .= "X-Kb-Board: $BOARDNAME\nX-Kb-Articleid: $Id\n";
     }
 
-    # 引用記事
-    if ( $Id ne '' ) {
-	$Message .= "\n--------------------\n";
-	&GetArticleBody($Id, $BOARD, *ArticleBody);
-	foreach ( @ArticleBody )
-	{
-	    s/<[^>]*>//go;	# タグは要らない
-	    $Message .= &HTMLDecode( $_ ) if ( $_ ne '' );
-	}
-    }
-
-    if ( !$FromAddr )
+    if ( $EMail eq '' )
     {
 	# メイルアドレス未入力につき，管理者名義で出す．
-	$FromName = ( $MAILFROM_LABEL || $MAINT_NAME );
-	$FromAddr = $MAINT;
+	$Name = ( $MAILFROM_LABEL || $MAINT_NAME );
+	$EMail = $MAINT;
     }
 
     local( $SenderFrom, $SenderAddr ) = (( $MAILFROM_LABEL || $MAINT_NAME ),
 	$MAINT );
-    local( $stat, $errstr ) = &cgi'sendMail( $FromName, $FromAddr, $SenderFrom,
+    local( $stat, $errstr ) = &cgi'sendMail( $Name, $EMail, $SenderFrom,
 	$SenderAddr, $Subject, $ExtensionHeader, $Message, $MAILTO_LABEL,
 	@To );
     &Fatal( 9, "$BOARDNAME/$Id/$errstr" ) if ( !$stat );
+}
+
+
+###
+## GetArticlePlainText - メッセージをplain textで取得
+#
+# - SYNOPSIS
+#	GetArticlePlainText(
+#	    $id,	メッセージID
+#	    $name,	投稿者名
+#	    $mail,	投稿者メイルアドレス
+#	    $subject,	タイトル
+#	    $icon,	アイコン
+#	    $date	日付(UTC)
+#	)
+#
+# - DESCRIPTION
+#	メイル送信用に，メッセージをplain textで取得する．
+#
+# - RETURN
+#	文字列
+#
+sub GetArticlePlainText
+{
+    local( $id, $name, $mail, $subject, $icon, $date ) = @_;
+
+    local( $strSubject ) = ( !$SYS_ICON || ( $icon eq $H_NOICON ))? $subject :
+	"($icon) $subject";
+    $strSubject =~ s/<[^>]*>//go;	# タグは要らない
+    $strSubject = &HTMLDecode( $strSubject );
+    local( $strFrom ) = $mail? "$name <$mail>" : $name;
+    local( $strDate ) = &GetDateTimeFormatFromUtc( $date );
+
+    local( @body );
+    &GetArticleBody( $id, $BOARD, *body );
+
+    $msg = <<__EOF__;
+$H_SUBJECT: $strSubject
+$H_FROM: $strFrom
+$H_DATE: $strDate
+
+--------------------
+
+__EOF__
+
+    local( $str );
+    foreach ( @body )
+    {
+	s/<[^>]*>//go;
+	$str .= &HTMLDecode( $_ );
+    }
+
+    # 先頭と末尾の改行を切り飛ばす．
+    $str =~ s/^\n*//o;
+    $str =~ s/\n*$//o;
+
+    $msg . $str;
 }
 
 
@@ -2715,6 +2759,10 @@ sub ArticleEncode
 	{
 	    $tagStr = &TagA( $url, $quoteStr );
 	}
+	else
+	{
+	    next;
+	}
 
 	$retArticle =~ s/<URL:$urlMatch>/$tagStr/gi;
     }
@@ -3086,11 +3134,13 @@ sub LockAll
     local( $lockResult ) = $PC ? 1 : &cgi'lock_file( $LOCK_FILE );
     &Fatal( 1001, '' ) if ( $lockResult == 2 );
     &Fatal( 999, '' ) if ( $lockResult != 1 );
+    &LockBoard() if $LOCK_FILE_B;
 }
 
 sub UnlockAll
 {
     &cgi'unlock_file( $LOCK_FILE ) unless $PC;
+    &UnlockBoard() if $LOCK_FILE_B;
 }
 
 sub LockBoard
@@ -3306,7 +3356,7 @@ sub AddDBFile
 {
     local( $Id, $Board, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $MailRelay ) = @_;
 
-    local( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $FidList, $FFid, @FollowMailTo, @FFid, @ArriveMail );
+    local( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail, $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $FidList, $FFid, @FollowMailTo, @FFid );
 
     # リプライ元のリプライ元，を取ってくる
     if ( $Fid ne '' )
@@ -3392,14 +3442,15 @@ sub AddDBFile
     # 必要なら投稿があったことをメイルする
     if ( $MailRelay && $SYS_MAIL & 1 )
     {
-	&GetArriveMailTo( 0, $Board, *ArriveMail );
-	&ArriveMail( $Name, $Email, $Subject, $Icon, $Id, @ArriveMail ) if @ArriveMail;
+	local( @ArriveMailTo );
+	&GetArriveMailTo( 0, $Board, *ArriveMailTo );
+	&ArriveMail( $Name, $Email, $InputDate, $Subject, $Icon, $Id, @ArriveMailTo ) if @ArriveMailTo;
     }
 
     # 必要なら反応があったことをメイルする
     if ( $MailRelay && ( $SYS_MAIL & 2 ) && @FollowMailTo )
     {
-	&FollowMail( $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $Name, $Email, $Subject, $Icon, $Id, @FollowMailTo );
+	&FollowMail( $mdName, $mdEmail, $mdInputDate, $mdSubject, $mdIcon, $mdId, $Name, $Email, $InputDate, $Subject, $Icon, $Id, @FollowMailTo );
     }
 }
 
@@ -4184,6 +4235,28 @@ sub GetIconPath
 
 
 ###
+## GetIconURL - アイコンgifのURLの取得
+#
+# - SYNOPSIS
+#	GetIconURL( $file );
+#
+# - ARGS
+#	$file		アイコンgifファイル名
+#
+# - DESCRIPTION
+#	アイコンgifファイルのURL名を作り出す．
+#
+# - RETURN
+#	URLを表す文字列
+#
+sub GetIconURL
+{
+    local( $file ) = @_;
+    $KB_RESOURCE_URL? "$KB_RESOURCE_URL$ICON_DIR/$file" : "$ICON_DIR/$file";
+}
+
+
+###
 ## GetIconUrlFromTitle - アイコンgifのURLの取得
 #
 # - SYNOPSIS
@@ -4212,7 +4285,7 @@ sub GetIconUrlFromTitle
     return '' unless $ICON_FILE{ $icon };
 
     # return
-    "$ICON_DIR/" . $ICON_FILE{$icon};
+    &GetIconURL( $ICON_FILE{ $icon } );
 }
 
 
