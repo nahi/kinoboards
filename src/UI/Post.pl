@@ -52,9 +52,9 @@ POST_STDIN:
 	&secureSubject( *Subject );
 	&secureArticle( *Article, $TextType );
 
-	# 記事の作成
+	# 記事の作成（メイル転送は行なわない）
 	local( $newArtId ) = &MakeNewArticle( $BOARD, $Id, $op, $TextType,
-	    $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail );
+	    $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, 0 );
 
 	&UnlockBoard;
 	&UnlockAll;

@@ -72,7 +72,7 @@ Thanks:
     else
     {
 	# 記事の作成
-	$newArtId = &MakeNewArticle( $BOARD, $Id, $op, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail );
+	$newArtId = &MakeNewArticle( $BOARD, $Id, $op, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, 1 );
 
 	# 表示画面の作成
 	&MsgHeader( 'Message entried', "書き込みありがとうございました" );
