@@ -1,29 +1,8 @@
-# $Id: kb.ph,v 5.3 1997-12-05 22:45:12 nakahiro Rel $
-
-
-# KINOBOARDS: Kinoboards Is Network Opened BOARD System
-# Copyright (C) 1995, 96, 97 NAKAMURA Hiroshi.
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PRATICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-
 # This file implements Site Specific Definitions of KINOBOARDS.
 
 
-#
-# 管理者の名前，E-Mailアドレス，システムの名前
+###
+## ○管理者の名前，E-Mailアドレス，システムの名前
 #
 # メイル送信にも使います．
 # 「$MAINT_NAME」はアルファベットのみで指定してください．
@@ -34,13 +13,14 @@
 # $MAINT_NAME = 'KinoboardsAdmin';
 # $MAINT = 'nakahiro@kinotrope.co.jp';
 # $SYSTEM_NAME = "KINOBOARDS/1.0";
-
+#
 $MAINT_NAME = 'YourName';
 $MAINT = 'yourname@your.e-mail.domain';
 $SYSTEM_NAME = "YourSystemName";
 
+###
+## ○サーバが動いているマシンはどれですか?
 #
-# サーバが動いているマシンはどれですか?
 # 該当する1行を残してコメントアウトしてください．
 #
  $ARCH = 'UNIX';			# UNIX + Perl4/5
@@ -48,31 +28,8 @@ $SYSTEM_NAME = "YourSystemName";
 # $ARCH = 'Win95';			# Win95 + Perl5
 # $ARCH = 'Mac';			# Mac + MacPerl
 
-#
-# UNIXの場合はsendmailのパスとオプションを，
-# Macの場合はSMTP serverの動いているマシンのホスト名を，
-# Winの場合はメイルを放り込むファイルを，
-# 指定してください．
-#
-$MAIL2 = '/usr/lib/sendmail -oi -t'	if ($ARCH eq 'UNIX');
-$MAIL2 = 'SendMail'			if ($ARCH eq 'WinNT');
-$MAIL2 = 'SendMail'			if ($ARCH eq 'Win95');
-$MAIL2 = 'foo.bar.baz.co.jp'		if ($ARCH eq 'Mac');
-#
-# MacPerlでメイル送信機能を用いるには，
-# <URL:ftp://mors.gsfc.nasa.gov/pub/MacPerl/Scripts/>
-# に置かれている，MacPerl用のlibnetが必要です．
-# 詳しくはdoc/INSTALL.htmlを御覧ください．
-#
-# Winの場合，今のところメイル送信機能がありません．
-# メイルはすべて，上で指定した名前のファイルに書き出されます．
-# 一応，1日1回，そのファイルを適当に分割し，
-# 手動で送信するという手もありますね．(^_^;
-# WinNTにはsendmailがあるはずなので，いつかは対応したい……
-#
-
-#
-# タイムゾーン
+###
+## ○タイムゾーン
 #
 #   'GMT', 'GMT+9'，'GMT-7'などを指定します．
 #
@@ -87,8 +44,8 @@ $MAIL2 = 'foo.bar.baz.co.jp'		if ($ARCH eq 'Mac');
 #
 $TIME_ZONE = '';
 
-#
-# システムの設定
+###
+## ○システム機能の設定
 #
 # CGIの実行ログを取るか（インストール直後はログを取るようにしてください）
 #   0: 取らない
@@ -127,11 +84,6 @@ $SYS_BOTTOMTITLE = 0;
 #   1: 下
 $SYS_BOTTOMARTICLE = 1;
 
-# 自動メイル配信サービスを利用するか否か
-#   0: 利用しない
-#   1: 利用する
-$SYS_MAIL = 1;
-
 # 記事のヘッダにマシン名を表示するか否か
 #   0: 表示しない
 #   1: 表示する
@@ -146,11 +98,6 @@ $SYS_COMMAND = 1;
 #   0は「記事サイズの制限なし」を意味します．
 $SYS_MAXARTSIZE = 0;
 
-# ネットスケープ拡張に基づく字色とバックグラウンドイメージを使うか否か
-#   0: 使わない
-#   1: 使う
-$SYS_NETSCAPE_EXTENSION = 1;
-
 # 記事投稿時、メイルアドレスの入力を必須とするか
 #   0: 必須としない
 #   1: 必須とする
@@ -161,6 +108,20 @@ $SYS_POSTERMAIL = 1;
 #   1: (必要ならば)表示する
 #      HTTPのデフォルトである80番ポートの場合，1に設定しても表示しません
 $SYS_PORTNO = 1;
+
+# 字色とバックグラウンドイメージを使うか否か
+#   0: 使わない
+#   1: 使う
+$SYS_NETSCAPE_EXTENSION = 1;
+#
+# 使う場合は以下も指定してください．
+#
+$BG_IMG = "";
+$BG_COLOR = "#66CCCC";
+$TEXT_COLOR = "#000000";
+$LINK_COLOR = "#0000AA";
+$ALINK_COLOR = "#FF0000";
+$VLINK_COLOR = "#00AA00";
 
 # 各機能を利用可能とするか否か
 #   0: 利用できない
@@ -183,8 +144,37 @@ $SYS_F_D = 0;			# 記事の削除，訂正
 $SYS_F_MV = 0;			# 記事の「前後順序/元記事-リプライ関係」の変更
 $SYS_F_AM = 0;			# 新着記事到着時のメイル送信先の設定
 
+# 自動メイル配信サービスを利用するか否か
+#   0: 利用しない
+#   1: 利用する
+$SYS_MAIL = 1;
 #
-# 掲示板一覧の相対URL
+# 1: 利用する，にした場合は，以下でメイルサーバを指定してください．
+#
+# 例: $SMTP_SERVER = 'mail.foo.bar.ne.jp';
+#
+$SMTP_SERVER = 'localhost';
+#
+# 以下はそのままで結構です．稼働後，もし，
+# 「kb.phの中で，CGIが動くサーバのOSを指定してください」
+# というエラーメッセージが出た場合のみ，この作業を行なってください．
+#
+# CGIが動くサーバ（普通はWWWサーバです．メイルサーバじゃありません）
+# の，OSのタイプに合致する行だけ，先頭の「#」を取り除いてください．
+# OSのタイプは，telnetして「uname -sr」というコマンドを実行するとわかります．
+#
+# $AF_INET = 2; $SOCK_STREAM = 2;	# SunOS 5.* ( Solaris 2.* )
+# $AF_INET = 2; $SOCK_STREAM = 1;	# SunOS 4.*
+# $AF_INET = 2; $SOCK_STREAM = 1;	# HP
+# $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
+# $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
+# $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
+#
+# NTだとどうなるのかな……どなたか設定に成功した方がありましたら，
+# どうかnakahiro@kinotrope.co.jpまでお知らせください．m(..m
+
+###
+## ○掲示板一覧の相対URL
 #
 #  「掲示板一覧へ」でリンクする先を，kbディレクトリからの相対URLで指定します．
 #  空ならkbディレクトリへ(よって，一般的にはindex.htmlやindex.shtmlへ)，
@@ -195,68 +185,48 @@ $SYS_F_AM = 0;			# 新着記事到着時のメイル送信先の設定
 # $BOARDLIST_URL = '-';			# CGIが自動生成する掲示板一覧へ
 $BOARDLIST_URL = 'kb10.shtml';		# kb/kb10.shtmlへ
 
+###
+## ○引用マーク
 #
-# 引用マーク
-#
-#	「>」や「&gt;」を引用マークにするのは避けて下さい．
-#	トラブルを起こすブラウザが存在します．
+# 「>」や「&gt;」を引用マークにするのは避けて下さい．
+# トラブルを起こすブラウザが存在します．
 #
 $DEFAULT_QMARK = ' ] ';
 
+###
+## ○アイコンの大きさ
 #
-# アイコンの大きさ
 # 一部のブラウザでは，この数値を適当に指定すると，
 # 勝手にアイコンの拡大縮小を行なってくれるようです．
 #
 # コマンドアイコン(次へ，等)
-$COMICON_HEIGHT = 20;
-$COMICON_WIDTH = 20;
+$COMICON_HEIGHT = 20;		# 高さ[dot]
+$COMICON_WIDTH = 20;		# 幅[dot]
 # メッセージアイコン(喜怒哀楽，等)
-$MSGICON_HEIGHT = 20;
-$MSGICON_WIDTH = 20;
+$MSGICON_HEIGHT = 20;		# 高さ[dot]
+$MSGICON_WIDTH = 20;		# 幅[dot]
 
+###
+## ○各入力項目の大きさ
 #
-# 各入力項目の大きさ
-#
-# 題
-$SUBJECT_LENGTH = 60;
-# 記事行数
-$TEXT_ROWS = 15;
-# 記事幅
-$TEXT_COLS = 65;
-# 名前幅
-$NAME_LENGTH = 60;
-# E-mail幅
-$MAIL_LENGTH = 60;
-# URL幅
-$URL_LENGTH = 52;
-# 検索キーワード幅
-$KEYWORD_LENGTH = 60;
+$SUBJECT_LENGTH = 60;		# 題
+$TEXT_ROWS = 15;		# 記事行数
+$TEXT_COLS = 65;		# 記事幅
+$NAME_LENGTH = 60;		# 名前幅
+$MAIL_LENGTH = 60;		# E-mail幅
+$URL_LENGTH = 52;		# URL幅
+$KEYWORD_LENGTH = 60;		# 検索キーワード幅
+$DEF_TITLE_NUM = 20;		# タイトル一覧に表示するタイトルの数
+				# 0にすると全記事を表示するようになります．
+$TREE_INDENT = 1;		# フレーム使用時のツリー構造のインデント幅
+				# （R5.3では使われません）
 
-# タイトル一覧に表示するタイトルの数
-# 0にすると全記事を表示するようになります．
-$DEF_TITLE_NUM = 20;
-
-# フレーム使用時のツリー構造のインデント幅（R5.3では未使用）
-$TREE_INDENT = 1;
-
-#
-# Netscape Extensionの指定
-#
-$BG_IMG = "";
-$BG_COLOR = "#66CCCC";
-$TEXT_COLOR = "#000000";
-$LINK_COLOR = "#0000AA";
-$ALINK_COLOR = "#FF0000";
-$VLINK_COLOR = "#00AA00";
-
-#
-# URLとして許可するscheme
+###
+## ○URLとして許可するscheme
 #
 @URL_SCHEME = ('http', 'ftp', 'gopher');
 
-#
-# メッセージの宣言
+# ○メッセージの宣言
 #
 $H_BOARD = "掲示板";
 $H_ICON = "アイコン";
@@ -304,3 +274,24 @@ $H_REORDERTO_MARK = "[▽]";
 
 #/////////////////////////////////////////////////////////////////////
 1;
+
+
+# $Id: kb.ph,v 5.4 1997-12-16 12:46:41 nakahiro Rel $
+
+
+# KINOBOARDS: Kinoboards Is Network Opened BOARD System
+# Copyright (C) 1995, 96, 97 NAKAMURA Hiroshi.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PRATICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
