@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.15 1996-07-26 15:09:37 nakahiro Exp $
+# $Id: kb.cgi,v 4.16 1996-07-30 14:45:28 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -130,31 +130,6 @@ $AND_MARK = '__amp__';
 ###
 ## メイン
 #
-
-# コマンド分岐:			c=m
-
-# 記事の表示(記事のみ):		c=e&id={[1-9][0-9]*}
-# 次の記事の表示(記事のみ):	c=en&id={[1-9][0-9]*}
-# 記事の表示(反応もまとめて):	c=t&id={[1-9][0-9]*}
-
-# 新規投稿:			c=n
-# 引用つきフォロー:		c=q&id={[1-9][0-9]*}
-# 引用なしフォロー:		c=f&id={[1-9][0-9]*}
-# 記事のプレビュー:		c=p&(空)....
-# 確認済み画面:			c=x&id={[1-9][0-9]*(引用でない時id=0)}
-
-# タイトルリスト(thread):	c=v&num={[1-9][0-9]*}
-# タイトルリスト(日付):		c=r&num={[1-9][0-9]*}
-# 最新の記事:			c=l&num={[1-9][0-9]*}
-
-# 記事の検索:			c=s
-# アイコン表示:			c=i
-
-# エイリアス登録画面:		c=an
-# エイリアス登録:		c=am&alias=..&name=..&email=..&url=..
-# エイリアス削除:		c=ad&alias=...
-# エイリアス参照:		c=as
-
 MAIN: {
 
     # 標準入力(POST)または環境変数(GET)のデコード．
@@ -240,10 +215,6 @@ MAIN: {
 ## おしまい
 #
 exit 0;
-
-
-#/////////////////////////////////////////////////////////////////////
-# 書き込み画面関連
 
 
 ###
@@ -410,22 +381,21 @@ sub QuoteOriginalArticle {
     # 引用するファイル
     local($QuoteFile) = &GetArticleFileName($Id, $Board);
 
+    # 元記事情報の取得
+    local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name)
+	= &GetArticlesInfo($Id);
+
     # ファイルを開く
     open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
     while(<TMP>) {
 
 	# 引用のための変換
-	s/&/&amp;/go;
+	s/\&//go;
 	s/\"//go;
-	if ($SYS_TAGINQUOTE) {
-	    s/<//go;
-	    s/>//go;
-	} else {
-	    s/<[^>]*>//go;
-	}
+	s/<[^>]*>//go;
 
 	# 引用文字列の表示
-	print($DEFAULT_QMARK, $_);
+	printf("%s%s%s\n", $Name, $DEFAULT_QMARK, $_);
 	
     }
 
@@ -435,10 +405,6 @@ sub QuoteOriginalArticle {
 }
 
 
-#/////////////////////////////////////////////////////////////////////
-# プレビュー画面関連
-
-
 ###
 ## プレビュー画面
 #
@@ -446,10 +412,10 @@ sub Preview {
 
     # 入力された記事情報
     local($Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article,
-	  $File, $Qurl, $Fmail)
+	  $Qurl, $Fmail)
 	= ($cgi'TAGS{'id'}, $cgi'TAGS{'texttype'}, $cgi'TAGS{'name'},
 	   $cgi'TAGS{'mail'}, $cgi'TAGS{'url'}, $cgi'TAGS{'icon'},
-	   $cgi'TAGS{'subject'}, $cgi'TAGS{'article'}, $cgi'TAGS{'file'},
+	   $cgi'TAGS{'subject'}, $cgi'TAGS{'article'},
 	   $cgi'TAGS{'qurl'}, $cgi'TAGS{'fmail'});
 
     # 引用記事のURL
@@ -460,13 +426,7 @@ sub Preview {
 	  $rEmail, $rUrl, $rFmail) = ('', '', '', '', '', '', '', '', '', '');
 
     # もし引用なら……．
-    if ($File) {
-
-	# local fileからの引用なら……
-        $rFile = $File;
-        $rSubject = &GetSubjectFromFile($File);
-
-    } elsif ($Id) {
+    if ($Id) {
 
 	# 通常記事の引用なら……
 	$rFile = "$PROGRAM?b=$BOARD&c=e&id=$Id";
@@ -497,7 +457,6 @@ sub Preview {
 <input name="icon"     type="hidden" value="$Icon">
 <input name="subject"  type="hidden" value="$Subject">
 <input name="article"  type="hidden" value="$Article">
-<input name="file"     type="hidden" value="$File">
 <input name="qurl"     type="hidden" value="$Qurl">
 <input name="fmail"    type="hidden" value="$Fmail">
 
@@ -582,10 +541,6 @@ sub CheckArticle {
 }
 
 
-#/////////////////////////////////////////////////////////////////////
-# 登録後画面関連
-
-
 ###
 ## 登録後画面
 #
@@ -626,10 +581,10 @@ sub MakeNewArticle {
 
     # 入力された記事情報
     local($Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article,
-	  $File, $Qurl, $Fmail)
+	  $Qurl, $Fmail)
 	= ($cgi'TAGS{'id'}, $cgi'TAGS{'texttype'}, $cgi'TAGS{'name'},
 	   $cgi'TAGS{'mail'}, $cgi'TAGS{'url'}, $cgi'TAGS{'icon'},
-	   $cgi'TAGS{'subject'}, $cgi'TAGS{'article'}, $cgi'TAGS{'file'},
+	   $cgi'TAGS{'subject'}, $cgi'TAGS{'article'},
 	   $cgi'TAGS{'qurl'}, $cgi'TAGS{'fmail'});
 
     # 入力された記事情報のチェック
@@ -643,19 +598,9 @@ sub MakeNewArticle {
     &MakeArticleFile($TextType, $Article, $ArticleId);
 
     # DBファイルに投稿された記事を追加
-    if ($File) {
-
-	# URL引用ならURL
-	&AddDBFile($ArticleId, $Qurl, $InputDate, $Subject, $Icon,
-		   $REMOTE_HOST, $Name, $Email, $Url, $Fmail);
-
-    } else {
-
-	# 通常の記事引用ならID
-	&AddDBFile($ArticleId, $Id, $InputDate, $Subject, $Icon,
-		   $REMOTE_HOST, $Name, $Email, $Url, $Fmail);
-
-    }
+    # 通常の記事引用ならID
+    &AddDBFile($ArticleId, $Id, $InputDate, $Subject, $Icon, $REMOTE_HOST,
+	       $Name, $Email, $Url, $Fmail);
 
     # 新しい記事番号を書き込む
     &AddArticleId();
@@ -794,10 +739,6 @@ sub AddDBFile {
 }
 
 
-#/////////////////////////////////////////////////////////////////////
-# 記事表示関連
-
-
 ###
 ## 単一の記事を表示．
 #
@@ -831,7 +772,8 @@ sub ShowArticle {
     &MsgHeader("[$BOARDNAME: $Id] $Subject");
 
     # お約束
-    print(<<__EOF__);
+    if ($SYS_COMMAND) {
+	print(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="c" type="hidden" value="m">
 <input name="b" type="hidden" value="$BOARD">
@@ -845,7 +787,9 @@ sub ShowArticle {
 <a href="$PROGRAM?b=$BOARD&c=t&id=$Id"><img src="$ICON_THREAD" alt="$H_READREPLYALL" width="$ICON_WIDTH" height="$ICON_HEIGHT"></a> // 
 <a href="$PROGRAM?b=$BOARD&c=i&type=article"><img src="$ICON_HELP" alt="" width="$ICON_WIDTH" height="$ICON_HEIGHT">$H_SEEICON</a>
 </p>
+</form>
 __EOF__
+    }
 
     # ボード名と記事番号，題
     if (($Icon eq $H_NOICON) || (! $Icon)) {
@@ -1100,36 +1044,7 @@ sub FollowMail {
     local($Message) = "$SYSTEM_NAMEからのお知らせです．\n\n$Dateに「$BOARDNAME」に対して「$Name」さんが書いた，\n「$Subject」\n$URL\nに対して，\n「$Fname」さんから\n「$Fsubject」という題での反応がありました．\n\nお時間のある時に\n$FURL\nを御覧下さい．\n\nでは失礼します．";
 
     # メール送信
-    &SendMail($MailSubject, $Message, $To);
-}
-
-
-###
-## あるファイルからTitleを取ってくる
-#
-sub GetSubjectFromFile {
-
-    # ファイル
-    local($File) = @_;
-
-    # 取り出したSubject
-    local($Title) = '';
-
-    open(TMP, "<$File") || &Fatal(1, $File);
-    while(<TMP>) {
-	
-	# コード変換
-	&jcode'convert(*_, 'euc');
-
-	if (/<title>(.*)<\/title>/i) {
-	    $Title = $1;
-	}
-    }
-    close(TMP);
-    
-    # 返す．
-    return($Title);
-
+    &SendMail($MailSubject, $Message, $Fid, $To);
 }
 
 
@@ -1139,7 +1054,7 @@ sub GetSubjectFromFile {
 sub SendMail {
 
     # subject，メールのファイル名，宛先
-    local($Subject, $Message, $To) = @_;
+    local($Subject, $Message, $Id, $To) = @_;
 
     # メール用ファイルを開く
     open(MAIL, "| $MAIL2") || &Fatal(9, '');
@@ -1165,19 +1080,51 @@ sub SendMail {
     &jcode'convert(*_, 'jis');
     print(MAIL "$_\n");
 
+    # 引用記事
+    if ($Id) {
+
+	# 引用するファイル
+	$QuoteFile = "$BOARD/$Id";
+
+	# 区切り線
+	print(MAIL "\n$H_LINE\n");
+
+	local($Body) = '';
+
+	# 引用
+	open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
+	while(<TMP>) {
+	    chop;
+	    s/<[^>]*>//go;	# タグは要らない
+	    if ($_) {
+		$Body = &HTMLDecode($_);
+		&jcode'convert(*Body, 'jis');
+	    }
+	    print(MAIL "$Body\n");
+	}
+	close(TMP);
+
+    }
+
     # 送信する
     close(MAIL);
 
 }
 
 
-#/////////////////////////////////////////////////////////////////////
-# アイコン表示画面関連
+sub HTMLDecode {
+    local($_) = @_;
+    s/&quot;/\"/gio;
+    s/&gt;/\>/gio;
+    s/&lt;/\</gio;
+    s/&amp;/\&/gio;
+    return($_);
+}
 
 
 ###
 ## アイコン表示画面
-#*
+#
 sub ShowIcon {
 
     local($FileName, $Title);
@@ -1237,13 +1184,9 @@ __EOF__
 }
 
 
-#/////////////////////////////////////////////////////////////////////
-# 日付順ソート関連
-
-
 ###
 ## 日付順にソート．
-#*
+#
 sub SortArticle {
 
     # 表示する個数を取得
@@ -1318,13 +1261,9 @@ sub SortArticle {
 }
 
 
-#/////////////////////////////////////////////////////////////////////
-# thread別タイトル表示関連
-
-
 ###
 ## 新しい記事のタイトルをthread別にn個を表示．
-#*
+#
 sub ViewTitle {
 
     # 表示する個数を取得
@@ -1408,7 +1347,7 @@ sub ViewTitle {
 
 ###
 ## タイトルリストに書き込む(新規)
-#*
+#
 sub AddTitleNormal {
 
     # 格納行，格納先
@@ -1433,7 +1372,7 @@ sub AddTitleNormal {
 
 ###
 ## タイトルリストに書き込む(フォロー)
-#*
+#
 sub AddTitleFollow {
 
     # フォロー記事ID，格納行，格納先
@@ -1501,13 +1440,9 @@ sub AddTitleFollow {
 }
 
 
-#/////////////////////////////////////////////////////////////////////
-# 新着記事表示関連
-
-
 ###
 ## 新しい記事からn個を表示．
-#*
+#
 sub NewArticle {
 
     # 表示する個数を取得
@@ -1537,27 +1472,32 @@ sub NewArticle {
 
     &BoardHeader;
 
-    print("<hr>\n");
+    if ($SYS_BOTTOMARTICLE) {
 
-    # 下へ
-    for ($i = $ArticleFromId; ($i <= $ArticleToId); $i++) {
-	# 記事の表示(コマンド付き)
-	&ViewOriginalArticle($i, 1);
-	print("<hr>\n");
+	# 下へ
+	for ($i = $ArticleFromId; ($i <= $ArticleToId); $i++) {
+	    print("<hr>\n");
+	    &ViewOriginalArticle($i, 1);
+	}
+
+    } else {
+
+	# 上へ
+	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
+	    print("<hr>\n");
+	    &ViewOriginalArticle($i, 1);
+	}
+
     }
 
     &MsgFooter();
+
 }
-
-
-
-#/////////////////////////////////////////////////////////////////////
-# 記事検索関連
 
 
 ###
 ## 記事の検索(表示画面作成)
-#*
+#
 sub SearchArticle {
 
     # キーワード，検索範囲を拾う
@@ -1633,7 +1573,7 @@ __EOF__
 
 ###
 ## 記事の検索(検索結果の表示)
-#*
+#
 sub SearchArticleList {
 
     # キーワード，検索範囲
@@ -1714,7 +1654,7 @@ sub SearchArticleList {
 
 ###
 ## 記事の検索(本文)
-#*
+#
 sub SearchArticleKeyword {
 
     # ファイル名とキーワード
@@ -1729,7 +1669,7 @@ sub SearchArticleKeyword {
 	s/<[^>]*>//go;
 
 	# ヒット?
-	(/$Key/) && return($_);
+	(/$Key/i) && return($_);
     }
 
     # ヒットせず
@@ -1737,13 +1677,9 @@ sub SearchArticleKeyword {
 }
 
 
-#/////////////////////////////////////////////////////////////////////
-# エイリアス関連
-
-
 ###
 ## エイリアスの登録と変更
-#*
+#
 sub AliasNew {
 
     # 表示画面の作成
@@ -1794,7 +1730,7 @@ __EOF__
 
 ###
 ## 登録/変更
-#*
+#
 sub AliasMod {
 
     # エイリアス，名前，メール，URL
@@ -1847,7 +1783,7 @@ sub AliasMod {
 
 ###
 ## エイリアスチェック
-#*
+#
 sub AliasCheck {
 
     local($A, $N, $E, $U) = @_;
@@ -1862,7 +1798,7 @@ sub AliasCheck {
 
 ###
 ## 削除
-#*
+#
 sub AliasDel {
 
     # エイリアス
@@ -1907,7 +1843,7 @@ sub AliasDel {
 
 ###
 ## 参照
-#*
+#
 sub AliasShow {
 
     # エイリアスの読み込み
@@ -1948,7 +1884,7 @@ __EOF__
 ###
 ## エイリアスファイルを読み込んで連想配列に放り込む．
 ## CAUTION: %Name, %Email, %Host, %URLを壊します．
-#*
+#
 sub CashAliasData {
 
     # ファイル
@@ -1977,8 +1913,8 @@ sub CashAliasData {
 ###
 ## エイリアスファイルにデータを書き出す．
 ## CAUTION: %Name, %Email, %Host, %URLを必要とします．
-##          $Nameが体と書き込まない．
-#*
+##          $Nameが空だと書き込まない．
+#
 sub WriteAliasData {
 
     # ファイル
@@ -2011,10 +1947,6 @@ sub BoardHeader {
     close(HEADER);
 
 }
-
-
-#/////////////////////////////////////////////////////////////////////
-# 共通関数
 
 
 ###
@@ -2336,7 +2268,7 @@ sub ViewOriginalArticle {
     ($rFid, $rAids, $rDate, $rSubject, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail) = &GetArticlesInfo($Fid) if ($Fid != 0);
 
     # コマンド表示?
-    if ($Flag) {
+    if ($Flag && $SYS_COMMAND) {
 
 	print(<<__EOF__);
 <p>
