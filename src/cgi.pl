@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.24 1997-12-12 06:22:42 nakahiro Rel $
+# $Id: cgi.pl,v 1.25 1998-02-05 11:39:27 nakahiro Rel $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -23,7 +23,7 @@
 #
 #	歌代さんによる日本語漢字コード変換ユーティリティ，jcode.plの
 #	v2.0以降が必要です．以下のURLから入手してください．
-#	<URL:ftp://ftp.sra.co.jp/pub/lang/perl/sra-scripts/>
+#	<URL:ftp://ftp.iij.ad.jp/pub/IIJ/dist/utashiro/perl/>
 #
 #
 #
@@ -48,6 +48,10 @@
 #	起動されたCGIのサイト中相対URLが設定されます．
 #	ex. → /cgi-bin/foo/bar.cgi
 #
+# $cgi'CGIDIR_NAME;
+#	起動されたCGIが置かれているディレクトリの相対URLが設定されます．
+#	ex. → /cgi-bin/foo
+#
 # $cgi'CGIPROG_NAME;
 #	起動されたCGIのファイル名（パス名を除く）が設定されます．
 #	ex. → bar.cgi
@@ -71,19 +75,20 @@
 #	ex. → foo.cgi
 #
 # &cgi'lock( $file );
-#	$fileで指定されたファイル名を使い，perl programを排他ロックします．
-#	$ARCHの値に応じ，用いるロック手法が異なります．
-#		UNIX	シンボリックリンクによるロック
-#		WinNT	flockによるロック
-#		Win95	flockによるロック
-#		Mac	ロックの必要がないので（ほんと?）なにもしません
+#	$fileで指定されたロックファイル名を使い，
+#	perl programを排他的にロックします．
+#	（ロックするファイルを指定するのではないことに注意）．
 #	メンテナンスロック中なら
 #	（実行ユーザで削除できないロックファイルが既に存在するなら），
 #	2を，通常のロックが無事行えれば1を，
 #	なんらかの理由で行えなければ0を返します．
 #
+#	※Win95やMacではこの関数を呼ばないようにしてください．
+#	  ロックできません(涙)．
+#
 # &cgi'unlock( $file );
-#	$fileで指定されたファイル名を使ってかけられた排他ロックを外します．
+#	$fileで指定されたロックファイル名を使い，
+#	かけられた排他ロックを外します．
 #	返り値はありません．
 #
 # &cgi'Header( $utcFlag, $utcStr, $cookieFlag, $cookieStr );
@@ -136,9 +141,9 @@
 # &cgiprint'Init;
 # &cgiprint'Cache( $string );
 # &cgiprint'Flush;
-#	CGIプログラムからブラウザに送信する文字列の日本語漢字コードを変換し，
-#	標準出力に吐き出します．
-#	高速化のためにキャッシュ機能を持っており，
+#	CGIプログラムからブラウザに送信する文字列を，
+#	ISO-2022-jp（いわゆるJIS）に変換し，標準出力に吐き出します．
+#	高速化のためにキャッシュを持っています．
 #	Initはキャッシュのクリアを，
 #	Cacheは表示文字列のキャッシュを，
 #	Flushはキャッシュされている文字列の送信を行います．
@@ -160,7 +165,9 @@ package cgi;
 
 
 $SMTP_SERVER = 'localhost';
-# $SMTP_SERVER = 'foo.bar.baz.co.jp';
+# $SMTP_SERVER = 'mailsvr';
+# or
+# $SMTP_SERVER = 'mailsvr.foo.bar.baz.jp';
 # or
 # $SMTP_SERVER = '123.123.123.123';
 
@@ -168,23 +175,58 @@ $AF_INET = 2; $SOCK_STREAM = 1;
 # AF_INET = 2, SOCK_STREAM = 1 ... SunOS 4.*, HP-UX, AIX, Linux, FreeBSD
 # AF_INET = 2, SOCK_STREAM = 2 ... SonOS 5.*
 
-$ARCH = 'UNIX';
-# ARCH = 'WinNT' for WinNT ( flock locking )
-# ARCH = 'Win95' for Win95 ( flock locking )
-# ARCH = 'Mac' for Mac ( without locking )
-
-$JPOUT_SCHEME = 'jis';
-$WAITPID_BLOCK = 0;	# OS dependent.
 $SMTP_PORT = 'smtp';
+srand( $^T|$$ );
+
+@HTML_TAGS = (
+     # タグ名, 閉じ必須か否か, 使用可能なfeature
+     'A',		1,	'HREF/NAME',
+     'ADDRESS',	1,	'',
+     'B',		1,	'',
+     'BLOCKQUOTE',	1,	'',
+     'BR',		0,	'',
+     'CITE',		1,	'',
+     'CODE',		1,	'',
+     'DD',		0,	'',
+     'DIR',		1,	'',
+     'DL',		1,	'COMPACT',
+     'DT',		0,	'',
+     'EM',		1,	'',
+     'FONT',		1,	'SIZE/COLOR',
+     'H1',		1,	'ALIGN',
+     'H2',		1,	'ALIGN',
+     'H3',		1,	'ALIGN',
+     'H4',		1,	'ALIGN',
+     'H5',		1,	'ALIGN',
+     'H6',		1,	'ALIGN',
+     'HR',		0,	'SIZE/WIDTH/ALIGN',
+     'I',		1,	'',
+     'IMG',		0,	'SRC/ALT/ALIGN/WIDTH/HEIGHT/BORDER',
+     'KBD',		1,	'',
+     'LI',		0,	'TYPE/VALUE',
+     'LISTING',	1,	'',
+     'MENU',		1,	'',
+     'OL',		1,	'START',
+     'P',		0,	'ALIGN',
+     'PRE',		1,	'',
+     'SAMP',		1,	'',
+     'STRONG',	1,	'',
+     'TT',		1,	'',
+     'UL',		1,	'',
+     'VAR',		1,	'',
+     'XMP',		1,	'',
+);
+
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
 $REMOTE_HOST = $ENV{'REMOTE_HOST'};
+$REMOTE_USER = $ENV{'REMOTE_USER'};
 $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $PATH_INFO = $ENV{'PATH_INFO'};
 $PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 
-($CGIPROG_NAME = $SCRIPT_NAME) =~ s!^(.*/)!!o;
-$SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO/" : "$1");
+($CGIDIR_NAME, $CGIPROG_NAME) = $SCRIPT_NAME =~ m!^(..*)/([^/]*)$!o;
+$SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO/" : "$CGIDIR_NAME/");
 $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME");
 
 
@@ -195,34 +237,43 @@ $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME");
 # ロック
 sub lock {
     local( $lockFile ) = @_;
-
-    # locked for maintenance by admin.
-    return( 2 ) if (( -e $lockFile ) && ( ! -w $lockFile ));
-
-    return( &lock_link( $lockFile )) if ( $ARCH eq 'UNIX' );
-    return( &lock_flock( $lockFile )) if ( $ARCH eq 'WinNT' || $ARCH eq 'Win95' );
-    return( 1 ) if ( $ARCH eq 'Mac' );
+    if ( $] =~ /^5/o ) {
+	# for perl5
+	return( &lock_flock( $lockFile ));
+    }
+    else {
+	# for perl4
+	return( &lock_link( $lockFile ));
+    }
 }
 
 # アンロック
 sub unlock {
-    &unlock_link( @_ ) if ( $ARCH eq 'UNIX' );
-    &unlock_flock if ( $ARCH eq 'WinNT' || $ARCH eq 'Win95' );
-    return if ( $ARCH eq 'Mac' );
+    if ( $] =~ /^5/o ) {
+	# for perl5
+	&unlock_flock;
+    }
+    else {
+	# for perl4
+	&unlock_link( @_ );
+    }
 }
 
 # lock with symlink
 sub lock_link {
+
+    # locked for maintenance by admin.
+    return( 2 ) if (( -e $lockFile ) && ( ! -w $lockFile ));
+
     local( $lockFile ) = @_;
     local( $lockWait ) = 10;		# [sec]
     local( $lockFileTimeout ) = .004;	# 5.76 [min]
     local( $timeOut ) = 0;
     local( $lockFlag ) = 0;
 
-    srand( time|$$ );
     if ( -M "$lockFile" > $lockFileTimeout ) { unlink( $lockFile ); }
     for( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
-	open( LOCKORG, ">$lockFile.org" ) || &Fatal( 1 );
+	open( LOCKORG, ">$lockFile.org" ) || return( 0 );
 	close( LOCKORG );
 	$lockFlag = 1, last if ( link( "$lockFile.org", $lockFile ));
 	unlink( "$lockFile.org" );
@@ -240,8 +291,8 @@ sub unlock_link {
 sub lock_flock {
     local( $lockFile ) = @_;
     local( $LockEx, $LockUn ) = ( 2, 8 );
-    open( LOCK, "$lockFile" ) || return( 0 );
-    flock( LOCK, $LockEx );
+    open( LOCK, ">>$lockFile" ) || return( 2 );
+    flock( LOCK, $LockEx ) || return( 0 );
     1;
 }
 sub unlock_flock {
@@ -268,7 +319,7 @@ sub Header {
 
     # Header for Last-Modified.
     if ( $utcFlag ) {
-	printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || time ));
+	printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || $^T ));
     }
 
     print( "\n" );
@@ -296,7 +347,9 @@ sub Decode {
 
     if ( $ENV{ 'REQUEST_METHOD' } eq "POST" ) {
 	$readSize = read( STDIN, $args, $ENV{ 'CONTENT_LENGTH' } );
-    } else {
+	$args = '' if ( $readSize != $ENV{ 'CONTENT_LENGTH' } );
+    }
+    else {
 	$args = $ENV{ 'QUERY_STRING' };
     }
 
@@ -306,20 +359,16 @@ sub Decode {
 	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack( "C", hex( $1 ))/ge;
 	$encode = &jcode'getcode( *value );
 
-	if ( $encode eq 'undef' ) {
+	if ( !defined( $encode )) {
 	    $TAGS{ $key } = $value;
-	} else {
+	}
+	else {
 	    &jcode'convert( *value, 'euc', $encode, "z" );
 	    $TAGS{ $key } = $value;
 	}
 
-        if ( $ARCH eq 'Mac' ) {
-            $TAGS{ $key } =~ s/\xd\xa/\n/go;
-            $TAGS{ $key } =~ s/\xa/\n/go;
-        } else {
-	    $TAGS{ $key } =~ s/\r\n/\n/go;
-	    $TAGS{ $key } =~ s/\r/\n/go;
-	}
+	$TAGS{ $key } =~ s/\xd\xa/\n/go;
+	$TAGS{ $key } =~ s/\xa/\n/go;
     }
 }
 
@@ -372,7 +421,8 @@ sub SendMail {
     $port = ( $SMTP_PORT =~ /^\d+$/ ) ? $SMTP_PORT : (getservbyname( $SMTP_PORT, 'tcp' ))[2];
     if ( $SMTP_SERVER =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ ) {
 	$smtpAddr = pack( 'C4', $1, $2, $3, $4 );
-    } else {
+    }
+    else {
 	$smtpAddr = (gethostbyname( $SMTP_SERVER ))[4];
     }
     return( 0 ) if ( !$smtpAddr );
@@ -390,7 +440,7 @@ sub SendMail {
     }
 
     # helo!
-    print( S "helo localhost\r\n" );
+    print( S "helo $SERVER_NAME\r\n" );
     $back = <S>;
     if ( !&checkSmtpResult( $back )) {
 	close( S );
@@ -429,7 +479,8 @@ sub SendMail {
 	if ( $toFirst ) {
 	    print( S "To: $_" );
 	    $toFirst = 0;
-	} else {
+	}
+	else {
 	    print( S ",\r\n\t$_" );
 	}
     }
@@ -438,6 +489,7 @@ sub SendMail {
     print( S "Reply-To: $from\r\n" );# block replying to all rcps...
     print( S "Errors-To: $from\r\n" );
     print( S "Subject: $subject\r\n" );
+    print( S "Content-type: text/plain; charset=ISO-2022-JP\r\n" );
     if ( $extension ) {
 	foreach ( split( /\n/, $extension )) {
 	    print( S "$_\r\n" );
@@ -491,50 +543,10 @@ sub SecureHtml {
 
     # HTML_TAGSの解析（一度だけ実施）
     if ( $F_HTML_TAGS_PARSED != 1 ) {
-	local( @htmlTags ) =
-	    (
-	     # タグ名, 閉じ必須か否か, 使用可能なfeature
-	     'A',		1,	'HREF/NAME',
-	     'ADDRESS',	1,	'',
-	     'B',		1,	'',
-	     'BLOCKQUOTE',	1,	'',
-	     'BR',		0,	'',
-	     'CITE',		1,	'',
-	     'CODE',		1,	'',
-	     'DD',		0,	'',
-	     'DIR',		1,	'',
-	     'DL',		1,	'COMPACT',
-	     'DT',		0,	'',
-	     'EM',		1,	'',
-	     'FONT',		1,	'SIZE/COLOR',
-	     'H1',		1,	'ALIGN',
-	     'H2',		1,	'ALIGN',
-	     'H3',		1,	'ALIGN',
-	     'H4',		1,	'ALIGN',
-	     'H5',		1,	'ALIGN',
-	     'H6',		1,	'ALIGN',
-	     'HR',		0,	'SIZE/WIDTH/ALIGN',
-	     'I',		1,	'',
-	     'IMG',		0,	'SRC/ALT/ALIGN/WIDTH/HEIGHT/BORDER',
-	     'KBD',		1,	'',
-	     'LI',		0,	'TYPE/VALUE',
-	     'LISTING',	1,	'',
-	     'MENU',		1,	'',
-	     'OL',		1,	'START',
-	     'P',		0,	'ALIGN',
-	     'PRE',		1,	'',
-	     'SAMP',		1,	'',
-	     'STRONG',	1,	'',
-	     'TT',		1,	'',
-	     'UL',		1,	'',
-	     'VAR',		1,	'',
-	     'XMP',		1,	'',
-	     );
-	local( $tag );
-	while( @htmlTags ) {
-	    $tag = shift( @htmlTags );
-	    $NEED{ $tag } = shift( @htmlTags );
-	    $FEATURE{ $tag } = shift( @htmlTags );
+	while( @HTML_TAGS ) {
+	    $tag = shift( @HTML_TAGS );
+	    $NEED{ $tag } = shift( @HTML_TAGS );
+	    $FEATURE{ $tag } = shift( @HTML_TAGS );
 	}
 	$F_HTML_TAGS_PARSED = 1;
     }
@@ -551,18 +563,21 @@ sub SecureHtml {
 		if ( $srcString =~ m!</$tag>!i ) {
 		    $srcString = $';
 		    $markuped = $`;
-		    $feature =~ s/&/__amp\377__/go;
-		    $feature =~ s/"/__quot\378__/go;
+		    $feature =~ s/&/__amp\376__/go;
+		    $feature =~ s/"/__quot\376__/go;
 		    $string .= "__$tag Open$feature\376__" . $markuped . "__$tag Close\376__";
-		} elsif ( !$need ) {
-		    $feature =~ s/&/__amp\377__/go;
-		    $feature =~ s/"/__quot\378__/go;
+		}
+		elsif ( !$need ) {
+		    $feature =~ s/&/__amp\376__/go;
+		    $feature =~ s/"/__quot\376__/go;
 		    $string .= "__$tag Open$feature\376__";
-		} else {
+		}
+		else {
 		    $string .= "<$tag$feature>" . $srcString;
 		    last;
 		}
-	    } else {
+	    }
+	    else {
 		$string .= "<$tag$feature>";
 	    }
 	}
@@ -577,8 +592,8 @@ sub SecureHtml {
     while (( $tag, $need ) = each( %NEED )) {
         $string =~ s!__$tag Open([^\376]*)\376__!<$tag$1>!g;
         $string =~ s!__$tag Close\376__!</$tag>!g;
-	$string =~ s!__amp\377__!&!go;
-	$string =~ s!__quot\378__!"!go;
+	$string =~ s!__amp\376__!&!go;
+	$string =~ s!__quot\376__!"!go;
     }
 }
 
@@ -626,60 +641,12 @@ sub GetFeatureValue {
 
 
 ###
-## エラー表示
-#
-sub Fatal {
-
-    # エラー番号とエラー情報の取得
-    local( $errno ) = @_;
-
-    # エラーメッセージ
-    local( $errString );
-
-    if ( $errno == 1 ) {
-
-	$errString = "管理者様へ: File: $LOCK_ORGを作成することができません．システムディレクトリのパーミッションは777になっていますか?";
-
-    } elsif ( $errno == 2 ) {
-
-	$errString = "管理者様へ: メイルを送信することができません．\$SMTP_SERVERもしくは\$SMTP_PORTの値(現在は「$SMTP_SERVER」および「$SMTP_PORT」)の設定がおかしくありませんか?";
-
-    } else {
-
-	$errString = 'エラー番号不定: お手数ですが，このエラーメッセージ(「エラー番号不定」)とこのページのURL，またエラーが生じた状況を，<a href="mailto:nakahiro@kinotrope.co.jp">nakahiro@kinotrope.co.jp</a>までお知らせください．';
-
-    }
-
-    # 表示画面の作成
-    &Header;
-
-    &cgiprint'Init;
-    &cgiprint'Cache(<<__EOF__);
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
-<html>
-<head>
-<title>Error!</title>
-</head>
-<body>
-<h1>Error!</h1>
-<hr>
-<p>$errString</p>
-</body>
-</html>
-__EOF__
-
-    &cgiprint'Flush;
-    exit( 0 );
-}
-
-
-###
 ## 日本語の表示パッケージ
 #
 package cgiprint;
 
 $STR = '';
-$BUFLIMIT = 2048;
+$BUFLIMIT = 4096;
 
 sub Init { $STR = ''; }
 
@@ -690,7 +657,7 @@ sub Cache {
 }
 
 sub Flush {
-    &jcode'convert( *STR, $JPOUT_SCHEME );
+    &jcode'convert( *STR, 'jis' );
     print( $STR );
     &Init;
 }
