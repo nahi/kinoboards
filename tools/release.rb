@@ -21,12 +21,11 @@ EOM
   exit 1
 end
 
-tag = ARGV[0]
-release = ARGV[1]
-usage() if ( !tag || !release )
-
+tag = ARGV.shift
+release = ARGV.shift
 Target = '~/cvs_release'
 
+usage() if ( !tag || !release )
 target = File.expand_path( Target )
 
 # chdir
@@ -57,10 +56,17 @@ Dir.chdir( target )
 `chmod 755 KB/kb/UI KB/kb/icons`
 `chmod 755 KB/kb/kb.cgi`
 `chmod 666 KB/kb/board/* KB/kb/test/* KB/kb/kinousers`
-`chmod 644 KB/kb/icons/*.idef KB/kb/index* KB/kb/kb.ph KB/kb/kinoboards`
+`chmod 644 KB/kb/icons/* KB/kb/index* KB/kb/kb.ph KB/kb/kinoboards`
 `chmod 444 KB/kb/UI/* KB/kb/cgi.pl KB/kb/icons/*.gif KB/kb/kinologue.pl`
 `chmod 444 KB/kb/jcode.pl KB/kb/mimer.pl KB/kb/mimew.pl`
 
-# create archive
+# rename
+`mv KB KB_#{ release }`
+
+# create archive(tar.gz)
 tarfile = "KB_#{ release }.tar"
-`tar cvfp #{ tarfile } KB && gzip #{ tarfile }`
+`tar cvfp #{ tarfile } KB_#{ release } && gzip #{ tarfile }`
+
+# create archive(tar.gz)
+lhafile = "KB_#{ release }.LZH"
+`lha a #{ lhafile } KB_#{ release }`
