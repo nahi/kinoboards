@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.38 1999-10-23 08:23:42 nakahiro Exp $
+# $Id: cgi.pl,v 2.39 2000-02-24 14:16:20 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -397,8 +397,7 @@ sub sendMail
     # helo!
     &smtpMsg( "S", "helo $SERVER_NAME$CRLF" ) || return ( 0, $SMTP_ERRSTR );
     # from
-    &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) ||
-	return ( 0, $SMTP_ERRSTR );
+    &smtpMsg( "S", "mail from: <$senderEmail>$CRLF" ) || return ( 0, $SMTP_ERRSTR );
     # rcpt to
     foreach ( @to )
     {
@@ -666,10 +665,10 @@ sub SecureHtmlEx
     local( $srcString, $tag, $need, $feature, $markuped );
 
     $string =~ s/\\>/__EscapedGt\377__/go;
-    $string =~ s/&amp;?/&/g;
-    $string =~ s/&quot;?/"/g;
-    $string =~ s/&lt;?/</g;
-    $string =~ s/&gt;?/>/g;
+    $string =~ s/&amp;?/__HtmlAmp\377__/go;
+    $string =~ s/&quot;?/__HtmlQuote\377__/go;
+    $string =~ s/&lt;?/__HtmlLt\377__/go;
+    $string =~ s/&gt;?/__HtmlGt\377__/go;
     TAGS: while (( $tag, $need ) = each( %nVec ))
     {
 	$srcString = $string;
@@ -723,10 +722,92 @@ sub SecureHtmlEx
     $string =~ s/"/&quot;/g;
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;
+    $string =~ s/__HtmlAmp\377__/&amp;/go;
+    $string =~ s/__HtmlQuote\377__/&quot;/go;
+    $string =~ s/__HtmlLt\377__/&lt;/go;
+    $string =~ s/__HtmlGt\377__/&gt;/go;
     while (( $tag, $need ) = each( %nVec ))
     {
 	$string =~ s!__$tag Open([^\377]*)\377__!<$tag$1>!g;
 	$string =~ s!__$tag Close\377__!</$tag>!g;
+	$string =~ s!__amp\377__!&!go;
+	$string =~ s!__quot\377__!"!go;
+    }
+}
+
+sub SecureXHTML
+{
+    local( *string, *nVec, *fVec ) = @_;
+    local( $srcString, $tag, $need, $emptyElement, $feature, $markuped );
+
+    $string =~ s/\\>/__EscapedGt\377__/go;
+    $string =~ s/&amp;?/__HtmlAmp\377__/go;
+    $string =~ s/&quot;?/__HtmlQuote\377__/go;
+    $string =~ s/&lt;?/__HtmlLt\377__/go;
+    $string =~ s/&gt;?/__HtmlGt\377__/go;
+    TAGS: while (( $tag, $need ) = each( %nVec ))
+    {
+	$srcString = $string;
+	$string = '';
+	while ( $srcString =~ m!<$tag((\s*/)|(\s+(([^/]|/+[^/>])*/*)))?>! )
+	{
+	    $srcString = $';
+	    $string .= $`;
+	    $emptyElement = $2;
+	    if ( $4 )
+	    {
+		( $feature = " $4" ) =~ s/\\"/__EscapedQuote\377__/go;
+	    }
+	    else
+	    {
+		$feature = '';
+	    }
+	    if ( &SecureFeature( $tag, $fVec{ $tag }, $feature ))
+	    {
+		if ( !$emptyElement && ( $srcString =~ m!</$tag>! ))
+		{
+		    $srcString = $';
+		    $markuped = $`;
+		    $feature =~ s/&/__amp\377__/go;
+		    $feature =~ s/"/__quot\377__/go;
+		    $string .= "__$tag Open$feature\377__" . $markuped .
+			"__$tag Close\377__";
+		}
+		elsif ( $emptyElement && !$need )
+		{
+		    $feature =~ s/&/__amp\377__/go;
+		    $feature =~ s/"/__quot\377__/go;
+		    $string .= "__$tag Empty$feature$emptyElement\377__";
+		}
+		else
+		{
+		    $string .= "<$tag$feature$emptyElement>" . $srcString;
+		    # We must reset the iterator for %nVec before leaving...
+		    keys( %nVec ), last TAGS;
+		}
+	    }
+	    else
+	    {
+		$string .= "<$tag$feature>";
+	    }
+	}
+	$string .= $srcString;
+    }
+    $string =~ s/__EscapedGt\377__/\\>/go;
+    $string =~ s/__EscapedQuote\377__/\\"/go;
+    $string =~ s/&/&amp;/g;
+    $string =~ s/"/&quot;/g;
+    $string =~ s/</&lt;/g;
+    $string =~ s/>/&gt;/g;
+    $string =~ s/__HtmlAmp\377__/&amp;/go;
+    $string =~ s/__HtmlQuote\377__/&quot;/go;
+    $string =~ s/__HtmlLt\377__/&lt;/go;
+    $string =~ s/__HtmlGt\377__/&gt;/go;
+    while (( $tag, $need ) = each( %nVec ))
+    {
+	$string =~ s!__$tag Open([^\377]*)\377__!<$tag$1>!g;
+	$string =~ s!__$tag Close\377__!</$tag>!g;
+	$string =~ s!__$tag Empty([^\377]*)\377__!<$tag$1>!g;
 	$string =~ s!__amp\377__!&!go;
 	$string =~ s!__quot\377__!"!go;
     }
@@ -1025,7 +1106,7 @@ sub SetUserInfo
     local( $userdb, $user, @userInfo ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
-    local( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr );
+    local( $dId, $dUser, $dSalt, $dPasswd );
 
     open( USERDBTMP, ">$tmpFile" ) || return 0;
     open( USERDB, "<$userdb" ) || return 0;
@@ -1037,7 +1118,7 @@ sub SetUserInfo
 	    next;
 	}
 	chop;
-	( $dId, $dUser, $dSalt, $dPasswd ) = split( /\t/, $_, 7 );
+	( $dId, $dUser, $dSalt, $dPasswd ) = split( /\t/, $_, 5 );
 
 	if ( $dUser eq $user )
 	{
@@ -1058,6 +1139,53 @@ sub SetUserInfo
     rename( $tmpFile, $userdb ) || return 0;
 
     $found;
+}
+
+
+###
+## SearchUserInfo - serarch user info.
+#
+# - SYNOPSIS
+#	&cgiauth'SearchUserInfo( $userdb, @userInfo );
+#
+# - ARGS
+#	$userdb		user db.
+#	@userInfo	user's info. to search.
+#			'undef' means 'matches any datum'.
+#
+# - DESCRIPTION
+#	search user info.
+#
+# - RETURN
+#	returns the list of user info.
+#	nil if not found.
+#
+sub SearchUserInfo
+{
+    local( $userdb, @userInfo ) = @_;
+    local( @dInfo ) = ();
+    local( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo );
+
+    local( $matchFlag );
+    open( USERDB, "<$userdb" ) || return 0;
+    while ( <USERDB> )
+    {
+	next if ( /^\#/o || /^$/o );
+	chop;
+	( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo ) = split( /\t/, $_, 7 );
+	@dInfo = split( /\t/, $dInfo );
+
+	$matchFlag = 1;
+	foreach ( @userInfo )
+	{
+	    shift( @dInfo ), next if defined( $_ );
+	    $matchFlag = 0, last if ( $_ ne shift( @dInfo ));
+	}
+	return $dUser if $matchFlag;
+    }
+    close USERDB;
+
+    0;
 }
 
 
