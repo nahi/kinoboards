@@ -231,7 +231,7 @@ $SYS_F_N = 1;	# 記事の投稿
 $SYS_F_R = 1;	# タイトル一覧(日付順)の表示
 $SYS_F_L = 1;	# 最近の記事一覧の表示
 $SYS_F_S = 1;	# 記事の検索
-$SYS_F_B = 1;	# 掲示板一覧の表示
+$SYS_F_B = 0;	# 掲示板一覧の表示
 
   # これ以下のコマンドは必ず，
   # 「正しくアクセス制限をかけた上で」利用してください
@@ -453,7 +453,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.20 1999-06-21 13:55:54 nakahiro Exp $
+# $Id: kb.ph,v 5.21 1999-06-25 16:33:27 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
