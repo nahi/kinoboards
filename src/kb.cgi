@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.40 1999-06-24 14:29:09 nakahiro Exp $
+# $Id: kb.cgi,v 5.41 1999-06-25 16:36:05 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -118,6 +118,18 @@ else
 {
     $SERVER_PORT_STRING = '';
 }
+
+if ( $cgi'PATH_INFO )
+{
+    $BASE_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgi'PATH_INFO/";
+}
+else
+{
+    local( $cgidir ) = substr( $cgi'SCRIPT_NAME, 0, rindex( $cgi'SCRIPT_NAME, '/' ));
+    $BASE_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$cgidir/";
+}
+
+
 $SCRIPT_URL = "http://$cgi'SERVER_NAME$SERVER_PORT_STRING$PROGRAM";
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 $PROGNAME = "KINOBOARDS/$KB_VERSION R$KB_RELEASE";
@@ -1438,7 +1450,7 @@ sub MsgHeader
 <html>
 <head>
 <link rev="MADE" href="mailto:$MAINT">
-<base href="$cgi'BASE_URL">
+<base href="$BASE_URL">
 <title>$titleString</title>
 <LINK REV=MADE HREF="mailto:$MAINT">
 </head>
@@ -1474,7 +1486,7 @@ __EOF__
     {
 	local( $select );
 	$select .= "表示画面: \n<select name=\"c\">\n";
-#	$select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n<option value=\"v\">\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' ) if $SYS_F_B;
+	$select .= sprintf( "<option %s value=\"bl\">$H_BOARD一覧\n<option value=\"v\">\n", ( $cgi'TAGS{'c'} eq 'bl' )? 'selected' : '' ) if $SYS_F_B;
 	$select .= sprintf( "<option %s value=\"v\">$H_SUBJECT一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'v' )? 'selected' : '' );
 	$select .= sprintf( "<option %s value=\"r\">$H_SUBJECT一覧(日付順)\n", ( $cgi'TAGS{'c'} eq 'r' )? 'selected' : '' ) if $SYS_F_R;
 	$select .= sprintf( "<option %s value=\"vt\">$H_MESG一覧($H_REPLY順)\n", ( $cgi'TAGS{'c'} eq 'vt' )? 'selected' : '' );
@@ -1514,10 +1526,10 @@ __EOF__
 #
 sub MsgFooter
 {
-    # ↓これを変更するのも「自由」です．消しても全く問題ありません．
-    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb10.shtml", $PROGNAME ) . ": Copyright (C) 1995-99 " . &TagA( "http://www.jin.gr.jp/~nahi/", "NAKAMURA Hiroshi" ) . ".";
-    # ただし，「俺が全部作ったんだ!」とか書くと，なひの権利を侵害して，
-    # やっぱりGPL2に違反することになっちゃうので気をつけてね．(^_^;
+    # ↓この部分を変更するのも「自由」です．消しても全く問題ありません．
+    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb/", $PROGNAME ) . ": Copyright (C) 1995-99 " . &TagA( "http://www.jin.gr.jp/~nahi/", "NAKAMURA Hiroshi" ) . ".";
+    # ただし「俺が作ったんだ」とか書くと，なひの権利を侵害して，
+    # GPL2に違反することになっちゃうので気をつけてね．(^_^;
 
     &cgiprint'Cache(<<__EOF__);
 $H_HR
