@@ -1,21 +1,13 @@
-# $Id: kb.ph,v 4.1 1996-04-09 03:22:55 nakahiro Exp $
-#
-# $Log: kb.ph,v $
-# Revision 4.1  1996-04-09 03:22:55  nakahiro
-# A little bug(around " in articles) fixed.
-# Copyright message added to the head of source codes.
-# This program is free software(GPL ver.2).
-#
-# Revision 3.4  1996/03/28 09:53:32  nakahiro
-# Modified articles DB structure. (Add list of articles followed)
+# $Id: kb.ph,v 4.2 1996-04-24 18:00:43 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
-# Copyright (C) 1995-96 NAKAMURA Hiroshi.
+# Copyright (C) 1995, 96 NAKAMURA Hiroshi.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License.
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,24 +19,13 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#/////////////////////////////////////////////////////////////////////
-
-
-# This file implements Site Specific Definitions.
+# This file implements Site Specific Definitions of KINOBOARDS.
 
 
 #
 # ´ÉÍý¼Ô¤Îe-mail addr.
 #
 $MAINT = "nakahiro\@kinotrope.co.jp";
-
-#
-# where is this program?
-# `relative' or the others (ex. `absolutive').
-#
-# CAUTION: this option does not work now...
-#
-$SYS_SCRIPTPATH = 'relative';
 
 #
 # sendmail¤Î¥Ñ¥¹¤È¥ª¥×¥·¥ç¥ó
@@ -54,7 +35,7 @@ $MAIL2 = "/usr/lib/sendmail -oi -t";
 #
 # Ãøºî¸¢É½¼¨
 #
-$ADDRESS = "KINOBOARDS: Copyright (C) 1995-96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
+$ADDRESS = "KINOBOARDS: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
 
 
 #
@@ -99,13 +80,6 @@ $SYS_SHOWHOST = 1;
 #   0: È¿±þ¤â´Þ¤á¤Æ¤¹¤Ù¤Æ
 #   1: ¿·µ¬Åê¹Æµ­»ö¤Î¤ß
 $SYS_NEWARTICLEONLY = 0;
-
-# ½é¿´¼ÔÍÑ¤Ë¥¿¥¤¥È¥ë¥ê¥¹¥È¤òË¿BBS¥é¥¤¥¯¤Ë¤¹¤ë¤«ÈÝ¤«(ËÜÅö¤ÏÍÑ°Õ¤·¤¿¤«¤Ê¤¤ ;_;)
-# ¤³¤ì¤ò1¤Ë¤¹¤ë¤È¡¢$SYS_NEWARTICLEONLY¤Ï¸ú¤«¤Ê¤¯¤Ê¤ë(1¤Ë¸ÇÄê)¡£
-# ¤³¤ì¤ò1¤Ë¤¹¤ë¤È¡¢$SYS_ICON¤Ï¸ú¤«¤Ê¤¯¤Ê¤ë(0¤Ë¸ÇÄê)¡£
-#   0: ¤·¤Ê¤¤
-#   1: ¤¹¤ë
-$SYS_FIN_LIKE = 0;
 
 #
 # ¿§¤Î»ØÄê
@@ -177,6 +151,7 @@ $H_POSTINFO = "É¬Í×¤Ç¤¢¤ì¤Ð¡¢Ìá¤Ã¤Æ½ñ¤­¹þ¤ß¤ò½¤Àµ¤·¤Æ²¼¤µ¤¤¡£¤è¤í¤·¤±¤ì¤Ð¥Ü¥¿¥ó¤
 $H_THANKSMSG = "½ñ¤­¹þ¤ß¤ÎÄûÀµ¡¢¼è¾Ã¤Ê¤É¤Ï¥á¡¼¥ë¤Ç¤ª´ê¤¤¤¤¤¿¤·¤Þ¤¹¡£";
 $H_BACK = "Ìá¤ë";
 $H_COMMAND = "¼Â¹Ô";
+$H_TITLELIST = "µ­»ö°ìÍ÷¤Ø";
 $H_NEXTARTICLE = "¼¡¤Îµ­»ö¤Ø";
 $H_POSTNEWARTICLE = "¿·µ¬¤ËÅê¹Æ¤¹¤ë";
 $H_REPLYTHISARTICLE = "¤³¤Îµ­»ö¤ËÈ¿±þ¤¹¤ë";
