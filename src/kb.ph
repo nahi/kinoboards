@@ -340,7 +340,8 @@ $SYS_TT_DEFAULT = 1;
 # それぞれ置き換えられます．空にすると先頭のメッセージは付きません．
 #   例: $SYS_QUOTEMSG = 'In __LINK__ of "__TITLE__" on __DATE__, __NAME__ wrote:';
 #       $SYS_QUOTEMSG = '"__NAME__"さんは__LINK__で書きました:';
-$SYS_QUOTEMSG = '';
+#	$SYS_QUOTEMSG = '';
+$SYS_QUOTEMSG = '"__NAME__"さんは__LINK__で書きました:';
 
 # メッセージの前につく引用マークを指定してください．
 #   例: $DEFAULT_QMARK = '> ';
@@ -490,5 +491,5 @@ $H_REORDERTO_MARK_L = '移動先に指定';
 
 
 #/////////////////////////////////////////////////////////////////////
-# $Id: kb.ph,v 5.33 2000-02-29 13:10:38 nakahiro Exp $
+# $Id: kb.ph,v 5.34 2000-02-29 13:40:55 nakahiro Exp $
 1;

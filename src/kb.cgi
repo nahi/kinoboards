@@ -42,7 +42,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.59 2000-02-29 13:10:35 nakahiro Exp $
+# $Id: kb.cgi,v 5.60 2000-02-29 13:40:53 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -1935,8 +1935,7 @@ sub ThreadTitleNodeThread
     # ページ外ならおしまい．
     return if ( $gADDFLAG{$Id} != 2 );
 
-    &DumpArtSummaryItem( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id},
-	$DB_NAME{$Id}, (( !$SYS_COMPACTTHREAD || $flag&1 )? $DB_DATE{$Id} : 0 ), $flag );
+    &DumpArtSummaryItem( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, (( !$SYS_COMPACTTHREAD || $flag&1 )? $DB_DATE{$Id} : 0 ), $flag );
 
     $flag &= 6; # 110
     $gADDFLAG{$Id} = 1;		# 整形済み
@@ -1948,8 +1947,7 @@ sub ThreadTitleNodeThread
     if ( $DB_AIDS{$Id} )
     {
 	$gHgStr .= "<ul>\n";
-	grep( &ThreadTitleNodeThread( $_, $flag, $addNum, $maint ), split( /,/,
-	    $DB_AIDS{$Id} ));
+	grep( &ThreadTitleNodeThread( $_, $flag, $addNum, $maint ), split( /,/, $DB_AIDS{$Id} ));
 	$gHgStr .= "</ul>\n";
     }
     $gHgStr .= "</li>\n";
@@ -1963,8 +1961,7 @@ sub ThreadTitleNodeAllThread
     # 表示済みならおしまい．
     return if ( $gADDFLAG{$Id} == 1 );
 
-    &DumpArtSummaryItem( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id},
-	$DB_NAME{$Id}, (( !$SYS_COMPACTTHREAD || $flag&1 )? $DB_DATE{$Id} : 0 ), $flag );
+    &DumpArtSummaryItem( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, (( !$SYS_COMPACTTHREAD || $flag&1 )? $DB_DATE{$Id} : 0 ), $flag );
 
     $flag &= 6; # 110
     $gADDFLAG{$Id} = 1;		# 整形済み
@@ -2020,13 +2017,11 @@ sub ThreadTitleMaintIcon
     }
 
     # リンク先変更コマンド(To)
-    if (( $gComType == 2 ) && ( $fromId ne $id ) && ( !grep( /^$fromId$/,
-	split( /,/, $DB_AIDS{$id} ))) && ( !grep( /^$fromId$/, split( /,/,
-	$DB_FID{$id} ))))
+    if (( $gComType == 2 ) && ( $fromId ne $id ) &&
+	( !grep( /^$fromId$/, split( /,/, $DB_AIDS{$id} ))) &&
+	( !grep( /^$fromId$/, split( /,/, $DB_FID{$id} ))))
     {
-	$gHgStr .= &LinkP(
-	    "b=$BOARD_ESC&c=ce&rtid=$id&rfid=$fromId&roid=$oldId" .
-	    $addNum, $H_RELINKTO_MARK, '', $H_RELINKTO_MARK_L ) . "\n";
+	$gHgStr .= &LinkP( "b=$BOARD_ESC&c=ce&rtid=$id&rfid=$fromId&roid=$oldId" . $addNum, $H_RELINKTO_MARK, '', $H_RELINKTO_MARK_L ) . "\n";
     }
 }
 
@@ -2530,6 +2525,7 @@ sub hg_c_top_menu
 	3 );
 
     local( %tags ) = ( 'b', $BOARD );
+    $tags{ 'old' } = $cgi'TAGS{'old'} if ( $cgi'TAGS{'old'} ne '' );
     &DumpForm( *tags, '表示(V)', '', *formStr );
     $gHgStr .= "</div>\n";
 }
@@ -5420,259 +5416,35 @@ sub PageLink
 
     if ( $old )
     {
-	$str .= &LinkP(
-	    "b=$BOARD_ESC&c=$com&num=$num&old=0&fold=$fold&rev=$rev",
-	    $H_TOP . &TagAccessKey( 'T' ), 'T' );
-	$str .= ' | ' . &LinkP(
-	    "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&fold=$fold&rev=$rev",
-	    $H_UP . &TagAccessKey( 'N' ), 'N' );
+	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&fold=$fold&rev=$rev", $H_TOP . &TagAccessKey( 'T' ), 'T' );
+	$str .= ' | ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&fold=$fold&rev=$rev", $H_UP . &TagAccessKey( 'N' ), 'N' );
     }
     else
     {
-	$str .= $H_TOP . &TagAccessKey( 'T' ) . ' | ' . $H_UP .
-	    &TagAccessKey( 'N' );
+	$str .= $H_TOP . &TagAccessKey( 'T' ) . ' | ' . $H_UP . &TagAccessKey( 'N' );
     }
 
     if ( $SYS_REVERSE )
     {
 	$str .= ' | ' .
-	    &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&fold=$fold&rev=" .
-	    ( 1-$rev ), $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R',
-	    $H_REVERSE_L );
+	    &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&fold=$fold&rev=" . ( 1-$rev ), $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R', $H_REVERSE_L );
     }
 
     if ( $SYS_EXPAND && ( $fold ne '' ))
     {
-	$str .= ' | ' .
-	    &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" .
-	    ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E',
-	    $H_EXPAND_L );
+	$str .= ' | ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" . ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E', $H_EXPAND_L );
     }
 
     $str .= ' | ';
 
     if ( $num && ( $#DB_ID - $backOld >= 0 ))
     {
-	$str .= &LinkP(
-	    "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&fold=$fold&rev=$rev",
-	    $H_DOWN . &TagAccessKey( 'P' ), 'P' );
-	$str .= ' | ' . &LinkP(
-	    "b=$BOARD_ESC&c=$com&num=$num&old=" . ( $#DB_ID - $old + 1) .
-	    "&fold=$fold&rev=$rev", $H_BOTTOM . &TagAccessKey( 'B' ),
-	    'B' );
+	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&fold=$fold&rev=$rev", $H_DOWN . &TagAccessKey( 'P' ), 'P' );
+	$str .= ' | ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=" . ( $#DB_ID - $num + 1) . "&fold=$fold&rev=$rev", $H_BOTTOM . &TagAccessKey( 'B' ), 'B' );
     }
     else
     {
-	$str .= $H_DOWN . &TagAccessKey( 'P' ) . ' | ' . $H_BOTTOM .
-	    &TagAccessKey( 'B' );
-    }
-
-    $str .= "</p>\n";
-
-    $str;
-}
-
-sub ShowPageLinkEachPage	# not used.
-{
-    local( $com, $num, $old, $rev, $vRev ) = @_;
-
-    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
-    local( $backOld ) = ( $old + $num );
-
-    local( $str ) = '<p>';
-
-    $MAX_PAGELINK = 5;
-
-    if ( $SYS_REVERSE )
-    {
-	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=" .
-	    ( 1-$rev ), $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R',
-	    $H_REVERSE_L ) . ' ';
-    }
-
-    if ( $SYS_EXPAND )
-    {
-	$str .= &LinkP(
-	    "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" .
-	    ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E',
-	    $H_EXPAND_L );
-    }
-
-    if ( $vRev )
-    {
-	if ( $num && ( $#DB_ID - $backOld > 0 ))
-	{
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&rev=$rev",
-		$H_TOP );
-	    $str .= &LinkP(
-		"b=$BOARD_ESC&c=$com&num=$num&old=$backOld&rev=$rev", $H_UP );
-	}
-	else
-	{
-	    $str .= $H_TOP . $H_UP;
-	}
-
-	local( $i );
-	for ( $i = -$MAX_PAGELINK; $i <= +$MAX_PAGELINK; $i++ )
-	{
-	    $str .= ' ';
-	    if ( $old - $i * $num <= $#DB_ID )
-	    {
-		$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=" .
-		    ( $i*$num ) . "&rev=$rev", $i );
-	    }
-	    else
-	    {
-		$str .= $i;
-	    }
-	}
-	$str .= ' ';
-
-	if ( $old )
-	{
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&rev=$rev", $H_DOWN );
-	}
-	else
-	{
-	    $str .= $H_DOWN;
-	}
-    }
-    else
-    {
-	if ( $old )
-	{
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&rev=$rev", $H_TOP );
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&rev=$rev", $H_UP );
-	}
-	else
-	{
-	    $str .= $H_TOP . $H_UP;
-	}
-
-	local( $i );
-	$MAX_PAGELINK = 5;
-	for ( $i = $MAX_PAGELINK; $i >= -$MAX_PAGELINK; $i-- )
-	{
-	    $str .= ' ';
-	    if ( $old - $i * $num <= $#DB_ID )
-	    {
-		$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=" . ( $i*$num ) . "&rev=$rev", $i );
-	    }
-	    else
-	    {
-		$str .= $i;
-	    }
-	}
-	$str .= ' ';
-
-	if ( $num && ( $#DB_ID - $backOld > 0 ))
-	{
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&rev=$rev", $H_DOWN );
-	}
-	else
-	{
-	    $str .= $H_DOWN;
-	}
-    }
-
-    $str .= "</p>\n";
-
-    $str;
-}
-
-sub ShowPageLinkTop		# not used
-{
-    local( $com, $num, $old, $rev, $vRev ) = @_;
-
-    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
-    local( $backOld ) = ( $old + $num );
-
-    local( $str ) = '<p>';
-
-    if ( $vRev )
-    {
-	if ( $num && ( $#DB_ID - $backOld > 0 ))
-	{
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&rev=$rev", $H_DOWN );
-	}
-	else
-	{
-	    $str .= $H_DOWN;
-	}
-    }
-    else
-    {
-	if ( $old )
-	{
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&rev=$rev", $H_TOP );
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&rev=$rev", $H_UP );
-	}
-	else
-	{
-	    $str .= $H_TOP . $H_UP;
-	}
-    }
-
-    if ( $SYS_REVERSE )
-    {
-	$str .= ' // ' . &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE[ 1-$rev ], &TagAccessKey( 'R' ), 'R',
-		$H_REVERSE_L );
-    }
-
-    if ( $SYS_EXPAND )
-    {
-	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" . ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E', $H_EXPAND_L );
-    }
-
-    $str .= "</p>\n";
-
-    $str;
-}
-
-sub ShowPageLinkBottom		# not used.
-{
-    local( $com, $num, $old, $rev, $vRev ) = @_;
-
-    local( $nextOld ) = ( $old > $num )? ( $old - $num ) : 0;
-    local( $backOld ) = ( $old + $num );
-
-    local( $str ) = '<p>';
-
-    if ( $SYS_REVERSE )
-    {
-	$str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=" . ( 1-$rev ), $H_REVERSE[ 1-$rev ] . &TagAccessKey( 'R' ), 'R', $H_REVERSE_L );
-    }
-
-    if ( $SYS_EXPAND )
-    {
-	$str .= ' ' .
-	    &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$old&rev=$rev&fold=" .
-	    ( 1-$fold ), $H_EXPAND[ 1-$fold ] . &TagAccessKey( 'E' ), 'E',
-	    $H_EXPAND_L ) . ' // ';
-    }
-
-    if ( $vRev )
-    {
-	if ( $old )
-	{
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=0&rev=$rev", $H_TOP );
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$nextOld&rev=$rev", $H_UP );
-	}
-	else
-	{
-	    $str .= $H_TOP . $H_UP;
-	}
-    }
-    else
-    {
-	if ( $num && ( $#DB_ID - $backOld > 0 ))
-	{
-	    $str .= &LinkP( "b=$BOARD_ESC&c=$com&num=$num&old=$backOld&rev=$rev", $H_DOWN );
-	}
-	else
-	{
-	    $str .= $H_DOWN;
-	}
+	$str .= $H_DOWN . &TagAccessKey( 'P' ) . ' | ' . $H_BOTTOM . &TagAccessKey( 'B' );
     }
 
     $str .= "</p>\n";
