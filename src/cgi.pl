@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.18 1999-02-19 13:06:36 nakahiro Exp $
+# $Id: cgi.pl,v 2.19 1999-02-21 06:22:06 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -161,14 +161,14 @@ sub unlock_file_flock
 # Server: $ENV{'SERVER_SOFTWARE'}
 sub Header
 {
-    local( $utcFlag, $utcStr, $cookieFlag, *cookieStr, $cookieExpire ) = @_;
+    local( $utcFlag, $utcStr, $cookieFlag, *cookieList, $cookieExpire ) = @_;
     print( "Content-type: text/html; charset=" . $CHARSET_MAP{ $CHARSET } . "\n" );
     $cgiprint'CHARSET = $CHARSET;
 
     # Header for HTTP Cookies.
     if ( $cookieFlag )
     {
-	foreach ( @cookieStr )
+	foreach ( @cookieList )
 	{
 	    print( "Set-Cookie: $_;" );
 	    if ( $cookieExpire eq '' )
@@ -1102,31 +1102,33 @@ sub SetUserInfo
 #
 sub Header
 {
-    local( $lastModifiedP, $lastModifiedTime, $user, $cookieExpire ) = @_;
+    local( $lastModifiedP, $lastModifiedTime, $user, $expire ) = @_;
 
-    if ( $user eq '' )
-    {
-	# no cookies
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0, () );
-    }
-    elsif ( $user eq $F_COOKIE_RESET )
+    local( $cookieFlag, @cookieList );
+
+    $cookieFlag = 0;
+
+    if ( $user eq $F_COOKIE_RESET )
     {
 	# not numeric. reset.
-	local( @cookieStr ) = ( 'kinoauth=' );
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, *cookieStr,
-	    $cookieExpire );
+	push( @cookieList, 'kinoauth=' );
+	$cookieFlag = 1;
     }
-    elsif ( $UID eq $cgi'COOKIES{'kinoauth'} )
+    elsif ( $UID ne $cgi'COOKIES{'kinoauth'} )
     {
-	# no cookies
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0, () );
+	# set
+	push( @cookieList, "kinoauth=$UID" );
+	$cookieFlag = 1;
+    }
+
+    if ( $cookieFlag )
+    {
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, *cookieList,
+	    $expire );
     }
     else
     {
-	# set
-	local( @cookieStr ) = ( "kinoauth=$UID" );
-	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, *cookieStr,
-	    $cookieExpire );
+	&cgi'Header( $lastModifiedP, $lastModifiedTime, 0, undef, 0 );
     }
 }
 
