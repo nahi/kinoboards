@@ -292,6 +292,7 @@ $SYS_MAIL = 1 + 2;
   # $AF_INET = 2; $SOCK_STREAM = 2;	# SunOS 5.*(Solaris 2.*)
   # $AF_INET = 2; $SOCK_STREAM = 1;	# HP-UX
   # $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
+  # $AF_INET = 2; $SOCK_STREAM = 2;	# Cobalt OS 2.2(Linux 2.0.33)
   $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
   # $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
   # $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
@@ -434,7 +435,7 @@ $H_REORDERTO_MARK = "[¢¦]";
 1;
 
 
-# $Id: kb.ph,v 5.13 1999-02-17 18:20:07 nakahiro Exp $
+# $Id: kb.ph,v 5.14 1999-06-09 10:05:23 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
