@@ -2,7 +2,7 @@
  * kbStyle.css: CSS style definition file for KINOBOARDS.
  */
 
-/* $Id: kbStyle.css,v 1.3 2000-08-06 14:56:00 nakahiro Exp $ */
+/* $Id: kbStyle.css,v 1.4 2000-08-10 09:55:46 nakahiro Exp $ */
 
 /* General definition */
 
@@ -97,15 +97,18 @@ div.kbTopMenu {}
 
 div.kbArticle {}
 
-div.kbArticle p.command { text-align: right; }
+div.kbArticle div.header {}
 
-div.kbArticle p.kbTitle
+div.kbArticle div.header p.command
+{
+    text-align: right;
+}
+
+div.kbArticle div.header p.title
 {
     text-align: center;
     font-size: larger;
     font-weight: bold;
 }
-
-div.kbArticle p.header {}
 
 div.kbArticle div.body {}
