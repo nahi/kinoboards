@@ -1,17 +1,25 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
-<HTML>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
 <head>
-<TITLE>きのぼーず: Kinoboards Is Network Opened BOARD System</title>
+<meta http-equiv="Content-Type" CONTENT="text/html; charset=ISO-2022-JP">
+<link rel="UP" href="../">
+<link rev="MADE" href="mailto:nahi@keynauts.com">
+<title>きのぼーず: Kinoboards Is Network Opened BOARD System</title>
 </head>
 <body>
 
 <h1>きのぼーず: Kinoboards Is Network Opened BOARD System</h1>
 
+<!-- 自由に書き換えてください．↓とか↑とか，さっくり消しちゃってOKです -->
+<!-- あと，headエレメント内のlinkエレメントも，変更してくださいね． -->
+<!-- メイルアドレスが残っちゃってますから．^^; -->
+
 <p>
-<!--自由に書き換えてください．↓とか↑とか，さっくり消しちゃってOKす-->
 <a href="http://www.jin.gr.jp/~nahi/kb10.shtml">KINOBOARDS/1.0</a>
 によって運営されている掲示板です．
 各メッセージについているアイコンは，次のような機能を表しています．
+</p>
+
 <ul>
 <li>▲ : そのメッセージのオリジナルから，全てのリプライをまとめて読みます．
 <li>▼ : そのメッセージのリプライをまとめて読みます．
@@ -25,12 +33,11 @@
 <li><img src="icons/follow.gif" alt="リプライを書き込む" height="20" width="20"> : リプライを書き込みます
 <li><img src="icons/quote.gif" alt="引用してリプライを書き込む" height="20" width="20"> : 元のメッセージを引用して，リプライを書き込みます
 </ul>
-</p><p>
+
 <dl>
-<dt>▼<a href="/cgi-bin/kb.cgi/~nakahiro/kb?b=test&c=v&num=40">テスト</a>
+<dt>▼<a href="/cgi-bin/kb.cgi/~nakahiro/kb?b=test&c=v&num=20">テスト</a>
 <dd>テスト用の掲示板です。
 </dl>
-</p>
 
 </body>
 </html>
