@@ -36,7 +36,7 @@ dt.charInPageHelp {
 </p>
 
 <p class="pageHelpImg">
-<kb:c_img var="boards.png,タイトル一覧ページ,474,256" />
+<kb:c_img src="boards.png" alt="タイトル一覧ページ" width="474" height="256" />
 </p>
 
 <dl>
@@ -68,7 +68,7 @@ dt.charInPageHelp {
 
 <dt class="charInPageHelp">(F)</dt>
 <dd>現在公開されている掲示板の一覧が表示されています．
-<kb:c_icon_msg var="new!" />アイコンは，その掲示板に新着メッセージがあることを示しています．</dd>
+<kb:c_icon_msg icon="new!" />アイコンは，その掲示板に新着メッセージがあることを示しています．</dd>
 </dl>
 
 <hr />
@@ -78,11 +78,11 @@ dt.charInPageHelp {
 <p>
 タイトル一覧ページは，掲示板に登録されているメッセージの一覧を表しています．
 ページの見方について説明します．
-表示されるアイコンの機能については，<kb:c_help var="icon" />を参照してください．
+表示されるアイコンの機能については，<kb:c_help type="icon" />を参照してください．
 </p>
 
 <p class="pageHelpImg">
-<kb:c_img var="titles.png,タイトル一覧ページ,559,326" />
+<kb:c_img src="titles.png" alt="タイトル一覧ページ" width="559" height="326" />
 </p>
 
 <dl>
@@ -112,8 +112,8 @@ dt.charInPageHelp {
 
 <dt class="charInPageHelp" name="thread">(F)</dt>
 <dd>この掲示板に登録されているメッセージのタイトル一覧が表示されます．
-<kb:c_icon_msg var="new!" />アイコンは，そのメッセージが新着メッセージであることを示しています．<br /><br />
-<kb:c_img var="messages.png,タイトル一覧ページ（メッセージ部）,536,363" /><br /><br />
+<kb:c_icon_msg icon="new!" />アイコンは，そのメッセージが新着メッセージであることを示しています．<br /><br />
+<kb:c_img src="messages.png" alt="タイトル一覧ページ（メッセージ部）" width="536" height="363" /><br /><br />
 <dl>
 <dt><strong>スレッド</strong></dt>
 <dd>スレッドは，その掲示板のユーザが，とある話題について意見交換するためのまとまりです．
@@ -138,13 +138,13 @@ dt.charInPageHelp {
 </p>
 
 <p class="pageHelpImg">
-<kb:c_img var="message.png,メッセージ表示ページ,546,438" />
+<kb:c_img src="message.png" alt="メッセージ表示ページ" width="546" height="438" />
 </p>
 
 <dl>
 <dt class="charInPageHelp">(A)</dt>
 <dd>各種機能を提供するアイコンが表示されます．
-各アイコンの機能については，<kb:c_help var="icon" />を参照してください．
+各アイコンの機能については，<kb:c_help type="icon" />を参照してください．
 </dd>
 
 <dt class="charInPageHelp">(B)</dt>
@@ -157,7 +157,7 @@ dt.charInPageHelp {
 <dt class="charInPageHelp">(D)</dt>
 <dd>表示しているメッセージがリプライメッセージの場合，リプライ元のメッセージが全て表示されます．
 一番上に表示されているのが，このスレッドのオリジナルメッセージです．
-「スレッド」「オリジナル」「リプライ」という用語については，<kb:c_help var="thread" />を参照してください．</dd>
+「スレッド」「オリジナル」「リプライ」という用語については，<kb:c_help type="thread" />を参照してください．</dd>
 
 <dt class="charInPageHelp">(E)</dt>
 <dd>表示しているメッセージにリプライメッセージがある場合，リプライメッセージが全て表示されます．
@@ -178,20 +178,20 @@ dt.charInPageHelp {
 <li>▼ : そのメッセージへのリプライメッセージをまとめて表示します．</li>
 <br /><br />
 
-<li><kb:c_icon var="org_tlist.gif,上へ" /> : リプライ元のメッセージを表示します．</li>
-<li><kb:c_icon var="org_prev.gif,前へ" /> : 前のメッセージを表示します(書き込み順)．</li>
-<li><kb:c_icon var="org_next.gif,次へ" /> : 次のメッセージを表示します(書き込み順)．</li>
-<li><kb:c_icon var="org_thread.gif,リプライを全て表示" /> : そのメッセージへのリプライメッセージをまとめて表示します．▼と同じです．</li>
+<li><kb:c_icon icon="org_tlist.gif" alt="上へ" /> : リプライ元のメッセージを表示します．</li>
+<li><kb:c_icon icon="org_prev.gif" alt="前へ" /> : 前のメッセージを表示します(書き込み順)．</li>
+<li><kb:c_icon icon="org_next.gif" alt="次へ" /> : 次のメッセージを表示します(書き込み順)．</li>
+<li><kb:c_icon icon="org_thread.gif" alt="リプライを全て表示" /> : そのメッセージへのリプライメッセージをまとめて表示します．▼と同じです．</li>
 <br /><br />
 
-<li><kb:c_icon var="org_follow.gif,リプライを書き込む" /> : そのメッセージへのリプライを書き込みます．</li>
+<li><kb:c_icon icon="org_follow.gif" alt="リプライを書き込む" /> : そのメッセージへのリプライを書き込みます．</li>
 <br /><br />
 
-<li><kb:c_icon var="org_supersede.gif,訂正する" /> : そのメッセージを訂正します．</li>
-<li><kb:c_icon var="org_delete.gif,削除する" /> : そのメッセージを削除します．</li>
+<li><kb:c_icon icon="org_supersede.gif" alt="訂正する" /> : そのメッセージを訂正します．</li>
+<li><kb:c_icon icon="org_delete.gif" alt="削除する" /> : そのメッセージを削除します．</li>
 <br /><br />
 
-<li><kb:c_icon var="org_help.gif,ヘルプ" /> : ヘルプを表示します．</li>
+<li><kb:c_icon icon="org_help.gif" alt="ヘルプ" /> : ヘルプを表示します．</li>
 </ul>
 
 <hr />
@@ -204,7 +204,7 @@ dt.charInPageHelp {
 </p>
 
 <p class="pageHelpImg">
-<kb:c_img var="post.png,メッセージ登録ページ,536,417" /><br />
+<kb:c_img src="post.png" alt="メッセージ登録ページ" width="536" height="417" /><br />
 ※リプライを登録する場合は，この画面の下に，リプライ元となるメッセージが表示されます．
 </p>
 

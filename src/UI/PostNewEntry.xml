@@ -20,7 +20,7 @@
 
 <p>
 新規にメッセージを書き込みます．
-各フィールドの説明については<kb:c_help var="post" />をどうぞ．
+各フィールドの説明については<kb:c_help type="post" />をどうぞ．
 </p>
 
 <kb:b_post_entry_form />

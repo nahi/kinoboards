@@ -19,13 +19,14 @@
 <hr />
 
 <p>
-このページの見方については<kb:c_help var="boards" />を参照してください．
+このページの見方については<kb:c_help type="boards" />を参照してください．
 現在，以下の掲示板が用意されています．
+<kb:c_board_link com="message-thread" board="test" />
 </p>
 
 <kb:c_board_link_all />
 
-<!-- ＜kb:c_board_link var="xxx,yyy" /＞というタグも使えます． -->
+<!-- ＜kb:c_board_link com="xxx" board="yyy" /＞というタグも使えます． -->
 <!-- yyyは掲示板名です．例えば「test」「board」など． -->
 <!-- xxxは以下のうちのいずれかを指定してください． -->
 <!--   title-thread ... タイトル一覧（スレッド） -->
@@ -33,7 +34,7 @@
 <!--   message-thread ... メッセージ一覧（スレッド） -->
 <!--   message-bydate ... メッセージ一覧（書き込み順） -->
 
-<!-- 例: ＜kb:c_board_link var="message-thread,test" /＞ -->
+<!-- 例: ＜kb:c_board_link com="message-thread" board="test" /＞ -->
 <!--     ↑test掲示板のメッセージ一覧（スレッド）へのリンクを生成 -->
 
 <hr />
