@@ -151,7 +151,7 @@ Fatal:
     &MsgHeader( 'Error!', "$SYSTEM_NAME: ERROR!" );
     &cgiprint'Cache( "<p>$msg</p>\n" );
 
-    if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ))
+    if ( $severity != $kinologue'SEV_FATAL )
     {
 	&PrintButtonToTitleList( $BOARD, undef )
 	    if (( $BOARD ne '' ) && ( $errno != 11 ));
