@@ -138,7 +138,7 @@ ex. &lt;kb:c_board_link com=&quot;message-thread&quot; board=&quot;test&quot; /&
 </pre>
 
 <p>
-このタグが置かれた位置に，掲示板のタイトル一覧，メッセージ一覧へのリンクをを挿入します．
+このタグが置かれた位置に，掲示板のタイトル一覧，メッセージ一覧へのリンクを挿入します．
 aエレメントの他に，最終更新時刻なども表示されます．
 コマンドとしては，以下のものを指定してください．
 </p>
@@ -161,7 +161,7 @@ aエレメントの他に，最終更新時刻なども表示されます．
 </pre>
 
 <p>
-このタグが置かれた位置に，各掲示板のタイトル一覧へのリンクをを挿入します．
+このタグが置かれた位置に，各掲示板のタイトル一覧へのリンクを挿入します．
 ulエレメントです．
 最終更新時刻なども表示されます．
 </p>
@@ -179,6 +179,12 @@ ex. &lt;kb:c_command comment=&quot;検索&quot; c=&quot;s&quot; b=&quot;test
 aエレメントです．
 tagとvalue部分には，きのぼずに渡すクエリを書いてください．
 上記の例であれば，kb.cgi?c=s&amp;b=testというリンクを生成します．
+</p>
+
+<p>
+「tag=&quot;value1 value2 value3&quot;」のようにvalue部分に空白を入れると，値がそこで分解され，「tag=value1&amp;tag=value2&amp;tag=value3」というリンクを生成します．
+これは&lt;kb:c_command /&gt;だけの特別処理です．
+&lt;kb:c_command /&gt;を使う場合は，空白の扱いに充分注意してください．
 </p>
 
 <h3>&lt;kb:c_exec_date_time /&gt;</h3>

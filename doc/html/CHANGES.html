@@ -2,9 +2,6 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
-    lang="ja" xml:lang="ja">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP" />
@@ -22,7 +19,7 @@ Changes
 </h1>
 
 <p class="status">
-Last modified: July 1, 2000<br />
+Last modified: August 11, 2000<br />
 Created: May 2, 2000
 </p>
 </div>
@@ -32,6 +29,45 @@ Created: May 2, 2000
 <div class="main">
 
 <dl>
+<dt>Release 7.3</dt>
+<dd>Released.</dd>
+
+<dt>revision 5.85 - date: 2000/08/11 11:15:26;  author: nakahiro;  state: Exp;  lines: +227 -132</dt>
+<dd><ul>
+<li>Removed Board name from h1 element.</li>
+<li>Added inverse searching.</li>
+<li>Added 'summer2k' stylesheet made by U-Z <u-z@jah.ne.jp>.</li>
+<li>Use \x0a instead of \n for MacPerl.</li>
+<li>[url:...] in e-Mail is expanded to original URL.</li>
+</ul></dd>
+
+<dt>revision 5.84 - date: 2000/08/10 09:56:38;  author: nakahiro;  state: Exp;  lines: +228 -223</dt>
+<dd><ul>
+<li>Changed stylesheet classes around header of article.</li>
+<li>Changed $H_LINE.  &lt;p&gt; -> &lt;p class=&quot;bodySeparator&quot;&gt;.</li>
+<li>Removed &amp;dumpArtSummaryItem.  It did not dump '&lt;/li&gt;' correctly.</li>
+<li>Removed &lt;kb:c_board_info /&gt;.  It dumped only '0' or '1'.</li>
+<li>&amp;dumpArtTitle were moved into &amp;dumpArtHeader.</li>
+<li>Fixed &amp;getPath for MacPerl's behavior.  ':.:foo' did not work...</li>
+<li>Added ArtExtInfo interface.</li>
+</ul></dd>
+
+<dt>revision 5.83 - date: 2000/08/06 14:53:58;  author: nakahiro;  state: Exp;  lines: +268 -140</dt>
+<dd><ul>
+<li>Changed attributes in kb elements.  'var' -> 'type', 'comment', and so on...</li>
+<li>Added $SYS_COOKIE_FORCE option to let users to use HTTP-Cookies.</li>
+<li>Added $SYS_SUPERSEDE and $SYS_DELETE instead of $SYS_OVERWRITE option.</li>
+<li>Users who do not have read permission could see BoardList View.  Redirect to Login View.</li>
+<li>Removed illegal namespace definition from dumped XHTML (kb-html-embedding).</li>
+<li>Using URL authentication, admin password could not be set.  Fixed.</li>
+<li>Using URL authentication, user information could not be changed.  Fixed.</li>
+<li>Using authentication, 'TOP' and 'HELP' in TopMenu was not seen.  Fixed.</li>
+<li>Removed 'icon list' and 'entry original message' from Jump menu.</li>
+<li>Added new kb element &lt;c_command /&gt; to put a link to exec KINOBOARDS function.</li>
+<li>Added new kb element &lt;c_board_name /&gt;, &lt;c_board_info /&gt;, and &lt;c_board_lastmod /&gt; to put BOARD information.</li>
+<li>Message title is placed in p element instead of h2 element.</li>
+</ul></dd>
+
 <dt>Release 7.2</dt>
 <dd>Released.</dd>
 

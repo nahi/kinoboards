@@ -2,9 +2,6 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
-    lang="ja" xml:lang="ja">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP" />
@@ -22,7 +19,7 @@ Release Notes
 </h1>
 
 <p class="status">
-Last modified: July 1, 2000<br />
+Last modified: August 11, 2000<br />
 Created: May 7, 2000
 </p>
 </div>
@@ -39,36 +36,44 @@ Created: May 7, 2000
 
 <p>
 本文書が対象としているKINOBOARDSのバージョンは，
-KINOBOARDS version 1.0 release 7（KINOBOARDS/1.0R7.2）
+KINOBOARDS version 1.0 release 7（KINOBOARDS/1.0R7.3）
 です．
 </p>
 
 <h2>1. 変更点</h2>
 
 <p>
-R7.2での変更点は以下の通りです．
+R7.3での変更点は以下の通りです．
 </p>
 
 <ul>
-<li>認証方式を強化．
-詳細は<a href="COLUMN.html#authentication">コラム: 認証方式</a>をごらんください．</li>
-<li>$SYS_POSTERMAILが1（メイルアドレスを入力しないと書き込みできない）になっている時に，ユーザ設定変更画面で登録メイルアドレスが変更できない，というバグを修正．</li>
-<li>トップメニューに'HELP'を追加．</li>
-<li>キーボードショートカットが表示されない，というバグを修正．</li>
-<li>訂正済みのメッセージを再度訂正した場合，大元のメッセージが（ディスク上からも）消えてしまう，というバグを修正．
-訂正されても消さないつもりでコーディングしてたんですが，このバグのせいで，最大2世代分（現在有効なメッセージとその1世代前のメッセージ）しか保存されていませんでした．</li>
-<li>メッセージを引用してリプライを書き込む際，先頭行が連結してしまう，というバグを修正．</li>
+<li><a href="customize.html">Customizeドキュメント</a>を追加．</li>
+<li><a href="htmlEmbedding.html">きのぼず固有タグ</a>
+の属性の書式を変更．
+具体的には，従来すべて「var=&quot;...&quot;」の形だったものが，「comment=&quot;...&quot; icon=&quot;...&quot;」など，分解され，かつ適切な名前に変わっています．
+従来の
+<a href="UIDefinition.html">UI定義ファイル</a>
+およびkb.boardのうち，「var=&quot;...&quot;」の形で属性を指定しているものは，全て書き直さなければなりません．
+すいません．
+書式の詳細については，
+<a href="htmlEmbedding.html">KINOBOARDS HTML Embedding</a>
+を参考にしてください．</li>
+<li>ユーザにHTTP-Cookiesの利用を強要する（URL認証の利用を許さない）オプションを追加．</li>
+<li>訂正可能か否かを指定するオプションと，削除可能か否かを指定するオプションを分離．</li>
+<li><a href="htmlEmbedding.html">きのぼず固有タグ</a>
+の種類を追加．
+&lt;c_command /&gt;，&lt;c_board_name /&gt;，&lt;c_board_lastmod /&gt;．</li>
+<li>否定検索機能を追加．</li>
+<li>デフォルトのスタイルシートをsummer2k.cssに変更．
+作ってくださったU-Zさんに感謝!</li>
+<li>メイル中の[url:kb:...]を，本来のURLに展開するようにした．</li>
+<li>URL認証方式を利用していた場合に，管理者パスワードおよびユーザ情報の設定ができないというバグを修正．</li>
+<li>サーバMac + MacPerlで動かなかったバグを修正（しきれてないかも）．
+penguin-19さんに感謝!
 </ul>
 
 <p>
-認証方式の変更がありましたが，ユーザ管理用のkb.userファイルについては上位互換性が保たれています．
-R7.0〜R7.1.1で使われていたkb.userをR7.2で利用する場合，各ユーザが次回ログインした際に，そのユーザの認証方式が自動的に新方式に移行されます．
-それまでは旧方式での認証が行なわれます．
-つまり，R7.0〜R7.1.1でHTTP-Cookiesを利用して認証を行なっていたユーザについては，次回ログインするまで旧方式で認証が行なわれることになります．
-</p>
-
-<p>
-R7.1からの変更点の詳細については，
+R7.2からの変更点の詳細については，
 <a href="CHANGES.html">Changes: 変更履歴</a>
 を参照してください．
 </p>

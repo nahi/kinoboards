@@ -2,9 +2,6 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
-    lang="ja" xml:lang="ja">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-2022-JP" />
@@ -22,7 +19,7 @@ Column
 </h1>
 
 <p class="status">
-Last modified: July 1, 2000<br />
+Last modified: August 11, 2000<br />
 Created: May 10, 2000
 </p>
 </div>
@@ -45,7 +42,7 @@ Created: May 10, 2000
 
 <p>
 $BK\J8=q$,BP>]$H$7$F$$$k(BKINOBOARDS$B$N%P!<%8%g%s$O!$(B
-KINOBOARDS version 1.0 release 7$B!J(BKINOBOARDS/1.0R7.2$B!K(B
+KINOBOARDS version 1.0 release 7$B!J(BKINOBOARDS/1.0R7.3$B!K(B
 $B$G$9!%(B
 </p>
 
@@ -56,17 +53,19 @@ KINOBOARDS version 1.0 release 7$B!J(BKINOBOARDS/1.0R7.2$B!K(B
 <ol>
 <li><a href="#authentication">R7$B$K$*$1$kG'>ZJ}<0(B</a></li>
 <li><a href="#authentication.r7.1">R7.0$B!A(BR7.1.1$B$K$*$1$kG'>ZJ}<0(B</a></li>
-<li><a href="#heavy">R7$B$O=E$$$+(B?</a></li>
+<li><a href="#heavy">$B$-$N$\$:$O=E$$$+(B?</a></li>
+<li><a href="#heavyR7">R7$B$O=E$$$+(B?</a></li>
+<li><a href="#kbdbExpansion">kb.db$B$N3HD%(B</a></li>
 </ol>
 
 <h2 id="authentication">1. R7$B$K$*$1$kG'>ZJ}<0(B</h2>
 
 <p>
-$B=PE5(B: [kb-dev:10543] in 2000/6/27
+$B=PE5(B: [kb-dev 10543] in 2000/6/27
 </p>
 
 <p>
-[kb-dev:10503]$B!A(B[kb-dev:10543]$B$K$*$$$F!$!V(BCGI security consideration$B!W$H$$$&(BSubject$B$G!$$-$N$\$:$NG'>ZJ}<0$N0BA4@-$K$D$$$F$N5DO@$,$"$j$^$7$?!%(B
+[kb-dev 10503]$B!A(B[kb-dev 10543]$B$K$*$$$F!$!V(BCGI security consideration$B!W$H$$$&(BSubject$B$G!$$-$N$\$:$NG'>ZJ}<0$N0BA4@-$K$D$$$F$N5DO@$,$"$j$^$7$?!%(B
 $B$=$N5DO@$rF'$^$(!$(BR7.2$B$K$*$$$FG'>ZJ}<0$NJQ99$r9T$J$$$^$7$?!%(B
 </p>
 
@@ -160,7 +159,7 @@ X$B$G!$(Bp$B$H(Bk$B$N$I$A$i$G$b%"%j!$$H$$$&$3$H$K$7$F$$$k$N$,<c43IT0B$+$J!%
 <h2 id="authentication.r7.1">2. R7.0$B!A(BR7.1.1$B$K$*$1$kG'>ZJ}<0(B</h2>
 
 <p>
-$B=PE5(B: [kb-dev:10456] in 2000/5/10
+$B=PE5(B: [kb-dev 10456] in 2000/5/10
 </p>
 
 <p>
@@ -250,10 +249,43 @@ R7.1$B0J9_$G$O!$8=:_$N@8%Q%9%o!<%I$rCN$i$J$$$H%Q%9%o!<%I$rJQ99$G$-$J$/$J$C$F$$$
 $B$,!$$3$l$r(BOS$B$d%&%'%V%5!<%P!$%M%C%H%o!<%/$N%5%]!<%H$J$7$K!$(BCGI$B$N$_$G<B8=$9$k$N$OHs>o$K%3%9%H$,9b$/$+$DL5BL$G$"$j!$$-$N$\$:$GMW5a$5$l$k%;%-%e%j%F%#%l%Y%k$r9MN8$9$l$P!$$3$l$G=<J,$@$H9M$($F$$$^$9!%(B
 </p>
 
-<h2 id="heavy">3. R7$B$O=E$$$+(B?</h2>
+<h2 id="heavy">3. $B$-$N$\$:$O=E$$$+(B?</h2>
 
 <p>
-$B=PE5(B: [kb-dev:10460] in 2000/5/10
+$B=PE5(B: [$B$-$N$\$:%5%]!<%H(B2000:271] in 2000/8/3
+</p>
+
+<p>
+KINOBOARDS$B$O7h$7$F7Z$/$O$"$j$^$;$s!%(B
+$B%7%9%F%`(BCPU$B;~4V!$%f!<%6(BCPU$B;~4V!$%a%b%j!$%G%#%9%/!$%W%m%;%9%F!<%V%k!$(B
+$B%M%C%H%o!<%/$NDL?.MFNL!$$=$N4IM}<T$5$s$,=R$Y$F$$$k$N$,(B
+$B$I$N;q8;$KBP$9$kIi2Y$NOC$J$N$+$,$o$+$j$^$;$s$,!$AmBNE*$K$_$l$P!$(B
+$BB>$N(BCGI$B$h$jIi2Y$,Bg$-$$$G$9!%(B
+</p>
+
+<p>
+$BFC$KIi2Y$,Bg$-$$$N$O!$%a%b%j$G$9$M!%$-$N$\$:$OA45-;v$N%a%?>pJs!J(Bkb.db$B!K$r!$(B
+$B$9$Y$F%*%s%a%b%j$K;}$A$^$9$+$i!%!%!%<!$K%f!<%6(BCPU$B;~4V!%$-$N$\$:$O%W%m%0%i%`(B
+$B$,D9$$$N$G!$%3%s%Q%$%k$K;~4V$,$+$+$j$^$9!%!J$=$7$F!$0lHL$N4IM}<T$5$s$K(B
+$B$H$C$F0lHVL\$K$D$/$N$,!$>e5-(B2$B$D$G$7$g$&(B ^^;$B!K(B
+</p>
+
+<p>
+$BB>$O:G>.8B$K$7$F$$$k$N$G!$0-$/$FF1Ey!$NI$1$l$P$h$j%^%7!JIi2Y$,Dc$$!K$O$:(B
+$B$G$9$,!$FC$K%a%b%j%$%s%Q%/%H$,Bg$-$$$?$a!$AjBPE*$K$O!V$-$N$\$:$O=E$$!W$H(B
+$B8@$($^$9!%(B
+</p>
+
+<p>
+$B$"$^$jLdBj$K$J$k$h$&$J$i<j$rF~$l$h$&$+$H;W$C$F$$$^$9$,!$(B
+$B:#$N$H$3$m!V5-;v$,A}$($F$-$?$iJL7G<(HD$X!W$H$$$&1?MQ$G(B
+$B!J$J$R$K$O!K4V$K9g$C$F$$$k$N$G!$$[$C$?$i$+$7$K$J$C$F$^$9!%(B^^;
+</p>
+
+<h2 id="heavyR7">4. R7$B$O=E$$$+(B?</h2>
+
+<p>
+$B=PE5(B: [kb-dev 10460] in 2000/5/10
 </p>
 
 <p>
@@ -294,6 +326,65 @@ R6.10$B$HHf$Y$F(B91KB$B"*(B182KB$B$KA}$($F$^$9!%(B
 
 <p>
 R6$B$KHf$Y$F=E$/$J$C$?860x$H$7$F:#$N$H$3$m;W$$$D$/$N$O!$>e5-(B3$BE@$G$9!%(B
+</p>
+
+<h2 id="kbdbExpansion">5. kb.db$B$N3HD%(B</h2>
+
+<p>
+$B=PE5(B: [kb-dev 10590] in 2000/7/20
+</p>
+
+<p>
+R1.0$B$N(Bkb.db$B$r3HD%$9$k>l9g$O!$0J2<$N$h$&$K$7$F$/$@$5$$!%(B
+</p>
+
+<p>
+kb.db$B$N(B12$B%U%#!<%k%IL\0J9_$r3HD%%G!<%?NN0h$H$7$^$7$g$&!%(B
+$B3HD%NN0h$K$OJ#?t$N%G!<%?$rF~$l$i$l$^$9!%(B
+$B3HD%%G!<%?NN0h$KF~$l$k3F%G!<%?$K$O!$E,59%?%0$GL>A0$r$D$1$F$/$@$5$$!%(B
+$B3HD%%G!<%?NN0h$K!$F1$8%?%0$r;}$DJ#?t$N%G!<%?$rF~$l$F$O$$$1$^$;$s!%(B
+</p>
+
+<p>
+$B3HD%%G!<%?NN0h$N%U%)!<%^%C%H$O!$3F%G!<%?$r%?%V$G@\B3$7$?$b$N$G$9!%(B
+$B3F%G!<%?$O0J2<$N$h$&$J%U%)!<%^%C%H$H$7$^$9!%(B
+</p>
+
+<pre>
+  author:tag:data
+</pre>
+
+<p>
+author$B$NItJ,$O!$(Bkb-dev$B%a%$%j%s%0%j%9%H$G(B
+$B!V$3$l$3$l$r;H$&$h!W$H@k8@$7$F$/$@$5$$!%=EJ#$7$J$$$h$&$K!%(B
+$B$?$@$7!V(B:$B!W$O;H$($^$;$s!%!V(BNaHi$B!W$H$+!V(Bami$B!W$H$+$rA[Dj$7$F$^$9!%(B
+$B!V(Bkb$B!W$OM=Ls$5$l$F$$$^$9$N$G;H$($^$;$s!%(B
+</p>
+
+<p>
+tag$B$NItJ,$O3F:n<T$5$s$G9%$-$K7h$a$F$b$i$C$F9=$$$^$;$s!%(B
+$B$?$@$7!V(B:$B!W$O;H$($^$;$s!%(B
+</p>
+
+<p>
+author$B!$(Btag$B!$(Bdata$B$$$:$l$b!$%?%V$b$7$/$O2~9T$r$=$N$^$^F~$l$k$3$H$O$G$-$^$;$s(B
+$B!JE,59%(%9%1!<%W$7$F$/$@$5$$!K!%F|K\8l(BOK$B$G$9$,!$(BEUC-JP$B$N$_$H$7$^$9!%(B
+</p>
+
+<p>
+kb.db$B$N(B1$B%l%3!<%I$O!$Nc$($P0J2<$N$h$&$K$J$j$^$9(B
+$B!JJX59>e%?%V$r6uGr(B2$B8D$GI=<($7$F$^$9!K!%(B
+</p>
+
+<pre>
+ID  $B?F(B  $BL<(B  $BF|IU(B  $B%?%$%H%k(B  $B%"%$%3%s(B  $B%[%9%H(B  $BL>A0(B  $B%a%$%k(B  URL  $B%a%$%kAw?.(B  NaHi:group:data1  NaHi:priority:data2  NaHi:...
+</pre>
+
+<p>
+$B$-$N$\$:FbIt$+$i8F$V>l9g$K$O!$(BgetArtExtInfo$B!$(BsetArtExtInfo$B$H$$$&F~=PNO(BAPI$B$rMxMQ$G$-$^$9!%(B
+$B>\$7$/$O%=!<%9$r8+$F$/$@$5$$!%(B^^;
+setArtExtInfo$B$r8F$s$@$"$H$O!$(BflushArt$B$r8F$S=P$9$N$rK:$l$J$$$h$&$K!%(B
+$B$G$J$$$H(Bkb.db$B%U%!%$%k$KH?1G$5$l$^$;$s!%(B
 </p>
 
 </div>
