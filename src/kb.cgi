@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.27 1999-06-16 13:10:12 nakahiro Exp $
+# $Id: kb.cgi,v 5.28 1999-06-16 13:53:20 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -106,6 +106,7 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 require( 'cgi.pl' );
 require( 'kinologue.pl' );
 $REMOTE_INFO = $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR || '(unknown)';
+$REMOTE_INFO .= '-' . $cgi'REMOTE_USER if $cgi'REMOTE_USER;
 $PROGNAME = $cgi'CGIPROG_NAME;
 $PROGRAM = $cgi'PROGRAM;
 $kinologue'SEV_THRESHOLD = $SYS_LOGLEVEL;
@@ -610,7 +611,7 @@ $SCRIPT_URL?b=$BOARD&c=e&id=$Fid
 では失礼します．";
 
     # メイル送信
-    &SendMail( $Name, $Email, $MailSubject, $Message, $Fid, @To );
+    &SendMail( $Fname, $Femail, $MailSubject, $Message, $Fid, @To );
 }
 
 
@@ -1326,7 +1327,7 @@ sub ShowLinksToFollowedArticle
 sub PrintButtonToTitleList
 {
     local( $board, $id ) = @_;
-    local( $old ) = &GetTitleOldIndex( $id );
+    local( $old ) = $id? &GetTitleOldIndex( $id ) : 0;
 
     if  ( $SYS_COMMAND_BUTTON )
     {
