@@ -1,0 +1,100 @@
+/*
+ * kbStyle.css: CSS style definition file for KINOBOARDS.
+ */
+
+/* $Id: kbStyle.css,v 1.1 2000-02-25 06:24:00 nakahiro Exp $ */
+
+/* General definition */
+
+/* Definitions of colours around A element is derived from Modernist.css of W3C Stylesheet Core. */
+a:link
+{
+    background: #EEEEEE;
+    color: #c00;
+}
+
+a:visited
+{
+    background: #EEEEEE;
+    color: #999;
+}
+
+a:active
+{
+    background: #fc0;
+    color: #f00;
+}
+
+a:hover
+{
+    background: #ffc;
+    color: #c00;
+}
+
+a.offsite
+{
+    background: #EEEEEE;
+    color: #c00;
+}
+
+body
+{
+    background: #EEEEEE;
+    color: #000000;
+}
+
+h1, h2, h3, h4, h5, h6
+{
+    text-align: center;
+}
+
+h1
+{
+    font-style: italic;
+    font-weight: bold;
+    font-variant: normal;
+    margin: 2%;
+}
+
+/* Let NC confuse...
+dt
+{
+    margin-left: 1em;
+    margin-top: 2ex;
+}
+*/
+
+address
+{
+    color: #333333;
+    background: #EEEEEE;
+    text-align: right;
+    font-family: Times, serif;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+}
+
+/* KINOBOARDS specific definition */
+
+span.kbAccessKey { text-decoration: underline; }
+
+img.kbComIcon { border-style: none; }
+img.kbMsgIcon { border-style: none; }
+
+p.kbStatus
+{
+    text-align: right;
+    font-weight: bold;
+}    
+
+p.kbPageLink { text-align: center; }
+
+span.kbTitle {}
+
+div.kbTopMenu {}
+
+div.kbArticle {}
+div.kbArticle p.command { text-align: right; }
+div.kbArticle p.header {}
+div.kbArticle div.body {}
