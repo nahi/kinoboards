@@ -430,7 +430,9 @@ $H_ORIG_TOP = 'オリジナル';
 $H_LINE = '<p>------------------------------</p>';
 $H_NEWARTICLE = 'new!';
 $H_TEXTTYPE = '書き込み形式';
-@H_TTLABEL = ( 'そのまま表示', 'HTMLに変換', 'HTMLで入力' );
+$H_TTLABEL[0] = 'そのまま表示';
+$H_TTLABEL[1] = 'HTMLに変換';
+$H_TTLABEL[2] = 'HTMLで入力';
 $H_NOICON = 'なし';
 $H_BACKBOARD = '掲示板一覧へ';
 $H_BACKTITLEREPLY = 'タイトル一覧へ(スレッド)';
@@ -445,35 +447,18 @@ $H_DELETE = '削除する';
 $H_SUPERSEDE = '訂正する';
 $H_NOARTICLE = '該当するメッセージがありません．';
 
-$H_TOP = '&lt;&lt;最新';
-$H_BOTTOM = '先頭&gt;&gt;';
-$H_UP = '&lt;次';
-$H_DOWN = '前&gt;';
-
-$H_THREAD_ALL = '▲';
 $H_THREAD_ALL_L = 'スレッド全て';
-$H_THREAD = '▼';
 $H_THREAD_L = 'リプライ全て';
-$H_REVERSE[0] = '△';
-$H_REVERSE[1] = '▽';
 $H_REVERSE_L = '逆順表示';
-$H_EXPAND[0] = '↓';
-$H_EXPAND[1] = '↑';
 $H_EXPAND_L = 'リプライ表示ON/OFF';
-$H_SUPERSEDE_ICON = '[※]';
 $H_SUPERSEDE_ICON_L = '訂正';
-$H_DELETE_ICON = '[×]';
 $H_DELETE_ICON_L = '削除';
-$H_RELINKFROM_MARK = '[←]';
 $H_RELINKFROM_MARK_L = 'リプライ先を変更';
-$H_RELINKTO_MARK = '[◎]';
 $H_RELINKTO_MARK_L = 'リプライ先に指定';
-$H_REORDERFROM_MARK = '[△]';
 $H_REORDERFROM_MARK_L = '順序を変更';
-$H_REORDERTO_MARK = '[▽]';
 $H_REORDERTO_MARK_L = '移動先に指定';
 
 
 #/////////////////////////////////////////////////////////////////////
-# $Id: kb.ph,v 5.28 1999-10-20 14:31:37 nakahiro Exp $
+# $Id: kb.ph,v 5.29 1999-10-22 10:01:15 nakahiro Exp $
 1;
