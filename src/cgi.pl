@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.10 1996-09-26 02:22:40 nakahiro Exp $
+# $Id: cgi.pl,v 1.11 1996-10-15 12:49:04 nakahiro Exp $
 
 
 # Small CGI tool package
@@ -32,7 +32,7 @@ $WAITPID_BLOCK = ((defined $'WAITPID_BLOCK) ? $'WAITPID_BLOCK : 0);
 ## HTMLヘッダの生成
 #
 sub header {
-    print "Magnus-charset: x-euc-jp\n";
+#    print "Magnus-charset: x-euc-jp\n";
     print "Content-type: text/html\n\n";
 }
 
