@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.5 1998-10-21 08:54:31 nakahiro Exp $
+# $Id: cgi.pl,v 2.6 1998-10-22 04:17:16 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -209,9 +209,7 @@ sub Header
     {
 	foreach ( @cookieStr )
 	{
-	    print( "Set-Cookie: $_;" );
-	    print( " expires=$HTTP_COOKIES_NEVER_EXPIRED;" ) if ( !$cookieExpire );
-	    print( "\n" );
+	    print( "Set-Cookie: $_; expires=", ( $cookieExpire || $HTTP_COOKIES_NEVER_EXPIRED ), ";\n" );
 	}
     }
 
