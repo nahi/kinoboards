@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.11 1996-09-11 10:26:11 nakahiro Exp $
+# $Id: kb.ph,v 4.12 1996-11-19 12:08:22 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -81,6 +81,11 @@ $SYS_COMMAND = 1;
 #   1: 新規投稿記事のみ
 $SYS_NEWARTICLEONLY = 0;
 
+# ネットスケープ拡張に基づく字色とバックグラウンドイメージを使うか否か
+#   0: 使わない
+#   1: 使う
+$SYS_NETSCAPE_EXTENSION = 1;
+
 # 記事投稿時、メールアドレスの入力を必須とするか
 #   0: 必須としない
 #   1: 必須とする
@@ -118,8 +123,9 @@ $KEYWORD_LENGTH = 40;
 $DEF_TITLE_NUM = 20;
 
 #
-# 色の指定
+# Netscape Extensionの指定
 #
+$BG_IMG = "";
 $BG_COLOR = "#66CCCC";
 $TEXT_COLOR = "#000000";
 $LINK_COLOR = "#0000AA";
