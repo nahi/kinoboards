@@ -1,8 +1,8 @@
-# $Id: cgi.pl,v 2.15 1999-02-07 17:15:58 nakahiro Exp $
+# $Id: cgi.pl,v 2.16 1999-02-17 18:21:45 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
-# Copyright (C) 1995-98 NAKAMURA Hiroshi.
+# Copyright (C) 1995-99 NAKAMURA Hiroshi.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,63 +44,13 @@ $CRLF = "\xd\xa";		# cannot use \r\n
 
 @TAG_ALLOWED = ();		# CGI variables which is allowed to use <>.
 
-# Default usable tags in &SecureHtml.
-$HTML_TAGS_COREATTRS = 'ID/CLASS/STYLE/TITLE';
-$HTML_TAGS_I18NATTRS = 'LANG/DIR';
-$HTML_TAGS_GENATTRS = "$HTML_TAGS_COREATTRS/$HTML_TAGS_I18NATTRS";
-@HTML_TAGS =
-(
-    # Element, Neccesity of close element, Attribute
-    'A',	1,	"$HTML_TAGS_GENATTRS/CHARSET/HREF/HREFLANG/NAME/REL/REV/TABINDEX/TARGET/TYPE",
-    'ABBR',	1,	$HTML_TAGS_GENATTRS,
-    'ADDRESS',	1,	$HTML_TAGS_GENATTRS,
-    'B',	1,	$HTML_TAGS_GENATTRS,
-    'BIG',	1,	$HTML_TAGS_GENATTRS,
-    'BLOCKQUOTE',1,	"$HTML_TAGS_GENATTRS/CITE",
-    'BR',	0,	$HTML_TAGS_COREATTRS,
-    'CITE',	1,	$HTML_TAGS_GENATTRS,
-    'CODE',	1,	$HTML_TAGS_GENATTRS,
-    'DD',	0,	$HTML_TAGS_GENATTRS,
-    'DEL',	1,	"$HTML_TAGS_GENATTRS/CITE/DATETIME",
-    'DFN',	1,	$HTML_TAGS_GENATTRS,
-    'DIV',	1,	$HTML_TAGS_GENATTRS,
-    'DL',	1,	$HTML_TAGS_GENATTRS,
-    'DT',	0,	$HTML_TAGS_GENATTRS,
-    'EM',	1,	$HTML_TAGS_GENATTRS,
-    'H1',	1,	$HTML_TAGS_GENATTRS,
-    'H2',	1,	$HTML_TAGS_GENATTRS,
-    'H3',	1,	$HTML_TAGS_GENATTRS,
-    'H4',	1,	$HTML_TAGS_GENATTRS,
-    'H5',	1,	$HTML_TAGS_GENATTRS,
-    'H6',	1,	$HTML_TAGS_GENATTRS,
-    'HR',	0,	$HTML_TAGS_COREATTRS,
-    'I',	1,	$HTML_TAGS_GENATTRS,
-    'IMG',	0,	"$HTML_TAGS_GENATTRS/ALT/HEIGHT/LONGDESC/SRC/WIDTH",
-    'INS',	1,	"$HTML_TAGS_GENATTRS/CITE/DATETIME",
-    'KBD',	1,	$HTML_TAGS_GENATTRS,
-    'LI',	0,	$HTML_TAGS_GENATTRS,
-    'OL',	1,	$HTML_TAGS_GENATTRS,
-    'P',	1,	$HTML_TAGS_GENATTRS,
-    'PRE',	1,	$HTML_TAGS_GENATTRS,
-    'Q',	1,	"$HTML_TAGS_GENATTRS/CITE",
-    'SAMP',	1,	$HTML_TAGS_GENATTRS,
-    'SMALL',	1,	$HTML_TAGS_GENATTRS,
-    'SPAN',	1,	$HTML_TAGS_GENATTRS,
-    'STRONG',	1,	$HTML_TAGS_GENATTRS,
-    'STYLE',	1,	"$HTML_TAGS_I18NATTRS/MEDIA/TITLE/TYPE",
-    'SUB',	1,	$HTML_TAGS_GENATTRS,
-    'SUP',	1,	$HTML_TAGS_GENATTRS,
-    'TT',	1,	$HTML_TAGS_GENATTRS,
-    'UL',	1,	$HTML_TAGS_GENATTRS,
-    'VAR',	1,	$HTML_TAGS_GENATTRS,
-);
-
 %CHARSET_MAP = ( 'euc', 'EUC-JP', 'jis', 'ISO-2022-JP', 'sjis', 'Shift_JIS' );
 $CHARSET = 'jis';
 
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
 $REMOTE_HOST = $ENV{'REMOTE_HOST'};
+$REMOTE_ADDR = $ENV{'REMOTE_ADDR'};
 $REMOTE_USER = $ENV{'REMOTE_USER'};
 $SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
 $PATH_INFO = $ENV{'PATH_INFO'};
@@ -113,7 +63,7 @@ if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO ))
     $PATH_TRANSLATED = '';
 }
 
-( $CGIDIR_NAME, $CGIPROG_NAME ) = $SCRIPT_NAME =~ m!^(..*)/([^/]*)$!o;
+( $CGIDIR_NAME, $CGIPROG_NAME ) = $SCRIPT_NAME =~ m!^(.*)/([^/]*)$!o;
 $SYSDIR_NAME = ( $PATH_INFO ? "$PATH_INFO/" : "$CGIDIR_NAME/" );
 $PROGRAM = ( $PATH_INFO ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME" );
 
@@ -191,16 +141,14 @@ sub unlock_file_link
 sub lock_file_flock
 {
     local( $lockFile ) = @_;
-    local( $LockEx, $LockUn ) = ( 2, 8 );
+    local( $LockEx ) = 2;	# magic number for exclusive lock.
     open( LOCK, ">>$lockFile" ) || return 2;
     flock( LOCK, $LockEx ) || return 0;
     1;
 }
 sub unlock_file_flock
 {
-    local( $LockEx, $LockUn ) = ( 2, 8 );
-    flock( LOCK, $LockUn );
-    close( LOCK );
+    close( LOCK );		# automatic unlock.
 }
 
 
@@ -258,9 +206,13 @@ sub Header
 sub GetHttpDateTimeFromUtc
 {
     local( $utc ) = @_;
-    $utc = 0 if ( $utc !~ /^\d+$/ );
     local( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime( $utc );
-    sprintf( "%s, %02d-%s-%02d %02d:%02d:%02d GMT", ( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' )[ $wday ], $mday, ( 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' )[ $mon ], ( $year%100 ), $hour, $min, $sec );
+
+    # rfc1123-date
+    sprintf( "%s, %02d %s %04d %02d:%02d:%02d GMT", ( 'Sun', 'Mon', 'Tue',
+	'Wed', 'Thu', 'Fri', 'Sat' )[$wday], $mday, ( 'Jan', 'Feb', 'Mar',
+	'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' )[$mon],
+	$year+1900, $hour, $min, $sec );
 }
 
 
@@ -271,12 +223,12 @@ sub GetHttpDateTimeFromUtc
 sub Decode
 {
     local( $args, $readSize, $key, $term, $value, $encode );
-    if ( $ENV{ 'REQUEST_METHOD' } eq "POST" )
+    if ( $ENV{ 'REQUEST_METHOD' } eq 'POST' )
     {
 	$readSize = read( STDIN, $args, $ENV{ 'CONTENT_LENGTH' } );
 	$args = '' if ( $readSize != $ENV{ 'CONTENT_LENGTH' } );
     }
-    else
+    else			# GET, HEAD, PUT, OPTIONS, DELETE, TRACE?
     {
 	$args = $ENV{ 'QUERY_STRING' };
     }
@@ -351,8 +303,8 @@ sub SendMail
     return 0 if ( !( $fromEmail && $subject && $message && @to ));
 
     # creating header
-    $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension,
-	*labelTo, *to );
+    $header = &smtpHeader( *fromName, *fromEmail, *fromName, *fromEmail,
+	*subject, *extension, *labelTo, *to );
 
     # creating body
     $body = &smtpBody( *message );
@@ -387,12 +339,14 @@ sub SendMail
 #
 # - SYNOPSIS
 #	require( 'cgi.pl' );
-#	&cgi'sendMail( $fromName, $fromEmail, $subject, $extension, $message,
-#		$labelTo, @to );
+#	&cgi'sendMail( $fromName, $fromEmail, $sendarName, $sendarEmail,
+#	    $subject, $extension, $message, $labelTo, @to );
 #
 # - ARGS
 #	$fromName	from name
 #	$fromEmail	from e-mail addr.
+#	$sendarName	sendar name
+#	$sendarEmail	sendar e-mail addr.
 #	$subject	subject
 #	$extension	extension header
 #	$message	message
@@ -409,15 +363,16 @@ sub SendMail
 $SMTP_ERRSTR = '';
 sub sendMail
 {
-    local( $fromName, $fromEmail, $subject, $extension, $message, $labelTo,
-	@to ) = @_;
+    local( $fromName, $fromEmail, $sendarName, $sendarEmail, $subject,
+	$extension, $message, $labelTo,	@to ) = @_;
     local( $header, $body );
 
-    return( 0, '' ) if ( !( $fromEmail && $subject && $message && @to ));
+    return( 0, '' ) if ( !( $fromEmail && $sendarEmail && $subject &&
+	$message && @to ));
 
     # creating header
-    $header = &smtpHeader( *fromName, *fromEmail, *subject, *extension,
-	*labelTo, *to );
+    $header = &smtpHeader( *fromName, *fromEmail, *sendarName, *sendarEmail,
+	*subject, *extension, *labelTo, *to );
 
     # creating body
     $body = &smtpBody( *message );
@@ -451,8 +406,17 @@ sub sendMail
 #
 #
 # - SYNOPSIS
-#	&smtpHeader( $fromName, $fromEmail, $subject, $extension, $labelTo,
-#	    @to );
+#	&smtpHeader
+#	(
+#	    $fromName,		From string
+#	    $fromEmail,		From addr.
+#	    $sendarName,	Sendar string
+#	    $sendarEmail,	Sendar addr.
+#	    $subject,		Subject string
+#	    $extension,		Extension-header string
+#	    $labelTo,		To string
+#	    @to			Recipients
+#	);
 #
 # - ARGS
 #	same as &sendMail.
@@ -465,17 +429,23 @@ sub sendMail
 #
 sub smtpHeader
 {
-    local( *fromName, *fromEmail, *subject, *extension, *labelTo, *to ) = @_;
-
-    local( $header, $from, $encode );
+    local( *fromName, *fromEmail, *sendarName, *sendarEmail, *subject,
+	*extension, *labelTo, *to ) = @_;
 
     # mime encoding of Japanese multi-byte char in header.
-    $encode = &jcode'getcode( *fromName );
+    local( $encode ) = &jcode'getcode( *fromName );
     if ( defined( $encode ))
     {
 	$fromName = join( $CRLF, split( /\n/, &main'mimeencode( $fromName )));
     }
-    $from = "$fromName <$fromEmail>";
+    local( $from ) = "$fromName <$fromEmail>";
+
+    $encode = &jcode'getcode( *sendarName );
+    if ( defined( $encode ))
+    {
+	$sendarName = join( $CRLF, split( /\n/, &main'mimeencode( $sendarName )));
+    }
+    local( $sendar ) = "$sendarName <$sendarEmail>";
 
     $encode = &jcode'getcode( *subject );
     if ( defined( $encode ))
@@ -490,7 +460,7 @@ sub smtpHeader
     }
 
     # creating header
-    $header = "To: ";
+    local( $header ) = "To: ";
     if ( $labelTo )
     {
 	$encode = &jcode'getcode( *labelTo );
@@ -507,8 +477,8 @@ sub smtpHeader
 	$header .= $CRLF;
     }
     $header .= "From: $from$CRLF";
-    $header .= "Reply-To: $from$CRLF";
-    $header .= "Sendar: $from$CRLF";
+    $header .= "Reply-To: $sendar$CRLF";
+    $header .= "Sendar: $sendar$CRLF";
     $header .= "Subject: $subject$CRLF";
     $header .= "Content-type: text/plain; charset=ISO-2022-JP$CRLF";
     if ( $extension )
@@ -655,6 +625,9 @@ sub smtpMsg
 ###
 ## Secure TAG filter
 #
+# 2.16以降，SecureHtmlは解析をせず，ただタグを殺すだけにした．
+# 替わりにSecureHtmlExを使う．
+#
 # known bugs:
 #  タグの入れ子を考慮していない(例: <i><b>foo</i></b>)
 #  Featureの中の「>」を考慮していない(例: ALT=">")
@@ -665,14 +638,10 @@ sub SecureHtml
 {
     local( *string ) = @_;
 
-    local( %nVec, %fVec );
-    while( @HTML_TAGS )
-    {
-	$tag = shift( @HTML_TAGS );
-	$nVec{ $tag } = shift( @HTML_TAGS );
-	$fVec{ $tag } = shift( @HTML_TAGS );
-    }
-    &SecureHtmlEx( *string, *nVec, *fVec );
+    $string =~ s/&/&amp;/g;
+    $string =~ s/"/&quot;/g;
+    $string =~ s/</&lt;/g;
+    $string =~ s/>/&gt;/g;
 }
 
 
@@ -686,7 +655,7 @@ sub SecureHtmlEx
     {
 	$srcString = $string;
 	$string = '';
-	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~ m!<$tag()>!i ))
+	while ( $srcString =~ m!<$tag\s*([^>]*)>!i )
 	{
 	    $srcString = $';
 	    $string .= $`;
@@ -718,7 +687,8 @@ sub SecureHtmlEx
 		else
 		{
 		    $string .= "<$tag$feature>" . $srcString;
-		    last TAGS;
+		    # We must reset the iterator for %nVec before leaving...
+		    keys( %nVec ), last TAGS;
 		}
 	    }
 	    else
@@ -750,22 +720,23 @@ sub SecureHtmlEx
 sub SecureFeature
 {
     local( $tag, $allowedFeatures, $features ) = @_;
-    local( @allowed, $feature, $ret );
 
-    return 1 unless ( $features );
-    @allowed = split( /\//, $allowedFeatures );
-    $ret = 1;
+    return 1 unless $features;
 
+    local( @allowed ) = split( /\//, $allowedFeatures );
+    local( $ret ) = 1;
+
+    local( $dFeature, $dValue );
     while ( $features )
     {
-	$feature = &GetFeatureName( *features );
-	$value = &GetFeatureValue( *features );
-	if ( !$value )
+	$dFeature = &GetFeatureName( *features );
+	$dValue = &GetFeatureValue( *features );
+	if ( !$dValue )
 	{
-	    $value = $features;
+	    $dValue = $features;
 	    $features = '';
 	}
-	$ret = 0 if ( !$feature ) || ( !grep( /$feature/i, @allowed ));
+	$ret = 0 if ( !$dFeature ) || ( !grep( /^$dFeature$/i, @allowed ));
     }
     $ret;
 }
