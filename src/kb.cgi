@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 1.2 1995-11-02 04:59:44 nakahiro Exp $
+# $Id: kb.cgi,v 1.3 1995-11-02 05:50:48 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.2  1995-11-02 04:59:44  nakahiro
+# Revision 1.3  1995-11-02 05:50:48  nakahiro
+# New Feature: quote a local file.
+#
+# Revision 1.2  1995/11/02 04:59:44  nakahiro
 # A bug in SortArticle was fixed.
 #
 # Revision 1.1  1995/11/01 06:27:56  nakahiro
@@ -36,7 +39,7 @@
 #	×	^Mを取り除く
 #	×	最新の記事n個!
 #	△	まとめ読み(thread)
-#		指定した日記を引用する。
+#	×	指定した日記を引用する。
 #		部分日付ソート
 #		aliasの登録機能
 #		Subjectの先頭にIconを!
@@ -165,7 +168,7 @@ $NO_QUOTE = 0;
 
 MAIN: {
 
-	local($Command, $id);
+	local($Command, $Id, $File, $Num);
 
 	# 標準入力(POST)または環境変数(GET)のデコード。
 	&cgi'decode;
@@ -176,7 +179,7 @@ MAIN: {
 	#
 	#	引用つきフォロー:	c=q&id=[1-9][0-9]*
 	#	引用なしフォロー:	c=f&id=[1-9][0-9]*
-	#	ファイル引用フォロー:	c=q/f&id=filename
+	#	ファイル引用フォロー:	c=q/f&file=filename
 	#
 	#	確認済み:		c=x&id=[1-9][0-9]*(引用でない時はid=0)
 	#
@@ -189,14 +192,17 @@ MAIN: {
 
 	$Command = $cgi'tags{'c'};
 	$Id = $cgi'tags{'id'};
+	$File = $cgi'tags{'file'};
+	$Num = $cgi'tags{'num'};
 
 	&Entry($NO_QUOTE, 0),			last MAIN if ($Command eq "n");
-	&Entry($QUOTE_ON, $Id),			last MAIN if ($Command eq "q");
+	$Id ? &Entry($QUOTE_ON, $Id) : &FileEntry($File),
+						last MAIN if ($Command eq "q");
 	&Entry($NO_QUOTE, $Id),			last MAIN if ($Command eq "f");
-	&Thanks($cgi'tags{'file'}, $Id),	last MAIN if ($Command eq "x");
+	&Thanks($File, $Id),			last MAIN if ($Command eq "x");
 	&SortArticle,				last MAIN if ($Command eq "r");
-	&NewArticle($cgi'tags{'num'}),		last MAIN if ($Command eq "l");
-	&ThreadArticle($cgi'tags{'id'}),	last MAIN if ($Command eq "t");
+	&NewArticle($Num),			last MAIN if ($Command eq "l");
+	&ThreadArticle($Id),			last MAIN if ($Command eq "t");
 
 	print("illegal\n");
 }
@@ -230,7 +236,7 @@ sub Entry {
 	&MsgHeader($ENTRY_MSG);
 
 	# フォローの場合
-	if ($Id ne '0') {
+	if ($Id != 0) {
 		&ViewOriginalArticle($Id, $Board);
 		print("<hr>\n");
 		print("<h2>上の記事に反応する</h2>");
@@ -257,7 +263,7 @@ sub Entry {
 	print("$H_BOARD $BoardName<br>\n");
 
 	# Subject(フォローなら自動的に文字列を入れる)
-	if ($Id ne '0') {
+	if ($Id != 0) {
 		printf("$H_SUBJECT <input name=\"subject\" value=\"%s\" size=\"$SUBJECT_LENGTH\"><br>\n", &GetReplySubject($Id, $Board));
 	} else {
 		print("$H_SUBJECT <input name=\"subject\" value=\"\" size=\"$SUBJECT_LENGTH\"><br>\n");
@@ -266,7 +272,7 @@ sub Entry {
 	# 本文(引用ありなら元記事を挿入)
 	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">\n");
 	&QuoteOriginalArticle($Id, $Board)
-		if ($Id ne '0' && $QuoteFlag == $QUOTE_ON);
+		if ($Id != 0 && $QuoteFlag == $QUOTE_ON);
 	print("</textarea><br>\n");
 
 	# 名前とメールアドレス、URL。
@@ -902,8 +908,7 @@ sub ViewOriginalArticle {
 	local($Id, $Board) = @_;
 
 	# 引用するファイル
-	local($QuoteFile) =
-		($Id != 0) ? &GetArticleFileName($Id, $Board) : $Id;
+	local($QuoteFile) = &GetArticleFileName($Id, $Board);
 
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
@@ -912,9 +917,7 @@ sub ViewOriginalArticle {
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0
-			if ((($Id != 0) && (/^<!-- Article End -->$/)) ||
-				(($Id == 0) && (/<body>/)));
+		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -922,11 +925,8 @@ sub ViewOriginalArticle {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1
-			if ((($Id != 0) &&
-					((/^<!-- Header Begin -->$/) ||
-					(/^<!-- Article Begin -->$/))) ||
-				(($Id == 0) && (/<\/body>/)));
+		$QuoteFlag = 1 if ((/^<!-- Header Begin -->$/) ||
+					(/^<!-- Article Begin -->$/));
 
 	}
 	close TMP;
@@ -943,8 +943,7 @@ sub QuoteOriginalArticle {
 	local($Id, $Board) = @_;
 
 	# 引用するファイル
-	local($QuoteFile) =
-		($Id != 0) ? &GetArticleFileName($Id, $Board) : $Id;
+	local($QuoteFile) = &GetArticleFileName($Id, $Board);
 
 	# 引用部分を判断するフラグ
 	local($QuoteFlag) = 0;
@@ -953,9 +952,7 @@ sub QuoteOriginalArticle {
 	while(<TMP>) {
 
 		# 引用終了の判定
-		$QuoteFlag = 0
-			if ((($Id != 0) && (/^<!-- Article End -->$/)) ||
-				(($Id == 0) && (/<\/body>/)));
+		$QuoteFlag = 0 if (/^<!-- Article End -->$/);
 
 		# 引用文字列の表示
 		if ($QuoteFlag == 1) {
@@ -967,9 +964,7 @@ sub QuoteOriginalArticle {
 		}
 
 		# 引用開始の判定
-		$QuoteFlag = 1
-			if ((($Id != 0) && (/^<!-- Article Begin -->$/)) ||
-				(($Id == 0) && (/<body>/)));
+		$QuoteFlag = 1 if (/^<!-- Article Begin -->$/);
 
 	}
 	close TMP;
@@ -1236,6 +1231,167 @@ sub MyFatal {
 
 	&MsgFooter;
 	exit 0;
+}
+
+
+#/////////////////////////////////////////////////////////////////////
+# なかひろ用オプション
+
+
+###
+## 書き込み画面(option: ファイルから引用)
+#
+sub FileEntry {
+
+	# 引用するファイル(kb.cgiから相対)
+	local($File) = @_;
+
+	# 選択されたBoardの取得
+	local($Board) = substr($ENV{'PATH_INFO'}, $[ + 1);
+	# Board名称の取得
+	local($BoardName) = &GetBoardInfo($Board);
+
+	# 表示画面の作成
+	&MsgHeader($ENTRY_MSG);
+
+	# 引用ファイルの表示
+	&ViewOriginalFile($File);
+	print("<hr>\n");
+	print("<h2>上の記事に反応する</h2>");
+
+	# お約束
+	print("<form action=\"$PROGRAM\" method =\"POST\">\n");
+	print("<input name=\"board\" type=\"hidden\" value=\"$Board\">\n");
+
+	# 引用Id; 正規の引用でないので0。
+	print("<input name=\"id\" type=\"hidden\" value=\"0\">\n");
+
+	# あおり文
+	print("<p>$H_AORI</p>\n");
+
+	# TextType
+	print("$H_TEXTTYPE\n");
+	print("<SELECT NAME=\"texttype\">\n");
+	print("<OPTION SELECTED>$H_PRE\n");
+	print("<OPTION>$H_HTML\n");
+	print("</SELECT><BR>\n");
+
+	# Board名; 本当は自由に選択できるようにしたい。
+	print("$H_BOARD $BoardName<br>\n");
+
+	# Subject
+	printf("$H_SUBJECT <input name=\"subject\" value=\"%s\" size=\"$SUBJECT_LENGTH\"><br>\n", &GetReplySubjectFromFile($File));
+
+	# 本文(引用ありなら元記事を挿入)
+	print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">\n");
+	&QuoteOriginalFile($File);
+	print("</textarea><br>\n");
+
+	# 名前とメールアドレス、URL。
+	print("$H_FROM <input name=\"name\" size=\"$NAME_LENGTH\"><br>\n");
+	print("$H_MAIL <input name=\"mail\" size=\"$MAIL_LENGTH\"><br>\n");
+	print("URL(空でもOK):<input name=\"url\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
+
+	print("<p>入力できましたら、\n");
+	print("<input type=\"submit\" value=\"ここ\">\n");
+	print("を押して記事を確認しましょう(まだ投稿しません)。</p>\n");
+
+	# お約束
+	print("</form>\n");
+
+	&MsgFooter;
+}
+
+
+###
+## 元記事の表示(ファイル)
+#
+sub ViewOriginalFile {
+
+	# ファイル名
+	local($File) = @_;
+
+	# 引用部分を判断するフラグ
+	local($QuoteFlag) = 0;
+
+	open(TMP, "cat $File | /usr/local/bin/nkf -e |") || &MyFatal(1, $File);
+	while(<TMP>) {
+
+		# 引用終了の判定
+		$QuoteFlag = 0 if (/^<\/body>$/);
+
+		# 引用文字列の表示
+		if ($QuoteFlag == 1) {
+			print($_);
+		}
+
+		# 引用開始の判定
+		$QuoteFlag = 1 if (/^<body>$/);
+
+	}
+	close TMP;
+
+}
+
+
+###
+## 引用する(ファイル)
+#
+sub QuoteOriginalFile {
+
+	# ファイル名
+	local($File) = @_;
+
+	# 引用部分を判断するフラグ
+	local($QuoteFlag) = 0;
+
+	open(TMP, "cat $File | /usr/local/bin/nkf -e |") || &MyFatal(1, $File);
+	while(<TMP>) {
+
+		# 引用終了の判定
+		$QuoteFlag = 0 if (/^<\/body>$/);
+
+		# 引用文字列の表示
+		if ($QuoteFlag == 1) {
+			s/&/&amp;/go;
+			s/\"//go;
+			s/<//go;
+			s/>//go;
+			print($DEFAULT_QMARK, $_);
+		}
+
+		# 引用開始の判定
+		$QuoteFlag = 1 if (/^<body>$/);
+
+	}
+	close TMP;
+
+}
+
+
+###
+## あるファイルからTitleを取ってきて、先頭に「Re: 」をつけて返す。
+#
+sub GetReplySubjectFromFile {
+
+	# IdとBoard
+	local($File) = @_;
+
+	# 取り出したSubject
+	local($Title) = '';
+
+	open(TMP, "$File") || &MyFatal(1, $File);
+	while(<TMP>) {
+
+		if (/^<[Tt][Ii][Tt][Ll][Ee]>(.*)<\/[Tt][Ii][Tt][Ll][Ee]>$/) {
+			$Title = $1;
+		}
+	}
+	close TMP;
+
+	# 先頭に「Re: 」をくっつけて返す。
+	return("Re: $Title");
+
 }
 
 
