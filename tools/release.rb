@@ -45,26 +45,37 @@ Redist.each do |i|
   `cp -p redist/#{i} KB/redist/#{i}`
 end
 
-# add files from redist
-`cp -pr KB/redist/jcode.pl KB/redist/mimer.pl KB/redist/mimew.pl KB/src`
+# create data dir.
+`mv KB/src KB/kbdata`
 
-# rename src dir.
-`mv KB/src KB/kb`
+# add files from redist
+`cp -pr KB/redist/jcode.pl KB/redist/mimer.pl KB/redist/mimew.pl KB/kbdata`
 
 # create logdir
-`mkdir KB/kb/log`
+`mkdir KB/kbdata/log`
+
+# create CGI dir.
+`mkdir KB/kb`
+
+# add files from kbdata
+`mv KB/kbdata/kb.cgi KB/kb/index.cgi`
+`mv KB/kbdata/icon KB/kbdata/style KB/kb`
 
 # set mode
 `chmod 700 KB KB/doc KB/doc/html KB/redist KB/tools`
 `chmod 700 KB/tools/*`
 `chmod 400 KB/COPYING KB/README KB/doc/html/* KB/redist/*`
-`chmod 777 KB/kb KB/kb/test KB/kb/board KB/kb/log`
-`chmod 755 KB/kb/UI KB/kb/icon KB/kb/idef KB/kb/style`
+`chmod 777 KB/kbdata KB/kbdata/test KB/kbdata/board KB/kbdata/log`
+`chmod 755 KB/kbdata/UI KB/kbdata/idef`
+`chmod 666 KB/kbdata/board/* KB/kbdata/test/* KB/kbdata/kb.user KB/kbdata/kinoboards`
+`chmod 644 KB/kbdata/idef/* KB/kbdata/kb.ph KB/kbdata/UI/*`
+`chmod 444 KB/kbdata/cgi.pl KB/kbdata/kinologue.pl`
+`chmod 444 KB/kbdata/jcode.pl KB/kbdata/mimer.pl KB/kbdata/mimew.pl`
+
+`chmod 755 KB/kb/icon KB/kb/style`
 `chmod 755 KB/kb/kb.cgi`
-`chmod 666 KB/kb/board/* KB/kb/test/* KB/kb/kb.user KB/kb/kinoboards`
-`chmod 644 KB/kb/idef/* KB/kb/index* KB/kb/kb.ph KB/kb/UI/* KB/kb/style/*`
-`chmod 444 KB/kb/cgi.pl KB/kb/icon/*.gif KB/kb/kinologue.pl`
-`chmod 444 KB/kb/jcode.pl KB/kb/mimer.pl KB/kb/mimew.pl`
+`chmod 644 KB/kb/style/*`
+`chmod 444 KB/kb/icon/*`
 
 # rename
 `mv KB KB_#{ release }`
