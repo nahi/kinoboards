@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.18 1997-04-02 07:30:09 nakahiro Exp $
+# $Id: cgi.pl,v 1.19 1997-10-20 23:16:47 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -30,39 +30,72 @@
 # INTERFACE
 #
 #
-# &cgi'lock($file);
+# $cgi'SERVER_NAME;
+#	CGIが稼働しているWWWサーバのFQDN
+#	（ただし最後の「.」は無し; 以下同様）が設定されます．
+#	ex. → www.foo.bar.jp
 #
+# $cgi'SERVER_PORT;
+#	WWWサーバで稼働しているhttpdの占有ポート番号が設定されます．
+#	ex. → 80
+#
+# $cgi'REMOTE_HOST;
+#	CGIを起動したWWWクライアント（ブラウザ）のFQDN，
+#	もしくはIPアドレス（WWWサーバの設定次第）が設定されます．
+#	ex. → ika.tako.jp
+#
+# $cgi'SCRIPT_NAME;
+#	起動されたCGIのサイト中相対URLが設定されます．
+#	ex. → /cgi-bin/foo/bar.cgi
+#
+# $cgi'CGIPROG_NAME;
+#	起動されたCGIのファイル名（パス名を除く）が設定されます．
+#	ex. → bar.cgi
+#
+# $cgi'SYSDIR_NAME;
+#	起動したCGIのパス名（ファイル名を除く）が設定されます．
+#	ex. → /cgi-bin/foo/
+#
+# $cgi'PATH_INFO;
+#	CGIに付加されたパス情報が設定されます．
+#	ex. /foo.cgi/bar/baz → '/bar/baz'
+#
+# $cgi'PATH_TRANSLATED;
+#	CGIに付加されたパス情報を，
+#	実際のマシン上のパスに変換した文字列が設定されます．
+#	ex. /foo.cgi/~foo → '/usr/local/etc/httpd/htdocs/foo'
+#
+# $cgi'PROGRAM;
+#	CGI中，actionで呼び出すべきプログラム名が設定されます．
+#	ex. → /cgi-bin/foo.cgi
+#	ex. → foo.cgi
+#
+# &cgi'lock( $file );
 #	$fileで指定されたファイル名を使い，perl programを排他ロックします．
 #	$mail'ARCHの値に応じ，用いるロック手法が異なります．
 #		UNIX	シンボリックリンクによるロック
 #		WinNT	flockによるロック
-#		Win95	ロック必要がないのでなにもしません
-#		Mac	ロック必要がないのでなにもしません
+#		Win95	flockによるロック
+#		Mac	ロックの必要がないので（ほんと?）なにもしません
 #	ロックが無事行えれば1を，なんらかの理由で行えなければ0を返します．
 #
-#
-# &cgi'unlock($file);
-#
+# &cgi'unlock( $file );
 #	$fileで指定されたファイル名を使ってかけられた排他ロックを外します．
 #	返り値はありません．
 #
-#
-# &cgi'Header($utc);
-#
+# &cgi'Header( $utcFlag, $utcStr, $cookieFlag, $cookieStr );
 #	標準出力に対し，CGIプログラムが送信すべきHTTPヘッダを出力します．
-#	$utcで指定されたUTC時間が，プログラムの最終更新時間になります．
-#	$utcが省略された場合は現在時です．
+#	$utcFlagが0以外の場合，$utcStrで指定されたUTC時間が，
+#	プログラムの最終更新時間になります．$utcStrが空の場合は現在時です．
+#	$cookieFlagが0以外の場合，$cookieStrで指定された文字列が，
+#	HTTP Cookiesとして相手ブラウザに送られます．
 #	返り値はありません．
 #
-#
-# &cgi'GetHttpDateTimeFromUtc($utc);
-#
+# &cgi'GetHttpDateTimeFromUtc( $utc );
 #	$utcで指定されたUTC時間から，HTTP Date/Timeフォーマットの時間文字列を
 #	作り出します．返り値はその文字列です．
 #
-#
 # &cgi'Decode;
-#
 #	ブラウザからCGIプログラムに送信されたフォームの入力内容，
 #	あるいはURLのサーチパート(「〜.cgi?foo=bar」の，「?」以降の部分)を
 #	解析し，%cgi'TAGSに格納します．
@@ -71,18 +104,14 @@
 #	参照することができます．
 #	%cgi'TAGSを破壊します．返り値はありません．
 #
-#
 # &cgi'Cookie;
-#
 #	ブラウザからCGIプログラムに送信されたHTTP Cookiesを解析し，
 #	%cgi'COOKIESに格納します．
 #	例えばHTTP Cookiesが'foo=bar'という文字列であれば，
 #	$cgi'COOKIES{'foo'}に'bar'が格納されます．
 #	%cgi'COOKIESを破壊します．返り値はありません．
 #
-#
-# &cgi'SendMail($fromName, $fromEmail, $subject, $extension, $message, @to);
-#
+# &cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message, @to );
 #	メイルを送信します．
 #		$fromName: 送り主の名前(日本語を入れないでください)
 #		$fromEmail: 送り主のE-Mail addr.
@@ -98,21 +127,18 @@
 #		Mac	perl5専用のcgi.pl.libnetを使えばメイル送信ができます．
 #	送信が無事行えれば1を，なんらかの理由で行えなければ0を返します．
 #
-#
-# &cgi'SecureHtml(*string);
-#
+# &cgi'SecureHtml( *string );
 #	*stringで指定された文字列のうち，指定した安全なタグのみを残し，
 #	あとはHTML encodeしてしまいます．
 #	使用を許可するタグおよびフィーチャは，@cgi'HTML_TAGSで指定します．
 #	返り値はありません．
 #
-#
 # &cgiprint'Init;
-# &cgiprint'Cache($string);
+# &cgiprint'Cache( $string );
 # &cgiprint'Flush;
-#
 #	CGIプログラムからブラウザに送信する文字列の日本語漢字コードを変換し，
-#	標準出力に吐き出します．高速化のためにキャッシュ機能を持っており，
+#	標準出力に吐き出します．
+#	高速化のためにキャッシュ機能を持っており，
 #	Initはキャッシュのクリアを，
 #	Cacheは表示文字列のキャッシュを，
 #	Flushはキャッシュされている文字列の送信を行います．
@@ -135,73 +161,19 @@ package cgi;
 
 $ARCH = $main'ARCH;
 $MAIL2 = $main'MAIL2;
-$SERVER_NAME = $main'SERVER_NAME;
-$SCRIPT_KCODE = ($main'SCRIPT_KCODE || 'euc');
 $JPOUT_SCHEME = ($main'JPOUT_SCHEME || 'jis');
-$WAITPID_BLOCK = ($main'WAITPID_BLOCK || 0);
-$LOCK_WAIT = 10;
-$LOCKFILE_TIMEOUT = .004;	# 5.76 [min]
+$WAITPID_BLOCK = 0;	# OS dependent?
 
-@MONTH = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
-@WEEK_LABEL = ('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday');
+$SERVER_NAME = $ENV{'SERVER_NAME'};
+$SERVER_PORT = $ENV{'SERVER_PORT'};
+$REMOTE_HOST = $ENV{'REMOTE_HOST'};
+$SCRIPT_NAME = $ENV{'SCRIPT_NAME'};
+$PATH_INFO = $ENV{'PATH_INFO'};
+$PATH_TRANSLATED = $ENV{'PATH_TRANSLATED'};
 
-@HTML_TAGS = (
-# タグ名, 閉じ必須か否か, 使用可能なfeature
-	'A',		1,	'HREF/NAME',
-	'ADDRESS',	1,	'',
-	'B',		1,	'',
-	'BLOCKQUOTE',	1,	'',
-	'BR',		0,	'',
-	'CITE',		1,	'',
-	'CODE',		1,	'',
-	'DD',		0,	'',
-	'DIR',		1,	'',
-	'DL',		1,	'COMPACT',
-	'DT',		0,	'',
-	'EM',		1,	'',
-	'FONT',		1,	'SIZE/COLOR', # Netscape Extension
-	'H1',		1,	'ALIGN',
-	'H2',		1,	'ALIGN',
-	'H3',		1,	'ALIGN',
-	'H4',		1,	'ALIGN',
-	'H5',		1,	'ALIGN',
-	'H6',		1,	'ALIGN',
-	'HR',		0,	'SIZE/WIDTH/ALIGN', # Netscape Extension
-	'I',		1,	'',
-	'IMG',		0,	'SRC/ALT/ALIGN/WIDTH/HEIGHT/BORDER',
-	'KBD',		1,	'',
-	'LI',		0,	'TYPE/VALUE',
-	'LISTING',	1,	'',
-	'MENU',		1,	'',
-	'OL',		1,	'START',
-	'P',		0,	'ALIGN',
-	'PRE',		1,	'',
-	'SAMP',		1,	'',
-	'STRONG',	1,	'',
-	'TT',		1,	'',
-	'UL',		1,	'',
-	'VAR',		1,	'',
-	'XMP',		1,	'',
-);
-
-
-###
-## 様々なInitialize
-#
-%NEED = %FEATURE = ();
-
-sub Init {
-
-    # HTML_TAGSの解析
-    local($Tag);
-    while(@HTML_TAGS) {
-	$Tag = shift(@HTML_TAGS);
-	$NEED{$Tag} = shift(@HTML_TAGS);
-	$FEATURE{$Tag} = shift(@HTML_TAGS);
-    }
-
-}
-&Init;
+($CGIPROG_NAME = $SCRIPT_NAME) =~ s!^(.*/)!!o;
+$SYSDIR_NAME = (($PATH_INFO) ? "$PATH_INFO/" : "$1");
+$PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : "$CGIPROG_NAME");
 
 
 ###
@@ -210,51 +182,54 @@ sub Init {
 
 # ロック
 sub lock {
-    return(&lock_UNIX(@_)) if ($ARCH eq 'UNIX');
-    return(&lock_WinNT(@_)) if ($ARCH eq 'WinNT');
-    return(1) if ($ARCH eq 'Win95');
-    return(1) if ($ARCH eq 'Mac');
+    return( &lock_link( @_ )) if ( $ARCH eq 'UNIX' );
+    return( &lock_flock( @_ )) if ( $ARCH eq 'WinNT' || $ARCH eq 'Win95' );
+    return( 1 ) if ( $ARCH eq 'Mac' );
 }
 
 # アンロック
 sub unlock {
-    &unlock_UNIX(@_) if ($ARCH eq 'UNIX');
-    &unlock_WinNT if ($ARCH eq 'WinNT');
-    return if ($ARCH eq 'Win95');
-    return if ($ARCH eq 'Mac');
+    &unlock_link( @_ ) if ( $ARCH eq 'UNIX' );
+    &unlock_flock if ( $ARCH eq 'WinNT' || $ARCH eq 'Win95' );
+    return if ( $ARCH eq 'Mac' );
 }
 
-# UNIX + Perl4/5
-sub lock_UNIX {
-    local($LockFile) = @_;
-    local($TimeOut) = 0;
-    local($Flag) = 0;
-    srand(time|$$);
-    unlink($LockFile) if (-M "$LockFile" > $LOCKFILE_TIMEOUT);
-    open(LOCKORG, ">$LockFile.org") || &Fatal(1);
-    for($TimeOut = 0; $TimeOut < $LOCK_WAIT; $TimeOut++) {
-	$Flag = 1, last if link("$LockFile.org", $LockFile);
-	select(undef, undef, undef, (rand(6)+5)/10);
+# lock with symlink
+sub lock_link {
+    local( $lockFile ) = @_;
+    local( $lockWait ) = 10;		# [sec]
+    local( $lockFileTimeout ) = .004;	# 5.76 [min]
+    local( $timeOut ) = 0;
+    local( $lockFlag ) = 0;
+
+    srand( time|$$ );
+    if ( -M "$lockFile" > $lockFileTimeout ) { unlink( $lockFile ); }
+    open( LOCKORG, ">$lockFile.org" ) || &Fatal( 1 );
+    for( $timeOut = 0; $timeOut < $lockWait; $timeOut++ ) {
+	if ( link( "$lockFile.org", $lockFile )) {
+	    $lockFlag = 1, last;
+	}
+	select( undef, undef, undef, ( rand( 6 ) + 5 ) / 10 );
     }
-    unlink("$LockFile.org");
-    close(LOCKORG);
-    $Flag;
+    unlink( "$lockFile.org" );
+    close( LOCKORG );
+    $lockFlag;
 }
 
-sub unlock_UNIX {
+sub unlock_link {
     local($LockFile) = @_;
     unlink($LockFile);
 }
 
-# WinNT + Perl5(use flock)
-sub lock_WinNT {
+# lock with flock.
+sub lock_flock {
     local($LockFile) = @_;
     local($LockEx, $LockUn) = (2, 8);
     open(LOCK, "$LockFile") || return(0);
     flock(LOCK, $LockEx);
     1;
 }
-sub unlock_WinNT {
+sub unlock_flock {
     local($LockEx, $LockUn) = (2, 8);
     flock(LOCK, $LockUn);
     close(LOCK);
@@ -264,20 +239,24 @@ sub unlock_WinNT {
 ###
 ## HTMLヘッダの生成
 #
-sub Header {
-
-    local($Utc) = @_;
-
-    local($LastModified) = &GetHttpDateTimeFromUtc($Utc || time);
-
 # $ENV{'SERVER_PROTOCOL'} 200 OK
 # Server: $ENV{'SERVER_SOFTWARE'}
+sub Header {
+    local( $utcFlag, $utcStr, $cookieFlag, $cookieStr ) = @_;
 
-    print(<<__EOF__);
-Content-type: text/html
-Last-Modified: $LastModified
+    print( "Content-type: text/html\n" );
 
-__EOF__
+    # Header for HTTP Cookies.
+    if ( $cookieFlag ) {
+	printf( "Set-Cookie: $cookieStr; domain=%s; path=%s\n", $SERVER_NAME, $CGIDIR_NAME );
+    }
+
+    # Header for Last-Modified.
+    if ( $utcFlag ) {
+	printf( "Last-Modified: %s\n", &GetHttpDateTimeFromUtc( $utcStr || time ));
+    }
+
+    print( "\n" );
 
 }
 
@@ -286,11 +265,9 @@ __EOF__
 ## format as HTTP Date/Time
 #
 sub GetHttpDateTimeFromUtc {
-
     local($Utc) = @_;
     local($Sec, $Min, $Hour, $Mday, $Mon, $Year, $Wday, $Yday, $Isdst) = gmtime($Utc);
-    return(sprintf("%s, %02d-%s-%02d %02d:%02d:%02d GMT", $WEEK_LABEL[$Wday], $Mday, $MONTH[$Mon], $Year, $Hour, $Min, $Sec));
-
+    return(sprintf("%s, %02d-%s-%02d %02d:%02d:%02d GMT", ('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday')[$Wday], $Mday, ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')[$Mon], $Year, $Hour, $Min, $Sec));
 }
 
 
@@ -310,11 +287,11 @@ sub Decode {
 	($Tag, $Value) = split(/=/, $Term, 2);
 	$Value =~ tr/+/ /;
 	$Value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack("C", hex($1))/ge;
-	$Code = &jcode'getcode(*Value); #'
+	$Code = &jcode'getcode(*Value);
 	if ($Code eq 'undef') {
 	    $TAGS{$Tag} = $Value;
 	} else {
-	    &jcode'convert(*Value, $SCRIPT_KCODE, $Code, "z"); #'
+	    &jcode'convert(*Value, 'euc', $Code, "z");
 	    $TAGS{$Tag} = $Value;
 	}
 
@@ -489,38 +466,90 @@ sub SendMailFile {
 #  タグの入れ子を考慮していない(例: <i><b>foo</i></b>)
 #  Featureの中の「>」を考慮していない(例: ALT=">")
 #
-sub SecureHtml {
+$F_HTML_TAGS_PARSED = 0;
+%NEED = %FEATURE = ();
 
-    local(*String) = @_;
-    local($SrcString) = '';
-    local($Count, $BackupString, $Before, $After);
-    local($Tag, $Need, $Features, $Markuped);
+sub SecureHtml {
+    local( *String ) = @_;
+    local( $SrcString ) = '';
+    local( $Count, $BackupString, $Before, $After );
+    local( $Tag, $Need, $Feature, $Markuped );
+
+    # HTML_TAGSの解析（一度だけ実施）
+    if ( $F_HTML_TAGS_PARSED != 1 ) {
+	local( @htmlTags ) =
+	    (
+	     # タグ名, 閉じ必須か否か, 使用可能なfeature
+	     'A',		1,	'HREF/NAME',
+	     'ADDRESS',	1,	'',
+	     'B',		1,	'',
+	     'BLOCKQUOTE',	1,	'',
+	     'BR',		0,	'',
+	     'CITE',		1,	'',
+	     'CODE',		1,	'',
+	     'DD',		0,	'',
+	     'DIR',		1,	'',
+	     'DL',		1,	'COMPACT',
+	     'DT',		0,	'',
+	     'EM',		1,	'',
+	     'FONT',		1,	'SIZE/COLOR',
+	     'H1',		1,	'ALIGN',
+	     'H2',		1,	'ALIGN',
+	     'H3',		1,	'ALIGN',
+	     'H4',		1,	'ALIGN',
+	     'H5',		1,	'ALIGN',
+	     'H6',		1,	'ALIGN',
+	     'HR',		0,	'SIZE/WIDTH/ALIGN',
+	     'I',		1,	'',
+	     'IMG',		0,	'SRC/ALT/ALIGN/WIDTH/HEIGHT/BORDER',
+	     'KBD',		1,	'',
+	     'LI',		0,	'TYPE/VALUE',
+	     'LISTING',	1,	'',
+	     'MENU',		1,	'',
+	     'OL',		1,	'START',
+	     'P',		0,	'ALIGN',
+	     'PRE',		1,	'',
+	     'SAMP',		1,	'',
+	     'STRONG',	1,	'',
+	     'TT',		1,	'',
+	     'UL',		1,	'',
+	     'VAR',		1,	'',
+	     'XMP',		1,	'',
+	     );
+	local($Tag);
+	while( @htmlTags ) {
+	    $Tag = shift( @htmlTags );
+	    $NEED{$Tag} = shift( @htmlTags );
+	    $FEATURE{$Tag} = shift( @htmlTags );
+	}
+	$F_HTML_TAGS_PARSED = 1;
+    }
 
     $String =~ s/\\>/__EscapedGt\376__/go;
-    while (($Tag, $Need) = each(%NEED)) {
+    while (( $Tag, $Need ) = each( %NEED )) {
 	$SrcString = $String;
 	$String = '';
-	while (($SrcString =~ m!<$Tag\s+([^>]*)>!i) || ($SrcString =~ m!<$Tag()>!i)) {
+	while (( $SrcString =~ m!<$Tag\s+([^>]*)>!i ) || ( $SrcString =~ m!<$Tag()>!i) ) {
 	    $SrcString = $';
 	    $String .= $`;
-	    ($1) ? ($Features = " $1") =~ s/\\"/__EscapedQuote\376__/go : ($Features = '');
-	    if (&SecureFeature($Tag, $Features)) {
-		if ($SrcString =~ m!</$Tag>!i) {
+	    $1 ? ( $Feature = " $1" ) =~ s/\\"/__EscapedQuote\376__/go : ( $Feature = '' );
+	    if ( &SecureFeature( $Tag, $FEATURE{$Tag}, $Feature )) {
+		if ( $SrcString =~ m!</$Tag>!i ) {
 		    $SrcString = $';
 		    $Markuped = $`;
-		    $Features =~ s/&/__amp\377__/go;
-		    $Features =~ s/"/__quot\378__/go;
-		    $String .= "__$Tag Open$Features\376__" . $Markuped . "__$Tag Close\376__";
-		} elsif (! $Need) {
-		    $Features =~ s/&/__amp\377__/go;
-		    $Features =~ s/"/__quot\378__/go;
-		    $String .= "__$Tag Open$Features\376__";
+		    $Feature =~ s/&/__amp\377__/go;
+		    $Feature =~ s/"/__quot\378__/go;
+		    $String .= "__$Tag Open$Feature\376__" . $Markuped . "__$Tag Close\376__";
+		} elsif ( !$Need ) {
+		    $Feature =~ s/&/__amp\377__/go;
+		    $Feature =~ s/"/__quot\378__/go;
+		    $String .= "__$Tag Open$Feature\376__";
 		} else {
-		    $String .= "<$Tag$Features>" . $SrcString;
+		    $String .= "<$Tag$Feature>" . $SrcString;
 		    last;
 		}
 	    } else {
-		$String .= "<$Tag$Features>";
+		$String .= "<$Tag$Feature>";
 	    }
 	}
 	$String .= $SrcString;
@@ -531,7 +560,7 @@ sub SecureHtml {
     $String =~ s/"/&quot;/g;
     $String =~ s/</&lt;/g;
     $String =~ s/>/&gt;/g;
-    while (($Tag, $Need) = each(%NEED)) {
+    while (( $Tag, $Need ) = each( %NEED )) {
         $String =~ s!__$Tag Open([^\376]*)\376__!<$Tag$1>!g;
         $String =~ s!__$Tag Close\376__!</$Tag>!g;
 	$String =~ s!__amp\377__!&!go;
@@ -545,18 +574,18 @@ sub SecureHtml {
 #
 sub SecureFeature {
 
-    local($Tag, $Features) = @_;
-    return(1) unless ($Features);
-    local(@Allowed) = split(/\//, $FEATURE{$Tag});
-    local($Ret) = 1;
-    while ($Features) {
-	$Feature = &GetFeatureName(*Features);
+    local( $Tag, $allowedFeatures, $Features ) = @_;
+    return( 1 ) unless ( $Features );
+    local( @Allowed ) = split( /\//, $allowedFeatures );
+    local( $Ret ) = 1;
+    while ( $Features ) {
+	$Features = &GetFeatureName(*Features);
 	$Value = &GetFeatureValue(*Features);
-	if (! $Value) {
+	if ( !$Value ) {
 	    $Value = $Features;
 	    $Features = '';
 	}
-	$Ret = 0 if (! $Feature) || (! grep(/$Feature/i, @Allowed));
+	$Ret = 0 if ( !$Features ) || ( !grep( /$Features/i, @Allowed ));
     }
     $Ret;
 }
@@ -566,8 +595,8 @@ sub SecureFeature {
 ## Feature名を取得
 #
 sub GetFeatureName {
-    local(*String) = @_;
-    $String = '' unless ($String =~ s/^\s*([^=\s]*)\s*=\s*"//);
+    local( *String ) = @_;
+    $String = '' unless ( $String =~ s/^\s*([^=\s]*)\s*=\s*"// );
     $1;
 }
 
@@ -576,8 +605,8 @@ sub GetFeatureName {
 ## Featureの値を取得
 #
 sub GetFeatureValue {
-    local(*String) = @_;
-    $String = '' unless ($String =~ s/^([^"]*)"//);
+    local( *String ) = @_;
+    $String = '' unless ( $String =~ s/^([^"]*)"// );
     $1;
 }
 
@@ -588,16 +617,16 @@ sub GetFeatureValue {
 sub Fatal {
 
     # エラー番号とエラー情報の取得
-    local($FatalNo) = @_;
+    local( $FatalNo ) = @_;
 
     # エラーメッセージ
-    local($ErrString);
+    local( $ErrString );
 
-    if ($FatalNo == 1) {
+    if ( $FatalNo == 1 ) {
 
 	$ErrString = "管理者様へ: File: $LOCK_ORGを作成することができません．システムディレクトリのパーミッションは777になっていますか?";
 
-    } elsif ($FatalNo == 2) {
+    } elsif ( $FatalNo == 2 ) {
 
 	$ErrString = "管理者様へ: メイルを送信することができません．\$MAIL2の値(現在は「$MAIL2」)の設定がおかしくありませんか?";
 
@@ -641,14 +670,14 @@ $BUFLIMIT = 2048;
 sub Init { $STR = ''; }
 
 sub Cache {
-    local($Str) = @_;
-    $STR .= $Str;
-    &Flush if (length($STR) > $BUFLIMIT);
+    local( $str ) = @_;
+    $STR .= $str;
+    if ( length( $STR ) > $BUFLIMIT ) { &Flush; }
 }
 
 sub Flush {
-    &jcode'convert(*STR, $JPOUT_SCHEME);
-    print($STR);
+    &jcode'convert( *STR, $JPOUT_SCHEME );
+    print( $STR );
     &Init;
 }
 
