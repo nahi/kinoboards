@@ -1,9 +1,12 @@
-#!/usr/local/bin/GNU/perl
+#!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 1.4 1995-11-08 09:18:22 nakahiro Exp $
+# $Id: kb.cgi,v 1.5 1995-11-15 11:39:16 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.4  1995-11-08 09:18:22  nakahiro
+# Revision 1.5  1995-11-15 11:39:16  nakahiro
+# show user-alias information when posting.
+#
+# Revision 1.4  1995/11/08 09:18:22  nakahiro
 # Add reference to Original File when Quoting local file.
 #
 # Revision 1.3  1995/11/02 05:50:48  nakahiro
@@ -46,6 +49,7 @@
 #	×	指定した日記へのReferenceをつける
 #		「上へ」「下へ」のリンク機能の追加(次/前は廃止?)
 #		まとめ読みの時、threadをわかりやすくする工夫を
+#		新しい記事n個にマークをつける
 #		部分日付ソート
 #		aliasの登録機能
 #		Subjectの先頭にIconをつけたい
@@ -158,6 +162,8 @@ $ALL_FILE_NAME = "all.html";
 $TTMP_FILE_NAME = "index.tmp";
 # ユーザエイリアスファイル
 $USER_ALIAS_FILE = "kinousers";
+# ユーザエイリアスファイルURL
+$USER_ALIAS_FILE_URL = $PROGRAM_DIR_URL . "/" . $USER_ALIAS_FILE;
 # ボードエイリアスファイル
 $BOARD_ALIAS_FILE = "kinoboards";
 
@@ -295,6 +301,7 @@ sub Entry {
 	print("$H_MAIL <input name=\"mail\" size=\"$MAIL_LENGTH\"><br>\n");
 	print("URL(空でもOK):<input name=\"url\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
 
+	print("<p><a href=\"$USER_ALIAS_FILE_URL\">ここ</a>に登録されている方は、「$H_FROM」に「#...」と書くと、自動的に補完されます。登録は<a href=\"mailto:$Maint\">$Maint</a>まで、メールにて御連絡下さい。</p>\n");
 	print("<p>入力できましたら、\n");
 	print("<input type=\"submit\" value=\"ここ\">\n");
 	print("を押して記事を確認しましょう(まだ投稿しません)。</p>\n");
@@ -1246,7 +1253,7 @@ sub MyFatal {
 	if ($MyFatalNo == 1) {
 		print("<p>File: $MyFatalInfoが存在しない、\n");
 		print("あるいはpermissionの設定が間違っています。\n");
-		print("お手数ですが、<a href=\"$Maint\"</a>$Maint</a>まで\n");
+		print("お手数ですが、<a href=\"mailto:$Maint\"</a>$Maint</a>まで\n");
 		print("上記ファイル名をお知らせ下さい。</p>\n");
 	} elsif ($MyFatalNo == 2) {
 		print("<p>題、記事、お名前、メールアドレス、\n");
@@ -1254,7 +1261,7 @@ sub MyFatal {
 		print("戻ってもう一度。</p>\n");
 	} elsif ($MyFatalNo == 3) {
 		print("<p>Title File is illegal.\n");
-		print("お手数ですが、<a href=\"$Maint\"</a>$Maint</a>まで\n");
+		print("お手数ですが、<a href=\"mailto:$Maint\"</a>$Maint</a>まで\n");
 		print("お知らせ下さい。</p>\n");
 	} elsif ($MyFatalNo == 4) {
 		print("<p>ごめんなさい、題中にHTMLタグを入れることは\n");
@@ -1262,7 +1269,7 @@ sub MyFatal {
 	} else {
 		print("<p>エラー番号不定: お手数ですが、");
 		print("このエラーが生じた状況を");
-		print("<a href=\"$Maint\"</a>$Maint</a>までお知らせ下さい。</p>\n");
+		print("<a href=\"mailto:$Maint\"</a>$Maint</a>までお知らせ下さい。</p>\n");
 	}
 
 	&MsgFooter;
@@ -1331,6 +1338,7 @@ sub FileEntry {
 	print("$H_MAIL <input name=\"mail\" size=\"$MAIL_LENGTH\"><br>\n");
 	print("URL(空でもOK):<input name=\"url\" value=\"http://\" size=\"$URL_LENGTH\"><br>\n");
 
+	print("<p><a href=\"$USER_ALIAS_FILE_URL\">ここ</a>に登録されている方は、「$H_FROM」に「#...」と書くと、自動的に補完されます。登録は<a href=\"mailto:$Maint\">$Maint</a>まで、メールにて御連絡下さい。</p>\n");
 	print("<p>入力できましたら、\n");
 	print("<input type=\"submit\" value=\"ここ\">\n");
 	print("を押して記事を確認しましょう(まだ投稿しません)。</p>\n");
