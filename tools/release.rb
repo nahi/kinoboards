@@ -50,16 +50,21 @@ end
 
 # add files from redist
 `cp -pr KB/redist/jcode.pl KB/redist/mimer.pl KB/redist/mimew.pl KB/kbdata`
+`cp -pr KB/redist/gpl_text.txt KB/doc/html`
+
+# create test board
+`cp -pr KB/kbdata/board KB/kbdata/test`
 
 # create logdir
 `mkdir KB/kbdata/log`
+`touch KB/kbdata/log/_place_holder_`
 
 # create CGI dir.
 `mkdir KB/kb`
 
 # add files from kbdata
 `mv KB/kbdata/kb.cgi KB/kb/index.cgi`
-`mv KB/kbdata/icon KB/kbdata/style KB/kb`
+`mv KB/kbdata/icon KB/kbdata/style KB/kbdata/img KB/kb`
 
 # set mode
 `chmod 700 KB KB/doc KB/doc/html KB/redist KB/tools`
@@ -69,13 +74,14 @@ end
 `chmod 755 KB/kbdata/UI KB/kbdata/idef`
 `chmod 666 KB/kbdata/board/* KB/kbdata/test/* KB/kbdata/kb.user KB/kbdata/kinoboards`
 `chmod 644 KB/kbdata/idef/* KB/kbdata/kb.ph KB/kbdata/UI/*`
+`chmod 444 KB/kbdata/log/_place_holder_`
 `chmod 444 KB/kbdata/cgi.pl KB/kbdata/kinologue.pl`
 `chmod 444 KB/kbdata/jcode.pl KB/kbdata/mimer.pl KB/kbdata/mimew.pl`
 
-`chmod 755 KB/kb/icon KB/kb/style`
+`chmod 755 KB/kb KB/kb/icon KB/kb/img KB/kb/style`
 `chmod 755 KB/kb/index.cgi`
 `chmod 644 KB/kb/style/*`
-`chmod 444 KB/kb/icon/*`
+`chmod 444 KB/kb/icon/* KB/kb/img/*`
 
 # rename
 `mv KB KB_#{ release }`
