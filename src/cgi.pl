@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.28.2.1 1999-07-21 02:19:08 nakahiro Exp $
+# $Id: cgi.pl,v 2.28.2.2 1999-09-24 14:21:28 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -45,7 +45,7 @@ $CRLF = "\x0d\x0a";		# cannot use \r\n
 @TAG_ALLOWED = ();		# CGI variables which is allowed to use <>.
 
 %CHARSET_MAP = ( 'euc', 'EUC-JP', 'jis', 'ISO-2022-JP', 'sjis', 'Shift_JIS' );
-$CHARSET = 'jis';
+$CHARSET = 'euc';
 
 $SERVER_NAME = $ENV{'SERVER_NAME'};
 $SERVER_PORT = $ENV{'SERVER_PORT'};
@@ -105,7 +105,7 @@ sub unlock_file
     else
     {
 	# for perl4
-	&unlock_file_link( @_ );
+	&unlock_file_link;
     }
 }
 
@@ -164,8 +164,6 @@ sub unlock_file_flock
 ###
 ## Creating HTML header
 #
-# $ENV{'SERVER_PROTOCOL'} 200 OK
-# Server: $ENV{'SERVER_SOFTWARE'}
 sub Header
 {
     local( $utcFlag, $utcStr, $cookieFlag, *cookieList, $cookieExpire ) = @_;
@@ -553,7 +551,6 @@ sub smtpInit
 {
     local( $sh ) = @_;
     local( $sockAddr ) = 'S n a4 x8';
-#    local( $smtpPort ) = 'smtp';	# 25
     local( $smtpPort ) = '25';		# smtp
     local( $proto, $port, $smtpAddr, $sock, $oldStream );
 
@@ -661,18 +658,22 @@ sub SecureHtmlEx
     local( *string, *nVec, *fVec ) = @_;
     local( $srcString, $tag, $need, $feature, $markuped );
 
-    $string =~ s/\\>/__EscapedGt\376__/go;
+    $string =~ s/\\>/__EscapedGt\377__/go;
+    $string =~ s/&amp;?/&/g;
+    $string =~ s/&quot;?/"/g;
+    $string =~ s/&lt;?/</g;
+    $string =~ s/&gt;?/>/g;
     TAGS: while (( $tag, $need ) = each( %nVec ))
     {
 	$srcString = $string;
 	$string = '';
-	while (( $srcString =~ m!<$tag\s+([^>]*)>!i ) || ( $srcString =~ m!<$tag()>!i ))
+	while (( $srcString =~ m!<$tag(\s+([^>]*))?>!i ))
 	{
 	    $srcString = $';
 	    $string .= $`;
-	    if ( $1 )
+	    if ( $2 )
 	    {
-		( $feature = " $1" ) =~ s/\\"/__EscapedQuote\376__/go;
+		( $feature = " $2" ) =~ s/\\"/__EscapedQuote\377__/go;
 	    }
 	    else
 	    {
@@ -684,16 +685,16 @@ sub SecureHtmlEx
 		{
 		    $srcString = $';
 		    $markuped = $`;
-		    $feature =~ s/&/__amp\376__/go;
-		    $feature =~ s/"/__quot\376__/go;
-		    $string .= "__$tag Open$feature\376__" . $markuped .
-			"__$tag Close\376__";
+		    $feature =~ s/&/__amp\377__/go;
+		    $feature =~ s/"/__quot\377__/go;
+		    $string .= "__$tag Open$feature\377__" . $markuped .
+			"__$tag Close\377__";
 		}
 		elsif ( !$need )
 		{
-		    $feature =~ s/&/__amp\376__/go;
-		    $feature =~ s/"/__quot\376__/go;
-		    $string .= "__$tag Open$feature\376__";
+		    $feature =~ s/&/__amp\377__/go;
+		    $feature =~ s/"/__quot\377__/go;
+		    $string .= "__$tag Open$feature\377__";
 		}
 		else
 		{
@@ -709,18 +710,18 @@ sub SecureHtmlEx
 	}
 	$string .= $srcString;
     }
-    $string =~ s/__EscapedGt\376__/\\>/go;
-    $string =~ s/__EscapedQuote\376__/\\"/go;
+    $string =~ s/__EscapedGt\377__/\\>/go;
+    $string =~ s/__EscapedQuote\377__/\\"/go;
     $string =~ s/&/&amp;/g;
     $string =~ s/"/&quot;/g;
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;
     while (( $tag, $need ) = each( %nVec ))
     {
-        $string =~ s!__$tag Open([^\376]*)\376__!<$tag$1>!g;
-        $string =~ s!__$tag Close\376__!</$tag>!g;
-	$string =~ s!__amp\376__!&!go;
-	$string =~ s!__quot\376__!"!go;
+        $string =~ s!__$tag Open([^\377]*)\377__!<$tag$1>!g;
+        $string =~ s!__$tag Close\377__!</$tag>!g;
+	$string =~ s!__amp\377__!&!go;
+	$string =~ s!__quot\377__!"!go;
     }
 }
 
@@ -735,43 +736,11 @@ sub SecureFeature
     return 1 unless $features;
 
     local( @allowed ) = split( /\//, $allowedFeatures );
-    local( $ret ) = 1;
-
-    local( $dFeature, $dValue );
-    while ( $features )
+    while ( $features =~ m/^\s*([^=\s]+)\s*=\s*('|")([^'"]*)\2/go )#'
     {
-	$dFeature = &GetFeatureName( *features );
-	$dValue = &GetFeatureValue( *features );
-	if ( !$dValue )
-	{
-	    $dValue = $features;
-	    $features = '';
-	}
-	$ret = 0 if ( !$dFeature ) || ( !grep( /^$dFeature$/i, @allowed ));
+	return 0 if (( !$3 ) || ( !grep( /^$1$/i, @allowed )));
     }
-    $ret;
-}
-
-
-###
-## Feature名を取得
-#
-sub GetFeatureName
-{
-    local( *string ) = @_;
-    $string = '' unless ( $string =~ s/^\s*([^=\s]*)\s*=\s*"// );
-    $1;
-}
-
-
-###
-## Featureの値を取得
-#
-sub GetFeatureValue
-{
-    local( *string ) = @_;
-    $string = '' unless ( $string =~ s/^([^"]*)"// );
-    $1;
+    1;
 }
 
 
