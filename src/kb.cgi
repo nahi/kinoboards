@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.9 2000-07-01 12:10:49 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.10 2000-08-14 14:20:54 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -1640,8 +1640,7 @@ sub GetArticlePlainText
 {
     local( $id, $name, $mail, $subject, $icon, $date ) = @_;
 
-    local( $strSubject ) = ( !$SYS_ICON || ( $icon eq $H_NOICON ))? $subject :
-	"($icon) $subject";
+    local( $strSubject ) = ( !$SYS_ICON || ( $icon eq $H_NOICON ))? $subject : "($icon) $subject";
     $strSubject =~ s/<[^>]*>//go;	# タグは要らない
     $strSubject = &HTMLDecode( $strSubject );
     local( $strFrom ) = $mail? "$name <$mail>" : $name;
@@ -4138,7 +4137,7 @@ sub SupersedeDbFile
     # 訂正済みメッセージのID．
     $SupersedeId = 0;
 
-    local( $File ) = &getPath( $Board, $DB_FILE_NAME );
+    local( $File ) = &GetPath( $Board, $DB_FILE_NAME );
     open( DB, "<$File" ) || &fatal( 1, $File );
     while ( <DB> )
     {
