@@ -1,14 +1,28 @@
 #!/usr/local/bin/perl
 #!F:\tool\perl\bin\perl.exe
 #!D:\TOOL\ETC\PERL5\BIN\perl.exe
+
+#----------------------------------------------------------------#
 # きのぼず実行環境テストCGI kbTst.cgi   aya@big.or.jp
-# Version 0.05   1999/11/03
+# Version 0.06   1999/11/07
 #
-#このファイルをkb.cgiと同じディレクトリにおいて、実行権限をあたえてください。
-#そして、ブラウザでこのファイルにアクセスすると、チェックを開始します。
-#$| = 1;
+# まず、1行目を、自分のサーバ環境に合わせて編集してください。
+# 次に、このファイルをkb.cgiと同じディレクトリにおいて、実行権限をあたえてください。
+# そして、ブラウザでこのファイルにアクセスすると、チェックを開始します。
+#----------------------------------------------------------------#
+### 設定
+# CGIとその他のファイルの置く場所が異なる場合は、、
+# kbディレクトリの相対パスもしくは、絶対パスを指定してください（URLではなく，パスです）
+# 最後は / で終わってください。
+$KBDIR = './';
 
-
+#----------------------------------------------------------------#
+###変更履歴
+#1999/11/07
+#V0.06      Windows9x判定に問題があったので修正
+#           CGIとその他のファイルの置く場所が異なる場合もチェックできるようにした。
+#           その他、細かい修正
+# 
 #1999/11/03
 #V0.05      WindowsNTで文法チェックしない問題を修正
 #           ディレクトリ一覧を出力
@@ -25,14 +39,16 @@
 #           Perlのバージョン、kb.cgi,kb.phの文法チェックを追加
 #           Windows98/RedHat4.2/Slackware(SuExec)環境で動作確認。
 #           
+#----------------------------------------------------------------#
 
-if($ENV{'WINDIR'} =~ /.*WINNT.*/gi){ $pc = 0; }
-else{ $pc =1; }
+# Windows9x 判定
+if($^O =~ /win32/i && !($ENV{'WINDIR'} =~ /.*WINNT.*/gi)){
+	$pc =1;
+}else{ $pc = 0; }
 
 
 print "Content-type: text/html; charset=EUC-JP;\n\n";
 print <<"_HTML_";
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
 <HTML>
 <HEAD>
 <META http-equiv="Content-Type" content="text/html; charset=EUC-JP">
@@ -58,7 +74,7 @@ print <<"_HTML_";
 
 <P>
 　サーバ運営の上で、公開するべきではない情報も含まれています。<BR>
-　設置が完了したら、必ずこのファイルは削除しておいてください。
+　設置が完了したら、このファイルは削除してください。
 </P>
 
 <H1><A name="p">\$KBDIR_PATHのチェック</A></H1>
@@ -80,28 +96,28 @@ _HTML_
 
 print "<H2><A name=\"d\">ディレクトリのチェック</A></H2>\n";
 
-print "<P>./ ...";
-if( &check_dir_w("./") ){ print "正常です";  }
+print "<P>$KBDIR ...";
+if( &check_dir_w("$KBDIR") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
-print "<P>./UI ...";
-if( &check_dir_r("./UI") ){ print "正常です";  }
+print "<P>$KBDIR","UI ...";
+if( &check_dir_r($KBDIR."UI") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
-print "<P>./board ...";
-if( &check_dir_r("./board") ){ print "正常です";  }
+print "<P>$KBDIR","board ...";
+if( &check_dir_r($KBDIR."board") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
-print "<P>./log ...";
-if( &check_dir_w("./log") ){ print "正常です";  }
+print "<P>$KBDIR","log ...";
+if( &check_dir_w($KBDIR."log") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
-print "<P>./icons ...";
-if( &check_dir_r("./icons") ){ print "正常です";  }
+print "<P>$KBDIR","icons ...";
+if( &check_dir_r($KBDIR."icons") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
@@ -112,23 +128,23 @@ if( &check_script("./kb.cgi") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
-print "<P>./kb.ph ...";
-if( &check_file_r("./kb.ph") ){ print "正常です";  }
+print "<P>$KBDIR","kb.ph ...";
+if( &check_file_r($KBDIR."kb.ph") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
-print "<P>./kinoboards ...";
-if( &check_file_r("./kinoboards") ){ print "正常です";  }
+print "<P>$KBDIR","kinoboards ...";
+if( &check_file_r($KBDIR."kinoboards") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
-print "<P>./jcode.pl ...";
-if( &check_file_r("./jcode.pl") ){ print "正常です";  }
+print "<P>$KBDIR","jcode.pl ...";
+if( &check_file_r($KBDIR."jcode.pl") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
-print "<P>./cgi.pl ...";
-if( &check_file_r("./cgi.pl") ){ print "正常です";  }
+print "<P>$KBDIR","cgi.pl ...";
+if( &check_file_r($KBDIR."cgi.pl") ){ print "正常です";  }
 else{     print "$error<BR>\n$msg";  }
 print "</P>\n";
 
@@ -148,12 +164,16 @@ print "</UL>\n";
 
 unless($^O =~ /win32/i){
 	print "<P><STRONG>which perl</STRONG> : \n";
-	print "</P>\n";
 	&cmd("which perl");
+	print "</P>\n";
+
+	print "<P><STRONG>uname -sr</STRONG> : \n";
+	&cmd("uname -sr"); 
+	print "</P>\n";
 
 	print "<P><STRONG>ls -laF</STRONG> : \n";
-	print "</P>\n";
 	&cmd("ls -laF"); 
+	print "</P>\n";
 }
 
 print "<H2><A name=\"c\">文法チェック</A></H2>";
@@ -161,7 +181,17 @@ print "<H2><A name=\"c\">文法チェック</A></H2>";
 print "<P>　kb.cgi、kb.phの文法チェックを実行します。<BR>\n";
 print "　ただし、Windows9x環境では、動作しません。<BR></P>\n";
 
-&program_check();
+  print "<P><STRONG>perl -c ./kb.cgi</STRONG><BR>\n";
+  &cmd("perl -c ./kb.cgi");
+  print "</P>\n";
+
+  print "<P><STRONG>perl -c $KBDIR","kb.ph</STRONG><BR>\n";
+  &cmd("perl -c ".$KBDIR."kb.ph");
+  print "</P>\n";
+
+  print "<P><STRONG>perl -v</STRONG><BR>\n";
+  &cmd("perl -v",'n');
+  print "</P>\n";
 
 print <<"_HTML_";
 <HR>
@@ -175,19 +205,6 @@ _HTML_
 exit;
 
 
-sub program_check{
-  print "<P><STRONG>perl -c ./kb.cgi</STRONG><BR>\n";
-  print "</P>\n";
-  &cmd("perl -c ./kb.cgi");
-
-  print "<P><STRONG>perl -c ./kb.ph</STRONG><BR>\n";
-  print "</P>\n";
-  &cmd("perl -c ./kb.ph");
-
-  print "<P><STRONG>perl -v</STRONG><BR>\n";
-  print "</P>\n";
-  &cmd("perl -v",'n');
-}
 
 #ファイル　実行ファイル
 sub check_script{
@@ -252,7 +269,7 @@ sub comment_set{
 			$com = "該当ファイル(ディレクトリ)が存在しません。<BR>
 ファイルがないか、ファイル名が間違っていないかを確認してみてください。<BR>
 特に、大文字、小文字には注意してください。<BR>
-(例：UI =&gt; Ui , etc...)";
+(例：UI => Ui , etc...)";
 			last;
 		}
 		if($k eq "r") {  #読みこめない
@@ -288,12 +305,11 @@ MS Windows環境では、このエラーは無視して良い場合もあります。";
 }
 
 sub cmd{
-	if($pc && $^O =~ /win32/i){
+	if($pc){
 		return(0);
 	}
 	if($_[1] eq 'n'){	open(PROC,"$_[0] |");  }
 	else{				open(PROC,"$_[0] 2>&1 |"); }
-	print "<PRE>\n";
 	while (<PROC>) {
      s/</\001/g; s/>/\002/g; 
      s/(.)(\x08\1)+/<B>$1<\/B>/g;    # 多重打ち       : . 08h(BS) .
@@ -302,12 +318,10 @@ sub cmd{
      s/<\/(.)><\1>//g;               # </TAG><TAG> を削除
      s/&/&amp;/g;                    # 
      s/\001/&lt;/g; s/\002/&gt;/g;
-#     s/\n/<BR>\n/g;
+     s/\n/<BR>\n/g;
      print $_;
 	}
 	close(PROC);
-	print "</PRE>\n";
 }
 1;
-
 
