@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 1.6 1995-11-22 13:01:39 nakahiro Exp $
+# $Id: kb.cgi,v 1.7 1995-11-24 17:29:00 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 1.6  1995-11-22 13:01:39  nakahiro
+# Revision 1.7  1995-11-24 17:29:00  nakahiro
+# title list of picked articles.
+#
+# Revision 1.6  1995/11/22 13:01:39  nakahiro
 # partial sort by date.
 #
 # Revision 1.5  1995/11/15 11:39:16  nakahiro
@@ -52,9 +55,10 @@
 #	×	指定した日記へのReferenceをつける
 #	×	部分日付ソート
 #		中身はEUC、ファイルはJISで。
-#		「上へ」「下へ」のリンク機能の追加(次/前は廃止?)
-#		まとめ読みの時、threadをわかりやすくする工夫を
+#		記事検索機能
+#	×	まとめ読みの時、threadをわかりやすくする工夫を
 #		新しい記事n個にマークをつける
+#		「上へ」「下へ」のリンク機能の追加(次/前は廃止?)
 #		aliasの登録機能
 #		Subjectの先頭にIconをつけたい
 #		Boardを自由に選択する
@@ -495,10 +499,12 @@ sub ThreadArticle {
 	# 表示画面の作成
 	&MsgHeader($THREADARTICLE_MSG);
 
-	# メイン関数の呼び出し(subject)
-#	&ThreadArticleMain('subject only', $Id, $Board);
+	# メイン関数の呼び出し(記事概要)
+	print("<ul>\n");
+	&ThreadArticleMain('subject only', $Id, $Board);
+	print("</ul>\n");
 
-	# メイン関数の呼び出し
+	# メイン関数の呼び出し(記事)
 	&ThreadArticleMain('', $Id, $Board);
 
 	&MsgFooter;
@@ -516,21 +522,73 @@ sub ThreadArticleMain {
 	# フォロー記事のIdの取得
 	local(@FollowIdList) = &GetFollowIdList($Id, $Board);
 
-	# 区切り
-	print("<hr>\n");
-
+	# 記事概要か、記事そのものか。
 	if ($SubjectOnly) {
-		&MyFatal(999, 'unknown');
+
+		# 記事概要の表示
+		&PrintAbstract($Id, $Board);
+
 	} else {
+
+		# 区切り
+		print("<hr>\n");
+
 		# 元記事の表示
+		print("<strong><a name=\"$Id\">ID = $Id</a></strong><br>\n");
 		&ViewOriginalArticle($Id, $Board);
+
 	}
 
 	# フォロー記事の表示
 	foreach (@FollowIdList) {
+
+		# 記事概要なら箇条書
+		print("<ul>\n") if ($SubjectOnly);
+
 		# 再帰
 		&ThreadArticleMain($SubjectOnly, $_, $Board);
+
+		# 記事概要なら箇条書閉じ
+		print("</ul>\n") if ($SubjectOnly);
+
 	}
+}
+
+
+###
+## 記事の概要の表示
+#
+sub PrintAbstract {
+
+	# IdとBoard
+	local($Id, $Board) = @_;
+
+	# 引用するファイル
+	local($File) = &GetArticleFileName($Id, $Board);
+
+	# 題、日付、名前
+	local($Subject, $InputDate, $Name);
+
+	# 記事ファイルからSubject等を取り出す
+	open(TMP, "$File") || &MyFatal(1, $File);
+	while(<TMP>) {
+
+		# subjectを取り出す。
+		if (/^<strong>$H_SUBJECT<\/strong> (.*)<br>$/) {$Subject = $1; }
+		# 日付を取り出す。
+		if (/^<strong>$H_DATE<\/strong> (.*)<br>$/) {$InputDate = $1; }
+		# 名前を取り出す。
+		if (/^<strong>$H_FROM<\/strong> <a[^>]*>(.*)<\/a><br>$/) {
+			$Name = $1;
+		} elsif (/^<strong>$H_FROM<\/strong> (.*)<br>$/) {
+			$Name = $1;
+		}
+
+	}
+	close TMP;
+
+	print("<li><strong>$Id .</strong> <a href=\"\#$Id\">$Subject</a> [$Name] $InputDate\n");
+
 }
 
 
