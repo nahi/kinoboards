@@ -1,7 +1,10 @@
-# $Id: kb.ph,v 3.3 1996-02-11 06:54:09 nakahiro Exp $
+# $Id: kb.ph,v 3.4 1996-03-28 09:53:32 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 3.3  1996-02-11 06:54:09  nakahiro
+# Revision 3.4  1996-03-28 09:53:32  nakahiro
+# Modified articles DB structure. (Add list of articles followed)
+#
+# Revision 3.3  1996/02/11 06:54:09  nakahiro
 # the 1st test version for my homepage.
 #
 # Revision 3.2  1996/02/08 07:11:04  nakahiro
@@ -25,6 +28,7 @@
 
 
 # kinoBoards: Kinoboards Is Network Opened BOARD System
+# Copyright 1995-96 NAKAMURA Hiroshi. ALL RIGHTS RESERVED.
 
 
 #/////////////////////////////////////////////////////////////////////
@@ -53,7 +57,7 @@ $MAIL2 = "/usr/lib/sendmail -oi -t";
 
 ##
 # 著作権表示
-$ADDRESS = "Copyright 1996 <a href=\"http://www.kinotrope.co.jp/\">KINOTROPE Inc.</a> &amp; <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">HiNa</a> // 禁無断転載";
+$ADDRESS = "Copyright 1995-96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>. ALL RIGHTS RESERVED.";
 
 
 #/////////////////////////////////////////////////////////////////////
@@ -79,7 +83,12 @@ $SYS_ALIAS = 1;
 # 引用時にタグを残すか否か
 #   0: 残さない
 #   1: 残す
-$SYS_TAGINQUOTE = 1;
+$SYS_TAGINQUOTE = 0;
+
+# アイコンを利用するか否か
+#   0: 利用しない
+#   1: 利用する
+$SYS_ICON = 1;
 
 # 新規投稿記事が、上に増えていくか、下に増えていくか
 #   0: 上
@@ -90,6 +99,16 @@ $SYS_BOTTOMTITLE = 0;
 #   0: 利用しない
 #   1: 利用する
 $SYS_FOLLOWMAIL = 1;
+
+# 記事のヘッダにマシン名を表示するか否か
+#   0: 表示しない
+#   1: 表示する
+$SYS_SHOWHOST = 1;
+
+# タイトルリストに新規投稿記事のみを表示するか否か
+#   0: 反応も含めてすべて
+#   1: 新規投稿記事のみ
+$SYS_NEWARTICLEONLY = 0;
 
 #
 # 色の指定
@@ -118,8 +137,12 @@ $ALIASNEW_MSG = "エイリアスの登録/変更/削除";
 $ALIASMOD_MSG = "エイリアスが変更されました";
 $ALIASDEL_MSG = "エイリアスが削除されました";
 $ALIASSHOW_MSG = "エイリアスの参照";
+$DELETE_ENTRY_MSG = "記事の削除";
+$DELETE_PREVIEW_MSG = "削除する記事の確認";
+$DELETE_THANKS_MSG = "記事の削除";
 $ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
 
+$H_LINE = "------------------------:";
 $H_BOARD = "掲示板:";
 $H_ICON = "アイコン:";
 $H_SUBJECT = "　題　:";
@@ -130,6 +153,7 @@ $H_HOST = "マシン:";
 $H_URL = "URL(省略可):";
 $H_DATE = "投稿日:";
 $H_REPLY = "元記事:";
+$H_ID = "記事番号:";
 $H_FOLLOW = "▼反応";
 $H_FMAIL = "反応がついた時にメールで知らせる:";
 
@@ -153,7 +177,7 @@ $H_POSTINFO = "以下の記事を確認したら、書き込みましょう。";
 $H_THANKSMSG = "書き込みの訂正、取消などはメールでお願いいたします。";
 $H_BACK = "戻る";
 $H_NEXTARTICLE = "次の記事へ";
-$H_REPLYTHISARTICLE = "記事に反応";
+$H_REPLYTHISARTICLE = "この記事に反応";
 $H_REPLYTHISARTICLEQUOTE = "引用して反応";
 $H_READREPLYALL = "反応をまとめ読み";
 $H_REPLYNOTE = " ← %s さん";
@@ -170,8 +194,11 @@ $H_ALIASREFERCOM = "エイリアスを参照できます。";
 $H_ALIASCHANGED = "変更しました。";
 $H_ALIASENTRIED = "登録しました。";
 $H_ALIASDELETED = "消去しました。";
+$H_DELETE_ENTRY_TITLE = "削除する記事の記事番号を入力して下さい";
+$H_DELETE_COM = "記事の削除は、投稿したマシンと同じマシンからでないとできません。";
+$H_DELETE_PREVIEW_COM = "削除する記事を確認して下さい。ボタンを押すと削除します。";
 $H_AORI_ALIAS = "投稿の際、「お名前」の部分に以下の「#....」を入力すると、登録されているお名前とe-mail addr.、URLが自動的に補われます。";
-$H_CANNOTQUOTE = "cannot quote specified file";
+$H_CANNOTQUOTE = "指定された記事は引用できません。";
 
 #
 # 引用マーク
