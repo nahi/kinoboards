@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.31 1999-06-27 00:33:02 nakahiro Exp $
+# $Id: cgi.pl,v 2.32 1999-08-23 20:17:17 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -105,7 +105,7 @@ sub unlock_file
     else
     {
 	# for perl4
-	&unlock_file_link( @_ );
+	&unlock_file_link;
     }
 }
 
@@ -164,8 +164,6 @@ sub unlock_file_flock
 ###
 ## Creating HTML header
 #
-# $ENV{'SERVER_PROTOCOL'} 200 OK
-# Server: $ENV{'SERVER_SOFTWARE'}
 sub Header
 {
     local( $utcFlag, $utcStr, $cookieFlag, *cookieList, $cookieExpire ) = @_;
@@ -553,7 +551,6 @@ sub smtpInit
 {
     local( $sh ) = @_;
     local( $sockAddr ) = 'S n a4 x8';
-#    local( $smtpPort ) = 'smtp';	# 25
     local( $smtpPort ) = '25';		# smtp
     local( $proto, $port, $smtpAddr, $sock, $oldStream );
 
@@ -759,7 +756,7 @@ sub SecureFeature
 sub GetFeatureName
 {
     local( *string ) = @_;
-    $string = '' unless ( $string =~ s/^\s*([^=\s]*)\s*=\s*"// );
+    $string = '' unless ( $string =~ s/^\s*([^=\s]*)\s*=\s*"//o );
     $1;
 }
 
@@ -770,7 +767,7 @@ sub GetFeatureName
 sub GetFeatureValue
 {
     local( *string ) = @_;
-    $string = '' unless ( $string =~ s/^([^"]*)"// );
+    $string = '' unless ( $string =~ s/^([^"]*)"//o );
     $1;
 }
 
@@ -848,9 +845,12 @@ sub CheckUser
 	elsif ( $cgi'COOKIES{'kinoauth'} )
 	{
 	    # authentication succeed if HTTP-Cookie was set.
-	    local( $kinoU, $kinoP ) =
-		split( /$COLSEP/, $cgi'COOKIES{'kinoauth'}, 2 );
-	    return &CheckUserPasswd( $userdb, 1, $kinoU, $kinoP );
+	    local( $kinoU, $kinoP ) = split( /$COLSEP/,
+		$cgi'COOKIES{'kinoauth'}, 2 );
+	    if ( $kinoU ne '' )
+	    {
+		return &CheckUserPasswd( $userdb, 1, $kinoU, $kinoP );
+	    }
 	}
     }
     elsif (( $AUTH_TYPE == 2 ) && $cgi'REMOTE_USER )
@@ -858,7 +858,7 @@ sub CheckUser
 	# with Server Authentication
 
 	# authentication successes if REMOTE_USER was set.
-	return &GetUserInfo( $userdb, $cgi'REMOTE_USER );
+	return &CheckUserPasswd( $userdb, 2, $cgi'REMOTE_USER );
     }
     elsif (( $AUTH_TYPE == 3 ) && $cgi'TAGS{'kinoU'} )
     {
@@ -874,40 +874,7 @@ sub CheckUser
     }
 
     # default authentication.
-    return &GetUserInfo( $userdb, $GUEST );
-}
-
-
-###
-## GetUserInfo - get user's info.
-#
-# - SYNOPSIS
-#	&GetUserInfo( $userdb, $uid );
-#
-# - ARGS
-#	$userdb		user db.
-#	$uid		user id / user entry.
-#
-# - DESCRIPTION
-#	get specified user's info.
-#
-# - RETURN
-#	returns status, user entry, encrypted password,
-#	and listed user's info.
-#
-#	status
-#		0 ... entry found.
-#		1 ... $uid is null.
-#		2 ... cannot open DB file.
-#		3 ... $uid was not found in DB.
-#		9 ... $ADMIN passwd is null.
-#
-sub GetUserInfo
-{
-    local( $userdb, $user ) = @_;
-
-    # no password check.
-    &CheckUserPasswd( $userdb, 2, $user );
+    return &CheckUserPasswd( $userdb, 2, $GUEST );
 }
 
 
@@ -994,8 +961,8 @@ sub AddUser
 	( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR )); 
     foreach ( @userInfo ) { $newLine .= "\t" . $_; }
     open( USERDB, ">>$userdb" ) || return 2;
-    print( USERDB $newLine . "\n" );
-    close USERDB;
+    print( USERDB $newLine . "\n" ) || return 2;
+    close USERDB || return 2;
 
     0;
 }
@@ -1024,30 +991,35 @@ sub SetUserPasswd
     local( $userdb, $user, $passwd ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
-    local( $dId, $dUser, $dSalt, $dPasswd, $dInfo );
+    local( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo );
 
     local( $salt ) = &NewSalt();
     open( USERDBTMP, ">$tmpFile" ) || return 0;
     open( USERDB, "<$userdb" ) || return 0;
     while ( <USERDB> )
     {
-	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
+	if ( /^\#/o || /^$/o )
+	{
+	    print( USERDBTMP $_ ) || return 0;
+	    next;
+	}
 	chop;
-	( $dId, $dUser, $dSalt, $dPasswd, $dInfo ) = split( /\t/, $_, 5 );
+	( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr, $dInfo ) = split( /\t/, $_, 7 );
 
 	if ( $dUser eq $user )
 	{
-	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $salt,
-		substr( crypt( $passwd, $salt ), 2 ), $dInfo );
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser,
+		$salt, substr( crypt( $passwd, $salt ), 2 ), $^T,
+		( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR ), $dInfo ) || return 0;
 	    $found = 1;
 	}
 	else
 	{
-	    print( USERDBTMP $_, "\n" );
+	    print( USERDBTMP $_, "\n" ) || return 0;
 	}
     }
     close USERDB;
-    close USERDBTMP;
+    close USERDBTMP || return 0;
 
     rename( $tmpFile, $userdb ) || return 0;
 
@@ -1078,29 +1050,35 @@ sub SetUserInfo
     local( $userdb, $user, @userInfo ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
-    local( $dId, $dUser, $dSalt, $dPasswd );
+    local( $dId, $dUser, $dSalt, $dPasswd, $dTime, $dAddr );
 
     open( USERDBTMP, ">$tmpFile" ) || return 0;
     open( USERDB, "<$userdb" ) || return 0;
     while ( <USERDB> )
     {
-	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
+	if ( /^\#/o || /^$/o )
+	{
+	    print( USERDBTMP $_ ) || return 0;
+	    next;
+	}
 	chop;
-	( $dId, $dUser, $dSalt, $dPasswd ) = split( /\t/, $_, 5 );
+	( $dId, $dUser, $dSalt, $dPasswd ) = split( /\t/, $_, 7 );
 
 	if ( $dUser eq $user )
 	{
-	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dSalt,
-		$dPasswd, join( "\t", @userInfo ));
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser,
+		$dSalt, $dPasswd, $^T,
+		( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR ),
+		join( "\t", @userInfo )) || return 0;
 	    $found = 1;
 	}
 	else
 	{
-	    print( USERDBTMP $_, "\n" );
+	    print( USERDBTMP $_, "\n" ) || return 0;
 	}
     }
     close USERDB;
-    close USERDBTMP;
+    close USERDBTMP || return 0;
 
     rename( $tmpFile, $userdb ) || return 0;
 
@@ -1229,8 +1207,7 @@ sub CheckUserPasswd
 
     return ( 1 ) unless $user;
 
-#    return ( &UpdateUserPasswd( $userdb, $user, $passwd ))
-#	if ( $checkType == 0 );
+    return ( &UpdateUserPasswd( $userdb, $user, $passwd )) if ( $checkType == 0 );
 
     local( $retCode, $retUser, $retPasswd, $retRest );
     $retCode = 3;		# Means `not found'.
@@ -1249,9 +1226,9 @@ sub CheckUserPasswd
 	    $retUser = $dUser;
 	    $retPasswd = $dPasswd;
 	    $retRest = $dRest;
+	    last;
 	}
-
-	if ( $dUser eq $user )
+	elsif ( $dUser eq $user )
 	{
 	    if (
 		# No check.
@@ -1270,11 +1247,13 @@ sub CheckUserPasswd
 		$retUser = $dUser;
 		$retPasswd = $dPasswd;
 		$retRest = $dRest;
+		last;
 	    }
 	    else
 	    {
 		# authentication failed...
 		$retCode = 4;
+		last;
 	    }
 	}
     }
@@ -1327,7 +1306,11 @@ sub UpdateUserPasswd
     open( USERDB, "<$userdb" ) || return ( 2 );
     while ( <USERDB> )
     {
-	print( USERDBTMP $_ ), next if (( $retCode != 3 ) || /^\#/o || /^$/o );
+	if (( $retCode != 3 ) || /^\#/o || /^$/o )
+	{
+	    print( USERDBTMP $_ ) || return ( 2 );
+	    next;
+	}
 	chop;
 	( $dId, $dUser, $dSalt, $dPasswd, $dRest ) = split( /\t/, $_, 5 );
 
@@ -1337,9 +1320,9 @@ sub UpdateUserPasswd
 	    $retUser = $dUser;
 	    $retPasswd = $dPasswd;
 	    $retRest = $dRest;
+	    print( USERDBTMP $_, "\n" ) || return ( 2 );
 	}
-
-	if ( $dUser eq $user )
+	elsif ( $dUser eq $user )
 	{
 	    if ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dPasswd )
 	    {
@@ -1358,16 +1341,16 @@ sub UpdateUserPasswd
 		$retCode = 4;
 	    }
 	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dSalt,
-		$dPasswd, $dRest );
+		$dPasswd, $dRest ) || return ( 2 );
 	    $found = 1;
 	}
 	else
 	{
-	    print( USERDBTMP $_, "\n" );
+	    print( USERDBTMP $_, "\n" ) || return ( 2 );
 	}
     }
     close USERDB;
-    close USERDBTMP;
+    close USERDBTMP || return ( 2 );
 
     rename( $tmpFile, $userdb ) || return ( 2 );
 
@@ -1435,7 +1418,7 @@ sub NewSalt
 ## CreateNewPasswd - create password
 #
 # - SYNOPSIS
-#	&CreateNewPasswd;
+#	&CreateNewPasswd();
 #
 # - ARGS
 #	nothing
@@ -1476,14 +1459,14 @@ sub Init { $STR = ''; }
 sub Cache
 {
     for ( @_ ) { $STR .= $_; }
-    &Flush if ( length( $STR ) > $BUFLIMIT );
+    &Flush() if ( length( $STR ) > $BUFLIMIT );
 }
 
 sub Flush
 {
     &jcode'convert( *STR, $CHARSET ) if ( $CHARSET ne 'euc' );
     print( $STR );
-    &Init;
+    &Init();
 }
 
 

@@ -6,11 +6,71 @@
 # 例:
 # $MAINT_NAME = 'KinoboardsAdmin';
 # $MAINT = 'nahi@keynauts.com';
-# $SYSTEM_NAME = "KINOBOARDS/1.0";
+# $SYSTEM_NAME = 'KINOBOARDS/1.0';
 #
 $MAINT_NAME = 'YourName';
 $MAINT = 'yourname@your.e-mail.domain';
-$SYSTEM_NAME = "YourSystemName";
+$SYSTEM_NAME = 'YourSystemName';
+
+###
+## ○ユーザ認証機能
+#
+# 認証を行いますか?
+#   0: 行わない（管理者権限の必要な各種機能が使えなくなります）
+#   1: HTTP-Cookiesによる認証を行う
+#   2: HTTPサーバによる認証を使う
+#   3: URLによる認証を行う
+$SYS_AUTH = 1;  # 現在は0と1しか指定できませんごめんなさい．m(..m
+
+  # 認証を行なうように指定した場合，以下も指定してください．
+  # 管理者のユーザ名を指定してください．
+  $ADMIN = 'admin';
+
+  # ゲストユーザ（非登録ユーザ）のユーザ名を指定してください．
+  $GUEST = 'guest';
+
+  # 一般登録ユーザの権限は? 以下からどれか一つを選んでください．
+  #   $USER_POLICY = 0 + 0;       # 読み×・書き×←たぶん意味なし(^_^;
+  #   $USER_POLICY = 1 + 0;       # 読み○・書き×
+  #   $USER_POLICY = 0 + 2;       # 読み×・書き○←たぶん意味なし(^_^;
+  #   $USER_POLICY = 1 + 2;       # 読み○・書き○
+  $USER_POLICY = 1 + 2;
+
+  # ゲストユーザの権限は? 以下からどれか一つを選んでください．
+  #   $GUEST_POLICY = 0 + 0;      # 読み×・書き×
+  #   $GUEST_POLICY = 1 + 0;      # 読み○・書き×
+  #   $GUEST_POLICY = 0 + 2;      # 読み×・書き○←たぶん意味なし(^_^;
+  #   $GUEST_POLICY = 1 + 2;      # 読み○・書き○
+  $GUEST_POLICY = 1 + 2;
+
+  # 先に「1: HTTP-Cookiesによる認証を行う」に設定した場合，
+  # 以下も設定してください．
+  # HTTP-Cookiesの有効期間をどのように設定しますか?
+  #   0: ブラウザ終了時まで
+  #   1: 無制限
+  #   2: n日後まで（nは下で設定します）．
+  #   3: 指定日まで（指定日は以下で設定します）．
+  $SYS_COOKIE_EXPIRE = 1;
+
+    # 上で「2: n日後まで」に設定した場合は日数を，
+    # 「3: 指定日まで」に設定した場合は指定日（時間も）を設定してください．
+    # 0もしくは1を選んだ場合はそのままで結構です（指定しても無視されます）．
+    $SYS_COOKIE_VALUE = 'Thursday, 31-Dec-99 23:59:59 GMT';
+    # 日数の場合．例えば30日間．
+    #   $SYS_COOKIE_VALUE = 30;
+    # 指定日の場合．例えば1998年年末まで．
+    #   $SYS_COOKIE_VALUE = 'Thursday, 31-Dec-98 23:59:59 GMT';
+
+  # ユーザによるメッセージの訂正/削除を許可しますか?
+  #   0: 許可しない．
+  #   1: リプライがついてなければ許可する．
+  #   2: リプライがついていても訂正/削除でき（お勧めしません）
+  $SYS_OVERWRITE = 1;
+
+  # 記事修正時，修正元記事内のタグを残しますか?
+  #   0: 残さない
+  #   1: 残す		ブラウザに依っては誤動作するかも．．．
+  $SYS_TAGINSUPERSEDE = 1;
 
 ###
 ## ○タイムゾーン
@@ -71,29 +131,35 @@ $SYS_LOGHOST = 1;
 #   $SYS_TEXTTYPE = 1 + 2 + 4;	# 「そのまま表示」「HTMLに変換」「HTMLで入力」
 $SYS_TEXTTYPE = 1 + 2 + 4;
 
-# エイリアスを利用しますか?
-#   0: 利用しない
-#   1: 利用する
-#   2: エイリアスを登録しなければ，記事を投稿できないようにする
-#   3: HTTP-Cookiesを使う（ユーザ情報をブラウザに覚えさせる）
-$SYS_ALIAS = 3;
+# 記事の検索機能を利用可能としますか?
+#   0: 利用できない
+#   1: 利用できる
+$SYS_F_S = 1;
 
-  # 上で「3: HTTP-Cookiesを使う」に設定した場合，以下も設定してください．
-  # HTTP-Cookiesの有効期間をどのように設定しますか?
-  #   0: ブラウザ終了時まで
-  #   1: 無制限
-  #   2: n日後まで（nは下で設定します）．
-  #   3: 指定日まで（指定日は以下で設定します）．
-  $SYS_COOKIE_EXPIRE = 1;
+# Subjectにタグの入力を許しますか?
+# タグの入力を許しても，安全なタグしか入力できません．
+#   0: 許さない
+#   1: 許す
+$SYS_TAGINSUBJECT = 1;
 
-    # 上で「2: n日後まで」に設定した場合は日数を，
-    # 「3: 指定日まで」に設定した場合は指定日（時間も）を設定してください．
-    # 0もしくは1を選んだ場合はそのままで結構です（指定しても無視されます）．
-    $SYS_COOKIE_VALUE = 'Thursday, 31-Dec-99 23:59:59 GMT';
-    # 日数の場合．例えば30日間．
-    #   $SYS_COOKIE_VALUE = 30;
-    # 指定日の場合．例えば1998年年末まで．
-    #   $SYS_COOKIE_VALUE = 'Thursday, 31-Dec-98 23:59:59 GMT';
+# 記事投稿時、メイルアドレスの入力を必須としますか?
+#   0: 必須としない
+#   1: 必須とする
+$SYS_POSTERMAIL = 0;
+
+# 記事の許容最大サイズ（バイト数で指定してください; 50K → 51200）
+#   0は「記事サイズの制限なし」を意味します．
+$SYS_MAXARTSIZE = 51200;
+
+# 同一書き込みフォームからの連続書き込みを禁止しますか?
+#   0: 許可する
+#   1: 禁止する
+$SYS_DENY_FORM_RECYCLE = 1;
+
+# 半日以上前に生成されたフォームからの書き込みを禁止しますか?
+#   0: 許可する
+#   1: 禁止する
+$SYS_DENY_FORM_OLD = 1;
 
 # 記事アイコンを利用しますか?
 #   0: 利用しない
@@ -131,31 +197,6 @@ $SYS_BOTTOMTITLE = 0;
 #   1: 下
 $SYS_BOTTOMARTICLE = 1;
 
-# Subjectにタグの入力を許しますか?
-# タグの入力を許しても，安全なタグしか入力できません．
-#   0: 許さない
-#   1: 許す
-$SYS_TAGINSUBJECT = 1;
-
-# 記事投稿時、メイルアドレスの入力を必須としますか?
-#   0: 必須としない
-#   1: 必須とする
-$SYS_POSTERMAIL = 0;
-
-# 記事の許容最大サイズ（バイト数で指定してください; 50K → 51200）
-#   0は「記事サイズの制限なし」を意味します．
-$SYS_MAXARTSIZE = 51200;
-
-# 同一書き込みフォームからの連続書き込みを禁止しますか?
-#   0: 許可する
-#   1: 禁止する
-$SYS_DENY_FORM_RECYCLE = 1;
-
-# 半日以上前に生成されたフォームからの書き込みを禁止しますか?
-#   0: 許可する
-#   1: 禁止する
-$SYS_DENY_FORM_OLD = 1;
-
 # サーバのポート番号を表示しますか?
 #   0: 表示しない
 #   1: (必要ならば)表示する
@@ -192,19 +233,6 @@ $SYS_COMMAND_BUTTON = 1;
 #   1: （あれば）表示する
 $SYS_SHOWMAIL = 1;
 
-# 字色とバックグラウンドイメージを使いますか?
-#   0: 使わない
-#   1: 使う
-$SYS_NETSCAPE_EXTENSION = 1;
-
-  # 上で「1: 使う」に設定した場合は，以下も指定してください．
-  $BG_IMG = "";
-  $BG_COLOR = "#EEEEEE";
-  $TEXT_COLOR = "#000000";
-  $LINK_COLOR = "";
-  $ALINK_COLOR = "";
-  $VLINK_COLOR = "";
-
 # タイトル一覧(リプライ順)における，スレッドの表示形式を選んでください．
 #   管理者用のタイトル一覧の表示形式は変更されません．
 #   タイトル一覧(日付順)の表示形式は変更されません．
@@ -218,37 +246,10 @@ $SYS_NETSCAPE_EXTENSION = 1;
 #
 $SYS_THREAD_FORMAT = 0;
 
-# 全ページのヘッダに，プルダウンコンボ形式のジャンプメニューを表示しますか?
-#   0: 表示しない
-#   1: 表示する
-$SYS_HEADER_MENU = 1;
-
-# 以下の各機能を利用可能としますか?
-#   0: 利用できない
-#   1: 利用できる
-$SYS_F_T = 1;	# リプライ記事のまとめ読みの表示
-$SYS_F_N = 1;	# 記事の投稿
-$SYS_F_R = 1;	# タイトル一覧(日付順)の表示
-$SYS_F_L = 1;	# 最近の記事一覧の表示
-$SYS_F_S = 1;	# 記事の検索
-$SYS_F_B = 0;	# 掲示板一覧の表示
-
-  # これ以下のコマンドは必ず，
-  # 「正しくアクセス制限をかけた上で」利用してください
-  # （詳しくはインストレーションマニュアルを参照してください）．
-  # でないと破壊的な悪戯を匿名でやられ放題ですからね．
-  # [注意] スクリプトの名前を変えたくらいじゃ駄目ですよ．(^_^;
-  #
-  #   0: 利用できない
-  #   1: 利用できる
-  $SYS_F_D = 0;		# 記事の削除，訂正
-  $SYS_F_MV = 0;	# 記事の「前後順序/元記事-リプライ関係」の変更
-  $SYS_F_AM = 0;	# 新着記事到着時のメイル送信先の設定
-  #
-  # 記事修正時，修正元記事内のタグを残しますか?
-  #   0: 残さない
-  #   1: 残す		ブラウザに依っては誤動作するかも．．．
-  $SYS_TAGINSUPERSEDE = 1;
+# 掲示板一覧で，最近書き込まれた掲示板に[new!]アイコンをつけることができます．
+# 何日以内に書き込まれたらアイコンを付けますか?
+# 0を指定するとアイコンを付けません．
+$SYS_BLIST_NEWICON_DATE = 7;	# [日]
 
 ###
 ## ○メイル機能の設定
@@ -320,46 +321,19 @@ $SYS_MAIL = 1 + 2;
 $SYS_F_POST_STDIN = 0;
 
 ###
-## ○掲示板一覧の相対URL
-#
-#  「掲示板一覧へ」でリンクする先を，kbディレクトリからの相対URLで指定します．
-#  空ならkbディレクトリへ(よって，一般的にはindex.htmlやindex.shtmlへ)，
-#  '-'を指定すると，自分で用意したファイルでなくCGIが自動生成する掲示板一覧へ，
-#  それぞれリンクされます．
-#
-$BOARDLIST_URL = './';			# kbディレクトリへ
-# $BOARDLIST_URL = '-';			# CGIが自動生成する掲示板一覧へ
-# $BOARDLIST_URL = 'kb10.shtml';	# kb/kb10.shtmlへ
-
-  # ↑で'-'を指定した場合は，以下も設定してください．
-
-  # 最近書き込まれた掲示板に[new!]アイコンをつけることができます．
-  # 何日以内に書き込まれたらアイコンを付けますか?
-  # 0を指定するとアイコンを付けません．
-  $SYS_BLIST_NEWICON_DATE = 7;	# [日]
-
-
-###
 ## ○各入力項目の大きさ
 #
 $SUBJECT_LENGTH = 60;	# 題
-$TEXT_ROWS = 15;	# 記事行数
-$TEXT_COLS = 72;	# 記事幅
+$TEXT_ROWS = 8;		# 記事行数
+$TEXT_COLS = 70;	# 記事幅
 $NAME_LENGTH = 60;	# 名前幅
 $MAIL_LENGTH = 60;	# E-mail幅
 $URL_LENGTH = 72;	# URL幅
 $KEYWORD_LENGTH = 60;	# 検索キーワード幅
+$BOARDNAME_LENGTH = 10;	# 掲示板名幅
 $DEF_TITLE_NUM = 30;	# タイトル一覧に表示するタイトルの数
 			# 0にすると全記事を表示するようになります．
 $DEF_ARTICLE_NUM = 15;	# まとめ読みする記事の数
-
-###
-## ○出力ページの漢字コード
-#
-$CHARSET = 'euc';	# EUCの場合は漢字コード変換を行ないません．
-			# きのぼずがcoreを吐く時には，これに設定してください．
-# $CHARSET = 'jis';
-# $CHARSET = 'sjis';
 
 ###
 ## ○引用の形態
@@ -396,64 +370,60 @@ $MSGICON_WIDTH = 20;		# 幅[dot]
 
 # ○メッセージの宣言
 #
-$H_BOARD = "掲示板";
-$H_ICON = "アイコン";
-$H_SUBJECT = "タイトル";
-$H_MESG = "メッセージ";
-$H_ALIAS = "エイリアス";
-$H_FROM = "お名前";
-$H_MAIL = "メイル";
-$H_HOST = "マシン";
-$H_USER = "ユーザ";
-$H_URL = "URL";
-$H_URL_S = "ホームページのURL(お名前からリンクを張ります; 省略しても構いません)";
-$H_DATE = "投稿日";
-$H_REPLY = "リプライ";
-$H_ORIG = "$H_REPLY元";
-$H_ORIG_TOP = "オリジナル";
-$H_LINE = "<p>------------------------------</p>";
-$H_THREAD_ALL = "▲";
-$H_THREAD = "▼";
-$H_NEWARTICLE = "new!";
-$H_HR = "<hr>";
-
-$H_TEXTTYPE = "書き込み形式";
-@H_TTLABEL = ( "そのまま表示", "HTMLに変換", "HTMLで入力" );
-@H_TTMSG = ( "「$H_TEXTTYPE」を「$H_TTLABEL[0]」にして$H_MESGを書くと，表示の際にそのまま表示されます．", "「$H_TTLABEL[1]」にすると，空行を段落の区切としてHTMLに自動変換します．", "「$H_TTLABEL[2]」にしてHTMLとして書くと，表示の時にHTML整形されます．" );
-
-$H_NOICON = "なし";
-$H_BACKBOARD = "$H_BOARD一覧へ";
-$H_BACKTITLEREPLY = "$H_SUBJECT一覧へ($H_REPLY順)";
-$H_BACKTITLEDATE = "$H_SUBJECT一覧へ(日付順)";
-$H_PREVARTICLE = "前の$H_MESGへ";
-$H_NEXTARTICLE = "次の$H_MESGへ";
-$H_POSTNEWARTICLE = "新規に書き込む";
-$H_REPLYTHISARTICLE = "$H_REPLYを書き込む";
-$H_REPLYTHISARTICLEQUOTE = "引用して$H_REPLYを書き込む";
-$H_READREPLYALL = "$H_REPLYをまとめ読み";
-$H_DELETE_TITLE = "削除する";
-$H_SUPERSEDE_TITLE = "訂正する";
-$H_BACKART = "前ページへ";
-$H_NEXTART = "次ページへ";
-$H_NOBACKART = "前のページはありません．";
-$H_NONEXTART = "次のページはありません．";
-$H_TOP = "←";
-$H_BOTTOM = "→";
-$H_REVERSE = "△▽";
-$H_NOARTICLE = "該当する$H_MESGがありません．";
-$H_SUPERSEDE_ICON = "[※]";
-$H_DELETE_ICON = "[×]";
-$H_RELINKFROM_MARK = "[←]";
-$H_RELINKTO_MARK = "[◎]";
-$H_REORDERFROM_MARK = "[△]";
-$H_REORDERTO_MARK = "[▽]";
+$H_BOARD = '掲示板';
+$H_ICON = 'アイコン';
+$H_SUBJECT = 'タイトル';
+$H_MESG = 'メッセージ';
+$H_FROM = 'ユーザ名';
+$H_MAIL = 'メイル';
+$H_HOST = 'マシン';
+$H_USER = 'ユーザ';
+$H_PASSWD = 'パスワード';
+$H_URL = 'URL';
+$H_DATE = '投稿日';
+$H_REPLY = 'リプライ';
+$H_ORIG = 'リプライ元';
+$H_ORIG_TOP = 'オリジナル';
+$H_LINE = '<p>------------------------------</p>';
+$H_THREAD_ALL = '▲';
+$H_THREAD = '▼';
+$H_NEWARTICLE = 'new!';
+$H_HR = '<hr>';
+$H_TEXTTYPE = '書き込み形式';
+@H_TTLABEL = ( 'そのまま表示', 'HTMLに変換', 'HTMLで入力' );
+$H_NOICON = 'なし';
+$H_BACKBOARD = '掲示板一覧へ';
+$H_BACKTITLEREPLY = 'タイトル一覧へ(スレッド)';
+$H_BACKTITLEDATE = 'タイトル一覧へ(日付順)';
+$H_PREVARTICLE = '前へ';
+$H_NEXTARTICLE = '次へ';
+$H_POSTNEWARTICLE = '新規に書き込む';
+$H_REPLYTHISARTICLE = 'リプライを書き込む';
+$H_REPLYTHISARTICLEQUOTE = '引用してリプライを書き込む';
+$H_READREPLYALL = 'リプライをまとめ読み';
+$H_DELETE = '削除する';
+$H_SUPERSEDE = '訂正する';
+$H_BACKART = '前ページへ';
+$H_NEXTART = '次ページへ';
+$H_NOBACKART = '前のページはありません．';
+$H_NONEXTART = '次のページはありません．';
+$H_TOP = '←';
+$H_BOTTOM = '→';
+$H_REVERSE = '△▽';
+$H_NOARTICLE = '該当するメッセージがありません．';
+$H_SUPERSEDE_ICON = '[※]';
+$H_DELETE_ICON = '[×]';
+$H_RELINKFROM_MARK = '[←]';
+$H_RELINKTO_MARK = '[◎]';
+$H_REORDERFROM_MARK = '[△]';
+$H_REORDERTO_MARK = '[▽]';
 
 
 #/////////////////////////////////////////////////////////////////////
 1;
 
 
-# $Id: kb.ph,v 5.21 1999-06-25 16:33:27 nakahiro Exp $
+# $Id: kb.ph,v 5.22 1999-08-23 20:17:22 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
