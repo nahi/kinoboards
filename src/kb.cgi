@@ -1,6 +1,6 @@
-#!/usr/local/bin/GNU/perl
+#!/usr/local/bin/perl
 #
-# $Id: kb.cgi,v 4.7 1996-04-30 16:05:46 nakahiro Exp $
+# $Id: kb.cgi,v 4.8 1996-04-30 17:40:18 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -786,6 +786,7 @@ sub AddDBFile {
 
     while(<DB>) {
 
+	printf(DBTMP "$_"), next if (/^\#/);
 	chop;
 
 	($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon,
@@ -1100,13 +1101,14 @@ sub GetUserInfo {
     # エイリアス、名前、メール、ホスト、URL
     local($A, $N, $E, $H, $U);
 
+    # エイリアス、名前、メール、ホスト、URL
+    local($rN, $rE, $rU) = ('', '', '');
+
     # lockをかける
     &lock();
 
     # ファイルを開く
-    open(ALIAS, "<$USER_ALIAS_FILE")
-	# ファイルがないらしいのでさようなら。
-	|| return('', '', '');
+    open(ALIAS, "<$USER_ALIAS_FILE") || &MyFatal(1, $USER_ALIAS_FILE);
     
     # 1つ1つチェック。
     while(<ALIAS>) {
@@ -1119,16 +1121,18 @@ sub GetUserInfo {
 	# マッチしなきゃ次へ。
 	next unless ($A eq $Alias);
 	
-	# 配列にして返す
-	return($N, $E, $U);
+	$rN = $N;
+	$rE = $E;
+	$rU = $U;
+
     }
     close(ALIAS);
 
     # lockをはずす
     &unlock();
     
-    # ヒットせず
-    return('', '', '');
+    # 配列にして返す
+    return($rN, $rE, $rU);
 }
 
 
@@ -2277,8 +2281,18 @@ sub GetNewArticleId {
     # 記事番号を収めるファイル
     local($ArticleNumFile) = &GetPath($BOARD, $ARTICLE_NUM_FILE_NAME);
 
+    # 記事番号
+    local($ArticleId) = 0;
+
+    open(AID, "<$ArticleNumFile") || &MyFatal(1, $ArticleNumFile);
+    while(<AID>) {
+	chop;
+	$ArticleId = $_;
+    }
+    close(AID);
+
     # 1増やして返す
-    return(&GetArticleId($ArticleNumFile) + 1);
+    return($ArticleId + 1);
 
 }
 
@@ -2663,6 +2677,10 @@ sub GetArticlesInfo {
 	  $dEmail, $dUrl, $dFmail)
 			 = (0, '', '', '', '', '', '', '', '', '', '');
 
+    local($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName,
+	  $rEmail, $rUrl, $rFmail)
+			 = ('', '', '', '', '', '', '', '', '', '');
+
     # lockをかける
     &lock();
 
@@ -2676,17 +2694,27 @@ sub GetArticlesInfo {
 	($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
 	 $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
 
-	# 見つかったら返す。
-	return($dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName,
-	       $dEmail, $dUrl, $dFmail) if ($Id == $dId);
+	if ($Id == $dId) {
+	    $rFid = $dFid;
+	    $rAids = $dAids;
+	    $rDate = $dDate;
+	    $rTitle = $dTitle;
+	    $rIcon = $dIcon;
+	    $rRemoteHost = $dRemoteHost;
+	    $rName = $dName;
+	    $rEmail = $dEmail;
+	    $rUrl = $dUrl;
+	    $rFmail = $dFmail;
+	}    
     }
     close(DB);
 
     # lockをはずす
     &unlock();
 
-    # 見つからなかったら0/''を返す。
-    return('', '', '', '', '', '', '', '', '', '');
+    return($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName,
+	   $rEmail, $rUrl, $rFmail);
+
 }
 
 
@@ -2708,7 +2736,10 @@ sub MyFatal {
     # 8 ... エイリアスに登録する文字列が正しくない。
     # 9 ... メールが送れなかった
     # 10 ... cannot connect to specified URL.
-    
+
+    # とりあえずアンロック
+    &unlock();
+
     &MsgHeader($ERROR_MSG);
     
     if ($MyFatalNo == 1) {
