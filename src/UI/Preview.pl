@@ -19,7 +19,7 @@ Preview: {
     local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $rFid);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
@@ -42,7 +42,7 @@ Preview: {
     $Article = &CheckArticle($BOARD, *Name, *Email, *Url, *Subject, *Icon, $Article);
 
     # 確認画面の作成
-    &MsgHeader('Message preview', "$BOARDNAME: 書き込みの内容を確認してください");
+    &MsgHeader('Message preview', "書き込みの内容を確認してください");
 
     # お約束
     &cgiprint'Cache(<<__EOF__);
@@ -89,22 +89,20 @@ __EOF__
 
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
-        ? &cgiprint'Cache("<strong>$H_SUBJECT</strong>: $Subject")
-            : &cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Subject", &GetIconUrlFromTitle($Icon, $BOARD)));
+        ? &cgiprint'Cache( "<strong>$H_SUBJECT</strong>: " . $Subject )
+            : &cgiprint'Cache( "<strong>$H_SUBJECT</strong>: " . &TagMsgImg( &GetIconUrlFromTitle($Icon, $BOARD), "$Icon " ) . $Subject );
 
     # お名前
     if ($Url ne '') {
         # URLがある場合
-        &cgiprint'Cache("<br>\n<strong>$H_FROM</strong>: <a href=\"$Url\">$Name</a>");
+        &cgiprint'Cache( "<br>\n<strong>$H_FROM</strong>: " . &TagA( $Url, $Name ));
     } else {
         # URLがない場合
-        &cgiprint'Cache("<br>\n<strong>$H_FROM</strong>: $Name");
+        &cgiprint'Cache( "<br>\n<strong>$H_FROM</strong>: " . $Name );
     }
 
     # メイル
-    if ($Email ne '') {
-	&cgiprint'Cache(" <a href=\"mailto:$Email\">&lt;$Email&gt;</a>");
-    }
+    &cgiprint'Cache( " " . &TagA( "mailto:$Email", "&lt;$Email&gt;" )) if ( $Email ne '' );
 
     # 反応元(引用の場合)
     if ($rFid) {
@@ -131,7 +129,7 @@ __EOF__
     &MsgFooter;
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 }
 
 1;

@@ -21,7 +21,7 @@ Entry: {
     local($Id, $Supersede, $IconTitle, $Key, $Value, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $DefSubject, $DefName, $DefEmail, $DefUrl, $DefFmail);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
@@ -41,9 +41,9 @@ Entry: {
 
     # 表示画面の作成
     if ($Supersede && $SYS_F_D) {
-	&MsgHeader('Supersede entry', "$BOARDNAME: $H_MESGの訂正");
+	&MsgHeader('Supersede entry', "$H_MESGの訂正");
     } else {
-	&MsgHeader('Message entry', "$BOARDNAME: $H_MESGの書き込み");
+	&MsgHeader('Message entry', "$H_MESGの書き込み");
     }
 
     # フォローの場合
@@ -100,7 +100,7 @@ __EOF__
 	}
 	&cgiprint'Cache("</SELECT>\n");
 
-	&cgiprint'Cache("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">アイコンの説明</a>)<BR>\n");
+	&cgiprint'Cache("(" . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "アイコンの説明" ) . ")<BR>\n");
 
     }
 
@@ -167,10 +167,9 @@ __EOF__
 「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録なさっている方は，
 「$H_FROM」に「#...」という登録名を書いてください．
 自動的に$H_FROMと$H_MAIL，$H_URLが補われます．
-(<a href="$PROGRAM?c=as">$H_ALIASの一覧</a> //
- <a href="$PROGRAM?c=an">$H_ALIASを登録</a>)
-</p>
 __EOF__
+	&cgiprint'Cache( "(" . &TagA( "$PROGRAM?c=as", "$H_ALIASの一覧" ) . " // \n" );
+	&cgiprint'Cache( &TagA( "$PROGRAM?c=an", "$H_ALIASを登録" ) . ")\n" );
 
     } else {
 
@@ -198,8 +197,10 @@ __EOF__
 <p>
 予め「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録しないと書き込めません．
 登録した後，「#...」という登録名を指定してください．
-(<a href="$PROGRAM?c=as">$H_ALIASの一覧</a> //
- <a href="$PROGRAM?c=an">$H_ALIASを登録</a>)<br>
+__EOF__
+	&cgiprint'Cahce( "(" . &TagA( "$PROGRAM?c=as", "$H_ALIASの一覧" ) . " // \n" );
+	&cgiprint'Cache( &TagA( "$PROGRAM?c=an", "$H_ALIASを登録" ) . ")<br>\n" );
+	&cgiprint'Cache(<<__EOF__);
 登録した$H_ALIASが表示されない(選択できない)場合，
 このページを再読み込みしてください．
 </p>
@@ -212,7 +213,7 @@ __EOF__
     }
     
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
     # ボタン
     &cgiprint'Cache(<<__EOF__);

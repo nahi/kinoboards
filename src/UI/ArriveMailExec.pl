@@ -19,7 +19,7 @@ ArriveMailExec: {
     local(@ArriveMail);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
 
@@ -27,9 +27,9 @@ ArriveMailExec: {
     &UpdateArriveMailDb($BOARD, *ArriveMail); # DBを更新する
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
-    &MsgHeader("ArriveMail Changed", "$BOARDNAME: 自動メイル配信先を設定しました");
+    &MsgHeader("ArriveMail Changed", "自動メイル配信先を設定しました");
 
     &cgiprint'Cache(<<__EOF__);
 <p>

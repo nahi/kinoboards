@@ -18,7 +18,7 @@ AliasShow: {
     local($Alias);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
 
@@ -26,7 +26,7 @@ AliasShow: {
     &CashAliasData;
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
     
     # 表示画面の作成
     &MsgHeader('Alias view', "$H_ALIASの参照");
@@ -35,23 +35,21 @@ AliasShow: {
     if ($SYS_ALIAS == 1) {
 	&cgiprint'Cache(<<__EOF__);
 <p>
-投稿の際，「$H_FROM」の部分に以下の登録名(「#....」)を入力すると，
+投稿の際，「$H_FROM」の部分に以下の登録名(「\#....」)を入力すると，
 登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．
 </p><p>
-<a href="$PROGRAM?c=an">新規登録/登録内容の変更</a>
-</p>
 __EOF__
+	&cgiprint'Cache( &TagA( "$PROGRAM?c=an", "新規登録/登録内容の変更" ) . "\n</p>\n" );
 
     } elsif ($SYS_ALIAS == 2) {
 					  
 	&cgiprint'Cache(<<__EOF__);
 <p>
-投稿の際，「$H_USER」で以下の登録名(「#....」)を指定すると，
+投稿の際，「$H_USER」で以下の登録名(「\#....」)を指定すると，
 登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．
 </p><p>
-<a href="$PROGRAM?c=an">新規登録/登録内容の変更</a>
-</p>
 __EOF__
+	&cgiprint'Cache( &TagA( "$PROGRAM?c=an", "新規登録/登録内容の変更" ) . "\n</p>\n" );
 
     } else {
 	# ありえない，はず

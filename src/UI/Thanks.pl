@@ -19,7 +19,7 @@ Thanks: {
     local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $ArticleId);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
@@ -43,7 +43,7 @@ Thanks: {
 	&SupersedeArticle($BOARD, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
 
 	# 表示画面の作成
-	&MsgHeader('Message superseded', "$BOARDNAME: $H_MESGが訂正されました");
+	&MsgHeader('Message superseded', "$H_MESGが訂正されました");
 
     } else {
 
@@ -51,7 +51,7 @@ Thanks: {
 	&MakeNewArticle($BOARD, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail);
 
 	# 表示画面の作成
-	&MsgHeader('Message entried', "$BOARDNAME: 書き込みありがとうございました");
+	&MsgHeader('Message entried', "書き込みありがとうございました");
 
     }
 
@@ -72,7 +72,7 @@ __EOF__
     &MsgFooter;
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 }
 
 1;

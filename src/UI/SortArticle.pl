@@ -19,13 +19,13 @@ SortArticle: {
     local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
     if ( $BOARD ) { &DbCash( $BOARD ); }
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
     # 表示する個数を取得
     $Num = $cgi'TAGS{'num'};
@@ -36,16 +36,16 @@ SortArticle: {
     $From = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
 
     # 表示画面の作成
-    &MsgHeader('Title view (sorted)', "$BOARDNAME: $H_SUBJECT一覧(日付順)");
+    &MsgHeader('Title view (sorted)', "$H_SUBJECT一覧(日付順)");
 
     &BoardHeader('normal');
 
     &cgiprint'Cache("<hr>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
     } else {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
     }
 
     &cgiprint'Cache("<p><ul>\n");
@@ -74,9 +74,9 @@ SortArticle: {
     &cgiprint'Cache("</ul></p>\n");
 
     if ($SYS_BOTTOMTITLE) {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
     } else {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
     }
 
     &MsgFooter;

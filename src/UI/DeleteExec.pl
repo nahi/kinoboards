@@ -19,7 +19,7 @@ DeleteExec: {
     local($Id);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
@@ -31,10 +31,10 @@ DeleteExec: {
     &DeleteArticle($Id, $BOARD, $ThreadFlag);
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
     # 表示画面の作成
-    &MsgHeader('Message deleted', "$BOARDNAME: $H_MESGが削除されました");
+    &MsgHeader('Message deleted', "$H_MESGが削除されました");
 
     &PrintButtonToTitleList($BOARD);
     &PrintButtonToBoardList;

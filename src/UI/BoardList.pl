@@ -18,7 +18,7 @@ BoardList: {
     local(%BoardList, %BoardInfo, $Key, $Value, $ModTime, $NumOfArticle);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
 
@@ -27,9 +27,8 @@ BoardList: {
 
     &MsgHeader("Board List", "$SYSTEM_NAME");
 
+    &cgiprint'Cache( "<p>\n" . &TagA( "http://www.kinotrope.co.jp/~nakahiro/kb10.shtml", "KINOBOARDS/1.0" ));
     &cgiprint'Cache(<<__EOF__);
-<p>
-<a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0</a>
 で運営されているシステムです．
 </p><p>
 $SYSTEM_NAMEでは，現在，以下の$H_BOARDが用意されています．
@@ -40,7 +39,7 @@ __EOF__
     while(($Key, $Value) = each(%BoardList)) {
 	$ModTime = &GetDateTimeFormatFromUtc(&GetModifiedTime($DB_FILE_NAME, $Key));
 	$NumOfArticle = &GetArticleId($Key) || 0;
-	&cgiprint'Cache("<p>\n<dt><a href=\"$PROGRAM?b=$Key&c=v&num=$DEF_TITLE_NUM\">$Value</a>\n");
+	&cgiprint'Cache("<p>\n<dt>" . &TagA( "$PROGRAM?b=$Key&c=v&num=$DEF_TITLE_NUM", $Value ) . "\n");
 	&cgiprint'Cache("[最新: $ModTime, 記事数: $NumOfArticle]\n");
 	&cgiprint'Cache("<dd>$BoardInfo{$Key}\n</p>\n");
     }
@@ -48,7 +47,7 @@ __EOF__
     &cgiprint'Cache("</dl>\n</p>\n");
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
     &MsgFooter;
 

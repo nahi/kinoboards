@@ -19,13 +19,13 @@ NewArticle: {
     local($Num, $Old, $NextOld, $BackOld, $To, $From, $Id);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
     if ( $BOARD ) { &DbCash( $BOARD ); }
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
     # 表示する個数を取得
     $Num = $cgi'TAGS{'num'};
@@ -36,12 +36,12 @@ NewArticle: {
     $From = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
 
     # 表示画面の作成
-    &MsgHeader('Message view (sorted)', "$BOARDNAME: 最近の$H_MESGをまとめ読み");
+    &MsgHeader('Message view (sorted)', "最近の$H_MESGをまとめ読み");
 
     if ($SYS_BOTTOMARTICLE) {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
     } else {
-	&cgiprint'Cache("<p>$H_TOP<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_TOP" . &TagA( "$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
     }
 
     if (! $#DB_ID == -1) {
@@ -68,9 +68,9 @@ NewArticle: {
     }
 
     if ($SYS_BOTTOMARTICLE) {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld\">$H_NEXTART</a></p>\n") if ($Old);
+	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=l&num=$Num&old=$NextOld", $H_NEXTART ) . "</p>\n") if ($Old);
     } else {
-	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
+	&cgiprint'Cache("<p>$H_BOTTOM" . &TagA( "$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld", $H_BACKART ) . "</p>\n") if ($From > 0);
     }
 
     &PrintButtonToTitleList($BOARD);

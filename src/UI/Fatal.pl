@@ -21,7 +21,7 @@ Fatal: {
     if ( $errno == 1 ) {
 
 	$severity = $kinologue'SEV_CAUTION;
-	$msg = "File: $errInfoが存在しない，あるいはpermissionの設定が間違っています．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで，上記ファイル名をお知らせ下さい．";
+	$msg = "File: $errInfoが存在しない，あるいはpermissionの設定が間違っています．お手数ですが，" . &TagA( "mailto:$MAINT", $MAINT ) . "まで，上記ファイル名をお知らせ下さい．";
 
     } elsif ( $errno == 2 ) {
 
@@ -41,7 +41,7 @@ Fatal: {
     } elsif ( $errno == 5 ) {
 
 	$severity = $kinologue'SEV_ERROR;
-	$msg = "登録されているエイリアスのものと，マシン名が一致しません．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
+	$msg = "登録されているエイリアスのものと，マシン名が一致しません．お手数ですが，" . &TagA( "mailto:$MAINT", $MAINT ) . "まで御連絡ください．";
 
     } elsif ( $errno == 6) {
 
@@ -61,12 +61,12 @@ Fatal: {
     } elsif ( $errno == 9 ) {
 
 	$severity = $kinologue'SEV_CAUTION;
-	$msg = "メイルが送信できませんでした．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
+	$msg = "メイルが送信できませんでした．お手数ですが，このエラーメッセージと，エラーが生じた状況を，" . &TagA( "mailto:$MAINT", $MAINT ) . "までお知らせください．";
 
     } elsif ( $errno == 10 ) {
 
 	$severity = $kinologue'SEV_CAUTION;
-	$msg = ".dbと.articleidの整合性が取れていません．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
+	$msg = ".dbと.articleidの整合性が取れていません．お手数ですが，このエラーメッセージと，エラーが生じた状況を，" . &TagA( "mailto:$MAINT", $MAINT ) . "までお知らせください．";
 
     } elsif ( $errno == 11 ) {
 
@@ -81,7 +81,17 @@ Fatal: {
     } elsif ( $errno == 13 ) {
 
 	$severity = $kinologue'SEV_FATAL;
-	$msg = "管理者様へ: socket.phがみつかりませんでした．kb.phの中で，CGIが動くサーバのOSを指定してください．";
+	$msg = "管理者様へ: socket.phがみつかりませんでした．kb.phの中で，メイル送信用の追加設定を行なってください．";
+
+    } elsif ( $errno == 14 ) {
+
+	$severity = $kinologue'SEV_FATAL;
+	$msg = "管理者様へ: 次のrenameに失敗しました（$errInfo）．ファイルパーミッションの設定等をチェックしてみてください．";
+
+    } elsif ( $errno == 15 ) {
+
+	$severity = $kinologue'SEV_WARN;
+	$msg = "ユーザ認証に失敗しました．パスワードを間違えていませんか? [もう一度……（の画面はまだ作ってない）]";
 
     } elsif ( $errno == 50 ) {
 
@@ -117,7 +127,7 @@ Fatal: {
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    &cgi'unlock( $LOCK_FILE ) if (( $errno != 999 ) && ( $errno != 1001 ));
+    &cgi'unlock( $LOCK_FILE ) if (( !$PC ) && ( $errno != 999 ) && ( $errno != 1001 ));
 
     # log a log(except logging failure).
     &KbLog( $severity, "$msg" ) if ( $errno != 1000 );
@@ -125,7 +135,7 @@ Fatal: {
     # 表示画面の作成
     &MsgHeader('Error!', "$SYSTEM_NAME: ERROR!");
     &cgiprint'Cache("<p>$msg</p>\n");
-    &PrintButtonToTitleList( $BOARD ) if ( $BOARD ne '' );
+    &PrintButtonToTitleList( $BOARD ) if (( $BOARD ne '' ) && ( $errno != 11 ));
     &PrintButtonToBoardList;
     &MsgFooter;
 

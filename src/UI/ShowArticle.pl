@@ -19,7 +19,7 @@ ShowArticle: {
     local($Id, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $DateUtc, $Aid, @AidList, @FollowIdTree);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
@@ -34,7 +34,7 @@ ShowArticle: {
     if ($Name eq '') { &Fatal(8, ''); }
 
     # 表示画面の作成
-    &MsgHeader('Message view', "$BOARDNAME: $Subject", $DateUtc);
+    &MsgHeader('Message view', "$Subject", $DateUtc);
     &ViewOriginalArticle($Id, 1, 1);
 
     # article end
@@ -69,7 +69,7 @@ ShowArticle: {
     &MsgFooter;
 
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
 }
 

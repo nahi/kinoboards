@@ -21,7 +21,7 @@ AliasDel: {
     local($A, $HitFlag, $Alias);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
 
@@ -52,7 +52,7 @@ AliasDel: {
     &WriteAliasData;
     
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
     # 表示画面の作成
     &MsgHeader('Alias deleted', "$H_ALIASが削除されました");

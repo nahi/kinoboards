@@ -19,13 +19,13 @@ SearchArticle: {
     local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon, $IconTitle);
 
     # lock system
-    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE ) unless $PC;
     &Fatal(1001, '') if ( $lockResult == 2 );
     &Fatal(999, '') if ( $lockResult != 1 );
     # cash article DB
     if ( $BOARD ) { &DbCash( $BOARD ); }
     # unlock system
-    &cgi'unlock( $LOCK_FILE );
+    &cgi'unlock( $LOCK_FILE ) unless $PC;
 
     $Key = $cgi'TAGS{'key'};
     $SearchSubject = $cgi'TAGS{'searchsubject'};
@@ -35,7 +35,7 @@ SearchArticle: {
     $Icon = $cgi'TAGS{'icon'};
 
     # 表示画面の作成
-    &MsgHeader('Message search', "$BOARDNAME: $H_MESGの検索");
+    &MsgHeader('Message search', "$H_MESGの検索");
 
     # お約束
     &cgiprint'Cache(<<__EOF__);
@@ -80,8 +80,8 @@ __EOF__
     &cgiprint'Cache("</SELECT>\n");
 
     # アイコン一覧
+    &cgiprint'Cache( "(" . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "アイコンの説明" ) . ")<BR>\n" );
     &cgiprint'Cache(<<__EOF__);
-(<a href="$PROGRAM?b=$BOARD&c=i&type=entry">アイコンの説明</a>)<BR>
 </ul>
 </p>
 </form>
