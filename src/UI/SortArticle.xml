@@ -7,11 +7,11 @@
     lang="ja" xml:lang="ja">
 <head>
 <kb:s_title />
-<title>メッセージ一覧（書き込み順） - <kb:b_board_name /></title>
+<title>メッセージ一覧（日付順） - <kb:b_board_name /></title>
 </head>
 <body>
 
-<h1>メッセージ一覧（書き込み順） - <kb:b_board_name /></h1>
+<h1>メッセージ一覧（日付順）</h1>
 
 <kb:c_status />
 <kb:c_top_menu />

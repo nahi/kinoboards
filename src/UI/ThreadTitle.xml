@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<h1>タイトル一覧（スレッド） - <kb:b_board_name /></h1>
+<h1>タイトル一覧（スレッド）</h1>
 
 <kb:c_status />
 <kb:c_top_menu />

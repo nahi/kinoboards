@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<h1>メッセージの表示を確認してください - <kb:b_board_name /></h1>
+<h1>メッセージの表示を確認してください</h1>
 
 <kb:c_status />
 <kb:c_top_menu />

@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<h1>メッセージを削除しました - <kb:b_board_name /></h1>
+<h1>メッセージを削除しました</h1>
 
 <kb:c_status />
 <kb:c_top_menu />
