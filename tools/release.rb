@@ -25,6 +25,7 @@ end
 tag = ARGV.shift
 release = ARGV.shift
 Target = '~/cvs_release'
+Redist = %w( application.rb deffile.rb gpl_text.txt jcode.pl log.rb mime_pls-2_00alpha_tar.gz mimer.pl mimew.pl )
 
 usage() if ( !tag || !release )
 target = File.expand_path( Target )
@@ -39,7 +40,10 @@ Dir.chdir( target )
 `cvs export -r #{ tag } KB/COPYING KB/README KB/doc/html KB/src KB/tools`
 
 # add redist dir
-`cp -pr redist KB`
+`mkdir KB/redist`
+Redist.each do |i|
+  `cp -p redist/#{i} KB/redist/#{i}`
+end
 
 # add files from redist
 `cp -pr KB/redist/jcode.pl KB/redist/mimer.pl KB/redist/mimew.pl KB/src`
