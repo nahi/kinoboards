@@ -23,8 +23,15 @@
 #
 ViewTitle: {
     local($ComType) = $gVarComType;
-    local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id, $Fid, $IdNum, $Id, $NextCommand, $FirstFlag, $Key, $Value, $AddNum);
+    local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id, $Fid, $IdNum, $Id, $AddNum);
     %ADDFLAG = ();		# it's static.
+
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+    # cash article DB
+    if ( $BOARD ) { &DbCash( $BOARD ); }
 
     if ($ComType == 3) {
 	# リンクかけかえの実施
@@ -33,6 +40,9 @@ ViewTitle: {
 	# 移動の実施
 	&ReOrderExec($cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD);
     }
+
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
 
     # 表示する個数を取得
     $Num = $cgi'TAGS{'num'};
@@ -47,16 +57,6 @@ ViewTitle: {
     # 1 ... 整形済み
     # 2 ... 未整形
     for($IdNum = $From; $IdNum <= $To; $IdNum++) { $ADDFLAG{$DB_ID[$IdNum]} = 2; }
-
-    # 前/後ろコマンド
-    $FirstFlag = 1;
-    $NextCommand = '?';
-    while (($Key, $Value) = each %cgi'TAGS) {
-	# 数関連はカット
-	next if (($Key eq 'num') || ($Key eq 'old'));
-	if ($FirstFlag) { $FirstFlag = 0; } else { $NextCommand .= "&"; }
-	$NextCommand .= "$Key=$Value";
-    }
 
     # ページング用文字列
     $AddNum = "&num=" . $cgi'TAGS{'num'} . "&old=" . $cgi'TAGS{'old'};

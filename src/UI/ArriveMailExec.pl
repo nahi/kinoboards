@@ -18,8 +18,16 @@ ArriveMailExec: {
 
     local(@ArriveMail);
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+
     @ArriveMail = split(/\n/, $cgi'TAGS{'armail'}); # 宛先リストを取り出す
     &UpdateArriveMailDb($BOARD, *ArriveMail); # DBを更新する
+
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
 
     &MsgHeader("ArriveMail Changed", "$BOARDNAME: 自動メイル配信先を設定しました");
 

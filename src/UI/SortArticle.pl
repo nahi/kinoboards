@@ -18,6 +18,15 @@ SortArticle: {
 
     local($Num, $Old, $NextOld, $BackOld, $To, $From, $IdNum, $Id);
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+    # cash article DB
+    if ( $BOARD ) { &DbCash( $BOARD ); }
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
+
     # 表示する個数を取得
     $Num = $cgi'TAGS{'num'};
     $Old = $cgi'TAGS{'old'};

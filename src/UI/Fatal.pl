@@ -78,6 +78,11 @@ Fatal: {
 	$severity = $kinologue'SEV_INFO;
 	$msg = "この$H_BOARDでは，$H_MESGの最大サイズは$SYS_MAXARTSIZEバイトということになっています（あなたの$H_MESGは$errInfoバイトです）．";
 
+    } elsif ( $errno == 13 ) {
+
+	$severity = $kinologue'SEV_FATAL;
+	$msg = "管理者様へ: socket.phがみつかりませんでした．kb.phの中で，CGIが動くサーバのOSを指定してください．";
+
     } elsif ( $errno == 50 ) {
 
 	$severity = $kinologue'SEV_INFO;

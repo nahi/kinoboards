@@ -18,6 +18,15 @@ DeletePreview: {
 
     local($Id);
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+    # cash article DB
+    if ( $BOARD ) { &DbCash( $BOARD ); }
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
+
     $Id = $cgi'TAGS{'id'};
 
     # 表示画面の作成

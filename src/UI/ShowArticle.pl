@@ -18,6 +18,13 @@ ShowArticle: {
 
     local($Id, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $DateUtc, $Aid, @AidList, @FollowIdTree);
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+    # cash article DB
+    if ( $BOARD ) { &DbCash( $BOARD ); }
+
     $Id = $cgi'TAGS{'id'};
     ($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url) = &GetArticlesInfo($Id);
     $DateUtc = &GetUtcFromOldDateTimeFormat($Date);
@@ -60,6 +67,9 @@ ShowArticle: {
 
     # ¤ªÌóÂ«
     &MsgFooter;
+
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
 
 }
 

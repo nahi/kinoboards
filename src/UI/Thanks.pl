@@ -18,6 +18,13 @@ Thanks: {
 
     local($Supersede, $Id, $TextType, $Name, $Email, $Url, $Icon, $Subject, $Article, $Fmail, $ArticleId);
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+    # cash article DB
+    if ( $BOARD ) { &DbCash( $BOARD ); }
+
     # 入力された記事情報
     $Supersede = $cgi'TAGS{'s'};
     $Id = $cgi'TAGS{'id'};
@@ -64,6 +71,8 @@ __EOF__
 
     &MsgFooter;
 
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
 }
 
 1;

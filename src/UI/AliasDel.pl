@@ -20,6 +20,11 @@ AliasDel: {
 
     local($A, $HitFlag, $Alias);
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+
     # エイリアス
     $A = $cgi'TAGS{'alias'};
 
@@ -46,6 +51,9 @@ AliasDel: {
     # エイリアスファイルに書き出し
     &WriteAliasData;
     
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
+
     # 表示画面の作成
     &MsgHeader('Alias deleted', "$H_ALIASが削除されました");
     &cgiprint'Cache("<p>$H_ALIAS: <strong>$A</strong>: 消去しました．</p>\n");

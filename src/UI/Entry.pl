@@ -20,6 +20,13 @@ Entry: {
     local($QuoteFlag) = $gVarQuoteFlag;
     local($Id, $Supersede, $IconTitle, $Key, $Value, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $DefSubject, $DefName, $DefEmail, $DefUrl, $DefFmail);
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+    # cash article DB
+    if ( $BOARD ) { &DbCash( $BOARD ); }
+
     $Id = $cgi'TAGS{'id'};
     $Supersede = $cgi'TAGS{'s'}; # 訂正?
     if ($QuoteFlag != 0) {
@@ -204,6 +211,9 @@ __EOF__
 	&cgiprint'Cache("<p>$H_REPLYがあった時にメイルで知らせますか? <input name=\"fmail\" type=\"checkbox\" value=\"on\"></p>\n");
     }
     
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
+
     # ボタン
     &cgiprint'Cache(<<__EOF__);
 <p>

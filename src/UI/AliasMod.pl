@@ -19,6 +19,11 @@ AliasMod: {
 
     local( $alias, $name, $eMail, $url, $hitFlag );
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+
     $alias = $cgi'TAGS{'alias'};
     $name = $cgi'TAGS{'name'};
     $eMail = $cgi'TAGS{'email'};
@@ -49,6 +54,9 @@ AliasMod: {
     
     # エイリアスファイルに書き出し
     &WriteAliasData;
+
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
 
     # 表示画面の作成
     &MsgHeader( 'Alias modified', "$H_ALIASが設定されました" );

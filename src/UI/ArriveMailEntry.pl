@@ -17,7 +17,15 @@ ArriveMailEntry: {
 
     local(@ArriveMail);
 
+    # lock system
+    local( $lockResult ) = &cgi'lock( $LOCK_FILE );
+    &Fatal(1001, '') if ( $lockResult == 2 );
+    &Fatal(999, '') if ( $lockResult != 1 );
+
     &GetArriveMailTo(1, $BOARD, *ArriveMail); # 宛先とコメントを取り出す
+
+    # unlock system
+    &cgi'unlock( $LOCK_FILE );
 
     &MsgHeader("ArriveMail Entry", "$BOARDNAME: 自動メイル配信先の設定");
 
