@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.30 1998-03-16 18:08:20 nakahiro Exp $
+# $Id: cgi.pl,v 1.60 1998-03-30 14:52:13 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -19,14 +19,6 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-# CAUTION
-#
-#	歌代さんによる日本語漢字コード変換ユーティリティ，jcode.plの
-#	v2.0以降が必要です．以下のURLから入手してください．
-#	<URL:ftp://ftp.iij.ad.jp/pub/IIJ/dist/utashiro/perl/>
-#
-#
-#
 # INTERFACE
 #
 #
@@ -123,9 +115,9 @@
 #
 # &cgi'SendMail( $fromName, $fromEmail, $subject, $extension, $message, @to );
 #	メイルを送信します．
-#		$fromName: 送り主の名前(日本語を入れないでください)
+#		$fromName: 送り主の名前
 #		$fromEmail: 送り主のE-Mail addr.
-#		$subject: メイルのsubject文字列(日本語を入れないでください)
+#		$subject: メイルのsubject文字列
 #		$extension: メイルのextension header文字列
 #		$message: 本文である文字列
 #		@to: 宛先のE-Mail addr.のリスト
@@ -670,8 +662,7 @@ $BUFLIMIT = 4096;
 sub Init { $STR = ''; }
 
 sub Cache {
-    local( $str ) = @_;
-    $STR .= $str;
+    $STR .= shift;
     if ( length( $STR ) > $BUFLIMIT ) { &Flush; }
 }
 
