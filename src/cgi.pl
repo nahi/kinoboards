@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.4 1998-09-14 19:32:13 nakahiro Exp $
+# $Id: cgi.pl,v 2.5 1998-10-21 08:54:31 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -533,7 +533,8 @@ sub smtpInit
 {
     local( $sh ) = @_;
     local( $sockAddr ) = 'S n a4 x8';
-    local( $smtpPort ) = 'smtp';		# 25
+#    local( $smtpPort ) = 'smtp';	# 25
+    local( $smtpPort ) = '25';		# smtp
     local( $proto, $port, $smtpAddr, $sock, $oldStream );
 
     # preparing for smtp connection...
@@ -598,7 +599,7 @@ sub smtpMsg
     local( $sh, $message ) = @_;
     local( $back );
     print( $sh $message ) if $message;
-    $back = <${sh}>;
+    $back = <$sh>;
     if ( $back =~ /^[45]/o )
     {
 	close( $sh );
@@ -1293,7 +1294,7 @@ sub Cache
 
 sub Flush
 {
-    &jcode'convert( *STR, $CHARSET );
+    &jcode'convert( *STR, $CHARSET ) if ( $CHARSET ne 'euc' );
     print( $STR );
     &Init;
 }
