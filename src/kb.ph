@@ -425,8 +425,8 @@ $H_THREAD = "▼";
 $H_NEWARTICLE = "new!";
 $H_HR = "<hr>";
 
-$H_TEXTTYPE = "書き込み形式";
-@H_TTLABEL = ( "そのまま表示（要改行）", "HTMLに変換（段落タグ挿入）", "HTMLで入力" );
+$H_TEXTTYPE = "入力形式";
+@H_TTLABEL = ( "そのまま入力（要改行）", "HTMLに自動変換", "HTMLで入力" );
 @H_TTMSG = ( "「$H_TEXTTYPE」を「$H_TTLABEL[0]」にして$H_MESGを書くと，表示の際にそのまま表示されます．", "「$H_TTLABEL[1]」にすると，空行を段落の区切としてHTMLに自動変換します．", "「$H_TTLABEL[2]」にしてHTMLとして書くと，表示の時にHTML整形されます．" );
 
 $H_NOICON = "なし";
@@ -461,7 +461,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.21.2.2 2000-02-14 18:22:52 nakahiro Exp $
+# $Id: kb.ph,v 5.21.2.3 2000-04-05 06:04:44 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System

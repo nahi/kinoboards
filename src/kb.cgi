@@ -31,10 +31,10 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.4 2000-02-14 18:20:33 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.5 2000-04-05 06:04:38 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
-# Copyright (C) 1995-99 NAKAMURA Hiroshi.
+# Copyright (C) 1995-2000 NAKAMURA Hiroshi.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ $COLSEP = "\377";
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.9';		# release
+$KB_RELEASE = '6.10';		# release
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
@@ -106,6 +106,7 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 require( 'cgi.pl' );
 require( 'kinologue.pl' );
 $KB_RESOURCE_URL = $KB_RESOURCE_URL || $cgi'PATH_INFO;
+$KB_RESOURCE_URL .= '/' unless ( $KB_RESOURCE_URL =~ m!/$!o );
 $REMOTE_INFO = $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR || '(unknown)';
 $REMOTE_INFO .= '-' . $cgi'REMOTE_USER if $cgi'REMOTE_USER; # in BasicAuth
 $PROGRAM = $cgi'PROGRAM;
@@ -1546,7 +1547,7 @@ __EOF__
 sub MsgFooter
 {
     # ↓この部分を変更するのも「自由」です．消しても全く問題ありません．
-    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb/", $PROGNAME ) . ": Copyright (C) 1995-99 " . &TagA( "http://www.jin.gr.jp/~nahi/", "NAKAMURA Hiroshi" ) . ".";
+    local( $addr ) = "Maintenance: " . &TagA( "mailto:$MAINT", $MAINT_NAME ) . "<br>" . &TagA( "http://www.jin.gr.jp/~nahi/kb/", $PROGNAME ) . ": Copyright (C) 1995-2000 " . &TagA( "http://www.jin.gr.jp/~nahi/", "NAKAMURA Hiroshi" ) . ".";
     # ただし「俺が作ったんだ」とか書くと，なひの権利を侵害して，
     # GPL2に違反することになっちゃうので気をつけてね．(^_^;
 

@@ -30,6 +30,10 @@ Entry:
     local( $COrig ) = $cgi'TAGS{'c'};
 
     local( $DefSubject, $DefName, $DefEmail, $DefUrl, $DefTextType, $DefIcon, $DefArticle, $DefFmail );
+
+    $DefTextType = $H_TTLABEL[ 1 ];	# デフォルトの書き込み形式
+    $DefIcon = $H_NOICON;		# デフォルトのアイコン
+
     if ( $back )
     {
 	require( 'mimer.pl' );
@@ -171,7 +175,7 @@ __EOF__
     if ( $SYS_ICON )
     {
 	&CacheIconDb( $BOARD );	# アイコンDBをキャッシュ
-	$msg .= sprintf( "$H_ICON:\n<select name=\"icon\">\n<option%s>$H_NOICON\n", $DefIcon? '' : ' selected' );
+	$msg .= sprintf( "$H_ICON:\n<select name=\"icon\">\n<option%s>$H_NOICON\n", ( $DefIcon ne $H_NOICON )? '' : ' selected' );
 	local( $IconTitle );
 	foreach $IconTitle ( @ICON_TITLE )
 	{
@@ -190,28 +194,26 @@ __EOF__
     # 書き込み形式
     if ( $ttFlag )
     {
-	$ttFlag = 0 if $DefTextType;
-	$msg .= "$H_TEXTTYPE:\n<select name=\"texttype\">\n";
+	$msg .= "$H_TEXTTYPE:\n";
 	$ttBit = 0;
+	local( $firstFlag ) = 1;
 	foreach ( @H_TTLABEL )
 	{
 	    if ( $SYS_TEXTTYPE & ( 2 ** $ttBit ))
 	    {
-		if ( $ttFlag )
+		if ( $firstFlag )
 		{
-		    $ttFlag = 0;	# now, using for a flag for the first.
-		    $msg .= "<option selected>" . $H_TTLABEL[$ttBit] . "\n";
+		    $firstFlag = 0;
 		}
 		else
 		{
-		    $msg .= sprintf( "<option%s>" . $H_TTLABEL[$ttBit] . "\n",
-			( $H_TTLABEL[$ttBit] eq $DefTextType )? ' selected' :
-			'' );
+		    $msg .= '&nbsp;&nbsp;';	# セパレータ
 		}
+		$msg .= sprintf( " <input type=\"radio\" name=\"texttype\" value=\"" . $H_TTLABEL[$ttBit] . "\"%s>" . $H_TTLABEL[$ttBit] . "\n", ( $H_TTLABEL[$ttBit] eq $DefTextType )? ' checked' : '' );
 	    }
 	    $ttBit++;
 	}
-	$msg .= "</select>\n<br>\n";
+	$msg .= "<br>\n";
     }
     else
     {
@@ -226,9 +228,9 @@ __EOF__
 	# エイリアスは使わない
 	$msg .=<<__EOF__;
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
+$H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
 $H_URL_S:<br>
 <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
-$H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
 __EOF__
     }
     elsif ( $SYS_ALIAS == 1 )
@@ -236,9 +238,9 @@ __EOF__
 	# エイリアスを使う
 	$msg .=<<__EOF__;
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
+$H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
 $H_URL_S:<br>
 <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
-$H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
 __EOF__
 
 	$note .=<<__EOF__;
@@ -256,7 +258,7 @@ __EOF__
 	# エイリアスを登録しなければ書き込みできない
 	# エイリアスの読み込み
 	&LockAll();
-	&CacheAliasData;
+	&CacheAliasData();
 	&UnlockAll();
 	$msg .=<<__EOF__;
 $H_USER:
@@ -295,9 +297,9 @@ __EOF__
 __EOF__
 	$msg .=<<__EOF__;
 $H_FROM: <input name="name" type="text" value="$DefName" size="$NAME_LENGTH"><br>
+$H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
 $H_URL_S:<br>
 <input name="url" type="text" value="$DefUrl" size="$URL_LENGTH"><br>
-$H_MAIL: <input name="mail" type="text" value="$DefEmail" size="$MAIL_LENGTH"><br>
 __EOF__
 
 	$note .=<<__EOF__;
