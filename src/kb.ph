@@ -5,7 +5,7 @@
 #
 # 例:
 # $MAINT_NAME = 'KinoboardsAdmin';
-# $MAINT = 'nakahiro@sarion.co.jp';
+# $MAINT = 'nahi@keynauts.com';
 # $SYSTEM_NAME = "KINOBOARDS/1.0";
 #
 $MAINT_NAME = 'YourName';
@@ -80,15 +80,15 @@ $SYS_ALIAS = 3;
   # 上で「3: HTTP-Cookiesを使う」に設定した場合，以下も設定してください．
   # HTTP-Cookiesの有効期間をどのように設定しますか?
   #   0: ブラウザ終了時まで
-  #   1: 無制限（実際にはThursday, 31-Dec-2029 23:59:59 GMT）
+  #   1: 無制限
   #   2: n日後まで（nは下で設定します）．
   #   3: 指定日まで（指定日は以下で設定します）．
-  $SYS_COOKIE_EXPIRE = 3;
+  $SYS_COOKIE_EXPIRE = 1;
 
     # 上で「2: n日後まで」に設定した場合は日数を，
     # 「3: 指定日まで」に設定した場合は指定日（時間も）を設定してください．
     # 0もしくは1を選んだ場合はそのままで結構です（指定しても無視されます）．
-    $SYS_COOKIE_VALUE = 'Thursday, 31-Dec-98 23:59:59 GMT';
+    $SYS_COOKIE_VALUE = 'Thursday, 31-Dec-99 23:59:59 GMT';
     # 日数の場合．例えば30日間．
     #   $SYS_COOKIE_VALUE = 30;
     # 指定日の場合．例えば1998年年末まで．
@@ -139,11 +139,11 @@ $SYS_TAGINSUBJECT = 1;
 # 記事投稿時、メイルアドレスの入力を必須としますか?
 #   0: 必須としない
 #   1: 必須とする
-$SYS_POSTERMAIL = 1;
+$SYS_POSTERMAIL = 0;
 
 # 記事の許容最大サイズ（バイト数で指定してください; 50K → 51200）
 #   0は「記事サイズの制限なし」を意味します．
-$SYS_MAXARTSIZE = 0;
+$SYS_MAXARTSIZE = 51200;
 
 # 同一書き込みフォームからの連続書き込みを禁止しますか?
 #   0: 許可する
@@ -168,6 +168,9 @@ $SYS_COMMAND = 1;
 
   # 上で「0: 表示しない」を設定した場合，以下の設定は意味がありません．
   # まとめ読みの際は，各記事のヘッダにコマンド群を表示しますか?
+  # 表示しないと見た目はすっきりしますが，
+  # 例えば「最近の記事まとめ読み」から直接リプライすることができなくなる，
+  # 等の弊害があります．
   #   0: 表示しない
   #   1: 表示する
   $SYS_COMMAND_EACH = 1;
@@ -180,21 +183,21 @@ $SYS_COMMAND_BUTTON = 0;
 
 # 記事のヘッダにメイルアドレスを表示しますか?
 #   0: 表示しない
-#   1: 表示する
+#   1: （あれば）表示する
 $SYS_SHOWMAIL = 1;
 
 # 字色とバックグラウンドイメージを使いますか?
 #   0: 使わない
 #   1: 使う
-$SYS_NETSCAPE_EXTENSION = 0;
+$SYS_NETSCAPE_EXTENSION = 1;
 
   # 上で「1: 使う」に設定した場合は，以下も指定してください．
   $BG_IMG = "";
-  $BG_COLOR = "#CCCCCC";
+  $BG_COLOR = "#EEEEEE";
   $TEXT_COLOR = "#000000";
-  $LINK_COLOR = "#0000AA";
-  $ALINK_COLOR = "#FF0000";
-  $VLINK_COLOR = "#00AA00";
+  $LINK_COLOR = "";
+  $ALINK_COLOR = "";
+  $VLINK_COLOR = "";
 
 # タイトル一覧(リプライ順)における，スレッドの表示形式を選んでください．
 #   管理者用のタイトル一覧の表示形式は変更されません．
@@ -218,6 +221,8 @@ $SYS_F_R = 1;	# タイトル一覧(日付順)の表示
 $SYS_F_L = 1;	# 最近の記事一覧の表示
 $SYS_F_S = 1;	# 記事の検索
 $SYS_F_B = 1;	# 掲示板一覧の表示
+
+$SYS_F_N_STDIN = 0;	# コマンドラインからの記事の投稿
 
   # これ以下のコマンドは必ず，
   # 「正しくアクセス制限をかけた上で」利用してください
@@ -261,15 +266,17 @@ $SYS_MAIL = 1 + 2;
   # 送信するメイルのヘッダ「To:」に書かれる宛先を指定してください．
   # 省略すると，送信する相手のメイルアドレスがずらずら並びます．
   # 自動配信機能をメイリングリストのようにして使うなら，
-  # $MAILTO_LABEL = 'なひきのぼずユーザ <nakahiro@sarion.co.jp>';
+  # $MAILTO_LABEL = 'なひきのぼずユーザ <nahi@keynauts.com>';
   # などとするといいかもしれません．
   $MAILTO_LABEL = '';
 
-  # 送信するメイルのヘッダ「From:」に書かれる名前を，
+  # 送信するメイルのヘッダ「Sendar:」に書かれる名前を，
   # システム管理者の名前とは変えたい場合に指定してください．
   # 省略すると，このファイルの先頭で設定した$MAINT_NAMEが使われます．
   # $MAILFROM_LABEL = 'Kinoboards Mail Daemon';
   # など．
+  # V1.0R6.3以前は，この値が「From:」に入りましたが，
+  # R6.4以降，「From:」ヘッダには記事投稿者が入ります．
   $MAILFROM_LABEL = '';
 
   # CGIが動くサーバ（普通はWWWサーバです．メイルサーバじゃありません）
@@ -281,17 +288,17 @@ $SYS_MAIL = 1 + 2;
   # 多くのOSで，$AF_INETを2，$SOCK_STREAMを1に設定します．
   # サーバがSolaris/2.*の人だけ，$SOCK_STREMを2に設定してください．
   #
-  $AF_INET = 2; $SOCK_STREAM = 1;	# SunOS 4.*
+  # $AF_INET = 2; $SOCK_STREAM = 1;	# SunOS 4.*
   # $AF_INET = 2; $SOCK_STREAM = 2;	# SunOS 5.*(Solaris 2.*)
   # $AF_INET = 2; $SOCK_STREAM = 1;	# HP-UX
   # $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
-  # $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
+  $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
   # $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
   # $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
   # $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT/95
   # $AF_INET = 2; $SOCK_STREAM = 1;	# Mac
   # この他の組み合わせを御存知の方がありましたら，
-  # なひ(nakahiro@sarion.co.jp)まで御連絡ください．
+  # なひ(nahi@keynauts.com)まで御連絡ください．
 
 ###
 ## ○掲示板一覧の相対URL
@@ -427,7 +434,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.12 1998-12-25 06:47:11 nakahiro Exp $
+# $Id: kb.ph,v 5.13 1999-02-17 18:20:07 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
