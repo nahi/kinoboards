@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.19 1999-02-21 06:22:06 nakahiro Exp $
+# $Id: cgi.pl,v 2.20 1999-02-21 08:14:18 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -818,6 +818,7 @@ $F_COOKIE_RESET = "CookieReset\376";
 #		2 ... cannot open DB file.
 #		3 ... $user was not found in DB.
 #		4 ... password incorrect.
+#		9 ... $ADMIN passwd is null.
 #
 sub CheckUser
 {
@@ -879,6 +880,7 @@ sub CheckUser
 #		1 ... $uid is null.
 #		2 ... cannot open DB file.
 #		3 ... $uid was not found in DB.
+#		9 ... $ADMIN passwd is null.
 #
 sub GetUserInfo
 {
@@ -1186,45 +1188,63 @@ sub LinkTagWithAuth
 #		2 ... cannot open DB file.
 #		3 ... $user was not found in DB.
 #		4 ... password incorrect.
+#		9 ... $ADMIN passwd is null.
 #
 sub CheckUserPasswd
 {
     local( $userdb, $user, $passwd ) = @_;
     local( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo );
 
-    return( 1 ) if ( !$user );
+    return ( 1 ) unless $user;
 
-    open( USERDB, "<$userdb" ) || return( 2 );
+    local( $retCode, $retUser, $retPasswd, @retInfo );
+    $retCode = 3;		# Means `not found'.
+
+    open( USERDB, "<$userdb" ) || return ( 2 );
     while( <USERDB> )
     {
-	next if ( /^\#/o || /^$/o );
+	next if (( $retCode != 3 ) || /^\#/o || /^$/o );
 	chop;
 	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo ) = split( /\t/, $_ );
 
-	if ( $dUser eq $user )
+	if (( $dUser eq $ADMIN ) && ( $dPasswd eq '' ))
 	{
-	    close( USERDB );
+	    $retCode = 9;
+	}
+	elsif ( $dUser eq $user )
+	{
 	    if (( $passwd eq $dPasswd ) || ( substr( crypt( $passwd, $dId ), 2 ) eq $dPasswd ))
 	    {
 		$UID = $dId;
-		return( 0, $dUser, $dPasswd, @dInfo );
+		$retCode = 0;
+		$retUser = $dUser;
+		$retPasswd = $dPasswd;
+		@retInfo = @dInfo;
 	    }
-	    return( 4 );
+	    else
+	    {
+		$retCode = 4;
+	    }
 	}
-
-	if ( $dId eq $user )
+	elsif ( $dId eq $user )
 	{
-	    close( USERDB );
 	    if ( !defined( $passwd ))
 	    {
 		$UID = $dId;
-		return( 0, $dUser, $dPasswd, @dInfo );
+		$retCode = 0;
+		$retUser = $dUser;
+		$retPasswd = $dPasswd;
+		@retInfo = @dInfo;
 	    }
-	    return( 4 );
+	    else
+	    {
+		$retCode = 4;
+	    }
 	}
     }
     close( USERDB );
-    return( 3 );
+
+    return ( $retCode, $retUser, $retPasswd, @retInfo );
 }
 
 
