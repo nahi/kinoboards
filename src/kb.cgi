@@ -18,9 +18,9 @@ $KBDIR_PATH = '';
 # 3. アイコンおよびスタイルシートファイルを，このファイルと別のディレクトリに
 #    置く場合は，その別ディレクトリのURLを指定してください（パスではなく，
 #    URLです）．指定するURLは，ブラウザからアクセス可能でなければいけません．
+#
 #    本ファイルと同じディレクトリにicon，styleディレクトリを置く場合は，
 #    特に指定しなくてもかまいません（このまま書き換えなくて構いません）．
-#
 #    ただし，CGIWRAP環境にインストールする場合は，必ず指定しなければなりません
 #    （詳しくは，インストール手順ドキュメントを参照してください）．
 #
@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.81 2000-06-26 06:05:14 nakahiro Exp $
+# $Id: kb.cgi,v 5.82 2000-07-01 13:15:37 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -77,7 +77,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7.1';		# release
+$KB_RELEASE = '7.2';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -118,7 +118,7 @@ require( $HEADER_FILE ) if ( -s "$HEADER_FILE" );
 # メインのヘッダファイルの読み込み
 if ( !$KBDIR_PATH || !chdir( $KBDIR_PATH ))
 {
-    print "Content-Type: text/plain; charset=EUC-JP\n\n";
+    print "Content-Type: text/plain; charset=EUC-JP\r\n\r\n";
     print "エラー．管理者様へ:\n";
     print "$0の先頭部分に置かれている\$KBDIR_PATHが，\n";
     print "正しく設定されていません\n";
@@ -692,11 +692,7 @@ exit( 0 );
 sub doKill
 {
     local( $sig ) = @_;
-    if ( !$PC )
-    {
-	&cgi'unlock_file( $LOCK_FILE );
-	&cgi'unlock_file( $LOCK_FILE_B ) if $LOCK_FILE_B;
-    }
+    &unlockAll();
     &kbLog( $kinologue'SEV_WARN, "Caught a SIG$sig - shutting down..." );
     exit( 1 );
 }
@@ -774,7 +770,7 @@ sub fatal
 
     # 異常終了の可能性があるので，とりあえずlockを外す
     # (ロックの失敗の時以外)
-    if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ))
+    if (( $errno != 999 ) && ( $errno != 1001 ))
     {
 	&unlockAll();
     }
@@ -1388,9 +1384,11 @@ sub uiUserConfigExec
     &checkName( *user );
     &checkEmail( *mail );
     &checkURL( *url );
+
+    local( $changePasswd ) = ( $p1 || $p2 );
 		
-    # （必要なら）パスワード変更
-    if ( $p1 || $p2 )
+    # パスワード変更のためのチェック
+    if ( $changePasswd )
     {
 	&checkPasswd( *p1 );
 
@@ -1398,17 +1396,24 @@ sub uiUserConfigExec
 	{
 	    &fatal( 42, $H_PASSWD );
 	}
+    }
 
+    # 登録済みユーザのチェック
+    if ( $SYS_POSTERMAIL && ( $mail ne '' ))
+    {
+	if ( &cgiauth'searchUserInfo( $USER_AUTH_FILE, $mail, undef ) ne $user )
+	{
+	    &fatal( 6, $mail );
+	}
+    }
+
+    # 必要ならパスワード変更
+    if ( $changePasswd )
+    {
 	if ( !&cgiauth'setUserPasswd( $USER_AUTH_FILE, $user, $p1 ))
 	{
 	    &fatal( 41, $user );
 	}
-    }
-
-    # 登録済みユーザの検索
-    if ( $SYS_POSTERMAIL && ( $mail ne '' ) && &cgiauth'searchUserInfo( $USER_AUTH_FILE, $mail, undef ))
-    {
-	&fatal( 6, $mail );
     }
 
     # ユーザ情報更新
@@ -1419,7 +1424,15 @@ sub uiUserConfigExec
 
     &unlockAll();
 
-    &uiBoardList();
+    if ( $changePasswd )
+    {
+	# ユーザ情報をクリアして，再度ログイン
+	&uiLogin();
+    }
+    else
+    {
+	&uiBoardList();
+    }
 }
 
 
@@ -2887,13 +2900,14 @@ sub hg_c_top_menu
     if ( $SYS_AUTH )
     {
 	$formStr .= &linkP( 'c=bl', 'TOP', 'J' ) . "\n";
+	$formStr .= ' ' . &linkP( 'c=h', 'HELP', 'H' ) . "\n";
 	$formStr .= ' ' . &linkP( 'c=ue', 'OPEN', 'O' ) . "\n";
 	$formStr .= ' ' . &linkP( 'c=lo', 'LOGIN', 'L' ) . "\n";
 	if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne $cgiauth'F_COOKIE_RESET ))
 	{
 	    $formStr .= ' ' . &linkP( 'c=uc', 'INFO', 'I' ) . "\n";
 	}
-	$formStr .= "&nbsp;&nbsp;&nbsp;\n";
+	$formStr .= "&nbsp;&nbsp;\n";
     }
 
     if ( $BOARD )
@@ -4703,12 +4717,16 @@ sub tagA
 
     $gTagAStr = qq(<a);
 
-    if ( $SYS_KEYBOARD_SHORTCUT && ( $key eq '' ))
+    if ( $SYS_KEYBOARD_SHORTCUT )
     {
-	$key = $gLinkNum;
-	$gLinkNum = 0 if ( ++$gLinkNum > 9 );
+	if ( $key eq '' )
+	{
+	    $key = $gLinkNum;
+	    $gLinkNum = 0 if ( ++$gLinkNum > 9 );
+	}
+	$gTagAStr .= qq( accesskey="$key");
     }
-    $gTagAStr .= qq( accesskey="$key") if $SYS_KEYBOARD_SHORTCUT;
+
     $gTagAStr .= qq( href="$href") if ( $href ne '' );
     $gTagAStr .= qq( title="$title") if ( $title ne '' );
     $gTagAStr .= qq( name="$name") if ( $name ne '' );
@@ -5591,8 +5609,7 @@ sub sendMail
 	$FromAddr = $MAINT;
     }
 
-    local( $SenderFrom, $SenderAddr ) = (( $MAILFROM_LABEL || $MAINT_NAME ),
-	$MAINT );
+    local( $SenderFrom, $SenderAddr ) = (( $MAILFROM_LABEL || $MAINT_NAME ), $MAINT );
     &cgi'sendMail( $FromName, $FromAddr, $SenderFrom, $SenderAddr, $Subject,
  	$ExtHeader, $Message, $MAILTO_LABEL, @To );
 }
@@ -7546,14 +7563,27 @@ sub updateArt
     local( $Board, $Id, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail, $TextType, $Article ) = @_;
 
     local( $SupersedeId, $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail );
-    
+
+    # 訂正済みメッセージのID．
+    $SupersedeId = 0;
+
+    local( $File ) = &getPath( $Board, $DB_FILE_NAME );
+    open( DB, "<$File" ) || &fatal( 1, $File );
+    while ( <DB> )
+    {
+	( $dId, ) = split( /\t/, $_, 2 );
+
+	# later versionが見つかったら，versionを先読みしておく．
+	if ( $dId =~ /^\#-${Id}_(\d+)/ )
+	{
+	    $SupersedeId = $1 if ( $1 > $SupersedeId );
+	}
+    }
     # initial versionは1で，1ずつ増えていく．1，2，…9，10，11，…
-    # later versionはDB中で必ず，younger versionよりも下に出現する．
-    # すなわち10_2，10，10_1は，10_1，10_2，10の順に並ぶものとする．
-    $SupersedeId = 1;
+    $SupersedeId++;	
+    close DB;
 
     local( $dbLine );
-    local( $File ) = &getPath( $Board, $DB_FILE_NAME );
     local( $TmpFile ) = &getPath( $Board, "$DB_FILE_NAME.$TMPFILE_SUFFIX$$" );
     open( DBTMP, ">$TmpFile" ) || &fatal( 1, $TmpFile );
     open( DB, "<$File" ) || &fatal( 1, $File );
@@ -7568,12 +7598,6 @@ sub updateArt
 	chop;
 
 	( $dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail ) = split( /\t/, $_ );
-
-	# later versionが見つかったら，versionを先読みしておく．
-	if ( "$dId" eq ( sprintf( "#-%s_%s", $Id, $SupersedeId )))
-	{
-	    $SupersedeId++;
-	}
 
 	# 訂正記事の最新版が見つかったら，
 	if ( $dId eq $Id )
