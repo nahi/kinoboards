@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.31 1996-11-19 13:59:23 nakahiro Exp $
+# $Id: kb.cgi,v 4.32 1996-12-02 10:01:32 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -57,6 +57,7 @@ require('tag_secure.pl');
 # 配列のdefault
 #
 $[ = 0;
+$| = 1;
 
 #
 # VersionとRelease番号
@@ -163,6 +164,9 @@ sub DoKill {
 #
 MAIN: {
 
+    # まずはロック
+    &lock();
+
     # 標準入力(POST)または環境変数(GET)のデコード．
     &cgi'decode;
 
@@ -182,9 +186,6 @@ MAIN: {
     local($Name) = $cgi'TAGS{'name'};
     local($Email) = $cgi'TAGS{'email'};
     local($URL) = $cgi'TAGS{'url'};
-
-    # まずはロック
-    &lock();
 
     # コマンドタイプによる分岐
     if ($Command eq "e") {
@@ -721,6 +722,7 @@ sub AddDBFile {
     local($Id, $Fid, $InputDate, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $Fmail) = @_;
 
     local($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
+    local($mdEmail, $mdName, $mdInputDate, $mdSubject, $mdId, $mName, $mSubject, $mId) = ('', '', '', '', 0, '', '', 0);
     local($FidList) = $Fid;
     
     # 登録ファイル
@@ -736,7 +738,7 @@ sub AddDBFile {
 
 	# Version Check
 	&VersionCheck('DB', $1)
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	    if (m/^\# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
 
 	print(DBTMP "$_"), next if (/^\#/);
 	print(DBTMP "$_"), next if (/^$/);
@@ -745,7 +747,7 @@ sub AddDBFile {
 	($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail) = split(/\t/, $_);
 	
 	# フォロー先記事が見つかったら，
-	if ($dId == $Fid) {
+	if ($dId && ($dId == $Fid)) {
 
 	    # その記事のフォロー記事IDリストに加える(カンマ区切り)
 	    if ($dAids) {$dAids .= ",$Id";} else {$dAids = $Id;}
@@ -754,9 +756,16 @@ sub AddDBFile {
 	    # 新記事のフォロー先リストを作る
 	    $FidList = "$dId,$dFid" if ($dFid);
 
-	    # 必要なら反応があったことをメールする
-	    &FollowMail($dEmail, $dName, $dInputDate, $dSubject, $dId, $Name, $Subject, $Id) if (($SYS_FOLLOWMAIL) && ($dFmail));
-
+	    if (($SYS_FOLLOWMAIL) && ($dFmail)) {
+		$mdEmail = $dEmail;
+		$mdName = $dName;
+		$mdInputDate = $dInputDate;
+		$mdSubject = $dSubject;
+		$mdId = $dId;
+		$mName = $Name;
+		$mSubject = $Subject;
+		$mId = $Id;
+	    }
 	}
 
 	# DBに書き加える
@@ -772,6 +781,9 @@ sub AddDBFile {
 
     # DBを更新する
     rename($TmpFile, $File);
+
+    # 必要なら反応があったことをメールする
+    &FollowMail($mdEmail, $mdName, $mdInputDate, $mdSubject, $mdId, $mName, $mSubject, $mId) if ($mdEmail);
 
 }
 
@@ -2183,7 +2195,7 @@ sub GetBoardInfo {
 
 	# Version Check
 	&VersionCheck('Board', $1), next
-	    if (m/^# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
+	    if (m/^\# Kb-System-Id: ([0-9\.]*\/[0-9\.]*)$/o);
 
 	next if (/^\#/);
 	next if (/^$/);
@@ -2193,7 +2205,6 @@ sub GetBoardInfo {
     }
     close(ALIAS);
 
-    # ヒットせず
     return($BoardName);
 
 }
