@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.8 2000-07-01 12:09:54 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.9 2000-07-01 12:10:49 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -61,7 +61,7 @@ $COLSEP = "\377";
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.10';		# release
+$KB_RELEASE = '6.11';		# release
 
 # ディレクトリ
 $ICON_DIR = 'icons';				# アイコンディレクトリ
