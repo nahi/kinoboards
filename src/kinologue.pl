@@ -51,6 +51,7 @@ $SEV_ANY	= 6;		# another severity.
 
 # require jcode.pl if needed.
 require( 'jcode.pl' ) if $JAPANESE_CODE;
+%CHARSET_MAP = ( 'euc', 'EUC-JP', 'jis', 'ISO-2022-JP', 'sjis', 'Shift_JIS' );
 
 
 ######################################################################
@@ -241,14 +242,23 @@ sub __KlgLogHtmlHeader
     local( $timeStr ) = &__KlgDateTimeFormatOfUtc( time );
 
     open( LOG, ">$logfile" );
+
     print( LOG <<__EOF__);
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <head>
-<TITLE>$logfile - kinologue log file</TITLE>
+__EOF__
+
+    print( LOG "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=" . $CHARSET_MAP{ $JAPANESE_CODE } . "\">" );
+
+    print( LOG <<__EOF__);
+<title>$logfile - kinologue log file</title>
+<link rev="MADE" href="mailto:$MAINT">
 </head>
 <body>
+
 <h1>$logfile - <a href="http://www.jin.gr.jp/~nahi/src/perl.shtml#kinologue.pl">kinologue</a> log file</h1>
+
 <p>
 created on $timeStr.
 </p>
@@ -386,7 +396,7 @@ sub __KlgShiftLog
 1;
 
 
-# $Id: kinologue.pl,v 1.7 1999-02-17 18:30:52 nakahiro Exp $
+# $Id: kinologue.pl,v 1.8 1999-06-21 13:55:24 nakahiro Exp $
 
 
 # This program is free software; you can redistribute it and/or modify
