@@ -10,7 +10,7 @@
 # 2. kbディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    ブラウザからアクセス可能なディレクトリでなくてもかまいません
 #
-$KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst/';
+$KBDIR_PATH = '';
 # $KBDIR_PATH = '/home/nahi/public_html';
 # $KBDIR_PATH = 'd:\inetpub\wwwroot\kb';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb';			# Macの場合?
@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.63 2000-03-03 14:26:41 nakahiro Exp $
+# $Id: kb.cgi,v 5.64 2000-03-03 14:28:23 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
