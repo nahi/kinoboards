@@ -1,8 +1,8 @@
-# $Id: cgi.pl,v 1.25 1998-02-05 11:39:27 nakahiro Rel $
+# $Id: cgi.pl,v 1.26 1998-02-05 11:45:03 nakahiro Rel $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
-# Copyright (C) 1995, 96, 97 NAKAMURA Hiroshi.
+# Copyright (C) 1995-98 NAKAMURA Hiroshi.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
