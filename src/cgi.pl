@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.28 1998-02-21 17:21:14 nakahiro Exp $
+# $Id: cgi.pl,v 1.29 1998-02-21 21:38:51 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -369,8 +369,8 @@ sub Decode {
 	    $TAGS{ $key } = $value;
 	}
 
-	$TAGS{ $key } =~ s/\0x0d\0x0a/\0x0a/go;
-	$TAGS{ $key } =~ s/\0x0d/\0x0a/go;
+	$TAGS{ $key } =~ s/\xd\xa/\xa/go;
+	$TAGS{ $key } =~ s/\xd/\xa/go;
     }
 }
 
