@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.28 1999-06-25 16:35:37 nakahiro Exp $
+# $Id: cgi.pl,v 2.29 1999-06-27 00:14:37 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -67,6 +67,9 @@ if (( $ENV{'SERVER_SOFTWARE'} =~ /IIS/ ) && ( $SCRIPT_NAME eq $PATH_INFO ))
 else
 {
     # for not IIS...
+
+    # It seems that only Apache support REQUEST_URI...
+    $REQUEST_URI = $REQUEST_URI || "$SCRIPT_NAME$PATH_INFO?$QUERY_STRING";
     ( $PROGRAM = $REQUEST_URI ) =~ s/\?.*$//o;
 }
 
