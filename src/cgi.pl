@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 1.21 1997-11-26 07:54:46 nakahiro Rel $
+# $Id: cgi.pl,v 1.22 1997-11-26 12:05:41 nakahiro Rel $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -473,7 +473,6 @@ $F_HTML_TAGS_PARSED = 0;
 sub SecureHtml {
     local( *string ) = @_;
     local( $srcString ) = '';
-    local( $count, $backupString, $before, $after );
     local( $tag, $need, $feature, $markuped );
 
     # HTML_TAGSの解析（一度だけ実施）
@@ -577,15 +576,16 @@ sub SecureFeature {
     local( $tag, $allowedFeatures, $features ) = @_;
     return( 1 ) unless ( $features );
     local( @allowed ) = split( /\//, $allowedFeatures );
+    local( $feature );
     local( $ret ) = 1;
     while ( $features ) {
-	$features = &GetFeatureName( *features );
+	$feature = &GetFeatureName( *features );
 	$value = &GetFeatureValue( *features );
 	if ( !$value ) {
 	    $value = $features;
 	    $features = '';
 	}
-	$ret = 0 if ( !$features ) || ( !grep( /$features/i, @allowed ));
+	$ret = 0 if ( !$feature ) || ( !grep( /$feature/i, @allowed ));
     }
     $ret;
 }
