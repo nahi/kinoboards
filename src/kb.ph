@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.12 1996-11-19 12:08:22 nakahiro Exp $
+# $Id: kb.ph,v 4.13 1997-01-28 13:05:16 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -29,9 +29,23 @@ $MAINT_NAME = 'KinoAdmin';
 $MAINT = 'nakahiro@kinotrope.co.jp';
 
 #
-# sendmailのパスとオプション
+# サーバが動いているマシンはどれですか?
+# 該当する1行を残してコメントアウトしてください．
 #
-$MAIL2 = '/usr/lib/sendmail -oi -t';
+$ARCH = 'UNIX';			# UNIX + Perl4/5
+# $ARCH = 'Mac';			# Mac + MacPerl
+# $ARCH = 'Win';			# Win95 + Perl5
+
+#
+# UNIXの場合はsendmailのパスとオプションを，
+# Mac or Winの場合はメイルを放り込むファイルを，
+# 指定します．
+#
+$MAIL2 = '/usr/lib/sendmail -oi -t'	if ($ARCH eq 'UNIX');
+$MAIL2 = ':SendMail'			if ($ARCH eq 'Mac');
+$MAIL2 = 'SendMail'			if ($ARCH eq 'Win');
+#
+# MacPerlやWinPerl5でメイル出すにはどうしたらいい?
 
 #
 # システムの設定
@@ -62,6 +76,7 @@ $SYS_BOTTOMTITLE = 0;
 $SYS_BOTTOMARTICLE = 1;
 
 # メール送信サービスを利用するか否か(日本語のみ)
+# (サーバが動いているマシンがUNIXの場合のみ有効)
 #   0: 利用しない
 #   1: 利用する
 $SYS_FOLLOWMAIL = 1;
@@ -149,6 +164,7 @@ $H_URL = "URL(省略可)";
 $H_DATE = "投稿日";
 $H_REPLY = "リプライ";
 $H_ORIG = "$H_REPLY元";
+$H_ORIG_TOP = "オリジナル";
 
 $ENTRY_MSG = "$H_MESGの書き込み";
 $SHOWICON_MSG = "アイコンの説明";
@@ -159,10 +175,10 @@ $SORT_MSG = "タイトル一覧(日付順)";
 $NEWARTICLE_MSG = "最近の$H_MESGをまとめ読み";
 $THREADARTICLE_MSG = "$H_REPLYをまとめ読み";
 $SEARCHARTICLE_MSG = "$H_MESGの検索";
-$ALIASNEW_MSG = "エイリアスの登録/変更/削除";
-$ALIASMOD_MSG = "エイリアスが変更されました";
-$ALIASDEL_MSG = "エイリアスが削除されました";
-$ALIASSHOW_MSG = "エイリアスの参照";
+$ALIASNEW_MSG = "$H_ALIASの登録/変更/削除";
+$ALIASMOD_MSG = "$H_ALIASが設定されました";
+$ALIASDEL_MSG = "$H_ALIASが削除されました";
+$ALIASSHOW_MSG = "$H_ALIASの参照";
 $ERROR_MSG   = "$SYSTEM_NAME: ERROR!";
 
 $H_LINE = "------------------------------";
@@ -183,9 +199,9 @@ $H_AORI = ($SYS_TEXTTYPE)
 ただしHTMLをご存じの方は，「$H_TEXTTYPE」を「$H_HTML」にして，$H_MESGをHTMLとして書いて頂くと，HTML整形を行ないます．"
     : "$H_SUBJECT，$H_MESG，$H_FROM，$H_MAIL，さらにホームページをお持ちの方は$H_URLを書き込んでください．<strong>$H_MESGはメールと同じように，そのまま書いてくださればOKです</strong>．";
 $H_SEEICON = "アイコンの説明";
-$H_SEEALIAS = "エイリアスの一覧";
+$H_SEEALIAS = "$H_ALIASの一覧";
 $H_ALIASENTRY = "登録する";
-$H_ALIASINFO = "「エイリアス」に，$H_FROMと$H_MAIL，$H_URLを登録なさっている方は，「$H_FROM」に「#...」という登録名を書いてください．自動的に$H_FROMと$H_MAIL，$H_URLが補われます．";
+$H_ALIASINFO = "「$H_ALIAS」に，$H_FROMと$H_MAIL，$H_URLを登録なさっている方は，「$H_FROM」に「#...」という登録名を書いてください．自動的に$H_FROMと$H_MAIL，$H_URLが補われます．";
 $H_PREVIEW_OR_ENTRY = "書き込んだ内容を，";
 $H_PREVIEW = "試しに表示してみる(まだ投稿しません)";
 $H_ENTRY = "$H_MESGを投稿する";
@@ -196,7 +212,8 @@ $H_ICONINTRO_ARTICLE = "各アイコンは次の機能を表しています．";
 $H_POSTINFO = "必要であれば，戻って書き込みを修正してください．よろしければボタンを押して書き込みましょう．";
 $H_PUSHHERE_PREVIEW = "投稿する";
 $H_THANKSMSG = "書き込みの訂正，取消などは，メールで<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
-$H_BACK = "タイトル一覧に戻ります";
+$H_BACKTITLE = "タイトル一覧に戻ります";
+$H_BACKORG = "元の記事に戻ります";
 $H_NEXTARTICLE = "次の$H_MESGへ";
 $H_POSTNEWARTICLE = "新規に投稿する";
 $H_REPLYTHISARTICLE = "$H_REPLYを書き込む";
@@ -223,13 +240,13 @@ $H_INPUTKEYWORD = "<p>
 </p>";
 $H_NOTFOUND = "該当する$H_MESGは見つかりませんでした．";
 $H_ALIASTITLE = "新規登録/登録内容の変更";
-$H_ALIASNEWCOM = "エイリアスの新規登録/登録内容の変更を行ないます．ただし悪戯防止のため，変更は，登録の際と同じマシンでなければできません．変更できない場合は，<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします．";
+$H_ALIASNEWCOM = "$H_ALIASの新規登録/登録内容の変更を行ないます．ただし悪戯防止のため，変更は，登録の際と同じマシンでなければできません．変更できない場合は，<a href=\"mailto:$MAINT\">$MAINT</a>までメールでお願いします．";
 $H_ALIASNEWPUSH = "登録/変更する";
 $H_ALIASDELETE = "削除";
-$H_ALIASDELETECOM = "上記エイリアスを削除します．同じく登録の際と同じマシンでなければ削除できません．";
+$H_ALIASDELETECOM = "上記$H_ALIASを削除します．同じく登録の際と同じマシンでなければ削除できません．";
 $H_ALIASDELETEPUSH = "削除する";
-$H_ALIASREFERPUSH = "エイリアス一覧を参照する";
-$H_ALIASCHANGED = "変更しました．";
+$H_ALIASREFERPUSH = "$H_ALIAS一覧を参照する";
+$H_ALIASCHANGED = "設定しました．";
 $H_ALIASENTRIED = "登録しました．";
 $H_ALIASDELETED = "消去しました．";
 $H_AORI_ALIAS = "投稿の際，「$H_FROM」の部分に以下の登録名(「#....」)を入力すると，登録されている$H_FROMと$H_MAIL，$H_URLが自動的に補われます．";
