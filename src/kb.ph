@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 4.15 1997-02-08 21:25:43 nakahiro Exp $
+# $Id: kb.ph,v 4.16 1997-02-14 11:43:17 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -40,21 +40,30 @@ $MAINT = 'nakahiro@kinotrope.co.jp';
 
 #
 # UNIXの場合はsendmailのパスとオプションを，
-# Mac or Winの場合はメイルを放り込むファイルを，
+# Macの場合はSMTP serverの動いているマシンのホスト名を，
+# Winの場合はメイルを放り込むファイルを，
 # 指定してください．
 #
 $MAIL2 = '/usr/lib/sendmail -oi -t'	if ($ARCH eq 'UNIX');
 $MAIL2 = 'SendMail'			if ($ARCH eq 'WinNT');
 $MAIL2 = 'SendMail'			if ($ARCH eq 'Win95');
-$MAIL2 = ':SendMail'			if ($ARCH eq 'Mac');
+$MAIL2 = 'foo.bar.baz.co.jp'		if ($ARCH eq 'Mac');
 #
-# WinやMacPerlの場合，今のところメイル送信機能がありません．
+# MacPerlでメイル送信機能を用いるには，
+# <URL:ftp://mors.gsfc.nasa.gov/pub/MacPerl/Scripts/>
+# に置かれている，MacPerl用のlibnetが必要です．
+#
+# Winの場合，今のところメイル送信機能がありません．
 # メイルはすべて，上で指定したファイルに書き出されます．
-#
-# 一応ファイルに書き出されるので，1日1回，そのファイルを適当に分割し，
+# 一応，1日1回，そのファイルを適当に分割し，
 # 手動で送信するという手もありますね．(^_^;
 # WinNTにはsendmailがあるはずなので，いつかは対応したい……
 #
+
+#
+# スクリプトのメインの漢字コード(EUCじゃなきゃ動きません)
+#
+$SCRIPT_KCODE = 'euc';
 
 #
 # システムの設定
