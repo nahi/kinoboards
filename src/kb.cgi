@@ -42,7 +42,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.56 2000-02-25 12:53:55 nakahiro Exp $
+# $Id: kb.cgi,v 5.57 2000-02-25 13:40:26 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -5012,7 +5012,7 @@ sub HTMLDecode
 sub URIEscape
 {
     local( $_ ) = @_;
-    s/[^A-Za-z0-9\\\-_\.!~*'() ]/sprintf( "%%%02X", ord( $1 ))/eg;
+    s/([^A-Za-z0-9\\\-_\.!~*'() ])/sprintf( "%%%02X", ord( $1 ))/eg;
     s/ /+/go;
     $_;
 }
