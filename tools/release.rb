@@ -71,7 +71,7 @@ end
 
 # create archive(tar.gz)
 tarfile = "KB_#{ release }.tar"
-`tar cvfp #{ tarfile } KB_#{ release } && gzip #{ tarfile }`
+`tar cvfp #{ tarfile } KB_#{ release } && gzip -9 #{ tarfile }`
 
 # create archive(tar.gz)
 lhafile = "KB_#{ release }.LZH"
