@@ -10,7 +10,7 @@
 # 2. kbdataディレクトリのフルパスを指定してください（URLではなく，パスです）．
 #    ブラウザからアクセス可能なディレクトリでなくてもかまいません
 #
-$KBDIR_PATH = '/home/achilles/nakahiro/cvs_work/KB/tst/';
+$KBDIR_PATH = '';
 # $KBDIR_PATH = '/home/nahi/kbdata/';
 # $KBDIR_PATH = 'd:\securedata\kbdata\';	# WinNT/Win9xの場合
 # $KBDIR_PATH = 'foo:bar:kb:';			# Macの場合?
@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.69 2000-04-21 15:25:02 nakahiro Exp $
+# $Id: kb.cgi,v 5.70 2000-04-21 15:27:08 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -72,7 +72,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7β6-dev';		# release
+$KB_RELEASE = '7β6';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
