@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.36 1999-09-22 14:13:59 nakahiro Exp $
+# $Id: cgi.pl,v 2.37 1999-10-20 14:30:10 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -173,9 +173,14 @@ sub Header
     # Header for HTTP Cookies.
     if ( $cookieFlag )
     {
+	local( $key, $value, %urlEscapeCache );
 	foreach ( @cookieList )
 	{
-	    print( "Set-Cookie: $_;" );
+	    # Escape unexpected chars in data.
+	    ( $key, $value ) = split( /=/, $_, 2 );
+	    $value =~ s/(\W)/$urlEscapeCache{$1} ||= sprintf( "%%%02X",
+		ord( $1 ))/eg;
+	    print( "Set-Cookie: $key=$value;" );
 	    if ( $cookieExpire eq '' )
 	    {
 		# continue
@@ -225,14 +230,14 @@ sub GetHttpDateTimeFromUtc
 
 ###
 ## Decoding CGI variables
-## CAUTION! functioon decode sets global variable, TAGS.
+## CAUTION! function decode sets global variable, TAGS.
 #
 sub Decode
 {
-    local( $args, $readSize, $key, $term, $value, $encode );
+    local( $args );
     if ( $ENV{ 'REQUEST_METHOD' } eq 'POST' )
     {
-	$readSize = read( STDIN, $args, $ENV{ 'CONTENT_LENGTH' } );
+	local( $readSize ) = read( STDIN, $args, $ENV{ 'CONTENT_LENGTH' } );
 	$args = '' if ( $readSize != $ENV{ 'CONTENT_LENGTH' } );
     }
     else			# GET, HEAD, PUT, OPTIONS, DELETE, TRACE?
@@ -240,12 +245,12 @@ sub Decode
 	$args = $QUERY_STRING;
     }
 
-    foreach $term ( split( '&', $args ))
+    foreach ( split( '&', $args ))
     {
-	( $key, $value ) = split( /=/, $term, 2 );
+	local( $key, $value ) = split( /=/, $_, 2 );
 	$value =~ tr/+/ /;
 	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack( "C", hex( $1 ))/ge;
-	$encode = &jcode'getcode( *value );
+	local( $encode ) = &jcode'getcode( *value );
 
 	&jcode'convert( *value, 'euc', $encode, "z" ) if ( defined( $encode ));
 
@@ -267,10 +272,11 @@ sub Decode
 #
 sub Cookie
 {
-    local( $key, $value, $term );
-    foreach $term ( split( /;\s*/, $ENV{ 'HTTP_COOKIE' }))
+    local( $key, $value );
+    foreach ( split( /;\s*/, $ENV{ 'HTTP_COOKIE' }))
     {
-	( $key, $value ) = split( /=/, $term, 2 );
+	( $key, $value ) = split( /=/, $_, 2 );
+	$value =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack( "C", hex( $1 ))/ge;
 	$COOKIES{ $key } = $value;
     }
 }
@@ -718,8 +724,8 @@ sub SecureHtmlEx
     $string =~ s/>/&gt;/g;
     while (( $tag, $need ) = each( %nVec ))
     {
-        $string =~ s!__$tag Open([^\377]*)\377__!<$tag$1>!g;
-        $string =~ s!__$tag Close\377__!</$tag>!g;
+	$string =~ s!__$tag Open([^\377]*)\377__!<$tag$1>!g;
+	$string =~ s!__$tag Close\377__!</$tag>!g;
 	$string =~ s!__amp\377__!&!go;
 	$string =~ s!__quot\377__!"!go;
     }
