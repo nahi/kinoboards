@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="EUC-JP"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:kb="http://www.keynauts.com/2000/kb"
+    lang="ja" xml:lang="ja">
+<head>
+<kb:s_title />
+<title>タイトル一覧（スレッド） - <kb:b_board_name /></title>
+</head>
+<body>
+
+<h1>タイトル一覧（スレッド） - <kb:b_board_name /></h1>
+
+<kb:c_status />
+<kb:c_top_menu />
+
+<hr />
+
+<kb:thread_title_board_header />
+
+<hr />
+
+<kb:c_page_link />
+
+<hr />
+
+<kb:thread_title_tree />
+
+<hr />
+
+<kb:c_page_link />
+
+<hr />
+
+<kb:s_address />
+
+</body>
+</html>
