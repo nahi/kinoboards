@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.40 1997-03-13 15:27:16 nakahiro Exp $
+# $Id: kb.cgi,v 4.41 1997-06-19 12:59:25 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -43,6 +43,7 @@ $PROGRAM = (($PATH_INFO) ? "$SCRIPT_NAME$PATH_INFO" : $CGIPROG_NAME);
 ###
 ## インクルードファイルの読み込み
 #
+require('kb.ph') if ($PATH_INFO && (-s 'kb.ph'));
 chdir($PATH_TRANSLATED) if ($PATH_TRANSLATED ne '');
 require('kb.ph');
 require('cgi.pl');
@@ -60,7 +61,7 @@ $| = 1;
 # VersionとRelease番号
 #
 $KB_VERSION = '1.0';
-$KB_RELEASE = '3.4pre';
+$KB_RELEASE = '3.5pre';
 
 #
 # 著作権表示
@@ -78,8 +79,6 @@ $ARTICLE_NUM_TMP_FILE_NAME = '.articleid.tmp';
 $CONF_FILE_NAME = '.kbconf';
 # 掲示板別新規メイル送信先ファイル
 $ARRIVEMAIL_FILE_NAME = '.kbmail';
-# 掲示板別新規メイル送信先テンポラリファイル
-$ARRIVEMAIL_TMP_FILE_NAME = '.kbmail.tmp';
 # タイトルリストヘッダファイル
 $BOARD_FILE_NAME = '.board';
 # DBファイル
@@ -117,8 +116,6 @@ $ICON_HELP = "$ICON_DIR/help.gif";
 # アイコン定義ファイルのポストフィクス
 # アイコン定義ファイル，「(ボードディレクトリ名).(指定した文字列)」になる．
 $ICONDEF_POSTFIX = 'idef';
-$ICON_HEIGHT = 20;
-$ICON_WIDTH = 20;
 
 #
 # 1日
@@ -161,25 +158,29 @@ MAIN: {
     local($Id) = $cgi'TAGS{'id'};
 
     # コマンドタイプによる分岐
-    &ShowArticle($Id),		last if ($Command eq 'e');
-    &ThreadArticle($Id),	last if ($Command eq 't');
-    &Entry('', ''),		last if ($Command eq 'n');
-    &Entry('', $Id),		last if ($Command eq 'f');
-    &Entry('quote', $Id),	last if ($Command eq 'q');
-    &Preview,			last if (($Command eq 'p') && ($Com ne 'x'));
-    &Thanks,			last if ($Command eq 'x');
-    &Thanks,			last if (($Command eq 'p') && ($Com eq 'x'));
-    &ViewTitle,			last if ($Command eq 'v');
-    &SortArticle,		last if ($Command eq 'r');
-    &NewArticle,		last if ($Command eq 'l');
-    &SearchArticle,		last if ($Command eq 's');
-    &ShowIcon,			last if ($Command eq 'i');
-    &AliasNew,			last if ($Command eq 'an');
-    &AliasMod,			last if ($Command eq 'am');
-    &AliasDel,			last if ($Command eq 'ad');
-    &AliasShow,			last if ($Command eq 'as');
+    &ShowArticle($Id),	last if ($SYS_F_E && ($Command eq 'e'));
+    &ThreadArticle($Id),last if ($SYS_F_T && ($Command eq 't'));
+    &Entry('', ''),	last if ($SYS_F_N && ($Command eq 'n'));
+    &Entry('', $Id),	last if ($SYS_F_FQ && ($Command eq 'f'));
+    &Entry('quote', $Id),last if ($SYS_F_FQ && ($Command eq 'q'));
+    &Preview,		last if (($SYS_F_N || $SYS_F_FQ) && ($Command eq 'p') && ($Com ne 'x'));
+    &Thanks,		last if (($SYS_F_N || $SYS_F_FQ) && ($Command eq 'x'));
+    &Thanks,		last if (($SYS_F_N || $SYS_F_FQ) && ($Command eq 'p') && ($Com eq 'x'));
+    &ViewTitle,		last if ($SYS_F_V && ($Command eq 'v'));
+    &SortArticle,	last if ($SYS_F_R && ($Command eq 'r'));
+    &NewArticle,	last if ($SYS_F_L && ($Command eq 'l'));
+    &SearchArticle,	last if ($SYS_F_S && ($Command eq 's'));
+    &ShowIcon,		last if ($SYS_F_I && ($Command eq 'i'));
+    &AliasNew,		last if ($SYS_ALIAS && ($Command eq 'an'));
+    &AliasMod,		last if ($SYS_ALIAS && ($Command eq 'am'));
+    &AliasDel,		last if ($SYS_ALIAS && ($Command eq 'ad'));
+    &AliasShow,		last if ($SYS_ALIAS && ($Command eq 'as'));
 
-    print("huh... what's up? running under any shell?\n");
+    if ($Command ne '') {
+	&Fatal(99, '');
+    } else {
+	print("huh... what's up? running under any shell?\n");
+    }
 
 }
 
@@ -308,7 +309,12 @@ __EOF__
 
 	}
 	close(ICON);
-	&cgiprint'Cache("</SELECT>\n(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
+	&cgiprint'Cache("</SELECT>\n");
+
+	if ($SYS_F_I) {
+	    &cgiprint'Cache("(<a href=\"$PROGRAM?b=$BOARD&c=i&type=entry\">$H_SEEICON</a>)<BR>\n");
+	}
+
     }
 
     # Subject(フォローなら自動的に文字列を入れる)
@@ -478,7 +484,7 @@ __EOF__
     # 題
     (($Icon eq $H_NOICON) || (! $Icon))
         ? &cgiprint'Cache("<strong>$H_SUBJECT</strong>: $Subject")
-            : &cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon)));
+            : &cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon)));
 
     # お名前
     if ($Url ne '') {
@@ -502,7 +508,7 @@ __EOF__
     }
 
     # 切れ目
-    &cgiprint'Cache("</p>\n$H_LINE<br>\n");
+    &cgiprint'Cache("</p>\n$H_LINE\n");
 
     # TextType用前処理
     &cgiprint'Cache("<p><pre>") if ((! $SYS_TEXTTYPE) || ($TextType eq $H_PRE));
@@ -537,6 +543,10 @@ sub Thanks {
 <p>
 $H_THANKSMSG
 </p>
+__EOF__
+
+    if ($SYS_F_V) {
+	&cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="v">
@@ -544,8 +554,9 @@ $H_THANKSMSG
 <input type="submit" value="$H_BACKTITLE">
 </form>
 __EOF__
+    }
 
-    if ($Id ne '') {
+    if ($SYS_F_E && ($Id ne '')) {
 	&cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
@@ -703,16 +714,17 @@ sub ArticleEncode {
     local($TestType, $Article) = @_;
     local($Return) = $Article;
     local(@Cash) = ();
-    local($Url, $Str);
+    local($Url, $UrlMatch, $Str);
 
     while ($Article =~ m/<URL:([^>]*)>/g) {
 	$Url = $1;
-	next if (grep(/^$Url$/, @Cash));
+	($UrlMatch = $Url) =~ s/\?/\\?/go;
+	next if (grep(/^$UrlMatch$/, @Cash));
 	push(Cash, $Url);
-	if (&IsUrl($Url)) {
+	if (&IsUrl($UrlMatch)) {
 	    $Str = "<a href=\"$Url\"><URL:$Url></a>";
 	}
-	$Return =~ s/<URL:$Url>/$Str/g;
+	$Return =~ s/<URL:$UrlMatch>/$Str/g;
     }
 
     &cgi'SecureHtml(*Return); #'
@@ -830,7 +842,7 @@ sub AddDBFile {
     rename($TmpFile, $File);
 
     # 必要なら投稿があったことをメイルする
-    &ArriveMail($Name, $Subject, $Id, @ARRIVE_MAIL) if ($SYS_MAIL && (@ARRIVE_MAIL = &GetArriveMailTo));
+    &ArriveMail($Name, $Subject, $Id, @ARRIVE_MAIL) if (@ARRIVE_MAIL = &GetArriveMailTo);
 
     # 必要なら反応があったことをメイルする
     &FollowMail($mdName, $mdInputDate, $mdSubject, $mdId, $mName, $mSubject, $mId, @FollowMailTo) if (@FollowMailTo);
@@ -860,7 +872,7 @@ sub ShowArticle {
     &ViewOriginalArticle($Id, 1, 1);
 
     # article end
-    &cgiprint'Cache("$H_LINE<br>\n<p>\n");
+    &cgiprint'Cache("$H_LINE\n<p>\n");
 
     # 反応記事
     &cgiprint'Cache("$H_FOLLOW\n");
@@ -1103,11 +1115,17 @@ sub ArriveMail {
 「$BOARDNAME」に対して「$Name」さんから，
 「$Subject」という題での書き込みがありました．
 
-お時間のある時に
+";
+
+    if ($SYS_F_E) {
+	$Message .= "お時間のある時に
 $SCRIPT_URL?b=$BOARD&c=e&id=$Id
 を御覧下さい．
 
-では失礼します．";
+";
+    }
+
+    $Message .= "では失礼します．";
 
     # メイル送信
     &SendMail($MailSubject, $Message, $Id, @To);
@@ -1134,16 +1152,28 @@ sub FollowMail {
 
 $InputDateに「$BOARDNAME」に対して「$Name」さんが書いた，
 「$Subject」
-$SCRIPT_URL?b=$BOARD&c=e&id=$Id
-に対して，
+";
+
+    if ($SYS_F_E) {
+	$Message .= "$SCRIPT_URL?b=$BOARD&c=e&id=$Id
+";
+    }
+
+    $Message .= "に対して，
 「$Fname」さんから
 「$Fsubject」という題での反応がありました．
 
-お時間のある時に
+";
+
+    if ($SYS_F_E) {
+	$Message .= "お時間のある時に
 $SCRIPT_URL?b=$BOARD&c=e&id=$Fid
 を御覧下さい．
 
-では失礼します．";
+";
+    }
+
+    $Message .= "では失礼します．";
 
     # メイル送信
     &SendMail($MailSubject, $Message, $Fid, @To);
@@ -1170,7 +1200,7 @@ sub SendMail {
 	local($QuoteFile) = &GetArticleFileName($Id, $BOARD);
 
 	# 区切り線
-	$Message .= "\n$H_LINE\n";
+	$Message .= "\n--------------------\n";
 
 	# 引用
 	open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
@@ -1233,13 +1263,13 @@ $H_ICONINTRO_ARTICLE
 </p>
 <p>
 <ul>
-<li><img src="$ICON_TLIST" alt="$H_BACKTITLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_BACKTITLE
-<li><img src="$ICON_PREV" alt="$H_PREVARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_PREVARTICLE
-<li><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_NEXTARTICLE
-<li><img src="$ICON_THREAD" alt="$H_READREPLYALL" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_READREPLYALL
-<li><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_POSTNEWARTICLE
-<li><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_REPLYTHISARTICLE
-<li><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" height="$ICON_HEIGHT" width="$ICON_WIDTH"> : $H_REPLYTHISARTICLEQUOTE
+<li><img src="$ICON_TLIST" alt="$H_BACKTITLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_BACKTITLE
+<li><img src="$ICON_PREV" alt="$H_PREVARTICLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_PREVARTICLE
+<li><img src="$ICON_NEXT" alt="$H_NEXTARTICLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_NEXTARTICLE
+<li><img src="$ICON_THREAD" alt="$H_READREPLYALL" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_READREPLYALL
+<li><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_POSTNEWARTICLE
+<li><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_REPLYTHISARTICLE
+<li><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" height="$COMICON_HEIGHT" width="$COMICON_WIDTH"> : $H_REPLYTHISARTICLEQUOTE
 </ul>
 </p>
 __EOF__
@@ -1277,7 +1307,7 @@ __EOF__
 	    ($FileName, $Title, $Help) = split(/\t/, $_, 3);
 
 	    # 表示
-	    &cgiprint'Cache(sprintf("<li><img src=\"$ICON_DIR/$FileName\" alt=\"$Title\" height=\"$ICON_HEIGHT\" width=\"$ICON_WIDTH\"> : %s\n", ($Help || $Title)));
+	    &cgiprint'Cache(sprintf("<li><img src=\"$ICON_DIR/$FileName\" alt=\"$Title\" height=\"$MSGICON_HEIGHT\" width=\"$MSGICON_WIDTH\"> : %s\n", ($Help || $Title)));
 	}
 	close(ICON);
 
@@ -1366,27 +1396,15 @@ sub ViewTitle {
     local($To) = $#DB_ID - $Old;
     local($From) = $To - $Num + 1; $From = 0 if (($From < 0) || ($Num == 0));
 
+    # 整形済みフラグ
+    # 0 ... 整形対象外
+    # 1 ... 整形済み
+    # 2 ... 未整形
+    local(%AddFlag) = ();
+    for($IdNum = $From; $IdNum <= $To; $IdNum++) { $AddFlag{$DB_ID[$IdNum]} = 2; }
+
     # 記事情報
-    local($IdNum, $Id, $Line);
-
-    # フォーマットしたタイトルを入れるリスト
-    local(@NewLines) = ();
-
-    # 応答をインデントする．
-    for ($IdNum = $From; $IdNum <= $To; $IdNum++) {
-    
-	# 記事情報を取り出す．
-	$Id = $DB_ID[$IdNum];
-
-	# タイトルをフォーマット
-	$Line = "<!--$Id-->" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id});
-
-	# 追加
-	@NewLines = $DB_FID{$Id}
-	    ? &AddTitleFollow((split(/,/, $DB_FID{$Id}))[0], $Line, @NewLines)
-		: &AddTitleNormal($Line, @NewLines);
-
-    }
+    local($IdNum, $Id, $Fid);
 
     # 表示画面の作成
     &MsgHeader('Title view (threaded)', "$BOARDNAME: $VIEW_MSG");
@@ -1403,22 +1421,34 @@ sub ViewTitle {
 
     &cgiprint'Cache("<p><ul>\n");
 
-    # 記事の表示
-    if (! @NewLines) {
+    if ($To < $From) {
 
 	# 空だった……
 	&cgiprint'Cache("<li>$H_NOARTICLE\n");
 
+    } elsif ($SYS_BOTTOMTITLE) {
+
+	# 古いのから処理
+	for($IdNum = $From; $IdNum <= $To; $IdNum++) {
+
+	    # 該当記事のIDを取り出す
+	    $Id = $DB_ID[$IdNum];
+	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
+	    # 後方参照は後回し．
+	    next if (($Fid ne '') && ($AddFlag{$Fid} == 2));
+	    # ノードを表示
+	    &ViewTitleNode($Id, *AddFlag);
+
+	}
     } else {
 
-	foreach (@NewLines) {
-	    if (! /^__br__$/o) {
-		if ((m!^<ul>$!io) || (m!^</ul>$!io)) {
-		    &cgiprint'Cache("$_\n");
-		} else {
-		    &cgiprint'Cache("<li>$_");
-		}
-	    }
+	# 新しいのから処理
+	for($IdNum = $To; $IdNum >= $From; $IdNum--) {
+	    # 後は同じ
+	    $Id = $DB_ID[$IdNum];
+	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
+	    next if (($Fid ne '') && ($AddFlag{$Fid} == 2));
+	    &ViewTitleNode($Id, *AddFlag);
 	}
     }
 
@@ -1436,97 +1466,23 @@ sub ViewTitle {
 
 
 ###
-## タイトルリストに書き込む(新規)
+## 整形済みフラグを立てながら，ある記事及びその娘記事をスレッド表示する．
 #
-sub AddTitleNormal {
+sub ViewTitleNode {
 
-    # 格納行，格納先
-    local($Line, @Lines) = @_;
+    local($Id, *AddFlag) = @_;
 
-    # フラグに応じて……
-    if ($SYS_BOTTOMTITLE) {
+    return if ($AddFlag{$Id} != 2);
 
-	# 末尾に追加
-	push(Lines, $Line, '__br__');
-    } else {
+    &cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
+    $AddFlag{$Id} = 1;		# 整形済み
 
-	# 先頭に追加
-	unshift(Lines, $Line, '__br__');
+    # 娘が居れば……
+    if ($DB_AIDS{$Id}) {
+	&cgiprint'Cache("<ul>\n");
+	foreach (split(/,/, $DB_AIDS{$Id})) { &ViewTitleNode($_, *AddFlag); }
+	&cgiprint'Cache("</ul>\n");
     }
-
-    # 返す
-    return(@Lines);
-
-}
-
-
-###
-## タイトルリストに書き込む(フォロー)
-#
-sub AddTitleFollow {
-
-    # フォロー記事ID，格納行，格納先
-    local($Fid, $AddLine, @Lines) = @_;
-    local(@NewLines) = ();
-
-    # Follow Flag
-    local($AddFlag, $Nest, $NextLine) = (0, 0, ''); 
-
-    # タイトルリストのフラグ
-    local($TitleListFlag) = 0;
-
-    while($_ = shift(Lines)) {
-
-	# そのまま書き出す．
-	push(NewLines, $_);
-
-	# タイトルリスト中，お目当ての記事が来たら，
-	if (/<!--$Fid-->/) {
-
-	    # 1行空読み
-	    $_ = shift(Lines);
-
-	    if (/^<ul>/o) {
-		$Nest = 1;
-		do {
-		    push(NewLines, $_);
-		    $_ = shift(Lines);
-		    $Nest++ if (/^<ul>/o);
-		    $Nest-- if (/^<\/ul>/o);
-		} until ($Nest == 0);
-		
-		push(NewLines, $AddLine, '__br__');
-		push(NewLines, $_);
-		
-	    } else {
-
-		push(NewLines, "<ul>");
-		push(NewLines, $AddLine, '__br__');
-		push(NewLines, "</ul>");
-
-	    }
-
-	    $AddFlag = 1;
-	}
-    }
-
-    # 元記事が見当たらないなら……
-    if (! $AddFlag) {
-
-	# フラグに応じて……
-	if ($SYS_BOTTOMTITLE) {
-	    
-	    # 末尾に追加
-	    push(NewLines, $AddLine, '__br__');
-	} else {
-
-	    # 先頭に追加
-	    unshift(NewLines, $AddLine, '__br__');
-	}
-    }
-
-    return(@NewLines);
-
 }
 
 
@@ -1583,7 +1539,8 @@ sub NewArticle {
 	&cgiprint'Cache("<p>$H_BOTTOM<a href=\"$PROGRAM?b=$BOARD&c=l&num=$Num&old=$BackOld\">$H_BACKART</a></p>\n") if ($From > 0);
     }
 
-    &cgiprint'Cache(<<__EOF__);
+    if ($SYS_F_V) {
+	&cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
 <input name="c" type="hidden" value="v">
@@ -1591,6 +1548,7 @@ sub NewArticle {
 <input type="submit" value="$H_BACKTITLE">
 </form>
 __EOF__
+    }
 
     &MsgFooter;
 
@@ -1657,8 +1615,14 @@ __EOF__
     &cgiprint'Cache("</SELECT>\n");
 
     # アイコン一覧
+    if ($SYS_F_I) {
+	&cgiprint'Cache(<<__EOF__);
+(<a href="$PROGRAM?b=$BOARD&c=i&type=entry">$H_SEEICON</a>)
+__EOF__
+    }
+
     &cgiprint'Cache(<<__EOF__);
-(<a href="$PROGRAM?b=$BOARD&c=i&type=entry">$H_SEEICON</a>)<BR>
+<BR>
 </ul>
 </p>
 </form>
@@ -2221,13 +2185,19 @@ sub GetFormattedTitle {
 
     # 通常記事
     $IdStr = "<strong>$Id.</strong> ";
-    $Link = "<a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$Title</a>";
-    $Thread = (($Aids) ? " <a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_THREAD</a>" : '');
+
+    if ($SYS_F_E) {
+	$Link = "<a href=\"$PROGRAM?b=$BOARD&c=e&id=$Id\">$Title</a>";
+    } else {
+	$Link = "$Title";
+    }
+
+    $Thread = (($SYS_F_T && $Aids) ? " <a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_THREAD</a>" : '');
 
     if (($Icon eq $H_NOICON) || ($Icon eq '')) {
 	$String = sprintf("$IdStr$Link$Thread [%s] $InputDate", ($Name || $MAINT_NAME));
     } else {
-	$String = sprintf("$IdStr<img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Link$Thread [%s] $InputDate", &GetIconURLFromTitle($Icon), ($Name || $MAINT_NAME));
+	$String = sprintf("$IdStr<img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Link$Thread [%s] $InputDate", &GetIconURLFromTitle($Icon), ($Name || $MAINT_NAME));
     }
 
     return($String);
@@ -2449,57 +2419,89 @@ sub ViewOriginalArticle {
 
 	if ($SYS_COMICON) {
 
-	    &cgiprint'Cache("<p>\n<a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\"><img src=\"$ICON_TLIST\" alt=\"$H_BACKTITLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n");
-
-	    if ($PrevId ne '') {
-		&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\"><img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n");
-	    } else {
-		&cgiprint'Cache("<img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">\n");
-	    }
-	    if ($NextId ne '') {
-		&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\"><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n");
-	    } else {
-		&cgiprint'Cache("<img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">\n");
-	    }
-	    if ($Aids ne '') {
-		&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n");
-	    } else {
-		&cgiprint'Cache("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\">\n");
+	    if ($SYS_F_V) {
+		&cgiprint'Cache("<p>\n<a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\"><img src=\"$ICON_TLIST\" alt=\"$H_BACKTITLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
 	    }
 
-	    &cgiprint'Cache(<<__EOF__);
-<a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
-<a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
-<a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$ICON_WIDTH" height="$ICON_HEIGHT" BORDER="0"></a>
+	    if ($SYS_F_E) {
+		if ($PrevId ne '') {
+		    &cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\"><img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
+		} else {
+		    &cgiprint'Cache("<img src=\"$ICON_PREV\" alt=\"$H_PREVARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">\n");
+		}
+
+		if ($NextId ne '') {
+		    &cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\"><img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
+		} else {
+		    &cgiprint'Cache("<img src=\"$ICON_NEXT\" alt=\"$H_NEXTARTICLE\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">\n");
+		}
+	    }
+
+	    if ($SYS_F_T) {
+		if ($Aids ne '') {
+		    &cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\"><img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n");
+		} else {
+		    &cgiprint'Cache("<img src=\"$ICON_THREAD\" alt=\"$H_READREPLYALL\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\">\n");
+		}
+	    }
+
+	    if ($SYS_F_N) {
+		&cgiprint'Cache(<<__EOF__);
+<a href="$PROGRAM?b=$BOARD&c=n"><img src="$ICON_WRITENEW" alt="$H_POSTNEWARTICLE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0"></a>
 __EOF__
+	    }    
 
-	    &cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n");
+	    if ($SYS_F_FQ) {
+		&cgiprint'Cache(<<__EOF__);
+<a href="$PROGRAM?b=$BOARD&c=f&id=$Id"><img src="$ICON_FOLLOW" alt="$H_REPLYTHISARTICLE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0"></a>
+<a href="$PROGRAM?b=$BOARD&c=q&id=$Id"><img src="$ICON_QUOTE" alt="$H_REPLYTHISARTICLEQUOTE" width="$COMICON_WIDTH" height="$COMICON_HEIGHT" BORDER="0"></a>
+__EOF__
+	    }
+
+	    if ($SYS_F_I) {
+		&cgiprint'Cache("<a href=\"$PROGRAM?b=$BOARD&c=i&type=article\"><img src=\"$ICON_HELP\" alt=\"?\" width=\"$COMICON_WIDTH\" height=\"$COMICON_HEIGHT\" BORDER=\"0\"></a>\n</p>\n");
+	    }
 
 	} else {
 
-	    &cgiprint'Cache("<p>\n<a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\">$H_BACKTITLE</a>\n");
-
-	    if ($PrevId ne '') {
-		&cgiprint'Cache(" // <a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\">$H_PREVARTICLE</a>\n");
-	    } else {
-		&cgiprint'Cache(" // $H_PREVARTICLE\n");
-	    }
-	    if ($NextId ne '') {
-		&cgiprint'Cache(" // <a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\">$H_NEXTARTICLE</a>\n");
-	    } else {
-		&cgiprint'Cache(" // $H_NEXTARTICLE\n");
-	    }
-	    if ($Aids ne '') {
-		&cgiprint'Cache(" // <a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_READREPLYALL</a>");
-	    } else {
-		&cgiprint'Cache(" // $H_READREPLYALL");
+	    if ($SYS_F_V) {
+		&cgiprint'Cache("<p>\n<a href=\"$PROGRAM?b=$BOARD&c=v&num=$DEF_TITLE_NUM\">$H_BACKTITLE</a>\n");
 	    }
 
-	    &cgiprint'Cache(<<__EOF__);
+	    if ($SYS_F_E) {
+		if ($PrevId ne '') {
+		    &cgiprint'Cache(" // <a href=\"$PROGRAM?b=$BOARD&c=e&id=$PrevId\">$H_PREVARTICLE</a>\n");
+		} else {
+		    &cgiprint'Cache(" // $H_PREVARTICLE\n");
+		}
+
+		if ($NextId ne '') {
+		    &cgiprint'Cache(" // <a href=\"$PROGRAM?b=$BOARD&c=e&id=$NextId\">$H_NEXTARTICLE</a>\n");
+		} else {
+		    &cgiprint'Cache(" // $H_NEXTARTICLE\n");
+		}
+	    }
+
+	    if ($SYS_F_T) {
+		if ($Aids ne '') {
+		    &cgiprint'Cache(" // <a href=\"$PROGRAM?b=$BOARD&c=t&id=$Id\">$H_READREPLYALL</a>");
+		} else {
+		    &cgiprint'Cache(" // $H_READREPLYALL");
+		}
+	    }
+
+	    if ($SYS_F_N) {
+		&cgiprint'Cache(<<__EOF__);
  // <a href="$PROGRAM?b=$BOARD&c=n">$H_POSTNEWARTICLE</a>
+__EOF__
+	    }
+
+	    if ($SYS_F_FQ) {
+		&cgiprint'Cache(<<__EOF__);
  // <a href="$PROGRAM?b=$BOARD&c=f&id=$Id">$H_REPLYTHISARTICLE</a>
  // <a href="$PROGRAM?b=$BOARD&c=q&id=$Id">$H_REPLYTHISARTICLEQUOTE</a>
 __EOF__
+	    }
 
 	}
 
@@ -2511,7 +2513,7 @@ __EOF__
     if (($Icon eq $H_NOICON) || ($Icon eq '')) {
 	&cgiprint'Cache("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> $Subject");
     } else {
-	&cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$ICON_WIDTH\" height=\"$ICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon)));
+	&cgiprint'Cache(sprintf("<strong>$H_SUBJECT</strong>: <strong>$Id .</strong> <img src=\"%s\" alt=\"$Icon \" width=\"$MSGICON_WIDTH\" height=\"$MSGICON_HEIGHT\">$Subject", &GetIconURLFromTitle($Icon)));
     }
 
     # お名前
@@ -2538,7 +2540,7 @@ __EOF__
     &ShowLinksToFollowedArticle(split(/,/, $Fid)) if ($OriginalFlag && ($Fid ne ''));
 
     # 切れ目
-    &cgiprint'Cache("</p>\n$H_LINE<br>\n");
+    &cgiprint'Cache("</p>\n$H_LINE\n");
 
     # 記事の中身
     open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
@@ -2763,6 +2765,10 @@ sub Fatal {
 
 	$ErrString = ".dbと.articleidの整合性が取れていません．お手数ですが，このエラーメッセージと，エラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
 
+    } elsif ($FatalNo == 99) {
+
+	$ErrString ="この掲示板では，このコマンドは実行できません．";
+
     } elsif ($FatalNo == 999) {
 
 	$ErrString ="システムのロックに失敗しました．混み合っているようですので，数分待ってからもう一度アクセスしてください．何度アクセスしてもロックされている場合，メンテナンス中である可能性もあります．";
@@ -2782,7 +2788,7 @@ sub Fatal {
 
     &cgiprint'Cache("<p>$ErrString</p>\n");
 
-    if ($BOARD ne '') {
+    if ($SYS_F_V && ($BOARD ne '')) {
 	&cgiprint'Cache(<<__EOF__);
 <form action="$PROGRAM" method="POST">
 <input name="b" type="hidden" value="$BOARD">
