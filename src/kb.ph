@@ -1,4 +1,4 @@
-# $Id: kb.ph,v 5.1 1997-07-23 14:53:22 nakahiro Exp $
+# $Id: kb.ph,v 5.2 1997-11-26 09:39:13 nakahiro Rel $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -31,9 +31,9 @@
 # 「$SYSTEM_NAME」もアルファベットのみにしてください．
 #
 # 例:
-# $MAINT_NAME = 'KinoboardsAdmin';
-# $MAINT = 'nakahiro@kinotrope.co.jp';
-# $SYSTEM_NAME = "(c)KINOBOARDS";
+#$MAINT_NAME = 'KinoboardsAdmin';
+#$MAINT = 'nakahiro@kinotrope.co.jp';
+#$SYSTEM_NAME = "(c)KINOBOARDS";
 #
 $MAINT_NAME = 'YourName';
 $MAINT = 'yourname@your.e-mail.domain';
@@ -90,7 +90,12 @@ $TIME_ZONE = '';
 #
 # システムの設定
 #
-# 入力文書タイプ(HTML or PRE)の選択を行うか否か(行なわないとPREのみ)
+# CGIの実行ログを取るか（インストール直後はログを取るようにしてください）
+#   0: 取らない
+#   1: 取る（kb.klgというファイルにログが書かれます）
+$SYS_LOG = 1;
+
+# 入力文書タイプ(HTML or PLAIN)の選択を行うか否か(行なわないとPREのみ)
 #   0: 行わない
 #   1: 行う
 $SYS_TEXTTYPE = 1;
@@ -136,6 +141,10 @@ $SYS_SHOWHOST = 0;
 #   0: 表示しない
 #   1: 表示する
 $SYS_COMMAND = 1;
+
+# 記事の許容最大サイズ（バイト数で指定してください; 50K → 51200）
+#   0は「記事サイズの制限なし」を意味します．
+$SYS_MAXARTSIZE = 0;
 
 # ネットスケープ拡張に基づく字色とバックグラウンドイメージを使うか否か
 #   0: 使わない
@@ -264,7 +273,7 @@ $H_LINE = "<p>------------------------------</p>";
 $H_THREAD = "▼";
 $H_TEXTTYPE = "表示形式";
 $H_HTML = "HTMLとして表示する";
-$H_PRE = "そのまま表示する";
+$H_PLAIN = "そのまま表示する";
 $H_NOICON = "なし";
 $H_BACKBOARD = "$H_BOARD一覧へ";
 $H_BACKTITLE = "$H_SUBJECT一覧へ";
