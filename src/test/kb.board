@@ -5,15 +5,6 @@
 連絡無しに削除する場合がありますので御了承ください．
 </p>
 
-<ul>
-<li>最近のタイトル一覧(<a href="__PROGRAM__?b=__BOARD__&amp;c=v&amp;num=__TITLE_NUM__">リプライ順に並べる</a>/<a href="__PROGRAM__?b=__BOARD__&amp;c=r&amp;num=__TITLE_NUM__">日付順に並べる</a>)
-<li><a href="__PROGRAM__?b=__BOARD__&amp;c=l&amp;num=__ARTICLE_NUM__">最近のメッセージをまとめて読む</a>
-<li><a href="__PROGRAM__?b=__BOARD__&amp;c=s">メッセージをキーワードで検索する</a>
-<li><a href="__PROGRAM__?b=__BOARD__&amp;c=i">アイコンの解説を表示する</a>
-<br><br>
-
-<li><a href="__PROGRAM__?b=__BOARD__&amp;c=n">新しくメッセージを書き込む</a>
-<br><br>
-
-<li><a href="./">戻ります</a>
-</ul>
+<p>
+<a href="./">〜に戻ります</a>
+</p>
