@@ -12,8 +12,8 @@
 #
 $KBDIR_PATH = '';
 # $KBDIR_PATH = '/home/nahi/kbdata/';
-# $KBDIR_PATH = 'd:\securedata\kbdata\';	# WinNT/Win9xの場合
-# $KBDIR_PATH = 'foo:bar:kb:';			# Macの場合?
+# $KBDIR_PATH = 'd:\\securedata\\kbdata\\'; # Windowsの場合: \ → \\ にします
+# $KBDIR_PATH = 'foo:bar:kb:';		    # Macの場合
 
 # 3. アイコンおよびスタイルシートファイルを，このファイルと別のディレクトリに
 #    置く場合は，その別ディレクトリのURLを指定してください（パスではなく，
@@ -46,7 +46,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.75 2000-05-07 11:32:10 nakahiro Exp $
+# $Id: kb.cgi,v 5.76 2000-05-12 15:25:58 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -77,7 +77,7 @@ srand( $^T ^ ( $$ + ( $$ << 15 )));
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '7.0';		# release
+$KB_RELEASE = '7.1-dev';		# release
 $CHARSET = 'euc';		# 漢字コード変換は行なわない
 $ADMIN = 'admin';		# デフォルト設定
 $GUEST = 'guest';		# デフォルト設定
@@ -293,7 +293,7 @@ MAIN:
 	if ( &getBoardInfo( $BOARD ))
 	{
 	    local( $boardConfFile ) = &getPath( $BOARD, $CONF_FILE_NAME );
-	    require( $boardConfFile ) if ( -s "$boardConfFile" );
+	    require( $boardConfFile ) if ( -s $boardConfFile );
 	}
 
 	# アイコンDBも読み込む（R7以降）
@@ -913,7 +913,12 @@ sub fatalStr
     elsif ( $errno == 21 )
     {
 	$severity = $kinologue'SEV_INFO;
-	$msg = "$H_DATEのフォーマットが'yyyy/mm/dd(HH:MM:SS)'ではありません．戻ってもう一度やり直してみてください．";
+	$msg = "日時のフォーマットが'yyyy/mm/dd(HH:MM:SS)'ではありません．戻ってもう一度やり直してみてください．";
+    }
+    elsif ( $errno == 22 )
+    {
+	$severity = $kinologue'SEV_INFO;
+	$msg = "日付のフォーマットが'yyyy/mm/dd'ではありません．戻ってもう一度やり直してみてください．";
     }
     elsif ( $errno == 40 )
     {
@@ -1315,6 +1320,9 @@ sub hg_user_config_form
     if ( $POLICY & 8 )
     {
 	local( %tags, $msg );
+	$msg .= qq(<input name="kinoU" type="hidden" value="$UNAME" />\n);
+	$msg .= &tagLabel( $H_PASSWD, 'kinoP', 'P' ) . ': ' . &tagInputText( 'password', 'kinoP', '', $PASSWD_LENGTH ) . $HTML_BR . $HTML_BR;
+
 	$msg .= &tagLabel( "変更する$H_USERの$H_FROM", 'confUser', 'N' ) .
 	    ': ' . &tagInputText( 'text', 'confUser', '', $NAME_LENGTH ) .
 	    "（管理者は全$H_USERの設定を変更できます）" . $HTML_BR . $HTML_BR;
@@ -1322,9 +1330,9 @@ sub hg_user_config_form
 	    &tagInputText( 'text', 'confMail', '', $MAIL_LENGTH ) . $HTML_BR;
 	$msg .= &tagLabel( $H_URL, 'confUrl', 'U' ) . ': ' .
 	    &tagInputText( 'text', 'confUrl', 'http://', $URL_LENGTH ) . $HTML_BR . $HTML_BR;
-	$msg .= &tagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' .
+	$msg .= &tagLabel( '新しい' . $H_PASSWD, 'confP', 'P' ) . ': ' .
 	    &tagInputText( 'password', 'confP', '', $PASSWD_LENGTH ) . $HTML_BR;
-	$msg .= &tagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' .
+	$msg .= &tagLabel( '新しい' . $H_PASSWD, 'confP2', 'C' ) . ': ' .
 	    &tagInputText( 'password', 'confP2', '', $PASSWD_LENGTH ) .
 	    '（念のため，もう一度お願いします）' . $HTML_BR;
 	%tags = ( 'c', 'ucx' );
@@ -1335,14 +1343,18 @@ sub hg_user_config_form
 	$UURL = $UURL || 'http://';
 
 	local( %tags, $msg );
+	$msg .= qq(<input name="kinoU" type="hidden" value="$UNAME" />\n);
+	$msg .= &tagLabel( $H_PASSWD, 'kinoP', 'P' ) . ': ' . &tagInputText( 'password', 'kinoP', '', $PASSWD_LENGTH ) . $HTML_BR . $HTML_BR;
+
 	$msg .= $H_FROM . ': ' . $UNAME . $HTML_BR . $HTML_BR;
+
 	$msg .= &tagLabel( $H_MAIL, 'confMail', 'M' ) . ': ' .
 	    &tagInputText( 'text', 'confMail', $UMAIL, $MAIL_LENGTH ) . $HTML_BR;
 	$msg .= &tagLabel( $H_URL, 'confUrl', 'U' ) . ': ' .
 	    &tagInputText( 'text', 'confUrl', $UURL, $URL_LENGTH ) . $HTML_BR . $HTML_BR;
-	$msg .= &tagLabel( $H_PASSWD, 'confP', 'P' ) . ': ' .
+	$msg .= &tagLabel( '新しい' . $H_PASSWD, 'confP', 'P' ) . ': ' .
 	    &tagInputText( 'password', 'confP', '' , $PASSWD_LENGTH ) . $HTML_BR;
-	$msg .= &tagLabel( $H_PASSWD, 'confP2', 'C' ) . ': ' .
+	$msg .= &tagLabel( '新しい' . $H_PASSWD, 'confP2', 'C' ) . ': ' .
 	    &tagInputText( 'password', 'confP2', '', $PASSWD_LENGTH ) .
 	    '（念のため，もう一度お願いします）' . $HTML_BR;
 	%tags = ( 'c', 'ucx' );
@@ -1390,7 +1402,7 @@ sub uiUserConfigExec
     # ユーザ情報更新
     if ( !&cgiauth'setUserInfo( $USER_AUTH_FILE, $user, ( $mail, $url )))
     {
-	&fatal( 41, '' );
+	&fatal( 41, $user );
     }
 
     &unlockAll();
@@ -1414,15 +1426,11 @@ sub hg_board_entry_form
     &fatal( 18, "$_[0]/BoardEntryForm" ) if ( $_[0] ne 'BoardEntry.xml' );
 
     local( %tags, $msg );
-    $msg = &tagLabel( "$H_BOARD略称", 'name', 'B' ) . ': ' .
-	&tagInputText( 'text', 'name', '', $BOARDNAME_LENGTH ) . $HTML_BR;
-    $msg .= &tagLabel( "$H_BOARD名称", 'intro', 'N' ) . ': ' .
-	&tagInputText( 'text', 'intro', '', $BOARDNAME_LENGTH ) . $HTML_BR . $HTML_BR;
-    $msg .= &tagLabel( "$H_BOARDの自動$H_MAIL配信先", 'armail', 'M' ) .
-	$HTML_BR . &tagTextarea( 'armail', '', $TEXT_ROWS, $MAIL_LENGTH ) .
-	$HTML_BR . $HTML_BR;
-    $msg .= &tagLabel( "$H_BOARDヘッダ部分", 'article', 'H' ) . $HTML_BR .
-	&tagTextarea( 'article', '', $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
+    $msg = &tagLabel( "$H_BOARD略称", 'name', 'B' ) . ': ' . &tagInputText( 'text', 'name', '', $BOARDNAME_LENGTH ) . $HTML_BR;
+    $msg .= &tagLabel( "$H_BOARD名称", 'intro', 'N' ) . ': ' . &tagInputText( 'text', 'intro', '', $BOARDNAME_LENGTH ) . $HTML_BR;
+    $msg .= &tagLabel( "$H_BOARD固有の設定ファイル（$CONF_FILE_NAME）を作成", 'conf', 'C' ) . ': ' . &tagInputCheck( 'conf', 0 ) . $HTML_BR . $HTML_BR;
+    $msg .= &tagLabel( "$H_BOARDの自動$H_MAIL配信先", 'armail', 'M' ) . $HTML_BR . &tagTextarea( 'armail', '', $TEXT_ROWS, $MAIL_LENGTH ) . $HTML_BR . $HTML_BR;
+    $msg .= &tagLabel( "$H_BOARDヘッダ部分", 'article', 'H' ) . $HTML_BR . &tagTextarea( 'article', '', $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
     %tags = ( 'c', 'bex' );
     &dumpForm( *tags, '登録', 'リセット', *msg );
 }
@@ -1438,6 +1446,7 @@ sub uiBoardEntryExec
 
     local( $name ) = &cgi'tag( 'name' );
     local( $intro ) = &cgi'tag( 'intro' );
+    local( $conf ) = &cgi'tag( 'conf' );
     local( $armail ) = &cgi'tag( 'armail' );
     local( $header ) = &cgi'tag( 'article' );
 
@@ -1445,10 +1454,11 @@ sub uiBoardEntryExec
     &checkBoardName( *intro );
     &checkBoardHeader( *header );
     &secureSubject( *intro );
-    &secureArticle( *header, $H_TTLABEL[2] );
+# <kb:... />も入る可能性があるので，うかつに&secureArticleを呼べない．
+#    &secureArticle( *header, $H_TTLABEL[2] );
     local( @arriveMail ) = split( /\n/, $armail );
 
-    &insertBoard( $name, $intro, 0, *arriveMail, *header );
+    &insertBoard( $name, $intro, $conf, *arriveMail, *header );
 
     &unlockAll();
 
@@ -1466,6 +1476,7 @@ sub uiBoardConfig
 
     # 全掲示板の情報を取り出す
     @gArriveMail = ();
+    $gConfig = &getBoardInfo( $BOARD );
     &getBoardSubscriber(1, $BOARD, *gArriveMail); # 宛先とコメントを取り出す
     $gHeader = "";
     &getBoardHeader( $BOARD, *gHeader ); # ヘッダ文字列を取り出す
@@ -1480,18 +1491,14 @@ sub hg_board_config_form
     &fatal( 18, "$_[0]/BoardConfigForm" ) if ( $_[0] ne 'BoardConfig.xml' );
 
     local( %tags, $msg );
-    $msg = &tagLabel( "「$BOARD」$H_BOARDを利用", 'valid', 'V' ) . ': ' .
-	&tagInputCheck( 'valid', 1 ) . $HTML_BR . $HTML_BR;
-    $msg .= &tagLabel( "「$BOARD」名称", 'intro', 'N' ) . ': ' .
-	&tagInputText( 'text', 'intro', $BOARDNAME, $BOARDNAME_LENGTH ) .
-	$HTML_BR . $HTML_BR;
+    $msg = &tagLabel( "「$BOARD」$H_BOARDを利用", 'valid', 'V' ) . ': ' . &tagInputCheck( 'valid', 1 ) . $HTML_BR . $HTML_BR;
+    $msg .= &tagLabel( "「$BOARD」名称", 'intro', 'N' ) . ': ' . &tagInputText( 'text', 'intro', $BOARDNAME, $BOARDNAME_LENGTH ) . $HTML_BR;
+    $msg .= &tagLabel( "$H_BOARD固有の設定ファイル（$CONF_FILE_NAME）を利用", 'conf', 'C' ) . ': ' . &tagInputCheck( 'conf', $gConfig ) . $HTML_BR . $HTML_BR;
+
     local( $all );
     foreach ( @gArriveMail ) { $all .= $_ . "\n"; }
-    $msg .= &tagLabel( "「$BOARD」の自動$H_MAIL配信先", 'armail', 'M' ) .
-	$HTML_BR . &tagTextarea( 'armail', $all, $TEXT_ROWS, $MAIL_LENGTH ) .
-	$HTML_BR . $HTML_BR;
-    $msg .= &tagLabel( "「$BOARD」の$H_BOARDヘッダ部分", 'article', 'H' ) .
-	$HTML_BR . &tagTextarea( 'article', $gHeader, $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
+    $msg .= &tagLabel( "「$BOARD」の自動$H_MAIL配信先", 'armail', 'M' ) . $HTML_BR . &tagTextarea( 'armail', $all, $TEXT_ROWS, $MAIL_LENGTH ) . $HTML_BR . $HTML_BR;
+    $msg .= &tagLabel( "「$BOARD」の$H_BOARDヘッダ部分", 'article', 'H' ) . $HTML_BR . &tagTextarea( 'article', $gHeader, $TEXT_ROWS, $TEXT_COLS ) . $HTML_BR;
     %tags = ( 'c', 'bcx', 'b', $BOARD );
     &dumpForm( *tags, '変更', 'リセット', *msg );
 }
@@ -1507,16 +1514,18 @@ sub uiBoardConfigExec
 
     local( $valid ) = &cgi'tag( 'valid' );
     local( $intro ) = &cgi'tag( 'intro' );
+    local( $conf ) = &cgi'tag( 'conf' );
     local( $armail ) = &cgi'tag( 'armail' );
     local( $header ) = &cgi'tag( 'article' );
 
     &checkBoardName( *intro );
     &checkBoardHeader( *header );
     &secureSubject( *intro );
-    &secureArticle( *header, $H_TTLABEL[2] );
+# <kb:... />も入る可能性があるので，うかつに&secureArticleを呼べない．
+#    &secureArticle( *header, $H_TTLABEL[2] );
     local( @arriveMail ) = split( /\n/, $armail );
 
-    &updateBoard( $BOARD, $valid, $intro, 0, *arriveMail, *header );
+    &updateBoard( $BOARD, $valid, $intro, $conf, *arriveMail, *header );
 
     &unlockAll();
 
@@ -2986,7 +2995,7 @@ sub hg_c_top_menu
 	$formStr .= ' ' . &linkP( 'c=lo', 'LOGIN', 'L' ) . "\n";
 	if ( $UNAME && ( $UNAME ne $GUEST ) && ( $UNAME ne $cgiauth'F_COOKIE_RESET ))
 	{
-	    $formStr .= ' ' . &linkP( 'c=uc', 'INFO', 'C' ) . "\n";
+	    $formStr .= ' ' . &linkP( 'c=uc', 'INFO', 'I' ) . "\n";
 	}
 	$formStr .= "&nbsp;&nbsp;&nbsp;\n";
     }
@@ -3242,7 +3251,8 @@ sub hg_b_search_article_form
     $contents .= $H_DATE . ': ' . &tagInputText( 'text', 'searchposttimefrom', ( $SearchPostTimeFrom || '' ), 11 ) . ' ' .
 	&tagLabel( 'から', 'searchposttimefrom', 'S' ) .
 	"&nbsp;&nbsp;&nbsp;\n" .
-	&tagInputText( 'text', 'searchposttimeto', ( $SearchPostTimeTo || '' ), 11 ) . &tagLabel( 'の間', 'searchposttimeto', 'E' ) . $HTML_BR;
+	&tagInputText( 'text', 'searchposttimeto', ( $SearchPostTimeTo || '' ), 11 ) . &tagLabel( 'の間', 'searchposttimeto', 'E' ) .
+	"&nbsp;&nbsp;&nbsp;（yyyy/mm/dd形式で指定）\n" . $HTML_BR;
 
     if ( $SYS_ICON )
     {
@@ -3705,7 +3715,25 @@ sub dumpSearchResult
 
     local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail );
     local( $SubjectFlag, $PersonFlag, $PostTimeFlag, $ArticleFlag );
-    local( $HitNum, $Line, $FromUtc, $ToUtc );
+    local( $HitNum, $Line );
+
+    local( $FromUtc, $ToUtc );
+    if ( $postTime )
+    {
+	$FromUtc = $ToUtc = -1;
+	if ( $PostTimeFrom )
+	{
+	    $FromUtc = &getUtcFromYYYY_MM_DD( $PostTimeFrom );
+	    &fatal( 22, '' ) if ( $FromUtc < 0 );
+	}
+	if ( $PostTimeTo )
+	{
+	    $ToUtc = &getUtcFromYYYY_MM_DD( $PostTimeTo );
+	    &fatal( 22, '' ) if ( $ToUtc < 0 );
+	}
+	$ToUtc += 86400 if ( $ToUtc >= 0 );
+    }
+
     foreach ( $[ .. &getNofArt() )
     {
 	# 記事情報
@@ -3720,14 +3748,7 @@ sub dumpSearchResult
 	next if ( $IconType && !&searchArticleIcon( $dId, $IconType, *iconHash ));
 
 	# 投稿時刻を検索
-	if ( $postTime )
-	{
-	    $FromUtc = $ToUtc = -1;
-	    $FromUtc = &getUtcFromYYYY_MM_DD( $PostTimeFrom ) if $PostTimeFrom;
-	    $ToUtc = &getUtcFromYYYY_MM_DD( $PostTimeTo ) if $PostTimeTo;
-	    $ToUtc += 86400 if ( $ToUtc >= 0 );
-	    next if !&checkSearchTime( $dDate, $FromUtc, $ToUtc );
-	}
+	next if ( $postTime && !&checkSearchTime( $dDate, $FromUtc, $ToUtc ));
 
 	if ( $Key ne '' )
 	{
@@ -5313,13 +5334,10 @@ sub checkSearchTime
     {
 	return 0 if ( $target < $from );
     }
-    elsif ( $to >= 0 )
+
+    if ( $to >= 0 )
     {
 	return 0 if ( $target > $to );
-    }
-    else
-    {
-	return 0;
     }
 
     1;
@@ -7106,7 +7124,7 @@ sub insertBoard
     }
 
     # 新しい記事のデータを書き加える．
-    &genTSV( *dbLine, ( $name, $intro, $conf ));
+    &genTSV( *dbLine, ( $name, $intro, ( $conf ? '1' : '0' )));
     print( DBTMP "$dbLine\n" ) || &fatal( 13, $tmpFile );
 
     # close Files.
@@ -7158,7 +7176,7 @@ sub updateBoard
 	{
 	    $dName = '#' . $dName unless $valid;
 	    $dIntro = $intro;
-	    $dConf = $conf;
+	    $dConf = ( $conf ? '1' : '0' );
 	}
 
 	# DBに書き加える
