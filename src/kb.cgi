@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.16 1996-07-30 14:45:28 nakahiro Exp $
+# $Id: kb.cgi,v 4.17 1996-07-30 16:32:03 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -140,7 +140,8 @@ MAIN: {
     $BOARDNAME = &GetBoardInfo($BOARD);
 
     # 掲示板固有セッティングを読み込む
-    require("$BOARD/$CONF_FILE_NAME") if (-s "$BOARD/$CONF_FILE_NAME");
+    local($BoardConfFile) = &GetPath($BOARD, $CONF_FILE_NAME);
+    require("$BoardConfFile") if (-s "$BoardConfFile");
 
     # 値の抽出
     local($Command) = $cgi'TAGS{'c'};
@@ -395,7 +396,7 @@ sub QuoteOriginalArticle {
 	s/<[^>]*>//go;
 
 	# 引用文字列の表示
-	printf("%s%s%s\n", $Name, $DEFAULT_QMARK, $_);
+	printf("%s%s%s", $Name, $DEFAULT_QMARK, $_);
 	
     }
 
@@ -1084,7 +1085,7 @@ sub SendMail {
     if ($Id) {
 
 	# 引用するファイル
-	$QuoteFile = "$BOARD/$Id";
+	$QuoteFile = &GetArticleFileName($Id, $BOARD);
 
 	# 区切り線
 	print(MAIL "\n$H_LINE\n");
@@ -1515,7 +1516,7 @@ sub SearchArticle {
 <input name="c" type="hidden" value="s">
 <input name="b" type="hidden" value="$BOARD">
  
-<p>$H_INPUTKEYWORD</p>
+$H_INPUTKEYWORD
 <input type="submit" value="$H_SEARCHKEYWORD">
 <input type="reset" value="$H_RESETKEYWORD">
 
@@ -1585,7 +1586,9 @@ sub SearchArticleList {
     local($dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail, $dUrl, $dFmail);
 
     local($ArticleFile, $HitFlag) = ('', 0);
-    local($Line, $Flag) = ('', 0);
+    local($Line) = '';
+    local($SubjectFlag, $PersonFlag, $ArticleFlag);
+    local(@KeyList) = split(/ +/, $Key);
 
     # リスト開く
     print("<ul>\n");
@@ -1598,7 +1601,7 @@ sub SearchArticleList {
 	next if (/^$/);
 
 	# 変数のリセット
-	$Flag = 0;
+	$SubjectFlag = $PersonFlag = $ArticleFlag = 0;
 	$Line = '';
 
 	# 記事情報
@@ -1610,24 +1613,33 @@ sub SearchArticleList {
 	if ($Key) {
 
 	    # タイトルを検索
-	    $Flag = 1 if ($Subject && ($dTitle =~ /$Key/i));
+	    if ($Subject) {
+		$SubjectFlag = 1;
+		foreach (@KeyList) {
+		    $SubjectFlag = 0 unless ($dTitle =~ /$_/i);
+		}
+	    }
 
 	    # 投稿者名を検索
-	    $Flag = 1 if ($Person && (($dName =~ /$Key/i)));
+	    if ($Person) {
+		$PersonFlag = 1;
+		foreach (@KeyList) {
+		    $PersonFlag = 0 unless ($dName =~ /$_/i);
+		}
+	    }
 
 	    # 本文を検索
 	    $ArticleFile = &GetArticleFileName($dId, $BOARD);
-	    $Flag = 1 if ($Article &&
-			  ($Line = &SearchArticleKeyword($ArticleFile, $Key)));
+	    $ArticleFlag = 1 if ($Article && ($Line = &SearchArticleKeyword($ArticleFile, @KeyList)));
 
 	} else {
 
 	    # 無条件で一致
-	    $Flag = 1;
+	    $ArticleFlag = 1;
 
 	}
 
-	if ($Flag) {
+	if ($SubjectFlag || $PersonFlag || $ArticleFlag) {
 
 	    # 最低1つは合致した
 	    $HitFlag = 1;
@@ -1636,7 +1648,7 @@ sub SearchArticleList {
 	    print(&GetFormattedTitle($dId, $dAids, $dIcon, $dTitle, $dName, $dDate));
 
 	    # 本文に合致した場合は本文も表示
-	    if ($Article && ($Line ne '')) {
+	    if ($ArticleFlag) {
 		$Line =~ s/<[^>]*>//go;
 		print("<blockquote>$Line</blockquote>\n");
 	    }
@@ -1658,22 +1670,41 @@ sub SearchArticleList {
 sub SearchArticleKeyword {
 
     # ファイル名とキーワード
-    local($File, $Key) = @_;
+    local($File, @KeyList) = @_;
+    local(@NewKeyList);
+    local($Line, $Return) = ('', '');
 
     # 検索する
-    # SearchArticleListでlockしてるのでlockする必要なし
     open(ARTICLE, "<$File") || &Fatal(1, $File);
-    while(<ARTICLE>) {
+    while($Line = <ARTICLE>) {
 
-	# TAGを取り除く
-	s/<[^>]*>//go;
+	# クリア
+	@NewKeyList = ();
 
-	# ヒット?
-	(/$Key/i) && return($_);
+	foreach (@KeyList) {
+
+	    if ($Line =~ /$_/i) {
+
+		# マッチした! 1行目なら覚えとく
+		$Return = $Line unless $Return;
+
+	    } else {
+
+		# まだ探さなきゃ……
+		push(NewKeyList, $_);
+
+	    }
+	}
+
+	# 空なら抜け．
+	last unless (@KeyList = @NewKeyList);
+
     }
+    close(ARTICLE);
 
-    # ヒットせず
-    return('');
+    # まだ残ってたらアウト．空なら最初のマッチした行を返す．
+    return((@KeyList) ? '' : $Return);
+
 }
 
 
