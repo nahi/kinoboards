@@ -1,6 +1,5 @@
 # This file implements Site Specific Definitions of KINOBOARDS.
 
-
 ###
 ## ○管理者の名前，E-Mailアドレス，システムの名前
 #
@@ -11,22 +10,12 @@
 #
 # 例:
 # $MAINT_NAME = 'KinoboardsAdmin';
-# $MAINT = 'nakahiro@kinotrope.co.jp';
+# $MAINT = 'nakahiro@sarion.co.jp';
 # $SYSTEM_NAME = "KINOBOARDS/1.0";
 #
 $MAINT_NAME = 'YourName';
 $MAINT = 'yourname@your.e-mail.domain';
 $SYSTEM_NAME = "YourSystemName";
-
-###
-## ○サーバが動いているマシンはどれですか?
-#
-# 該当する1行を残してコメントアウトしてください．
-#
- $ARCH = 'UNIX';			# UNIX + Perl4/5
-# $ARCH = 'WinNT';			# WinNT + Perl5
-# $ARCH = 'Win95';			# Win95 + Perl5
-# $ARCH = 'Mac';			# Mac + MacPerl
 
 ###
 ## ○タイムゾーン
@@ -47,13 +36,15 @@ $TIME_ZONE = '';
 ###
 ## ○システム機能の設定
 #
-# CGIの実行ログを取るか（インストール直後はログを取るようにしてください）
+# CGIの実行ログを取るか
+#	インストール直後はログを取ってください．kb.klgに書き出されます．
 #   0: 取らない
-#   1: 取る（kb.klgというファイルにログが書かれます）
+#   1: 取る（HTMLフォーマット）
+#   2: 取る（プレインテキストフォーマット）
 $SYS_LOG = 1;
 
-# 入力文書タイプ(HTML or PLAIN)の選択を行うか否か(行なわないとPREのみ)
-#   0: 行わない
+# 書き込み文書タイプ(HTMLで表示/そのまま表示)の選択を行うか否か
+#   0: 行わない(「そのまま表示」のみ)
 #   1: 行う
 $SYS_TEXTTYPE = 1;
 
@@ -94,6 +85,11 @@ $SYS_SHOWHOST = 0;
 #   1: 表示する
 $SYS_COMMAND = 1;
 
+# Subjectに（安全な）タグの入力を許すか
+#   0: 許さない
+#   1: 許す
+$SYS_TAGINSUBJECT = 1;
+
 # 記事の許容最大サイズ（バイト数で指定してください; 50K → 51200）
 #   0は「記事サイズの制限なし」を意味します．
 $SYS_MAXARTSIZE = 0;
@@ -117,46 +113,54 @@ $SYS_NETSCAPE_EXTENSION = 1;
 # 使う場合は以下も指定してください．
 #
 $BG_IMG = "";
-$BG_COLOR = "#66CCCC";
+$BG_COLOR = "#CCCCCC";
 $TEXT_COLOR = "#000000";
 $LINK_COLOR = "#0000AA";
 $ALINK_COLOR = "#FF0000";
 $VLINK_COLOR = "#00AA00";
 
-# 各機能を利用可能とするか否か
+# 以下の各機能を利用可能とするか否か
 #   0: 利用できない
 #   1: 利用できる
-$SYS_F_T = 1;			# リプライ記事のまとめ読みの表示
-$SYS_F_N = 1;			# 記事の投稿
-$SYS_F_R = 1;			# タイトル一覧(日付順)の表示
-$SYS_F_L = 1;			# 最近の記事一覧の表示
-$SYS_F_S = 1;			# 記事の検索
-$SYS_F_B = 1;			# 掲示板一覧の表示
+$SYS_F_T = 1;	# リプライ記事のまとめ読みの表示
+$SYS_F_N = 1;	# 記事の投稿
+$SYS_F_R = 1;	# タイトル一覧(日付順)の表示
+$SYS_F_L = 1;	# 最近の記事一覧の表示
+$SYS_F_S = 1;	# 記事の検索
+$SYS_F_B = 1;	# 掲示板一覧の表示
 #
 # これ以下のコマンドは必ず，
 # 「正しくアクセス制限をかけた上で」利用してください
 # （詳しくはインストレーションマニュアルを参照してください）．
 # でないと破壊的な悪戯を匿名でやられ放題ですからね．
 #
-# [注意] スクリプトの名前を変えたくらいじゃ絶対に駄目です．
+# [注意] スクリプトの名前を変えたくらいじゃ駄目ですよ．(^_^;
 #
-$SYS_F_D = 0;			# 記事の削除，訂正
-$SYS_F_MV = 0;			# 記事の「前後順序/元記事-リプライ関係」の変更
-$SYS_F_AM = 0;			# 新着記事到着時のメイル送信先の設定
+$SYS_F_D = 0;	# 記事の削除，訂正
+$SYS_F_MV = 0;	# 記事の「前後順序/元記事-リプライ関係」の変更
+$SYS_F_AM = 0;	# 新着記事到着時のメイル送信先の設定
 
 # 自動メイル配信サービスを利用するか否か
 #   0: 利用しない
 #   1: 利用する
 $SYS_MAIL = 1;
-#
-# 1: 利用する，にした場合は，以下でメイルサーバを指定してください．
+
+# ↑で「利用する」を指定した場合は，以下でメイルサーバを指定してください．
 #
 # 例: $SMTP_SERVER = 'mail.foo.bar.ne.jp';
 #
 $SMTP_SERVER = 'localhost';
 #
-# 以下はそのままで結構です．稼働後，もし，
-# 「kb.phの中で，CGIが動くサーバのOSを指定してください」
+# 送信するメイルのSubjectに「[掲示板: 番号]」を補いますか?
+#   0: 補わない → 「Subject: 題」（掲示板と記事番号はX-Kb-*ヘッダに入ります）
+#   1: 補う     → 「Subject: [掲示板: 記事番号] 題」
+$SYS_MAILHEADBRACKET = 1;
+#
+#
+# 以下はとりあえずそのままで結構です．稼働後，
+#
+#	 「kb.phの中で，メイル送信用の追加設定を行なってください」
+#
 # というエラーメッセージが出た場合のみ，この作業を行なってください．
 #
 # CGIが動くサーバ（普通はWWWサーバです．メイルサーバじゃありません）
@@ -169,9 +173,10 @@ $SMTP_SERVER = 'localhost';
 # $AF_INET = 2; $SOCK_STREAM = 1;	# AIX
 # $AF_INET = 2; $SOCK_STREAM = 1;	# Linux
 # $AF_INET = 2; $SOCK_STREAM = 1;	# FreeBSD
+# $AF_INET = 2; $SOCK_STREAM = 1;	# Mac（Macもこれで動くようです．．．）
 #
 # NTだとどうなるのかな……どなたか設定に成功した方がありましたら，
-# どうかnakahiro@kinotrope.co.jpまでお知らせください．m(..m
+# どうかnakahiro@sarion.co.jpまでお知らせください．m(..m
 
 ###
 ## ○掲示板一覧の相対URL
@@ -181,9 +186,9 @@ $SMTP_SERVER = 'localhost';
 #  '-'を指定すると，自分で用意したファイルでなくCGIが自動生成する掲示板一覧へ，
 #  それぞれリンクされます．
 #
-# $BOARDLIST_URL = '';			# kbディレクトリへ
+$BOARDLIST_URL = './';			# kbディレクトリへ
 # $BOARDLIST_URL = '-';			# CGIが自動生成する掲示板一覧へ
-$BOARDLIST_URL = 'kb10.shtml';		# kb/kb10.shtmlへ
+# $BOARDLIST_URL = 'kb10.shtml';	# kb/kb10.shtmlへ
 
 ###
 ## ○引用マーク
@@ -211,15 +216,15 @@ $MSGICON_WIDTH = 20;		# 幅[dot]
 #
 $SUBJECT_LENGTH = 60;		# 題
 $TEXT_ROWS = 15;		# 記事行数
-$TEXT_COLS = 65;		# 記事幅
+$TEXT_COLS = 72;		# 記事幅
 $NAME_LENGTH = 60;		# 名前幅
 $MAIL_LENGTH = 60;		# E-mail幅
-$URL_LENGTH = 52;		# URL幅
+$URL_LENGTH = 72;		# URL幅
 $KEYWORD_LENGTH = 60;		# 検索キーワード幅
 $DEF_TITLE_NUM = 20;		# タイトル一覧に表示するタイトルの数
 				# 0にすると全記事を表示するようになります．
 $TREE_INDENT = 1;		# フレーム使用時のツリー構造のインデント幅
-				# （R5.3では使われません）
+				# （R5.4では使われません）
 
 ###
 ## ○URLとして許可するscheme
@@ -236,9 +241,9 @@ $H_ALIAS = "エイリアス";
 $H_FROM = "お名前";
 $H_MAIL = "メイル";
 $H_HOST = "マシン";
-$H_USER = "投稿者";		# エイリアス登録でないと書き込みできない場合
+$H_USER = "ユーザ";
 $H_URL = "URL";
-$H_URL_S = "URL(省略可)";
+$H_URL_S = "ホームページのURL(お名前からリンクを張ります; 省略しても構いません)";
 $H_DATE = "投稿日";
 $H_REPLY = "リプライ";
 $H_ORIG = "$H_REPLY元";
@@ -250,7 +255,8 @@ $H_HTML = "HTMLとして表示する";
 $H_PLAIN = "そのまま表示する";
 $H_NOICON = "なし";
 $H_BACKBOARD = "$H_BOARD一覧へ";
-$H_BACKTITLE = "$H_SUBJECT一覧へ";
+$H_BACKTITLEREPLY = "$H_SUBJECT一覧へ($H_REPLY順)";
+$H_BACKTITLEDATE = "$H_SUBJECT一覧へ(日付順)";	# 空にすると表示されません
 $H_PREVARTICLE = "前の$H_MESGへ";
 $H_NEXTARTICLE = "次の$H_MESGへ";
 $H_POSTNEWARTICLE = "新規に書き込む";
@@ -276,7 +282,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.4 1997-12-16 12:46:41 nakahiro Rel $
+# $Id: kb.ph,v 5.5 1998-03-18 20:49:56 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
