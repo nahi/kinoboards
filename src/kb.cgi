@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl5
+#!/usr/local/bin/GNU/perl
 #
-# $Id: kb.cgi,v 4.9 1996-05-21 19:21:36 nakahiro Exp $
+# $Id: kb.cgi,v 4.10 1996-06-11 17:09:29 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -156,7 +156,6 @@ $AND_MARK = '__amp__';
 # 新規投稿:			c=n
 # 引用つきフォロー:		c=q&id={[1-9][0-9]*}
 # 引用なしフォロー:		c=f&id={[1-9][0-9]*}
-# URL引用フォロー:		c=q/f&url={URL}
 # 記事のプレビュー:		c=p&(空)....
 # 確認済み画面:			c=x&id={[1-9][0-9]*(引用でない時id=0)}
 
@@ -211,10 +210,10 @@ MAIN: {
 	&Entry($NO_QUOTE, 0);
     } elsif (($Command eq "f")
 	     || (($Command eq "m") && ($Com eq $H_REPLYTHISARTICLE))) {
-	$Id ? &Entry($NO_QUOTE, $Id) : &URLEntry($NO_QUOTE, $URL);
+	&Entry($NO_QUOTE, $Id);
     } elsif (($Command eq "q")
 	     || (($Command eq "m") && ($Com eq $H_REPLYTHISARTICLEQUOTE))) {
-	$Id ? &Entry($QUOTE_ON, $Id) : &URLEntry($QUOTE_ON, $URL);
+	&Entry($QUOTE_ON, $Id);
     } elsif (($Command eq "p") && ($Com ne "x")) {
 	&Preview();
     } elsif (($Command eq "x")
@@ -777,7 +776,7 @@ sub AddDBFile {
 
     while(<DB>) {
 
-	printf(DBTMP "$_"), next if (/^\#/);
+	print(DBTMP "$_"), next if (/^\#/);
 	chop;
 
 	($dId, $dFid, $dAids, $dInputDate, $dSubject, $dIcon,
@@ -1207,214 +1206,6 @@ sub SendMail {
 
 
 #/////////////////////////////////////////////////////////////////////
-# URL引用関連
-
-
-###
-## 書き込み画面(URL)
-#
-sub URLEntry {
-
-    # 引用あり/なしと、URL
-    local($QuoteFlag, $Url) = @_;
-
-    # Board名称の取得
-    local($BoardName) = &GetBoardInfo($BOARD);
-
-    # file
-    local($File) = &GetPath($BOARD, "$QUOTE_PREFIX.$$");
-    local($Server, $HttpPort, $Resource, $Name) = ('', '', '', '');
-    local($PlainURL) = '';
-
-    # split
-    $Name = (($PlainURL = $Url) =~ s/\#(.*)$//o) ? $1 : '';
-
-    if ($PlainURL =~ m!http://([^:]*):([0-9]*)(/.*)$!io) {
-	$Server = $1;
-	$HttpPort = $2;
-	$Resource = $3;
-    } elsif ($PlainURL =~ m!http://([^/]*)(/.*)$!io) {
-	$Server = $1;
-	$HttpPort = $DEFAULT_HTTP_PORT;
-	$Resource = $2;
-    } else {
-	&MyFatal(10, $PlainURL);
-    }
-    
-    # connect
-    &HttpConnect($Server, $HttpPort, $Resource, $File)
-	|| &MyFatal(10, $PlainURL);
-
-    # 表示画面の作成
-    &MsgHeader("$BoardName: $ENTRY_MSG");
-
-    # 引用ファイルの表示
-    &ViewOriginalFile($File, $Name);
-    print("<hr>\n");
-    print("<h2>$H_REPLYMSG</h2>");
-
-    # ヘッダ部分の表示(正規の引用でないのでId=0)
-    &EntryHeader(&GetReplySubjectFromFile($File), 0);
-
-    # 本文(引用ありなら元記事を挿入)
-    print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
-    &QuoteOriginalFile($File, $Name) if ($QuoteFlag == $QUOTE_ON);
-    print("</textarea><br>\n");
-
-    # 引用ファイル
-    print("<input name=\"qurl\" type=\"hidden\" value=\"$Url\">\n");
-    print("<input name=\"file\" type=\"hidden\" value=\"$File\">\n");
-
-    # フッタ部分の表示
-    &EntryFooter();
-
-}
-
-
-###
-## 元記事の表示(ファイル)
-#
-sub ViewOriginalFile {
-
-    # ファイル名、name tag
-    local($File, $Name) = @_;
-
-    # name tagが来たか?
-    local($NameFlag) = ($Name) ? 0 : 1;
-
-    # 引用部分を判断するフラグ
-    # 0 ... before
-    # 1 ... quote
-    # 2 ... after
-    local($QuoteFlag) = 0;
-
-    open(TMP, "<$File") || &MyFatal(1, $File);
-    while(<TMP>) {
-
-	# コード変換
-	&jcode'convert(*_, 'euc');
-
-	# 引用終了の判定
-	$QuoteFlag = 2, last
-	    if (($QuoteFlag == 1) && (/$COM_ARTICLE_END/));
-
-	# 引用文字列の表示
-	print($_) if ($QuoteFlag == 1);
-
-	# name tag?
-	$NameFlag = 1 if (/<a\s+name\s*=\s*\"$Name/i);
-
-	# 引用開始の判定
-	$QuoteFlag = 1 if (($NameFlag) && (/$COM_ARTICLE_BEGIN/));
-
-    }
-    close(TMP);
-
-    # cannot quote specified file.
-    print($H_CANNOTQUOTE) if ($QuoteFlag == 0);
-}
-
-
-###
-## 引用する(ファイル)
-#
-sub QuoteOriginalFile {
-
-    # ファイル名
-    local($File, $Name) = @_;
-
-    # name tagが来たか?
-    local($NameFlag) = ($Name) ? 0 : 1;
-
-    # 引用部分を判断するフラグ
-    local($QuoteFlag) = 0;
-
-    open(TMP, "<$File") || &MyFatal(1, $File);
-    while(<TMP>) {
-
-	# コード変換
-	&jcode'convert(*_, 'euc');
-
-	# 引用終了の判定
-	$QuoteFlag = 0, last
-	    if (($QuoteFlag == 1) && (/$COM_ARTICLE_END/));
-
-	# 引用文字列の表示
-	if ($QuoteFlag == 1) {
-	    s/&/&amp;/go;
-	    s/\"//go;
-	    if ($SYS_TAGINQUOTE) {
-		s/<//go;
-		s/>//go;
-	    } else {
-		s/<[^>]*>//go;
-	    }
-	    print($DEFAULT_QMARK, $_);
-	}
-
-	# name tag?
-	$NameFlag = 1 if (/<a\s+name\s*=\s*\"$Name/i);
-
-	# 引用開始の判定
-	$QuoteFlag = 1 if (($NameFlag) && (/$COM_ARTICLE_BEGIN/));
-	
-    }
-    close(TMP);
-
-}
-
-
-###
-## あるファイルからTitleを取ってきて、先頭に「Re: 」をつけて返す。
-#
-sub GetReplySubjectFromFile {
-
-    # ファイル
-    local($File) = @_;
-
-    # 取り出したSubject
-    local($Title) = &GetSubjectFromFile($File);
-
-    # 先頭に「Re: 」をくっつけて返す。
-    return("Re: $Title");
-
-}
-
-
-###
-## http connectionを張ってリソースを取ってきて、ローカルのファイルに落す。
-#
-sub HttpConnect {
-
-    local($Server, $HttpPort, $RemoteFile, $LocalFile) = @_;
-    local($Sockaddr) = "S n a4 x8";
-    local($Name, $Aliases, $Proto) = getprotobyname('tcp');
-    local($Name, $Aliases, $Type, $Len, $Hostaddr) = gethostbyname($Server);
-    local($Sock) = pack($Sockaddr, 2, $HttpPort, $Hostaddr);
-
-    socket(S, 2, 1, $Proto) || &MyFatal(20, '');
-    connect(S, $Sock) || return(0);
-    select(S); $| = 1; select(STDOUT);
-    print(S "GET $RemoteFile HTTP/1.0\n\n");
-
-    open(LOCAL, ">$LocalFile") || &MyFatal(1, "$LocalFile");
-    while (<S>) {
-
-	# コード変換
-	&jcode'convert(*_, 'euc');
-	s/\r\n/\n/go;
-	s/\r/\n/go;
-
-	# 書き込む
-	print(LOCAL $_);
-    }
-    
-    close(LOCAL);
-    return(1);
-}
-
-
-#/////////////////////////////////////////////////////////////////////
 # アイコン表示画面関連
 
 
@@ -1615,7 +1406,7 @@ sub ViewTitle {
 	if ($ListFlag) {
 
 	    # 追加する行
-	    $Line = &GetFormattedTitle($Id, $Icon, $Title, $Name, $Date);
+	    $Line = "<!--$Id-->" . &GetFormattedTitle($Id, $Icon, $Title, $Name, $Date);
 
 	    # 追加
 	    @Lines = ($Fid)
@@ -1693,7 +1484,7 @@ sub AddTitleFollow {
 	push(NewLines, $_);
 
 	# タイトルリスト中、お目当ての記事が来たら、
-	if (/id=$Fid/) {
+	if (/<!--$Fid-->/) {
 
 	    # 1行空読み
 	    $_ = shift(Lines);
@@ -2485,7 +2276,7 @@ sub lock {
 
     unlink($LOCK_ORG);
 
-    &MyFatal(999, $TimeOut) unless ($TimeOut < $LOCK_WAIT);
+    &MyFatal(999, $TimeOut) if ($TimeOut > $LOCK_WAIT);
 
 }
 
