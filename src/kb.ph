@@ -1,7 +1,10 @@
-# $Id: kb.ph,v 3.4 1996-03-28 09:53:32 nakahiro Exp $
+# $Id: kb.ph,v 3.5 1996-03-28 13:04:23 nakahiro Exp $
 #
 # $Log: kb.ph,v $
-# Revision 3.4  1996-03-28 09:53:32  nakahiro
+# Revision 3.5  1996-03-28 13:04:23  nakahiro
+# FIN like modification.
+#
+# Revision 3.4  1996/03/28 09:53:32  nakahiro
 # Modified articles DB structure. (Add list of articles followed)
 #
 # Revision 3.3  1996/02/11 06:54:09  nakahiro
@@ -110,6 +113,13 @@ $SYS_SHOWHOST = 1;
 #   1: 新規投稿記事のみ
 $SYS_NEWARTICLEONLY = 0;
 
+# 初心者用にタイトルリストを某BBSライクにするか否か(本当は用意したかない ;_;)
+# これを1にすると、$SYS_NEWARTICLEONLYは効かなくなる(1に固定)。
+# これを1にすると、$SYS_ICONは効かなくなる(0に固定)。
+#   0: しない
+#   1: する
+$SYS_FIN_LIKE = 0;
+
 #
 # 色の指定
 #
@@ -180,7 +190,6 @@ $H_NEXTARTICLE = "次の記事へ";
 $H_REPLYTHISARTICLE = "この記事に反応";
 $H_REPLYTHISARTICLEQUOTE = "引用して反応";
 $H_READREPLYALL = "反応をまとめ読み";
-$H_REPLYNOTE = " ← %s さん";
 $H_ARTICLES = "記事数";
 $H_JUMPID = "↑の数字をクリックすると、そのIDの記事に飛びます。新しい記事ほど上の方にあります。";
 $H_KEYWORD = "キーワード";

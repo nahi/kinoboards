@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 3.4 1996-03-28 09:53:32 nakahiro Exp $
+# $Id: kb.cgi,v 3.5 1996-03-28 13:04:23 nakahiro Exp $
 #
 # $Log: kb.cgi,v $
-# Revision 3.4  1996-03-28 09:53:32  nakahiro
+# Revision 3.5  1996-03-28 13:04:23  nakahiro
+# FIN like modification.
+#
+# Revision 3.4  1996/03/28 09:53:32  nakahiro
 # Modified articles DB structure. (Add list of articles followed)
 #
 # Revision 3.3  1996/02/11 06:53:43  nakahiro
@@ -440,7 +443,7 @@ sub EntryHeader {
     print("$H_BOARD $BoardName<br>\n");
 
     # アイコンの選択
-    &EntryIcon if $SYS_ICON;
+    &EntryIcon if ($SYS_ICON && (! $SYS_FIN_LIKE));
 
 }
 
@@ -559,7 +562,7 @@ sub QuoteOriginalArticle {
     open(TMP, "<$QuoteFile") || &MyFatal(1, $QuoteFile);
     while(<TMP>) {
 
-	# こーど変換
+	# コード変換
 	&jcode'convert(*_, 'euc');
 
 	# 引用終了の判定
@@ -605,7 +608,7 @@ sub QuoteOriginalFile {
     open(TMP, "<$File") || &MyFatal(1, $File);
     while(<TMP>) {
 
-	# こーど変換
+	# コード変換
 	&jcode'convert(*_, 'euc');
 
 	# 引用終了の判定
@@ -734,7 +737,11 @@ sub MakeTemporaryFile {
     local($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
 	= localtime(time);
     local($InputDate)
-	= sprintf("%d/%d(%02d:%02d)", $mon + 1, $mday, $hour, $min);
+	= ($SYS_FIN_LIKE)
+	    ? sprintf("%02d/%02d/%02d(%02d:%02d)", $year, $mon + 1, $mday,
+		      $hour, $min)
+		: sprintf("%d/%d(%02d:%02d)", $mon + 1, $mday, $hour, $min);
+
     # 本文と名前
     local($Text, $Name) = ($cgi'TAGS{'article'}, $cgi'TAGS{'name'});
     
@@ -807,9 +814,13 @@ sub MakeTemporaryFile {
 
 	# ▼反応(引用の場合)
 	if ($cgi'TAGS{'id'} != 0) {
+	    if ($SYS_FIN_LIKE) {
+		printf(TMP "<strong>$H_REPLY</strong> [$BoardName: %d] $ReplyArticleIcon$ReplyArticleSubject<br>\n", $cgi'TAGS{'id'});
+	    } else {
 		printf(TMP "<strong>$H_REPLY</strong> [$BoardName: %d] $ReplyArticleIcon<a href=\"$ReplyArticleFile\">$ReplyArticleSubject</a><br>\n", $cgi'TAGS{'id'});
+	    }
 	} elsif ($cgi'TAGS{'qurl'} ne '') {
-		printf(TMP "<strong>$H_REPLY</strong> <a href=\"%s\">$ReplyArticleSubject</a><br>\n", $cgi'TAGS{'qurl'});
+	    printf(TMP "<strong>$H_REPLY</strong> <a href=\"%s\">$ReplyArticleSubject</a><br>\n", $cgi'TAGS{'qurl'});
 	}
 
 	# 反応があったらメール
@@ -937,12 +948,12 @@ sub MakeNewArticle {
     # テンポラリファイルの削除
     unlink("$TmpFile");
 
-    # 記事ふったの作成
-    print(ART "$H_FOLLOW\n<ol>\n");
+    # 記事フッタの作成
+    print(ART "$H_FOLLOW\n<ul>\n");
     close(ART);
 
     # フォローされた記事にフォローされたことを書き込む。
-    &ArticleWasFollowed($Id, $ArticleId, $Icon, $Subject, $Name)
+    &ArticleWasFollowed($Id, $ArticleId, $Icon, $Subject, $Name, $InputDate)
 	if ($Id != 0);
 
     # DBファイルに投稿された記事を追加
@@ -1004,8 +1015,8 @@ sub GetandAddArticleId {
 sub ArticleWasFollowed {
 
     # フォローされた記事のId、ボードの名称、
-    # フォローした記事のId、サブジェクト、名前
-    local($Id, $FollowArticleId, $Ficon, $Fsubject, $Fname) = @_;
+    # フォローした記事のId、サブジェクト、名前、時間
+    local($Id, $FollowArticleId, $Ficon, $Fsubject, $Fname, $Fdate) = @_;
 
     # フォローされた記事ファイル
     local($ArticleFile) = &GetArticleFileName($Id, $BOARD);
@@ -1024,7 +1035,10 @@ sub ArticleWasFollowed {
     
     # 後ろにフォロー情報を追加
     open(FART, ">>$ArticleFile") || &MyFatal(1, $ArticleFile);
-    printf(FART "<li>$Ficon<a href=\"$FollowArticleFile\">$Fsubject</a> $H_REPLYNOTE\n", $Fname);
+    printf(FART
+	   "%s\n",
+	   &GetFormattedTitle($FollowArticleId, $Ficon, $FollowArticleFile,
+			      $Fsubject, $Fname, $Fdate, 0));
     close(FART);
 }
 
@@ -1110,8 +1124,8 @@ sub SortArticle {
     local($ArticleFromId) = $ArticleToId - $Num + 1;
     local($ListFlag) = 0;
     local(@Lines) = ();
-    local($Id, $Fid, $Aids, $Name, $Date, $Title, $Icon, $RemoteHost)
-	= ("", "", "", "", "", "", "", "");
+    local($Id, $Fid, $Aids, $Name, $Date, $Title, $Icon, $RemoteHost, $Fnum)
+	= ("", "", "", "", "", "", "", "", 0);
     local($ArticleFile) = "";
 
     # 取り込み。DBファイルがなければ何も表示しない。
@@ -1126,13 +1140,18 @@ sub SortArticle {
 	$ListFlag = 1 if ($ArticleFromId <= $Id);
 
 	# 新規記事のみ表示、の場合はキャンセル。
-	$ListFlag = 0 if ($SYS_NEWARTICLEONLY && ($Fid != 0));
+	$ListFlag = 0
+	    if (($SYS_FIN_LIKE || $SYS_NEWARTICLEONLY) && ($Fid != 0));
 
 	if ($ListFlag) {
 	    # 追加するファイルの名前
 	    $ArticleFile = &GetArticleFileName($Id, '');
 
-	    push(Lines, sprintf("<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Title</a> [$Name] $Date\n", $ArticleFile));
+	    # フォロー記事の数
+	    $Fnum = split(/,/, $Aids);
+
+	    push(Lines, &GetFormattedTitle($Id, $Icon, $ArticleFile, $Title,
+					   $Name, $Date, $Fnum));
 	}
     }
 
@@ -1147,10 +1166,10 @@ sub SortArticle {
     # 記事の表示
     if ($SYS_BOTTOMTITLE) {
 	# 新しい記事が下
-	foreach (@Lines) {print("$_");}
+	foreach (@Lines) {print("$_\n");}
     } else {
 	# 新しい記事が上
-	foreach (reverse @Lines) {print("$_");}
+	foreach (reverse @Lines) {print("$_\n");}
     }
 
     print("</ul>\n");
@@ -1187,8 +1206,8 @@ sub ViewTitle {
     local($ListFlag) = 0;
     local(@Lines) = ();
     local($Line) = "";
-    local($Id, $Fid, $Aids, $Name, $Date, $Title, $Icon, $RemoteHost)
-	= ("", "", "", "", "", "", "", "");
+    local($Id, $Fid, $Aids, $Name, $Date, $Title, $Icon, $RemoteHost, $Fnum)
+	= ("", "", "", "", "", "", "", "", 0);
     local($ArticleFile) = "";
 
     # 数字が0なら最初から全て
@@ -1214,17 +1233,20 @@ sub ViewTitle {
 	$ListFlag = 1 if ($ArticleFromId <= $Id);
 
 	# 新規記事のみ表示、の場合はキャンセル。
-	$ListFlag = 0 if ($SYS_NEWARTICLEONLY && ($Fid != 0));
+	$ListFlag = 0
+	    if (($SYS_FIN_LIKE || $SYS_NEWARTICLEONLY) && ($Fid != 0));
 
 	if ($ListFlag) {
 
 	    # 追加するファイルの名前
 	    $ArticleFile = &GetArticleFileName($Id, '');
 
+	    # フォロー記事の数
+	    $Fnum = split(/,/, $Aids);
+
 	    # 追加する行
-	    $Line = ($Icon)
-		? sprintf("<li><strong>$Id .</strong> $Icon<a href=\"%s\">$Title</a> [$Name] $Date", $ArticleFile)
-		    : sprintf("<li><strong>$Id .</strong> <a href=\"%s\">$Title</a> [$Name] $Date", $ArticleFile);
+	    $Line = &GetFormattedTitle($Id, $Icon, $ArticleFile, $Title,
+				       $Name, $Date, $Fnum);
 
 	    # 追加
 	    @Lines = ($Fid)
@@ -1240,16 +1262,18 @@ sub ViewTitle {
     &BoardHeader;
 
     print("<hr>\n");
+    print("<pre>\n") if ($SYS_FIN_LIKE);
     print("<ul>\n");
 
     # 記事の表示
     foreach (@Lines) {
 	s/$NULL_LINE//o;
-	print("$_\n");
-	    
+	print("$_");
+	print("\n") unless ($SYS_FIN_LIKE);
     }
 
     print("</ul>\n");
+    print("</pre>\n") if ($SYS_FIN_LIKE);
     &MsgFooter;
 
 }
@@ -1463,9 +1487,11 @@ sub ThreadArticle {
     &MsgHeader("$BoardName: $THREADARTICLE_MSG", $BOARD);
 
     # メイン関数の呼び出し(記事概要)
-    print("<ul>\n");
-    &ThreadArticleMain('subject only', $Id);
-    print("</ul>\n");
+    unless ($SYS_FIN_LIKE) {
+	print("<ul>\n");
+	&ThreadArticleMain('subject only', $Id);
+	print("</ul>\n");
+    }
 
     # メイン関数の呼び出し(記事)
     &ThreadArticleMain('', $Id);
@@ -1495,10 +1521,10 @@ sub ThreadArticleMain {
 
 	# 元記事の表示
 #	print("<a name=\"$Id\">　</a><br>\n");
-	print("<hr>\n");
 	print("// <a href=\"$PROGRAM_FROM_BOARD/$BOARD?c=f&id=$Id\">$H_REPLYTHISARTICLE</a>");
 	print("// <a href=\"$PROGRAM_FROM_BOARD/$BOARD?c=q&id=$Id\">$H_REPLYTHISARTICLEQUOTE</a> //<br>\n");
 	&ViewOriginalArticle($Id);
+	print("<hr>\n");
     }
 
     # フォロー記事の表示
@@ -1571,9 +1597,8 @@ sub PrintAbstract {
     # 記事ファイルからSubject等を取り出す
     ($Icon, $Subject, $InputDate, $Name) = &GetHeader("$File");
 
-    printf("<li><strong>$Id .</strong> %s$Subject [$Name] $InputDate\n", $Icon);
-
-##    printf("<li><strong>$Id .</strong> %s<a href=\"\#$Id\">$Subject</a> [$Name] $InputDate\n", $Icon);
+    printf("%s\n",
+	   &GetFormattedAbstract($Id, $Icon, $Subject, $Name, $InputDate));
 
 }
 
@@ -2113,6 +2138,31 @@ sub DeleteThanks {
 
 #/////////////////////////////////////////////////////////////////////
 # その他共通関数
+
+
+###
+## タイトルリストのフォーマット
+#
+sub GetFormattedTitle {
+    local($Id, $Icon, $File, $Title, $Name, $Date, $Fnum) = @_;
+    local($String) = '';
+
+    if ($SYS_FIN_LIKE) {
+	$String = sprintf("<li><a href=\"$PROGRAM_FROM_BOARD/$BOARD?c=t&id=$Id\">$Date / %03d / $Name / $Title</a>", $Fnum);
+    } else {
+	$String = sprintf("<li><strong>$Id .</strong> $Icon<a href=\"$File\">$Title</a> [$Name] $Date");
+    }
+
+    return($String);
+
+}
+
+sub GetFormattedAbstract {
+    local($Id, $Icon, $Title, $Name, $Date) = @_;
+    local($String) = '';
+    $String = sprintf("<li><strong>$Id .</strong> $Icon$Title [$Name] $Date");
+    return($String);
+}
 
 
 ###
