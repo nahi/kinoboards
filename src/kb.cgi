@@ -25,7 +25,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.20 1999-02-17 19:03:52 nakahiro Exp $
+# $Id: kb.cgi,v 5.21 1999-02-18 02:03:51 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-99 NAKAMURA Hiroshi.
@@ -59,7 +59,7 @@ umask( umask() & 0770 );
 # 大域変数の定義
 $HEADER_FILE = 'kb.ph';		# header file
 $KB_VERSION = '1.0';		# version
-$KB_RELEASE = '6.4';		# release
+$KB_RELEASE = '6.4.1';		# release
 $MACPERL = ( $^O eq 'MacOS' );  # isMacPerl?
 
 # ディレクトリ
@@ -1751,6 +1751,13 @@ sub SendMail
 	    s/<[^>]*>//go;	# タグは要らない
 	    $Message .= &HTMLDecode( $_ ) if ( $_ ne '' );
 	}
+    }
+
+    if ( !$FromAddr )
+    {
+	# メイルアドレス未入力につき，管理者名義で出す．
+	$FromName = ( $MAILFROM_LABEL || $MAINT_NAME );
+	$FromAddr = $MAINT;
     }
 
     local( $stat, $errstr ) = &cgi'sendMail( $FromName, $FromAddr,
