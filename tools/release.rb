@@ -25,7 +25,7 @@ end
 tag = ARGV.shift
 release = ARGV.shift
 Target = '~/cvs_release'
-Redist = %w( application.rb deffile.rb gpl_text.txt jcode.pl log.rb mime_pls-2_00alpha_tar.gz mimer.pl mimew.pl )
+Redist = %w( application.rb deffile.rb gpl_text.txt jcode.pl mime_pls-2_00alpha_tar.gz mimer.pl mimew.pl )
 
 usage() if ( !tag || !release )
 target = File.expand_path( Target )
