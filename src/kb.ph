@@ -3,11 +3,6 @@
 ###
 ## ○管理者の名前，E-Mailアドレス，システムの名前
 #
-# メイル送信にも使います．
-# 「$MAINT_NAME」はアルファベットのみで指定してください．
-# メイルが文字化けするようなら，
-# 「$SYSTEM_NAME」もアルファベットのみにしてください．
-#
 # 例:
 # $MAINT_NAME = 'KinoboardsAdmin';
 # $MAINT = 'nakahiro@sarion.co.jp';
@@ -61,6 +56,7 @@ $SYS_TEXTTYPE = 1 + 2 + 4;
 #   0: 利用しない
 #   1: 利用する
 #   2: エイリアスを登録しなければ，記事を投稿できないようにする
+#   3: HTTP-Cookiesを使う（ユーザ情報をブラウザに覚えさせる）
 $SYS_ALIAS = 1;
 
 # 記事アイコンを利用しますか?
@@ -160,9 +156,11 @@ $SYS_F_AM = 0;	# 新着記事到着時のメイル送信先の設定
 $SYS_MAIL = 1 + 2;
 
 # ↑で「利用しない」を指定した場合は，以下は設定の必要はありません．
-#
-# 例: $SMTP_SERVER = 'mail.foo.bar.ne.jp';
-#
+# 「○掲示板一覧の相対URL」までジャンプしてください．
+
+# メイルサーバを指定してください．
+#   例: $SMTP_SERVER = 'mail.foo.bar.ne.jp';
+#       $SMTP_SERVER = '123.456.78.90';
 $SMTP_SERVER = 'localhost';
 
 # 送信するメイルのSubjectに「[掲示板: 番号]」を補いますか?
@@ -203,9 +201,6 @@ $MAILFROM_LABEL = '';
 # $AF_INET = 2; $SOCK_STREAM = 1;	# IRIX
 # $AF_INET = 2; $SOCK_STREAM = 1;	# WinNT/95
 # $AF_INET = 2; $SOCK_STREAM = 1;	# Mac
-#
-# 上にないOSで，どなたか設定に成功した方がありましたら，
-# nakahiro@sarion.co.jpまでお知らせください．m(..m
 
 ###
 ## ○掲示板一覧の相対URL
@@ -220,11 +215,35 @@ $BOARDLIST_URL = './';			# kbディレクトリへ
 # $BOARDLIST_URL = 'kb10.shtml';	# kb/kb10.shtmlへ
 
 ###
-## ○引用マーク
+## ○各入力項目の大きさ
 #
-# 「>」や「&gt;」を引用マークにするのは避けて下さい．
-# トラブルを起こすブラウザが存在します．
+$SUBJECT_LENGTH = 60;		# 題
+$TEXT_ROWS = 15;		# 記事行数
+$TEXT_COLS = 72;		# 記事幅
+$NAME_LENGTH = 60;		# 名前幅
+$MAIL_LENGTH = 60;		# E-mail幅
+$URL_LENGTH = 72;		# URL幅
+$KEYWORD_LENGTH = 60;		# 検索キーワード幅
+$DEF_TITLE_NUM = 20;		# タイトル一覧に表示するタイトルの数
+				# 0にすると全記事を表示するようになります．
+###
+## ○出力ページの漢字コード
 #
+$CHARSET = 'jis';
+# $CHARSET = 'euc';
+#$CHARSET = 'sjis';
+
+###
+## ○引用の形態
+#
+# 引用時，元記事の作者名をつけますか?のように）
+#   0: つけない		「 ] 引用元記事．．．」
+#   1: つける		「なひ ] 引用元記事．．．」
+$SYS_QUOTENAME = 1;
+#
+# 引用マーク
+#   「>」や「&gt;」を引用マークにするのは避けて下さい．
+#   トラブルを起こすブラウザが存在します．
 $DEFAULT_QMARK = ' ] ';
 
 ###
@@ -239,19 +258,6 @@ $COMICON_WIDTH = 20;		# 幅[dot]
 # メッセージアイコン(喜怒哀楽，等)
 $MSGICON_HEIGHT = 20;		# 高さ[dot]
 $MSGICON_WIDTH = 20;		# 幅[dot]
-
-###
-## ○各入力項目の大きさ
-#
-$SUBJECT_LENGTH = 60;		# 題
-$TEXT_ROWS = 15;		# 記事行数
-$TEXT_COLS = 72;		# 記事幅
-$NAME_LENGTH = 60;		# 名前幅
-$MAIL_LENGTH = 60;		# E-mail幅
-$URL_LENGTH = 72;		# URL幅
-$KEYWORD_LENGTH = 60;		# 検索キーワード幅
-$DEF_TITLE_NUM = 20;		# タイトル一覧に表示するタイトルの数
-				# 0にすると全記事を表示するようになります．
 
 ###
 ## ○URLとして許可するscheme
@@ -278,7 +284,7 @@ $H_ORIG_TOP = "オリジナル";
 $H_LINE = "<p>------------------------------</p>";
 $H_THREAD = "▼";
 
-$H_TEXTTYPE = "表示形式";
+$H_TEXTTYPE = "書き込み形式";
 @H_TTLABEL = ( "そのまま表示", "HTMLに変換", "HTMLで入力" );
 @H_TTMSG = ( "「$H_TEXTTYPE」を「$H_TTLABEL[0]」にして$H_MESGを書くと，表示の際にそのまま表示されます．", "「$H_TTLABEL[1]」にすると，空行を段落の区切としてHTMLに自動変換します．", "「$H_TTLABEL[2]」にしてHTMLとして書くと，表示の時にHTML整形されます．" );
 
@@ -311,7 +317,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.7 1998-06-19 07:22:13 nakahiro Exp $
+# $Id: kb.ph,v 5.8 1998-09-14 19:39:59 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
