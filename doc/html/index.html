@@ -7,17 +7,17 @@
 <link rev="MADE" href="mailto:nakahiro@sarion.co.jp">
 <link rel="KINOBOARDS Home Page" href="http://www.jin.gr.jp/~nahi/kb/">
 <link rel="StyleSheet" href="kinoStyle.css" type="text/css" media="screen">
-<title>KINOBOARDS version 1.0 release 6.10</title>
+<title>KINOBOARDS version 1.0 release 6.11</title>
 </head>
 <body>
 
 <div class="header">
 <h1>
-KINOBOARDS version 1.0 release 6.10
+KINOBOARDS version 1.0 release 6.11
 </h1>
 
 <p class="status">
-Last Update: April 5, 2000
+Last Update: July 1, 2000
 </p>
 </div>
 
@@ -231,20 +231,19 @@ KINOBOARDSに関する話題なら，なんでも扱っていく予定です．
 <h2>8. Release Notes</h2>
 
 <p>
-R6.10での変更・修正点は以下の通りです．
+R6.11での変更・修正点は以下の通りです．
 </p>
 
 <ul>
-<li>きょくさんの指摘で，メッセージ書き込み時の入力形式を，
-プルダウンselectコンボからラジオボタンに変更．
-<li>井汲さんの指摘で，$KB_RESOURCE_URLの末尾に'/'がない時に
-アイコンが表示されない，というバグを修正．
-<li>綾乃介さんの指摘で，ドキュメントの説明が不足している部分を修正．
+<li>えばさんの指摘で，定義されていない関数が呼ばれているというバグを修正．
+具体的には，リプライ-リプライ元関係を変更する際，ループを検出した際に呼ばれる可能性がありました．
+<li>小原さんの指摘で，訂正済みのメッセージを再度訂正した場合，大元のメッセージが（ディスク上からも）消えてしまう，というバグを修正．
+訂正されても消さないつもりでコーディングしてたんですが，このバグのせいで，最大2世代分（現在有効なメッセージとその1世代前のメッセージ）しか保存されていませんでした．
 </ul>
 
 <p>
-細かな修正のみです．
-ああはやくR7出さないと（とかいいつつ何箇月）．
+小原さんに指摘して頂いたバグは，「一度預かったものはできるだけ消さない」がポリシーのきのぼずにとって，致命的なものでした．
+発見して頂いて感謝です．
 </p>
 
 <h2>9. おわりに（Special Thanks）</h2>
@@ -258,7 +257,7 @@ NTやMacへの移植を試みてくださった方々，
 修正すべき点を御指摘頂いた方々，
 頻繁なリリースにつきあってテストしてくださった方々，
 アイコンを描いてくださった方々，
-<a href="http://www.jin.gr.jp/~nahi/kbml.html">きのぼずML</a>
+<a href="http://www.jin.gr.jp/~nahi/kb/#ml">きのぼずML</a>
 に参加してくださった全ての方々，
 jcode.plを作られた歌代さん，
 mimew.plを作られた生田さん，
