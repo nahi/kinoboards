@@ -41,7 +41,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.67 2000-04-21 12:01:36 nakahiro Exp $
+# $Id: kb.cgi,v 5.68 2000-04-21 13:19:37 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -2750,6 +2750,7 @@ sub hg_search_article_result
 {
     &fatal( 18, "$_[0]/SearchArticleResult" ) if ( $_[0] ne 'SearchArticle.xml' );
 
+    local( $SearchView ) = &cgi'tag( 'searchthread' )? 1 : 0;
     local( $Key ) = &cgi'tag( 'key' );
     local( $SearchSubject ) = &cgi'tag( 'searchsubject' );
     local( $SearchPerson ) = &cgi'tag( 'searchperson' );
@@ -2769,7 +2770,7 @@ sub hg_search_article_result
     if ( $SearchIcon || ( $SearchPostTimeFrom || $SearchPostTimeTo ) ||
 	(( $Key ne '' ) && ( $SearchSubject || $SearchPerson || $SearchArticle )))
     {
-	&dumpSearchResult( $Key, $SearchSubject, $SearchPerson,
+	&dumpSearchResult( $SearchView, $Key, $SearchSubject, $SearchPerson,
 	    $SearchArticle, $SearchPostTimeFrom, $SearchPostTimeTo,
 	    $SearchIcon, *iconHash );
     }
@@ -3200,6 +3201,7 @@ sub hg_b_post_entry_form
 
 sub hg_b_search_article_form
 {
+    local( $SearchThread ) = &cgi'tag( 'searchthread' );
     local( $Key ) = &cgi'tag( 'key' );
     local( $SearchSubject ) = &cgi'tag( 'searchsubject' );
     local( $SearchPerson ) = &cgi'tag( 'searchperson' );
@@ -3245,13 +3247,13 @@ sub hg_b_search_article_form
 	$contents .= "という$H_ICON\n";
 
 	$selContents = sprintf( qq[<option%s value="0">&nbsp;</option>\n], ( $SearchIcon == 0 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="1">を持つ$H_MESGを探す</option>\n], ( $SearchIcon == 1 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="3">が$H_ORIGである$H_MESGを探す</option>\n], ( $SearchIcon == 3 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="2">という$H_REPLYを持つ$H_MESGを探す</option>\n], ( $SearchIcon == 2 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="1">である</option>\n], ( $SearchIcon == 1 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="3">が$H_ORIGである</option>\n], ( $SearchIcon == 3 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="2">という$H_REPLYを持つ</option>\n], ( $SearchIcon == 2 )? ' selected="selected"' : '' );
 	$selContents .= qq(<option value="0">&nbsp;</option>\n);
-	$selContents .= sprintf( qq[<option%s value="11">を含むスレッドを探す</option>\n], ( $SearchIcon == 11 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="12">がスレッドの先頭にあるスレッドを探す</option>\n], ( $SearchIcon == 12 )? ' selected="selected"' : '' );
-	$selContents .= sprintf( qq[<option%s value="13">がスレッドの末端にあるスレッドを探す</option>\n], ( $SearchIcon == 13 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="11">をスレッド中に含む</option>\n], ( $SearchIcon == 11 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="12">がスレッドの先頭にある</option>\n], ( $SearchIcon == 12 )? ' selected="selected"' : '' );
+	$selContents .= sprintf( qq[<option%s value="13">がスレッドの末端にある</option>\n], ( $SearchIcon == 13 )? ' selected="selected"' : '' );
 
 	$contents .= &tagSelect( 'searchicon', $selContents );
 
@@ -3262,7 +3264,9 @@ sub hg_b_search_article_form
 #	$contents .= &tagInputCheck( 'searchicon', $SearchIcon ) . ': ' . &tagLabel( $H_ICON, 'searchicon', 'I' ) . " // \n";
 
     }
-    $msg .= &tagFieldset( "検索条件$HTML_BR", $contents ) . $HTML_BR;
+    $contents .= $HTML_BR . &tagInputCheck( 'searchthread', $SearchThread ) . ': ' . &tagLabel( 'スレッドを検索する', 'searchthread', 'Z' ) . $HTML_BR;
+
+    $msg .= &tagFieldset( "検索対象$HTML_BR", $contents ) . $HTML_BR;
 
     %tags = ( 'c', 's', 'b', $BOARD );
     &dumpForm( *tags, '検索', 'リセット', *msg );
@@ -3653,9 +3657,12 @@ sub dumpArtThread
 ## dumpSearchResult - 記事検索
 #
 # - SYNOPSIS
-#	&dumpSearchResult( $Key, $Subject, $Person, $Article, $PostTimeFrom, $PostTimeTo, $IconType, *iconHash );
+#	&dumpSearchResult( $type, $Key, $Subject, $Person, $Article, $PostTimeFrom, $PostTimeTo, $IconType, *iconHash );
 #
 # - ARGS
+#	$type		表示形式
+#			  0 ... メッセージ表示
+#			  1 ... スレッド表示
 #	$Key		キーワード
 #	$Subject	タイトルを検索するか否か
 #	$Person		投稿者を検索するか否か
@@ -3671,7 +3678,7 @@ sub dumpArtThread
 #
 sub dumpSearchResult
 {
-    local( $Key, $Subject, $Person, $Article, $PostTimeFrom, $PostTimeTo, $IconType, *iconHash ) = @_;
+    local( $type, $Key, $Subject, $Person, $Article, $PostTimeFrom, $PostTimeTo, $IconType, *iconHash ) = @_;
 
     local( @KeyList ) = split( /\s+/, $Key );
     local( $postTime ) = ( $PostTimeTo || $PostTimeFrom );
@@ -3681,6 +3688,10 @@ sub dumpSearchResult
 
     # アイコン検索のキャッシュをクリア
     %gSearchIconResult = ();
+
+    # スレッド表示用キャッシュ
+    local( %dumpThread );
+
     local( $dId, $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail );
     local( $SubjectFlag, $PersonFlag, $PostTimeFlag, $ArticleFlag );
     local( $HitNum, $Line, $FromUtc, $ToUtc );
@@ -3747,33 +3758,53 @@ sub dumpSearchResult
 	    $SubjectFlag = 1;
 	}
 
-	if ( $SubjectFlag || $PersonFlag || $ArticleFlag )
+	next unless ( $SubjectFlag || $PersonFlag || $ArticleFlag );
+
+	# スレッド表示の場合
+	if ( $type == 1 )
 	{
-	    # 最低1つは合致した
-	    $HitNum++;
+	    next if ( defined( $dumpThread[ &getArtParentTop( $dId ) ] ));
 
-	    # 記事へのリンクを表示
-	    &dumpArtSummaryItem( $dId, $dAids, $dDate, $dTitle, $dIcon, $dName, 1 );
-
-	    # 本文に合致した場合は本文も表示
-	    if ( $ArticleFlag )
-	    {
-		$Line =~ s/<[^>]*>//go;
-		$gHgStr .= "<blockquote>$Line</blockquote>\n";
-	    }
-	    $gHgStr .= "</li>\n";
+	    # スレッド先頭記事が合致したものとする．
+	    $dId = &getArtParentTop( $dId );
+	    $dumpThread[ $dId ] = 1;
+	    ( $dFid, $dAids, $dDate, $dTitle, $dIcon, $dRemoteHost, $dName, $dEmail ) = &getArtInfo( $dId );
 	}
+
+	# 合致件数のカウント
+	$HitNum++;
+
+	# 記事へのリンクを表示
+	&dumpArtSummaryItem( $dId, $dAids, $dDate, $dTitle, $dIcon, $dName, 1 );
+
+	# 本文に合致した場合は本文も表示
+	if ( $ArticleFlag )
+	{
+	    $Line =~ s/<[^>]*>//go;
+	    $gHgStr .= "<blockquote>$Line</blockquote>\n";
+	}
+	$gHgStr .= "</li>\n";
     }
 
-    # ヒットしたら
+    # 検索対象を表す文字列
+    local( $target );
+    if ( $type == 0 )
+    {
+	$target = $H_MESG;
+    }
+    elsif ( $type == 1 )
+    {
+	$target = 'スレッド';
+    }
+
     if ( $HitNum )
     {
 	$gHgStr .= "</ul>\n<ul>\n";
-	$gHgStr .= "<li>$HitNum件の$H_MESGが見つかりました．</li>\n";
+	$gHgStr .= "<li>$HitNum件の$targetが見つかりました．</li>\n";
     }
     else
     {
-	$gHgStr .= "<li>該当する$H_MESGは見つかりませんでした．</li>\n";
+	$gHgStr .= "<li>該当する$targetは見つかりませんでした．</li>\n";
     }
 
     # リスト閉じる
@@ -5027,12 +5058,12 @@ sub makeNewArticleEx
 # - ARGS
 #	$id		アイコンを検索する記事のID
 #	$type		検索タイプ
-#			  1 ... 本人
-#			  2 ... 直接の娘にある
-#			  3 ... 直接の親にある
+#			  1 ... である
+#			  2 ... 直接の娘である
+#			  3 ... 直接の親である
 #			  11 ... スレッド中に含む
-#			  12 ... スレッドの先頭に持つ
-#			  13 ... スレッドの末端に持つ
+#			  12 ... スレッドの先頭にある
+#			  13 ... スレッドの末端にある
 #	%iconHash	検索アイコン用ハッシュ．
 #			  $iconHash{ 'アイコン' }が真のアイコンが検索される．
 #
@@ -5103,10 +5134,6 @@ sub searchArticleIcon
     elsif ( $type == 11 )
     {
 	local( $topId ) = &getArtParentTop( $id );
-	if ( $topId eq '' )
-	{
-	    $topId = $id;
-	}
 
 	# トップから検索していく．
 	local( @daughters ) = ( $topId );
@@ -5120,10 +5147,6 @@ sub searchArticleIcon
     elsif ( $type == 12 )
     {
 	local( $topId ) = &getArtParentTop( $id );
-	if ( $topId eq '' )
-	{
-	    $topId = $id;
-	}
 	$result = 1 if ( $iconHash{ &getArtIcon( $topId ) } );
     }
     elsif ( $type == 13 )
@@ -5149,10 +5172,6 @@ sub searchArticleIcon
     {
 	# 検索結果をキャッシュに反映させる: トップからたどれる全ての娘へ
 	local( $topId ) = &getArtParentTop( $id );
-	if ( $topId eq '' )
-	{
-	    $topId = $id;
-	}
 
 	# トップから検索していく．
 	local( @daughters ) = ( $topId );
@@ -7303,7 +7322,7 @@ sub getArtParentTop
 {
     local( $top );
     ( $top = $DB_FID{ $_[0] } ) =~ s/^.*,//o;
-    $top;
+    $top || $_[0];
 }
 
 sub setArtParents { $DB_FID{ $_[0] } = $_[1]; }
