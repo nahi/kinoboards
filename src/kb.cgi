@@ -1,6 +1,6 @@
 #!/usr/local/bin/GNU/perl
 #
-# $Id: kb.cgi,v 4.12 1996-07-08 14:31:16 nakahiro Exp $
+# $Id: kb.cgi,v 4.13 1996-07-16 05:40:34 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -66,7 +66,7 @@ $DEFAULT_HTTP_PORT = 80;
 #
 # 著作権表示
 #
-$ADDRESS = "KINOBOARDS: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
+$ADDRESS = "KINOBOARDS/1.0: Copyright (C) 1995, 96 <a href=\"http://www.kinotrope.co.jp/~nakahiro/\">NAKAMURA Hiroshi</a>.";
 
 #
 # ファイル
@@ -1574,24 +1574,11 @@ sub NewArticle {
 
     print("<hr>\n");
 
-    if ($SYS_BOTTOMTITLE) {
-
-	# 下へ
-	for ($i = $ArticleFromId; ($i <= $ArticleToId); $i++) {
-	    # 記事の表示(コマンド付き)
-	    &ViewOriginalArticle($i, 1);
-	    print("<hr>\n");
-	}
-	
-    } else {
-
-	# 上へ
-	for ($i = $ArticleToId; ($i >= $ArticleFromId); $i--) {
-	    # 記事の表示(コマンド付き)
-	    &ViewOriginalArticle($i, 1);
-	    print("<hr>\n");
-	}
-
+    # 下へ
+    for ($i = $ArticleFromId; ($i <= $ArticleToId); $i++) {
+	# 記事の表示(コマンド付き)
+	&ViewOriginalArticle($i, 1);
+	print("<hr>\n");
     }
 
     &MsgFooter();
@@ -1648,7 +1635,7 @@ sub SearchArticle {
     # アイコンの選択
     print("<SELECT NAME=\"icon\">\n");
     printf("<OPTION%s>$H_NOICON\n",
-	   (($Icon ne $H_NOICON) ? '' : ' SELECTED'));
+	   (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED'));
 	
     # 一つ一つ表示
     open(ICON, "$ICON_DIR/$BOARDDIR.$ICONDEF_POSTFIX")
