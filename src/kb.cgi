@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.30 1996-11-19 12:07:06 nakahiro Exp $
+# $Id: kb.cgi,v 4.31 1996-11-19 13:59:23 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -271,9 +271,9 @@ sub Entry {
     &EntryHeader((($Id !=0 ) ? &GetReplySubject($Id) : ''), $Id);
 
     # 本文(引用ありなら元記事を挿入)
-    print("<textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
+    print("<p><textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">");
     &QuoteOriginalArticle($Id, $BOARD) if (($Id != 0) && ($QuoteFlag eq 'quote'));
-    print("</textarea><br>\n");
+    print("</textarea></p>\n");
 
     # フッタ部分を表示
     &EntryFooter();
@@ -290,15 +290,14 @@ sub EntryHeader {
 
     # お約束
     &cgi'KPrint(<<__EOF__);
-<p>
 <form action="$PROGRAM" method="POST">
 <input name="c" type="hidden" value="p">
 <input name="b" type="hidden" value="$BOARD">
 <input name="id" type="hidden" value="$Id">
-</p>
 <p>
 $H_AORI
 </p>
+<p>
 $H_BOARD: $BOARDNAME<br>
 __EOF__
 
@@ -345,7 +344,8 @@ $H_TEXTTYPE:
 <SELECT NAME="texttype">
 <OPTION SELECTED>$H_PRE
 <OPTION>$H_HTML
-</SELECT><BR>
+</SELECT>
+</p>
 __EOF__
 
     }
@@ -360,6 +360,7 @@ sub EntryFooter {
 
     # 名前とメールアドレス，URL．
     &cgi'KPrint(<<__EOF__);
+<p>
 $H_FROM: <input name="name" type="text" size="$NAME_LENGTH"><br>
 $H_MAIL: <input name="mail" type="text" size="$MAIL_LENGTH"><br>
 $H_URL: <input name="url" type="text" value="http://" size="$URL_LENGTH"><br>
@@ -369,17 +370,17 @@ __EOF__
     
     if ($SYS_ALIAS) {
 	&cgi'KPrint(<<__EOF__);
-<p>
+</p><p>
 $H_ALIASINFO
 (<a href="$PROGRAM?c=as">$H_SEEALIAS</a> //
  <a href="$PROGRAM?c=an">$H_ALIASENTRY</a>)
-</p>
 __EOF__
 
     }
 
     # ボタン
     &cgi'KPrint(<<__EOF__);
+</p><p>
 <input type="radio" name="com" value="p" CHECKED>: $H_PREVIEW<br>
 <input type="radio" name="com" value="x">: $H_ENTRY<br>
 <input type="submit" value="$H_PUSHHERE_POST">
@@ -1622,6 +1623,7 @@ $H_INPUTKEYWORD
 </p>
 
 <p>$H_SEARCHTARGET:
+<ul>
 __EOF__
 
     &cgi'KPrint(sprintf("<li>$H_SEARCHTARGETSUBJECT: <input name=\"searchsubject\" type=\"checkbox\" value=\"on\" %s>\n", (($SearchSubject) ? 'CHECKED' : '')));
@@ -1659,8 +1661,8 @@ __EOF__
     # アイコン一覧
     &cgi'KPrint(<<__EOF__);
 (<a href="$PROGRAM?b=$BOARD&c=i&type=entry">$H_SEEICON</a>)<BR>
-</p>
 </ul>
+</p>
 </form>
 <hr>
 __EOF__
