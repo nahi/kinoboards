@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl5
 #
-# $Id: kb.cgi,v 4.28 1996-09-19 13:43:19 nakahiro Exp $
+# $Id: kb.cgi,v 4.29 1996-10-07 11:45:37 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
@@ -139,7 +139,16 @@ $F_HEADITEM_LI = 1;
 #
 # エラーコード
 #
-$ERR_F_CANNOTRENAME = 99;
+$ERR_FILE = 1;
+$ERR_NOTFILLED = 2;
+$ERR_CRINDATA = 3;
+$ERR_TAGINDATA = 4;
+$ERR_CANNOTGRANT = 5;
+$ERR_UNKNOWNALIAS = 6;
+$ERR_ILLEGALSTRING = 7;
+$ERR_NONEXTARTICLE = 8;
+$ERR_CANNOTSENDMAIL = 9;
+$ERR_F_CANNOTLOCKSYSTEM = 999;
 
 # トラップ
 $SIG{'HUP'} = $SIG{'INT'} = $SIG{'QUIT'} = $SIG{'TERM'} = $SIG{'TSTP'} = 'DoKill';
@@ -302,7 +311,7 @@ __EOF__
 	# 一つ一つ表示
 	open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
 	    || (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
-		|| &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
+		|| &Fatal($ERR_FILE, &GetIconPath("$DEFAULT_ICONDEF")));
 	while(<ICON>) {
 
 	    # Version Check
@@ -415,7 +424,7 @@ sub QuoteOriginalArticle {
     local($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name) = &GetArticlesInfo($Id);
 
     # ファイルを開く
-    open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
+    open(TMP, "<$QuoteFile") || &Fatal($ERR_FILE, $QuoteFile);
     while(<TMP>) {
 
 	# Version Check
@@ -535,7 +544,7 @@ sub CheckArticle {
     $_ = $Name;
     if (/^#.*$/) {
         ($Tmp, $Email, $Url) = &GetUserInfo($_);
-	&Fatal(7, $Name) if ($Tmp eq '');
+	&Fatal($ERR_UNKNOWNALIAS, $Name) if ($Tmp eq '');
 	$Name = $Tmp;
     }
 
@@ -632,7 +641,7 @@ sub MakeArticleFile {
     local($File) = &GetArticleFileName($Id, $BOARD);
 
     # ファイルを開く
-    open(TMP, ">$File") || &Fatal(1, $File);
+    open(TMP, ">$File") || &Fatal($ERR_FILE, $File);
 
     # バージョン情報を書き出す
     printf(TMP "<!-- Kb-System-Id: %s/%s -->\n", $KB_VERSION, $KB_RELEASE);
@@ -687,7 +696,7 @@ sub AddArticleId {
     local($ArticleId) = &GetNewArticleId();
 
     # Open Tmp File
-    open(AID, ">$TmpFile") || &Fatal(1, $TmpFile);
+    open(AID, ">$TmpFile") || &Fatal($ERR_FILE, $TmpFile);
 
     # 記事ID
     print(AID "$ArticleId\n");
@@ -695,7 +704,7 @@ sub AddArticleId {
     close(AID);
 
     # 更新
-    &Rename($TmpFile, $File);
+    rename($TmpFile, $File);
 
 }
 
@@ -716,9 +725,9 @@ sub AddDBFile {
     local($TmpFile) = &GetPath($BOARD, $DB_TMP_FILE_NAME);
 
     # Open Tmp File
-    open(DBTMP, ">$TmpFile") || &Fatal(1, $TmpFile);
+    open(DBTMP, ">$TmpFile") || &Fatal($ERR_FILE, $TmpFile);
     # Open DB File
-    open(DB, "<$File") || &Fatal(1, $File);
+    open(DB, "<$File") || &Fatal($ERR_FILE, $File);
 
     while(<DB>) {
 
@@ -759,7 +768,7 @@ sub AddDBFile {
     close(DBTMP);
 
     # DBを更新する
-    &Rename($TmpFile, $File);
+    rename($TmpFile, $File);
 
 }
 
@@ -784,7 +793,7 @@ sub ShowArticle {
     local($Aid) = '';
 
     # 未投稿記事は読めない
-    &Fatal(11, '') unless ($Name);
+    &Fatal($ERR_NONEXTARTICLE, '') unless ($Name);
 
     # 表示画面の作成
     &MsgHeader("$Subject");
@@ -843,7 +852,7 @@ __EOF__
     print("$H_LINE<br>\n");
 
     # 記事
-    open(TMP, "<$File") || &Fatal(1, $File);
+    open(TMP, "<$File") || &Fatal($ERR_FILE, $File);
     while(<TMP>) {
 
 	# Version Check
@@ -985,7 +994,7 @@ sub GetFollowIdList {
     local($dId, $dFid, $dAids);
 
     # 取り込み
-    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
+    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
     while(<DB>) {
 
 	# Version Check
@@ -1037,7 +1046,7 @@ sub GetUserInfo {
     local($rN, $rE, $rU) = ('', '', '');
 
     # ファイルを開く
-    open(ALIAS, "<$USER_ALIAS_FILE") || &Fatal(1, $USER_ALIAS_FILE);
+    open(ALIAS, "<$USER_ALIAS_FILE") || &Fatal($ERR_FILE, $USER_ALIAS_FILE);
     
     # 1つ1つチェック．
     while(<ALIAS>) {
@@ -1111,7 +1120,7 @@ sub SendMail {
 	$Message .= "\n$H_LINE\n";
 
 	# 引用
-	open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
+	open(TMP, "<$QuoteFile") || &Fatal($ERR_FILE, $QuoteFile);
 	while(<TMP>) {
 
 	    # Version Check
@@ -1128,7 +1137,7 @@ sub SendMail {
     }
 
     # 送信する
-    &Fatal(9, '') unless (&cgi'SendMail($MAINT_NAME, $MAINT, $Subject, $ExtensionHeader, $Message, @To));
+    &Fatal($ERR_CANNOTSENDMAIL, '') unless (&cgi'SendMail($MAINT_NAME, $MAINT, $Subject, $ExtensionHeader, $Message, @To));
 
 }
 
@@ -1191,7 +1200,7 @@ __EOF__
 	# 一つ一つ表示
 	open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
 	    || (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
-		|| &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
+		|| &Fatal($ERR_FILE, &GetIconPath("$DEFAULT_ICONDEF")));
 	while(<ICON>) {
 
 	    # Version Check
@@ -1296,7 +1305,7 @@ sub GetTitle {
     local($Id, $Fid) = (0, '');
 
     # 取り込み．DBファイルがなければ何も表示しない．
-    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
+    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
 
     while(<DB>) {
 
@@ -1627,7 +1636,7 @@ __EOF__
     # 一つ一つ表示
     open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
 	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
-	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
+	    || &Fatal($ERR_FILE, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
 
 	# Version Check
@@ -1690,7 +1699,7 @@ sub SearchArticleList {
     print("<ul>\n");
 
     # ファイルを開く．DBファイルがなければnot found.
-    open(DB, "<$DBFile") || &Fatal(1, $DBFile);
+    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
     while(<DB>) {
 
 	# Version Check
@@ -1775,7 +1784,7 @@ sub SearchArticleKeyword {
     local($Line, $Return) = ('', '');
 
     # 検索する
-    open(ARTICLE, "<$File") || &Fatal(1, $File);
+    open(ARTICLE, "<$File") || &Fatal($ERR_FILE, $File);
     while($Line = <ARTICLE>) {
 
 	# Version Check
@@ -1892,7 +1901,7 @@ sub AliasMod {
     }
     
     # ホスト名が合わない!
-    &Fatal(6, '') if ($HitFlag == 1);
+    &Fatal($ERR_CANNOTGRANT, '') if ($HitFlag == 1);
     
     # データの登録
     $Name{$Alias} = $N;
@@ -1957,10 +1966,10 @@ sub AliasDel {
     }
     
     # ホスト名が合わない!
-    &Fatal(6, '') if ($HitFlag == 1);
+    &Fatal($ERR_CANNOTGRANT, '') if ($HitFlag == 1);
     
     # エイリアスがない!
-    &Fatal(7, $A) if ($HitFlag == 0);
+    &Fatal($ERR_UNKNOWNALIAS, $A) if ($HitFlag == 0);
     
     # 名前を消す
     $Name{$A} = '';
@@ -2028,7 +2037,7 @@ sub CashAliasData {
     local($A, $N, $E, $H, $U);
 
     # 放り込む．
-    open(ALIAS, "<$File") || &Fatal(1, $File);
+    open(ALIAS, "<$File") || &Fatal($ERR_FILE, $File);
     while(<ALIAS>) {
 
 	# Version Check
@@ -2063,7 +2072,7 @@ sub WriteAliasData {
     local($TmpFile) = $USER_ALIAS_TMP_FILE;
 
     # 書き出す
-    open(ALIAS, ">$TmpFile") || &Fatal(1, $TmpFile);
+    open(ALIAS, ">$TmpFile") || &Fatal($ERR_FILE, $TmpFile);
 
     # バージョン情報を書き出す
     printf(ALIAS "# Kb-System-Id: %s/%s\n", $KB_VERSION, $KB_RELEASE);
@@ -2077,7 +2086,7 @@ sub WriteAliasData {
     close(ALIAS);
 
     # 更新
-    &Rename($TmpFile, $File);
+    rename($TmpFile, $File);
     
 }
 
@@ -2089,7 +2098,7 @@ sub BoardHeader {
 
     local($File) = &GetPath($BOARD, $BOARD_FILE_NAME);
 
-    open(HEADER, "<$File") || &Fatal(1, $File);
+    open(HEADER, "<$File") || &Fatal($ERR_FILE, $File);
     while(<HEADER>){
 	# Version Check
 	&VersionCheck('Header', $1), next
@@ -2113,7 +2122,7 @@ sub GetNewArticleId {
     # 記事番号
     local($ArticleId) = 0;
 
-    open(AID, "<$ArticleNumFile") || &Fatal(1, $ArticleNumFile);
+    open(AID, "<$ArticleNumFile") || &Fatal($ERR_FILE, $ArticleNumFile);
     while(<AID>) {
 	chop;
 	$ArticleId = $_;
@@ -2137,7 +2146,7 @@ sub GetArticleId {
     # 記事番号
     local($ArticleId);
 
-    open(AID, "<$ArticleNumFile") || &Fatal(1, $ArticleNumFile);
+    open(AID, "<$ArticleNumFile") || &Fatal($ERR_FILE, $ArticleNumFile);
     while(<AID>) {
 	chop;
 	$ArticleId = $_;
@@ -2160,7 +2169,7 @@ sub GetBoardInfo {
     # ボード名
     local($BoardName) = '';
 
-    open(ALIAS, "<$BOARD_ALIAS_FILE") || &Fatal(1, $BOARD_ALIAS_FILE);
+    open(ALIAS, "<$BOARD_ALIAS_FILE") || &Fatal($ERR_FILE, $BOARD_ALIAS_FILE);
     while(<ALIAS>) {
 
 	# Version Check
@@ -2242,13 +2251,13 @@ sub CheckAlias {
     local($String) = @_;
 
     # 空チェック
-    ($String eq '') && &Fatal(2, '');
+    ($String eq '') && &Fatal($ERR_NOTFILLED, '');
 
     # `#'で始まってる?
-    ($String =~ (/^#/)) || &Fatal(8, 'alias');
+    ($String =~ (/^#/)) || &Fatal($ERR_ILLEGALSTRING, 'alias');
 
     # 1文字じゃだめ
-    (length($String) > 1) || &Fatal(8, 'alias');
+    (length($String) > 1) || &Fatal($ERR_ILLEGALSTRING, 'alias');
 
 }
 
@@ -2261,13 +2270,13 @@ sub CheckSubject {
     local($String) = @_;
 
     # 空チェック
-    ($String eq '') && &Fatal(2, '');
+    ($String eq '') && &Fatal($ERR_NOTFILLED, '');
 
     # タグをチェック
-    ($String =~ /</o) && &Fatal(4, '');
+    ($String =~ /</o) && &Fatal($ERR_TAGINDATA, '');
 
     # 改行コードをチェック
-    ($String =~ /\n/o) && &Fatal(3, '');
+    ($String =~ /\n/o) && &Fatal($ERR_CRINDATA, '');
 
 }
 
@@ -2280,10 +2289,10 @@ sub CheckName {
     local($String) = @_;
 
     # 空チェック
-    ($String eq '') && &Fatal(2, '');
+    ($String eq '') && &Fatal($ERR_NOTFILLED, '');
 
     # 改行コードをチェック
-    ($String =~ /\n/o) && &Fatal(3, '');
+    ($String =~ /\n/o) && &Fatal($ERR_CRINDATA, '');
 
 }
 
@@ -2298,15 +2307,15 @@ sub CheckEmail {
     if ($SYS_POSTERMAIL) {
 
 	# 空チェック
-	&Fatal(2, '') if ($String eq '');
+	&Fatal($ERR_NOTFILLED, '') if ($String eq '');
 
 	# `@'が入ってなきゃアウト
-	&Fatal(8, 'E-Mail') if ($String !~ (/@/));
+	&Fatal($ERR_ILLEGALSTRING, 'E-Mail') if ($String !~ (/@/));
 
     }
 
     # 改行コードをチェック
-    ($String =~ /\n/o) && &Fatal(3, '');
+    ($String =~ /\n/o) && &Fatal($ERR_CRINDATA, '');
 
 }
 
@@ -2319,7 +2328,7 @@ sub CheckURL {
     local($String) = @_;
 
     ($String =~ m#^http://.*$#) || ($String =~ m#^http://$#)
-	|| ($String eq '') || &Fatal(8, 'URL');
+	|| ($String eq '') || &Fatal($ERR_ILLEGALSTRING, 'URL');
 
 }
 
@@ -2377,7 +2386,7 @@ sub lock {
 
     srand(time|$$);
 
-    open(LOCKORG, ">$LOCK_ORG") || &Fatal(1, $LOCK_ORG);
+    open(LOCKORG, ">$LOCK_ORG") || &Fatal($ERR_FILE, $LOCK_ORG);
     close(LOCKORG);
 
     for($TimeOut = 0; $TimeOut < $LOCK_WAIT; $TimeOut++) {
@@ -2386,7 +2395,7 @@ sub lock {
     }
 
     unlink($LOCK_ORG);
-    &Fatal(999, $TimeOut) unless ($Flag);
+    &Fatal($ERR_F_CANNOTLOCKSYSTEM, $TimeOut) unless ($Flag);
 
 }
 
@@ -2457,7 +2466,7 @@ __EOF__
     print("$H_LINE<br>\n");
 
     # 記事の中身
-    open(TMP, "<$QuoteFile") || &Fatal(1, $QuoteFile);
+    open(TMP, "<$QuoteFile") || &Fatal($ERR_FILE, $QuoteFile);
     while(<TMP>) {
 
 	# Version Check
@@ -2544,7 +2553,7 @@ sub GetIconURLFromTitle {
     # 一つ一つ表示
     open(ICON, &GetIconPath("$BOARD.$ICONDEF_POSTFIX"))
 	|| (open(ICON, &GetIconPath("$DEFAULT_ICONDEF"))
-	    || &Fatal(1, &GetIconPath("$DEFAULT_ICONDEF")));
+	    || &Fatal($ERR_FILE, &GetIconPath("$DEFAULT_ICONDEF")));
     while(<ICON>) {
 
 	# Version Check
@@ -2581,7 +2590,7 @@ sub GetArticlesInfo {
     local($rFid, $rAids, $rDate, $rTitle, $rIcon, $rRemoteHost, $rName, $rEmail, $rUrl, $rFmail) = ('', '', '', '', '', '', '', '', '', '');
 
     # 取り込み．DBファイルがなければ0/''を返す．
-    open(DB, "<$DBFile");
+    open(DB, "<$DBFile") || &Fatal($ERR_FILE, $DBFile);
     while(<DB>) {
 
 	# Version Check
@@ -2615,34 +2624,6 @@ sub GetArticlesInfo {
 
 
 ###
-## ファイルのmv(renameがエラーを起こしたので……)
-#
-sub Rename {
-
-    # 古いファイル名，新しいファイル名
-    local($OldFile, $NewFile) = @_;
-
-    local($Size) = (-s $OldFile);
-
-    # 古いファイルのサイズが0ならmvしない．システムをlockしたまま終了．
-    &Fatal($ERR_F_CANNOTRENAME, $NewFile) unless ($Size);
-
-    open(DEST, ">$NewFile") || &Fatal($ERR_FILE, $NewFile);
-    open(SRC, "<$OldFile") || &Fatal($ERR_FILE, $OldFile);
-    while(<SRC>) { print(DEST $_); }
-    close(SRC);
-    close(DEST);
-
-    # サイズが違ったらmvしない．システムをlockしたまま終了．
-    &Fatal($ERR_F_CANNOTRENAME, $NewFile) if ($Size != (-s $NewFile));
-
-    # サイズも一致したので削除
-    unlink($OldFile);
-
-}
-
-
-###
 ## Version Check
 #
 sub VersionCheck {
@@ -2664,96 +2645,63 @@ sub Fatal {
     # エラー番号とエラー情報の取得
     local($FatalNo, $FatalInfo) = @_;
 
-    # 異常終了の可能性があるので，とりあえずlockを外す
-    # (ロックの失敗の時以外)
-    &unlock if (($FatalNo != 999) && ($FatalNo != $ERR_F_CANNOTRENAME));
+    # エラーメッセージ
+    local($ErrString);
 
-    &MsgHeader($ERROR_MSG);
-    
-    if ($FatalNo == 1) {
+    if ($FatalNo == $ERR_FILE) {
 
-	print("<p>
-File: $FatalInfoが存在しない，
-あるいはpermissionの設定が間違っています．
-お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで，
-上記ファイル名をお知らせ下さい．
-</p>\n");
+	$ErrString = "File: $FatalInfoが存在しない，あるいはpermissionの設定が間違っています．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで，上記ファイル名をお知らせ下さい．";
 
-    } elsif ($FatalNo == 2) {
+    } elsif ($FatalNo == $ERR_NOTFILLED) {
 
-	print("<p>
-入力されていない項目があります．戻ってもう一度やり直してみてください．
-</p>\n");
+	$ErrString = "入力されていない項目があります．戻ってもう一度やり直してみてください．";
 
-    } elsif ($FatalNo == 3) {
+    } elsif ($FatalNo == $ERR_CRINDATA) {
 
-	print("<p>
-題や名前，メールアドレスに，改行が入ってしまっています．
-戻ってもう一度やり直してみてください．
-</p>\n");
+	$ErrString = "題や名前，メールアドレスに，改行が入ってしまっています．戻ってもう一度やり直してみてください．";
 
-    } elsif ($FatalNo == 4) {
+    } elsif ($FatalNo == $ERR_TAGINDATA) {
 
-	print("<p>
-題中にHTMLタグを入れることは禁じられています．
-戻って違う題に書き換えてください．
-</p>\n");
+	$ErrString = "題中にHTMLタグを入れることは禁じられています．戻って違う題に書き換えてください．";
 
-    } elsif ($FatalNo == 6) {
+    } elsif ($FatalNo == $ERR_CANNOTGRANT) {
 
-	print("<p>
-登録されているエイリアスのものと，ホスト名が一致しません．
-お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．
-</p>\n");
+	$ErrString = "登録されているエイリアスのものと，ホスト名が一致しません．お手数ですが，<a href=\"mailto:$MAINT\">$MAINT</a>まで御連絡ください．";
 
-    } elsif ($FatalNo == 7) {
+    } elsif ($FatalNo == $ERR_UNKNOWNALIAS) {
 
-	print("<p>
-$FatalInfoというエイリアスは，登録されていません．
-</p>\n");
+	$ErrString = "$FatalInfoというエイリアスは，登録されていません．";
 
-    } elsif ($FatalNo == 8) {
+    } elsif ($FatalNo == $ERR_ILLEGALSTRING) {
 
-	print("<p>
-$FatalInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．
-</p>\n");
+	$ErrString = "$FatalInfoがおかしくありませんか? 戻ってもう一度やり直してみてください．";
 
-    } elsif ($FatalNo == 9) {
+    } elsif ($FatalNo == $ERR_NONEXTARTICLE) {
 
-	print("<p>
-メールが送信できませんでした．お手数ですが，このエラーが生じた状況を，
-<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．
-</p>\n");
+	$ErrString = "次の記事はまだ投稿されていません．";
 
-    } elsif ($FatalNo == 11) {
+    } elsif ($FatalNo == $ERR_CANNOTSENDMAIL) {
 
-	print("<p>
-次の記事はまだ投稿されていません．
-</p>\n");
+	$ErrString = "メールが送信できませんでした．お手数ですが，このエラーが生じた状況を，<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．";
 
-    } elsif ($FatalNo == $ERR_F_CANNOTRENAME) {
+    } elsif ($FatalNo == $ERR_F_CANNOTLOCKSYSTEM) {
 
-	print("<p>
-「$FatalInfo」というファイルの変更に失敗しました．
-お手数ですが，<a href=\"mailto:$mEmail\">$mEmail</a>までご連絡ください．
-</p>\n");
-
-    } elsif ($FatalNo == 999) {
-
-	print("<p>
-システムのロックに失敗しました．
-混み合っているようですので，しばらく待ってからもう一度アクセスしてください．
-</p>\n");
+	$ErrString ="システムのロックに失敗しました．混み合っているようですので，数分待ってからもう一度アクセスしてください．何度アクセスしてもロックされている場合，メンテナンス中である可能性もあります．";
 
     } else {
 
-	print("<p>
-エラー番号不定: お手数ですが，このエラーが生じた状況を，
-<a href=\"mailto:$MAINT\">$MAINT</a>までお知らせください．
-</p>\n");
+	$ErrString = "エラー番号不定: $FatalInfo<br>お手数ですが，このエラーが生じた状況を，<a href=\"mailto:$mEmail\">$mEmail</a>までお知らせください．";
 
     }
-    
-    &MsgFooter();
+
+    # 異常終了の可能性があるので，とりあえずlockを外す
+    # (ロックの失敗の時以外)
+    &unlock() if ($FatalNo != $ERR_F_CANNOTLOCKSYSTEM);
+
+    # 表示画面の作成
+    &MsgHeader($ERROR_MSG);
+    print("<p>$ErrString</p>\n");
+    &MsgFooter;
+
     exit(0);
 }
