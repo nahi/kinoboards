@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.28.2.5 2000-02-14 18:22:26 nakahiro Exp $
+# $Id: cgi.pl,v 2.28.2.6 2000-04-05 05:53:56 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -528,7 +528,7 @@ sub smtpBody
     &jcode'convert( *message, 'jis' );
     foreach ( split( /\n/, $message ))
     {
-	s/^\.$/\.\./o;		# `.' is the end of the message.
+	s/^\./\.\./o;		# `.' is the end of the message.
 	$body .= "$_$CRLF";
     }
 
