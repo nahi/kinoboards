@@ -185,7 +185,7 @@ $SYS_COMMAND = 1;
 # リンクで表示しますか? それともボタンで表示しますか?
 #   0: リンクで表示する
 #   1: ボタンで表示する
-$SYS_COMMAND_BUTTON = 0;
+$SYS_COMMAND_BUTTON = 1;
 
 # 記事のヘッダにメイルアドレスを表示しますか?
 #   0: 表示しない
@@ -453,7 +453,7 @@ $H_REORDERTO_MARK = "[▽]";
 1;
 
 
-# $Id: kb.ph,v 5.19 1999-06-21 13:08:13 nakahiro Exp $
+# $Id: kb.ph,v 5.20 1999-06-21 13:55:54 nakahiro Exp $
 
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
