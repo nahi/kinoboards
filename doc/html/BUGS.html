@@ -1,3 +1,4 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML i18n//EN">
 <html>
 <head>
 <TITLE>known bug(s)</TITLE>
@@ -9,7 +10,7 @@ known bug(s)
 </h1>
 
 <p>
-Last Update: 9/19/96
+Last Update: 2/6/97
 </p>
 
 <hr>
@@ -26,35 +27,11 @@ CGIとperl4との組み合わせの場合，jcode.plとの相性が悪いのか，
 なんだかエラーが出なくなってしまいました．(^_^;
 </p>
 
-<h2>2. Rename関数</h2>
-
-<p>
-以前はファイルの更新を，
-<ol>
-<li>テンポラリファイルに書き出す
-<li>テンポラリファイルを正規ファイルにrename
-</ol>
-という手順で行なっていました．
-ですが同じ方法でファイルの更新を行なっている
-<a href="http://www.kinotrope.co.jp/~nakahiro/kb/kbViewTitle.cgi?b=3&c=v&num=20">KeyNauts</a>
-において，1度だけ，サイズが0の正規ファイルができる(すなわち，ファイルが消える)
-という現象が起こりました．
-</p><p>
-そのため現在はRenameというユーザ関数を用意し，
-<ul>
-<li>テンポラリファイルがサイズ0だったら上書きしない
-<li>テンポラリファイルと作成した新規ファイルのサイズが違ったら，
-エラーを表示し，システムをロックしたまま止まる
-</ul>
-ようにしています．未だ再現できていないバグなのですが，
-もし不審な症状が出たら疑ってみてください．
-</p>
-
 <hr>
 
 <address>
 <a href="http://www.kinotrope.co.jp/~nakahiro/kb10.shtml">KINOBOARDS/1.0: Kinoboards Is Network Opened BOARD System</a>.
-Copyright (C) 1995, 96
+Copyright (C) 1995, 96, 97
 <a href="http://www.kinotrope.co.jp/~nakahiro/">NAKAMURA Hiroshi</a>.
 </address>
 </body>
