@@ -53,6 +53,7 @@ end
 
 # create logdir
 `mkdir KB/kb/log`
+`touch KB/kb/log/_place_holder_`
 
 # set mode
 `chmod 700 KB KB/doc KB/doc/html KB/redist KB/tools`
