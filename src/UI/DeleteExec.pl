@@ -14,34 +14,26 @@
 # - RETURN
 #	なし
 #
-DeleteExec: {
-    local($ThreadFlag) = $gVarThreadFlag;
-    local($Id);
+DeleteExec:
+{
+    local( $ThreadFlag ) = $gVarThreadFlag;
 
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
+    &LockBoard;
     # cache article DB
-    if ( $BOARD ) { &DbCache( $BOARD ); }
+    &DbCache( $BOARD ) if $BOARD;
 
-    $Id = $cgi'TAGS{'id'};
+    local( $Id ) = $cgi'TAGS{'id'};
 
     # 削除実行
-    &DeleteArticle($Id, $BOARD, $ThreadFlag);
+    &DeleteArticle( $Id, $BOARD, $ThreadFlag );
 
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
+    &UnlockBoard;
 
     # 表示画面の作成
-    &MsgHeader('Message deleted', "$H_MESGが削除されました");
-
-    &PrintButtonToTitleList($BOARD);
+    &MsgHeader( 'Message deleted', "$H_MESGが削除されました" );
+    &PrintButtonToTitleList( $BOARD, $Id );
     &PrintButtonToBoardList if $SYS_F_B;
-
-    # お約束
     &MsgFooter;
-
 }
 
 1;

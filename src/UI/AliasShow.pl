@@ -15,16 +15,9 @@
 #
 AliasShow:
 {
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
-
-    # エイリアスの読み込み
+    &LockAll;
     &CacheAliasData;
-
-    # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &UnlockAll;
 
     # 表示画面の作成
     &MsgHeader( 'Alias view', "$H_ALIASの参照" );

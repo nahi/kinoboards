@@ -14,22 +14,17 @@
 # - RETURN
 #	なし
 #
-ArriveMailExec: {
+ArriveMailExec:
+{
+    &LockBoard;
 
-    local(@ArriveMail);
-
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
-
-    @ArriveMail = split(/\n/, $cgi'TAGS{'armail'}); # 宛先リストを取り出す
+    # 宛先リストを取り出す
+    local( @ArriveMail ) = split(/\n/, $cgi'TAGS{'armail'});
     &UpdateArriveMailDb($BOARD, *ArriveMail); # DBを更新する
 
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
+    &UnlockBoard;
 
-    &MsgHeader("ArriveMail Changed", "自動メイル配信先を設定しました");
+    &MsgHeader( 'ArriveMail Changed', "自動メイル配信先を設定しました" );
 
     &cgiprint'Cache(<<__EOF__);
 <p>
@@ -40,18 +35,16 @@ ArriveMailExec: {
 --------------------
 __EOF__
 
-    foreach(@ArriveMail) { &cgiprint'Cache("$_\n"); }
+    foreach ( @ArriveMail ) { &cgiprint'Cache("$_\n"); }
 
     &cgiprint'Cache(<<__EOF__);
 --------------------
 </pre></p>
 __EOF__
 
-    &PrintButtonToTitleList($BOARD);
+    &PrintButtonToTitleList( $BOARD, 0 );
     &PrintButtonToBoardList if $SYS_F_B;
-
     &MsgFooter;
-
 }
 
 1;

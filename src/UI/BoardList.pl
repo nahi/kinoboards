@@ -15,30 +15,29 @@
 #
 BoardList:
 {
-    local( %BoardList, %BoardInfo, $Key, $Value, $NumOfArticle );
-
     # 全掲示板の情報を取り出す
-    &GetAllBoardInfo( *BoardList, *BoardInfo );
+    local( @board, %boardName, %boardInfo );
+    &GetAllBoardInfo( *board, *boardName, *boardInfo );
 
-    &MsgHeader( "Board List", "$SYSTEM_NAME" );
-
-    &cgiprint'Cache( "<p>\n" . &TagA( "http://www.kinotrope.co.jp/~nakahiro/kb10.shtml", "KINOBOARDS/1.0" ));
+    # 「$H_BOARD一覧 - $SYSTEM_NAME」が，このページのタイトルです．
+    &MsgHeader( "Board List", "$H_BOARD一覧 - $SYSTEM_NAME" );
     &cgiprint'Cache(<<__EOF__);
-で運営されているシステムです．
-</p>
 
+<!-- 掲示板一覧のヘッダ部分です．この辺，がんがん書き換えましょう． -->
 <p>
 $SYSTEM_NAMEでは，現在，以下の$H_BOARDが用意されています．
 </p>
+
+<ul>
 __EOF__
 
-    &cgiprint'Cache("<ul>\n");
-    local( $newIcon, $modTimeUtc, $modTime );
-    while (( $Key, $Value ) = each( %BoardList ))
+    local( $newIcon, $modTimeUtc, $modTime, $nofArticle );
+    foreach ( @board )
     {
-	$modTimeUtc = &GetModifiedTime( $DB_FILE_NAME, $Key );
+	$modTimeUtc = &GetModifiedTime( $DB_FILE_NAME, $_ );
 	$modTime = &GetDateTimeFormatFromUtc( $modTimeUtc );
-	if ( $SYS_BLIST_NEWICON_DATE && (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
+	if ( $SYS_BLIST_NEWICON_DATE &&
+	    (( $^T - $modTimeUtc ) < $SYS_BLIST_NEWICON_DATE * 86400 ))
 	{
 	    $newIcon = " " . &TagMsgImg( $ICON_NEW, $H_NEWARTICLE );
 	}
@@ -46,15 +45,29 @@ __EOF__
 	{
 	    $newIcon = '';
 	}
-	&GetArticleId( $Key, *NumOfArticle ) || 0;
+	&GetArticleId( $_, *nofArticle ) || 0;
 
-	&cgiprint'Cache( "<li>", &TagA( "$PROGRAM?b=$Key&c=v&num=$DEF_TITLE_NUM", $Value ), "$newIcon\n[最新: $modTime, 記事数: $NumOfArticle]<br>\n" );
+	&cgiprint'Cache( "<li>",
+	    &TagA( "$PROGRAM?b=$_&c=v&num=$DEF_TITLE_NUM", $boardName{$_} ),
+	    "$newIcon\n[最新: $modTime, 記事数: $nofArticle]\n" );
+
+    &cgiprint'Cache(<<__EOF__);
+<br><br><!-- 掲示板同士の間に入ります．間を空けるためにBRタグとか -->
+__EOF__
+
     }
 
-    &cgiprint'Cache("</ul>\n");
+    &cgiprint'Cache(<<__EOF__);
+</ul>
+
+<!-- 掲示板一覧のフッタ部分です．がんがん書き換えましょう． -->
+<p>
+$SYSTEM_NAMEでは，現在，以上の$H_BOARDが用意されています．
+</p>
+
+__EOF__
 
     &MsgFooter;
-
 }
 
 

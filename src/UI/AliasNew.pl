@@ -13,13 +13,12 @@
 # - RETURN
 #	なし
 #
-AliasNew: {
-
+AliasNew:
+{
     # 表示画面の作成
-    &MsgHeader('Alias entry/edit', "$H_ALIASの登録/変更/削除");
+    &MsgHeader( 'Alias entry/edit', "$H_ALIASの登録/変更/削除" );
 
     local( %tags, $msg, $str );
-
     %tags = ( 'c', 'am' );
     $msg =<<__EOF__;
 $H_ALIAS: <input name="alias" type="text" value="#" size="$NAME_LENGTH"><br>
@@ -49,7 +48,6 @@ __EOF__
     &TagForm( *str, *tags, "$H_ALIAS一覧を参照する", '', '' );
     &cgiprint'Cache( $str );
     
-    # お約束
     &MsgFooter;
 }
 

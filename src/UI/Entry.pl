@@ -2,12 +2,14 @@
 ## Entry - 書き込み画面の表示
 #
 # - SYNOPSIS
-#	Entry($QuoteFlag);
+#	Entry( $entryType, $back );
 #
 # - ARGS
-#	$QuoteFlag	0 ... 新着
+#	$entryType	0 ... 新着
 #			1 ... 引用なしのリプライ
 #			2 ... 引用ありのリプライ
+#			3 ... 投稿済み記事の訂正
+#	$back		プレビューからの戻りか否か．
 #
 # - DESCRIPTION
 #	書き込み画面を表示する
@@ -18,51 +20,68 @@
 #
 Entry:
 {
-    local( $QuoteFlag ) = $gVarQuoteFlag;
+    local( $entryType, $back ) = ( $gVarEntryType, $gVarBack );
 
-    local( $Id, $Supersede, $IconTitle, $Key, $Value, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $DefSubject, $DefName, $DefEmail, $DefUrl, $ttBit, $ttFlag );
-
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
+    &LockBoard;
     # cache article DB
-    if ( $BOARD ) { &DbCache( $BOARD ); }
+    &DbCache( $BOARD ) if ( $BOARD && ( $entryType != 0 ));
 
-    $Id = $cgi'TAGS{'id'};
-    $Supersede = $cgi'TAGS{'s'}; # 訂正?
-    if ($QuoteFlag != 0)
+    local( $Id ) = $cgi'TAGS{'id'};
+    local( $COrig ) = $cgi'TAGS{'c'};
+
+    local( $DefSubject, $DefName, $DefEmail, $DefUrl, $DefTextType, $DefIcon, $DefArticle, $DefFmail );
+    if ( $back )
     {
-	($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url) = &GetArticlesInfo($Id);
+	require( 'mimer.pl' );
+	$DefSubject = $cgi'TAGS{'subject'};
+	$DefName = $cgi'TAGS{'name'};
+	$DefEmail = $cgi'TAGS{'mail'};
+	$DefUrl = $cgi'TAGS{'url'};
+	$DefTextType = $cgi'TAGS{'texttype'};
+	$DefIcon = $cgi'TAGS{'icon'};
+	$DefArticle = $cgi'TAGS{'article'};
+	$DefFmail = $cgi'TAGS{'fmail'};
+
+	$DefArticle = &MIME'base64decode( $DefArticle );
     }
-    $Icon = $Icon || $H_NOICON;
-
-    if ( $Supersede )
+    elsif ( $entryType == 0 )
     {
-	$DefSubject = $Subject;
-	$DefName = $Name;
-	$DefEmail = $Email;
-	$DefUrl = $Url;
-    }
-    else
-    {
-	$DefSubject = (( $QuoteFlag == 0 ) ? '' : &GetReplySubject( $Id ));
-
 	if ( $SYS_ALIAS == 3 )
 	{
 	    &cgi'Cookie();
-	    ( $DefName, $DefEmail, $DefUrl ) = split( /$COLSEP/, $cgi'COOKIES{ 'kb10info' });;
-	    $DefUrl = $DefUrl || 'http://';
+	    ( $DefName, $DefEmail, $DefUrl ) = split( /$COLSEP/,
+		$cgi'COOKIES{ 'kb10info' });
 	}
-	else
-	{
-	    $DefName = $DefEmail = '';
-	    $DefUrl = 'http://';
-	}
+	$DefUrl = $DefUrl || 'http://';
+    }
+    elsif ( $entryType == 1 )
+    {
+	local( $fId, $aids, $date, $subject ) = &GetArticlesInfo( $Id );
+	$DefSubject = $subject;
+	&GetReplySubject( *DefSubject );
+    }
+    elsif ( $entryType == 2 )
+    {
+	local( $fId, $aids, $date, $subject ) = &GetArticlesInfo( $Id );
+	$DefSubject = $subject;
+	&GetReplySubject( *DefSubject );
+	&QuoteOriginalArticle( $Id, *DefArticle );
+    }
+    elsif ( $entryType == 3 )
+    {
+	local( $fId, $aids, $date, $subject, $icon, $remoteHost, $name, $email, $url ) = &GetArticlesInfo( $Id );
+	$DefSubject = $subject;
+	$DefName = $name;
+	$DefEmail = $email;
+	$DefUrl = $url;
+	$DefIcon = $icon;
+	&QuoteOriginalArticleWithoutQMark( $Id, *DefArticle );
     }
 
+    &UnlockBoard;
+
     # 表示画面の作成
-    if ( $Supersede && $SYS_F_D )
+    if ( $entryType == 3 )
     {
 	&MsgHeader( 'Supersede entry', "$H_MESGの訂正" );
     }
@@ -72,27 +91,31 @@ Entry:
     }
 
     # フォローの場合
-    if ( $QuoteFlag != 0 )
+    if (( $entryType == 1 ) || ( $entryType == 2 ))
     {
 	# 記事の表示(コマンド無し, 元記事あり)
 	&ViewOriginalArticle( $Id, 0, 1 );
-	if ( $Supersede && $SYS_F_D )
+	if ( $entryType == 3 )
 	{
-	    &cgiprint'Cache( "$H_HR\n<h2>上の$H_MESGを訂正する</h2>" );
+	    &cgiprint'Cache(<<__EOF__);
+$H_HR
+<h2>上の$H_MESGを訂正する</h2>
+上の$H_MESGと入れ換える$H_MESGを書き込んでください．
+__EOF__
 	}
 	else
 	{
-	    &cgiprint'Cache( "$H_HR\n<h2>上の$H_MESGへの$H_REPLYを書き込む</h2>" );
+	    &cgiprint'Cache(<<__EOF__);
+$H_HR
+<h2>上の$H_MESGへの$H_REPLYを書き込む</h2>
+__EOF__
 	}
     }
 
     local( $msg ) = "<p>\n";
 
-    $msg .="上の$H_MESGと入れ換える$H_MESGを書き込んでください．\n"
-	if ( $Supersede && $SYS_F_D );
-
-    $ttFlag = 0;
-    $ttBit = 0;
+    local( $ttFlag ) = 0;
+    local( $ttBit ) = 0;
     foreach ( @H_TTMSG )
     {
 	if (( $SYS_TEXTTYPE & ( 2**$ttBit )) &&
@@ -109,15 +132,18 @@ Entry:
     # アイコンの選択
     if ( $SYS_ICON )
     {
-	&CacheIconDb( $BOARD );	# アイコンDBをキャッシュ
-	$msg .= "$H_ICON:\n<SELECT NAME=\"icon\">\n<OPTION SELECTED>$H_NOICON\n";
+	&CacheIconDb;	# アイコンDBをキャッシュ
+	$msg .= sprintf( "$H_ICON:\n<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", $DefIcon? '' : ' SELECTED' );
+	local( $IconTitle );
 	foreach $IconTitle ( @ICON_TITLE )
 	{
-	    $msg .= "<OPTION>$IconTitle\n";
+	    $msg .= sprintf( "<OPTION%s>$IconTitle\n",
+		( $IconTitle eq $DefIcon )? ' SELECTED' : '' );
 	}
 	$msg .= "</SELECT>\n";
 
-	$msg .= "(" . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry", "アイコンの説明" ) . ")<BR>\n";
+	$msg .= "(" . &TagA( "$PROGRAM?b=$BOARD&c=i&type=entry",
+	    "アイコンの説明" ) . ")<BR>\n";
     }
 
     # Subject(フォローなら自動的に文字列を入れる)
@@ -126,6 +152,7 @@ Entry:
     # TextType
     if ( $ttFlag )
     {
+	$ttFlag = 0 if $DefTextType;
 	$msg .= "$H_TEXTTYPE:\n<SELECT NAME=\"texttype\">\n";
 	$ttBit = 0;
 	foreach ( @H_TTLABEL )
@@ -139,7 +166,9 @@ Entry:
 		}
 		else
 		{
-		    $msg .= "<OPTION>" . $H_TTLABEL[$ttBit] . "\n";
+		    $msg .= sprintf( "<OPTION%s>" . $H_TTLABEL[$ttBit] . "\n",
+			( $H_TTLABEL[$ttBit] eq $DefTextType )? ' SELECTED' :
+			'' );
 		}
 	    }
 	    $ttBit++;
@@ -151,18 +180,8 @@ Entry:
 	$msg .= sprintf( "<input name=\"texttype\" type=\"hidden\" value=\"%s\">\n", $H_TTLABEL[(( log $SYS_TEXTTYPE ) / ( log 2 ))] );
     }
 
-    # 本文(引用ありなら元記事を挿入)
-    $msg .= "<p><textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">";
-    if ( $Supersede && $SYS_F_D )
-    {
-	&QuoteOriginalArticleWithoutQMark( $Id, *msg );
-    }
-    elsif ( $QuoteFlag == 2 )
-    {
-	&QuoteOriginalArticle( $Id, *msg );
-    }
-
-    $msg .= "</textarea></p>\n";
+    # 本文
+    $msg .= "<p><textarea name=\"article\" rows=\"$TEXT_ROWS\" cols=\"$TEXT_COLS\">$DefArticle</textarea></p>\n";
 
     # フッタ部分を表示
     # 名前とメイルアドレス，URL．
@@ -171,13 +190,15 @@ Entry:
 $H_MESG中に関連ウェブページへのリンクを張る場合は，
 「&lt;URL:http://〜&gt;」のように，URLを「&lt;URL:」と「&gt;」で囲んで
 書き込んでください．自動的にリンクが張られます．
+この$H_BOARDの中の$H_MESGにリンクを張る場合は，「&lt;URL:kb:71&gt;」のように，
+$H_MESGのIDを「&lt;URL:kb:」と「&gt;」で囲みます．
 __EOF__
 
     if ( $SYS_F_S )
     {
-	$msg .= "この$H_BOARDの中の$H_MESGにリンクを張る場合は\n";
-	$msg .= &TagA( "$PROGRAM?b=$BOARD&c=s", "検索機能を使う" );
-	$msg .= "と便利です．探し出した$H_MESGのURLを，「&lt;URL:」と「&gt;」で囲んでください．\n";
+	$msg .= "この$H_BOARDの中の$H_MESGは\n";
+	$msg .= &TagA( "$PROGRAM?b=$BOARD&c=s", "キーワードで検索する" );
+	$msg .= "ことができます．\n";
     }
 
     $msg .= "</p>\n";
@@ -217,7 +238,9 @@ __EOF__
     {
 	# エイリアスを登録しなければ書き込みできない
 	# エイリアスの読み込み
+	&LockAll;
 	&CacheAliasData;
+	&UnlockAll;
 	$msg .=<<__EOF__;
 <p>
 $H_USER:
@@ -225,6 +248,7 @@ $H_USER:
 <OPTION SELECTED>$H_FROMを登録した$H_ALIASを選んでください
 __EOF__
 
+	local( $Key, $Value );
 	while (( $Key, $Value ) = each %Name )
 	{
 	    $msg .= "<OPTION>$Key\n";
@@ -267,20 +291,19 @@ __EOF__
 
     if ( $SYS_MAIL & 2 )
     {
-	$msg .= "<p>$H_REPLYがあった時にメイルで知らせますか? <input name=\"fmail\" type=\"checkbox\" value=\"on\"></p>\n";
+	$msg .= sprintf( "<p>$H_REPLYがあった時にメイルで知らせますか? " .
+	    "<input name=\"fmail\" type=\"checkbox\" value=\"on\"%s></p>\n",
+	    $DefFmail? ' CHECKED' : '' );
     }
     
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
-
     # ボタン
     $msg .=<<__EOF__;
 <input type="radio" name="com" value="p" CHECKED>: 試しに表示してみる(まだ投稿しません)<br>
 __EOF__
 
-    if ( $Supersede && $SYS_F_D )
+    if ( $entryType == 3 )
     {
-	$msg .= "<input type=\"radio\" name=\"com\" value=\"x\">: 訂正します<br>\n";
+	$msg .= "<input type=\"radio\" name=\"com\" value=\"x\">: 訂正する<br>\n";
     }
     else
     {
@@ -289,7 +312,8 @@ __EOF__
 
     local( %tags, $str );
     local( $op ) = ( -M $BOARD_ALIAS_FILE );
-    %tags = ( 'b', $BOARD, 'c', 'p', 'id', $Id, 's', $Supersede, 'op', $op );
+    %tags = ( 'corig', $COrig, 'b', $BOARD, 'c', 'p', 'id', $Id,
+	's', ( $entryType == 3 ), 'op', $op );
     &TagForm( *str, *tags, "実行", '', *msg );
     &cgiprint'Cache( $str );
 

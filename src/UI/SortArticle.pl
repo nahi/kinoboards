@@ -16,14 +16,10 @@
 #
 SortArticle:
 {
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal( 1001, '' ) if ( $lockResult == 2 );
-    &Fatal( 999, '' ) if ( $lockResult != 1 );
+    &LockBoard;
     # cache article DB
-    if ( $BOARD ) { &DbCache( $BOARD ); }
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
+    &DbCache( $BOARD ) if $BOARD;
+    &UnlockBoard;
 
     # 表示する個数を取得
     local( $Num ) = $cgi'TAGS{'num'};
@@ -39,44 +35,20 @@ SortArticle:
     }
     local( $Rev ) = $cgi'TAGS{'rev'};
     local( $vRev ) = $Rev? 1-$SYS_BOTTOMTITLE : $SYS_BOTTOMTITLE;
-    local( $NextOld ) = ( $Old > $Num ) ? ( $Old - $Num ) : 0;
-    local( $BackOld ) = ( $Old + $Num );
     local( $To ) = $#DB_ID - $Old;
     local( $From ) = $To - $Num + 1;
     $From = 0 if (( $From < 0 ) || ( $Num == 0 ));
 
+    local( $pageLinkStr ) = &PageLink( 'r', $Num, $Old, $Rev );
+
     # 表示画面の作成
-    &MsgHeader('Title view (sorted)', "$H_SUBJECT一覧(日付順)");
+    &MsgHeader( 'Sorted view', "$H_SUBJECT一覧(日付順)" );
 
     &BoardHeader('normal');
 
     &cgiprint'Cache("$H_HR\n");
 
-    &cgiprint'Cache( "<p>" );
-    &cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$Old&rev=" . ( 1-$Rev ), $H_REVERSE ), ' ' ) if ( $SYS_REVERSE );
-    if ( $vRev )
-    {
-	if ( $From > 0 )
-	{
-	    &cgiprint'Cache( $H_TOP, &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld", $H_BACKART ));
-	}
-	else
-	{
-	    &cgiprint'Cache( $H_TOP, $H_NOBACKART );
-	}
-    }
-    else
-    {
-	if ( $Old )
-	{
-	    &cgiprint'Cache( $H_TOP, &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld", $H_NEXTART ));
-	}
-	else
-	{
-	    &cgiprint'Cache( $H_TOP, $H_NONEXTART );
-	}
-    }
-    &cgiprint'Cache( "</p>\n" );
+    &cgiprint'Cache( $pageLinkStr );
 
     &cgiprint'Cache("<ul>\n");
 
@@ -94,7 +66,7 @@ SortArticle:
 	    for ($IdNum = $From; $IdNum <= $To; $IdNum++)
 	    {
 		$Id = $DB_ID[$IdNum];
-		&cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
+		&cgiprint'Cache("<li>" . &GetFormattedTitle( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, 1 ) . "\n");
 	    }
 	}
 	else
@@ -102,38 +74,14 @@ SortArticle:
 	    for ($IdNum = $To; $IdNum >= $From; $IdNum--)
 	    {
 		$Id = $DB_ID[$IdNum];
-		&cgiprint'Cache("<li>" . &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}) . "\n");
+		&cgiprint'Cache("<li>" . &GetFormattedTitle( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, 1 ) . "\n");
 	    }
 	}
     }
 
     &cgiprint'Cache("</ul>\n");
 
-    &cgiprint'Cache( "<p>" );
-    &cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$Old&rev=" . ( 1-$Rev ), $H_REVERSE ), ' ' ) if ( $SYS_REVERSE );
-    if ( $vRev )
-    {
-	if ( $Old )
-	{
-	    &cgiprint'Cache( $H_BOTTOM, &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$NextOld", $H_NEXTART ));
-	}
-	else
-	{
-	    &cgiprint'Cache( $H_BOTTOM, $H_NONEXTART );
-	}
-    }
-    else
-    {
-	if ( $From > 0 )
-	{
-	    &cgiprint'Cache( $H_BOTTOM, &TagA( "$PROGRAM?b=$BOARD&c=r&num=$Num&old=$BackOld", $H_BACKART ));
-	}
-	else
-	{
-	    &cgiprint'Cache( $H_BOTTOM, $H_NOBACKART );
-	}
-    }
-    &cgiprint'Cache( "</p>" );
+    &cgiprint'Cache( $pageLinkStr );
 
     &MsgFooter;
 

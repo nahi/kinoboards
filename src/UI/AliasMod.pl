@@ -15,24 +15,19 @@
 # - RETURN
 #	なし
 #
-AliasMod: {
-
-    local( $alias, $name, $eMail, $url, $hitFlag );
-
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
-
-    $alias = $cgi'TAGS{'alias'};
-    $name = $cgi'TAGS{'name'};
-    $eMail = $cgi'TAGS{'email'};
-    $url = $cgi'TAGS{'url'};
+AliasMod:
+{
+    local( $alias ) = $cgi'TAGS{'alias'};
+    local( $name ) = $cgi'TAGS{'name'};
+    local( $eMail ) = $cgi'TAGS{'email'};
+    local( $url ) = $cgi'TAGS{'url'};
     
     # マシンがマッチしたか
     #	0 ... エイリアスがマッチしない
     #	2 ... マッチしてデータを変更した
-    $hitFlag = 0;
+    local( $hitFlag ) = 0;
+
+    &LockAll;
 
     # 文字列チェック
     &AliasCheck( $alias, $name, $eMail, $url );
@@ -41,7 +36,8 @@ AliasMod: {
     &CacheAliasData;
     
     # 1行ずつチェック
-    foreach (sort keys(%Name)) {
+    foreach (sort keys( %Name ))
+    {
 	next if ( $_ ne $alias );
 	$hitFlag = 2;		# 合ったら2を設定．
     }
@@ -54,16 +50,18 @@ AliasMod: {
     # エイリアスファイルに書き出し
     &WriteAliasData;
 
-    # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &UnlockAll;
 
     # 表示画面の作成
     &MsgHeader( 'Alias modified', "$H_ALIASが設定されました" );
 
     &cgiprint'Cache( "<p>$H_ALIAS: <strong>$alias</strong>:\n" );
-    if ( $hitFlag == 2 ) {
+    if ( $hitFlag == 2 )
+    {
 	&cgiprint'Cache( "登録を変更しました．</p>\n" );
-    } else {
+    }
+    else
+    {
 	&cgiprint'Cache( "新規に登録しました．</p>\n" );
     }
 
@@ -81,7 +79,6 @@ AliasMod: {
 __EOF__
 
     &MsgFooter;
-    
 }
 
 1;

@@ -13,22 +13,15 @@
 # - RETURN
 #	なし
 #
-ArriveMailEntry: {
-
+ArriveMailEntry:
+{
     local(@ArriveMail);
 
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
-
+    &LockBoard;
     &GetArriveMailTo(1, $BOARD, *ArriveMail); # 宛先とコメントを取り出す
-
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
+    &UnlockBoard;
 
     &MsgHeader("ArriveMail Entry", "自動メイル配信先の設定");
-
     &cgiprint'Cache(<<__EOF__);
 <p>
 この$H_BOARDに$H_MESGが書き込まれた時に，

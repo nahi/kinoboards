@@ -16,49 +16,43 @@
 # - RETURN
 #	なし
 #
-AliasDel: {
-
-    local($A, $HitFlag, $Alias);
-
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
-
+AliasDel:
+{
     # エイリアス
-    $A = $cgi'TAGS{'alias'};
+    local( $alias ) = $cgi'TAGS{'alias'};
 
     # マシンがマッチしたか
     #	0 ... エイリアスがマッチしない
     #	2 ... マッチしてデータを変更した
-    $HitFlag = 0;
+    local( $hitFlag ) = 0;
+
+    &LockAll;
 
     # エイリアスの読み込み
     &CacheAliasData;
     
     # 1行ずつチェック
-    foreach $Alias (sort keys(%Name)) {
-	next if ($A ne $Alias);
-	$HitFlag = 2;		# ヒットしたら2を設定．マシン名は無視．
+    foreach (sort keys( %Name ))
+    {
+	next if ( $_ ne $alias );
+	$hitFlag = 2;		# 合ったら2を設定．
     }
     
     # エイリアスがない!
-    if ($HitFlag == 0) { &Fatal(6, $A); }
+    if ( $hitFlag == 0 ) { &Fatal( 6, $alias ); }
     
     # 名前を消す
-    $Name{$A} = '';
+    $Name{$alias} = '';
     
     # エイリアスファイルに書き出し
     &WriteAliasData;
     
-    # unlock system
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &UnlockAll;
 
     # 表示画面の作成
-    &MsgHeader('Alias deleted', "$H_ALIASが削除されました");
-    &cgiprint'Cache("<p>$H_ALIAS: <strong>$A</strong>: 消去しました．</p>\n");
+    &MsgHeader( 'Alias deleted', "$H_ALIASが削除されました" );
+    &cgiprint'Cache("<p>$H_ALIAS: <strong>$alias</strong>: 消去しました．</p>\n");
     &MsgFooter;
-
 }
 
 1;

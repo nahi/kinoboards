@@ -14,25 +14,19 @@
 # - RETURN
 #	なし
 #
-SearchArticle: {
-
-    local($Key, $SearchSubject, $SearchPerson, $SearchArticle, $SearchIcon, $Icon, $IconTitle);
-
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
+SearchArticle:
+{
+    &LockBoard;
     # cache article DB
-    if ( $BOARD ) { &DbCache( $BOARD ); }
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
+    &DbCache( $BOARD ) if $BOARD;
+    &UnlockBoard;
 
-    $Key = $cgi'TAGS{'key'};
-    $SearchSubject = $cgi'TAGS{'searchsubject'};
-    $SearchPerson = $cgi'TAGS{'searchperson'};
-    $SearchArticle = $cgi'TAGS{'searcharticle'};
-    $SearchIcon = $cgi'TAGS{'searchicon'};
-    $Icon = $cgi'TAGS{'icon'};
+    local( $Key ) = $cgi'TAGS{'key'};
+    local( $SearchSubject ) = $cgi'TAGS{'searchsubject'};
+    local( $SearchPerson ) = $cgi'TAGS{'searchperson'};
+    local( $SearchArticle ) = $cgi'TAGS{'searcharticle'};
+    local( $SearchIcon ) = $cgi'TAGS{'searchicon'};
+    local( $Icon ) = $cgi'TAGS{'icon'};
 
     # 表示画面の作成
     &MsgHeader('Message search', "$H_MESGの検索");
@@ -56,9 +50,10 @@ __EOF__
     $msg .= sprintf("<input name=\"searchicon\" type=\"checkbox\" value=\"on\" %s>: $H_ICON // \n", (($SearchIcon) ? 'CHECKED' : ''));
 
     # アイコンの選択
-    &CacheIconDb( $BOARD );	# アイコンDBのキャッシュ
+    &CacheIconDb;	# アイコンDBのキャッシュ
     $msg .= sprintf("<SELECT NAME=\"icon\">\n<OPTION%s>$H_NOICON\n", (($Icon && ($Icon ne $H_NOICON)) ? '' : ' SELECTED'));
 
+    local( $IconTitle );
     foreach $IconTitle ( sort keys( %ICON_FILE ))
     {
 	$msg .= sprintf("<OPTION%s>$IconTitle\n", (($Icon eq $IconTitle) ? ' SELECTED' : ''));
@@ -89,8 +84,10 @@ __EOF__
     &MsgFooter;
 }
 
-sub SearchArticleList {
+sub SearchArticleList
+{
     local($Key, $Subject, $Person, $Article, $Icon, $IconType) = @_;
+
     local($dId, $dAids, $dDate, $dTitle, $dIcon, $dName, $dEmail, $HitNum, $Line, $SubjectFlag, $PersonFlag, $ArticleFlag, @KeyList);
 
     @KeyList = split(/ +/, $Key);
@@ -98,8 +95,8 @@ sub SearchArticleList {
     # リスト開く
     &cgiprint'Cache("<p><ul>\n");
 
-    foreach ($[ .. $#DB_ID) {
-
+    foreach ($[ .. $#DB_ID)
+    {
 	# 記事情報
 	$dId = $DB_ID[$_];
 	$dIcon = $DB_ICON{$dId};
@@ -113,56 +110,53 @@ sub SearchArticleList {
 	$SubjectFlag = $PersonFlag = $ArticleFlag = 0;
 	$Line = '';
 
-	# URLチェック
-	next if (&IsUrl($dId));
-
 	# アイコンチェック
 	next if (($Icon ne '') && ($dIcon ne $IconType));
 
-	if ($Key ne '') {
-
+	if ($Key ne '')
+	{
 	    # タイトルを検索
-	    if (($Subject ne '') && ($dTitle ne '')) {
+	    if (($Subject ne '') && ($dTitle ne ''))
+	    {
 		$SubjectFlag = 1;
-		foreach (@KeyList) {
-		    if ($dTitle !~ /$_/i) {
-			$SubjectFlag = 0;
-		    }
+		foreach (@KeyList)
+		{
+		    $SubjectFlag = 0 if ($dTitle !~ /$_/i);
 		}
 	    }
 
 	    # 投稿者名を検索
-	    if (($Person ne '') && ($dName ne '')) {
+	    if ($SubjectFlag == 0 && ($Person ne '') && ($dName ne ''))
+	    {
 		$PersonFlag = 1;
-		foreach (@KeyList) {
-		    if (($dName !~ /$_/i) && ($dEmail !~ /$_/i)) {
-			$PersonFlag = 0;
-		    }
+		foreach (@KeyList)
+		{
+		    $PersonFlag = 0 if (($dName !~ /$_/i) && ($dEmail !~ /$_/i));
 		}
 	    }
 
 	    # 本文を検索
-	    if (($Article ne '') && ($Line = &SearchArticleKeyword($dId, $BOARD, @KeyList))) {
+	    if (($SubjectFlag == 0) && ($PersonFlag == 0) && ($Article ne '') && ($Line = &SearchArticleKeyword($dId, $BOARD, @KeyList))) {
 		$ArticleFlag = 1;
 	    }
-
-	} else {
-
+	}
+	else
+	{
 	    # 無条件で一致
 	    $SubjectFlag = 1;
-
 	}
 
-	if ($SubjectFlag || $PersonFlag || $ArticleFlag) {
-
+	if ($SubjectFlag || $PersonFlag || $ArticleFlag)
+	{
 	    # 最低1つは合致した
 	    $HitNum++;
 
 	    # 記事へのリンクを表示
-	    &cgiprint'Cache("<li>" . &GetFormattedTitle($dId, $BOARD, $dAids, $dIcon, $dTitle, $dName, $dDate) . "\n");
+	    &cgiprint'Cache( '<li>', &GetFormattedTitle( $dId, $dAids, $dIcon, $dTitle, $dName, $dDate, 1 ), "\n");
 
 	    # 本文に合致した場合は本文も表示
-	    if ($ArticleFlag) {
+	    if ($ArticleFlag)
+	    {
 		$Line =~ s/<[^>]*>//go;
 		&cgiprint'Cache("<blockquote>$Line</blockquote>\n");
 	    }
@@ -170,10 +164,13 @@ sub SearchArticleList {
     }
 
     # ヒットしなかったら
-    if ($HitNum) {
+    if ($HitNum)
+    {
 	&cgiprint'Cache("</ul>\n</p><p>\n<ul>");
 	&cgiprint'Cache("<li>$HitNum件の$H_MESGが見つかりました．\n");
-    } else {
+    }
+    else
+    {
 	&cgiprint'Cache("<li>該当する$H_MESGは見つかりませんでした．\n");
     }
 

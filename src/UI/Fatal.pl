@@ -17,8 +17,8 @@
 Fatal:
 {
     local( $errno, $errInfo ) = ( $gVarFatalNo, $gVarFatalInfo );
-    local( $severity, $msg );
 
+    local( $severity, $msg );
     if ( $errno == 1 )
     {
 	$severity = $kinologue'SEV_CAUTION;
@@ -77,7 +77,7 @@ Fatal:
     }
     elsif ( $errno == 12 )
     {
-	$severity = $kinologue'SEV_INFO;
+	$severity = $kinologue'SEV_WARN;
 	$msg = "この$H_BOARDでは，$H_MESGの最大サイズは$SYS_MAXARTSIZEバイトということになっています（あなたの$H_MESGは$errInfoバイトです）．";
     }
     elsif ( $errno == 13 )
@@ -135,8 +135,8 @@ Fatal:
     # (ロックの失敗の時以外)
     if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ))
     {
-	&cgi'unlock( $LOCK_FILE );
-	&cgi'unlock( $LOCK_FILE_B ) if $LOCK_FILE_B;
+	&UnlockBoard;
+	&UnlockAll;
     }
 
     # log a log(except logging failure).
@@ -148,7 +148,7 @@ Fatal:
 
     if ( !$PC && ( $errno != 999 ) && ( $errno != 1001 ))
     {
-	&PrintButtonToTitleList( $BOARD )
+	&PrintButtonToTitleList( $BOARD, 0 )
 	    if (( $BOARD ne '' ) && ( $errno != 11 ));
 	&PrintButtonToBoardList if $SYS_F_B;
     }

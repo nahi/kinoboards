@@ -14,16 +14,13 @@
 # - RETURN
 #	¤Ê¤·
 #
+require( 'mimer.pl' );
 Thanks:
 {
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE );
-    &Fatal( 1001, '' ) if ( $lockResult == 2 );
-    &Fatal( 999, '' ) if ( $lockResult != 1 );
-    # lock system
-    $lockResult = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal( 1001, '' ) if ( $lockResult == 2 );
-    &Fatal( 999, '' ) if ( $lockResult != 1 );
+    local( $previewFlag ) = $gVarPreviewFlag;
+
+    &LockAll;
+    &LockBoard;
 
     # cache article DB
     &DbCache( $BOARD ) if $BOARD;
@@ -46,6 +43,8 @@ Thanks:
     {
 	&Fatal( 15, '' );
     }
+
+    $Article = &MIME'base64decode( $Article ) if $previewFlag;
 
     if ( $SYS_DENY_FORM_RECYCLE )
     {
@@ -106,14 +105,13 @@ Thanks:
 	}
     }
 
-    &PrintButtonToTitleList( $BOARD );
+    &PrintButtonToTitleList( $BOARD, $newArtId );
     &PrintButtonToBoardList if $SYS_F_B;
 
     &MsgFooter;
 
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
-    &cgi'unlock( $LOCK_FILE ) unless $PC;
+    &UnlockBoard;
+    &UnlockAll;
 }
 
 1;

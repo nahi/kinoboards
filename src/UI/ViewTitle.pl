@@ -24,7 +24,7 @@
 ViewTitle:
 {
     local( $ComType ) = $gVarComType;
-    local( $IdNum, $Id, $Fid, $IdNum, $Id, $AddNum );
+    local( $IdNum, $Id, $Fid, $IdNum, $Id );
     local( $vCom, $vStr );
 
     if ( $ComType == 0 )
@@ -60,12 +60,8 @@ ViewTitle:
 
     %ADDFLAG = ();		# it's static.
 
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
-    # cache article DB
-    if ( $BOARD ) { &DbCache( $BOARD ); }
+    &LockBoard;
+    &DbCache( $BOARD ) if $BOARD;
 
     if ($ComType == 3)
     {
@@ -78,8 +74,7 @@ ViewTitle:
 	&ReOrderExec($cgi'TAGS{'rfid'}, $cgi'TAGS{'rtid'}, $BOARD);
     }
 
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
+    &UnlockBoard;
 
     # 表示する個数を取得
     local( $Num ) = $cgi'TAGS{'num'};
@@ -95,11 +90,11 @@ ViewTitle:
     }
     local( $Rev ) = $cgi'TAGS{'rev'};
     local( $vRev ) = $Rev? 1-$SYS_BOTTOMTITLE : $SYS_BOTTOMTITLE;
-    local( $NextOld ) = ( $Old > $Num ) ? ( $Old - $Num ) : 0;
-    local( $BackOld ) = ( $Old + $Num );
     local( $To ) = $#DB_ID - $Old;
     local( $From )= $To - $Num + 1;
     $From = 0 if (( $From < 0 ) || ( $Num == 0 ));
+
+    local( $pageLinkStr ) = &PageLink( "$vCom$vStr", $Num, $Old, $Rev );
 
     # 整形済みフラグ
     # 0 ... 整形対象外
@@ -110,29 +105,26 @@ ViewTitle:
 	$ADDFLAG{$DB_ID[$IdNum]} = 2;
     }
 
-    # ページング用文字列
-    $AddNum = "&num=" . $cgi'TAGS{'num'} . "&old=" . $cgi'TAGS{'old'};
-
     # 表示画面の作成
     if ($ComType == 2)
     {
-	&MsgHeader('Title view (threaded)', "新たなリプライ先の指定");
+	&MsgHeader( 'Thread view', '新たなリプライ先の指定' );
     }
     elsif ($ComType == 3)
     {
-	&MsgHeader('Title view (threaded)', "指定された$H_MESGのリプライ先を変更しました");
+	&MsgHeader( 'Thread view', "指定された$H_MESGのリプライ先を変更しました" );
     }
     elsif ($ComType == 4)
     {
-	&MsgHeader('Title view (threaded)', "移動先の指定");
+	&MsgHeader( 'Thread view', '移動先の指定' );
     }
     elsif ($ComType == 5)
     {
-	&MsgHeader('Title view (threaded)', "指定された$H_MESGを移動しました");
+	&MsgHeader( 'Thread view', "指定された$H_MESGを移動しました");
     }
     else
     {
-	&MsgHeader('Title view (threaded)', "$H_SUBJECT一覧($H_REPLY順)");
+	&MsgHeader( 'Thread view', "$H_SUBJECT一覧($H_REPLY順)" );
     }
 
     if ($ComType == 0)
@@ -178,33 +170,11 @@ __EOF__
 
     &cgiprint'Cache("$H_HR\n");
 
-    &cgiprint'Cache( "<p>" );
-    &cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$Old&rev=" . ( 1-$Rev ), $H_REVERSE ), ' ' ) if ( $SYS_REVERSE );
-    if ( $vRev )
-    {
-	if ( $From > 0 )
-	{
-	    &cgiprint'Cache("$H_TOP", &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$BackOld", $H_BACKART ));
-	}
-	else
-	{
-	    &cgiprint'Cache( $H_TOP, $H_NOBACKART );
-	}
-    }
-    else
-    {
-	if ( $Old )
-	{
-	    &cgiprint'Cache("$H_TOP", &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$NextOld", $H_NEXTART ));
-	}
-	else
-	{
-	    &cgiprint'Cache( $H_TOP, $H_NONEXTART );
-	}
-    }
-    &cgiprint'Cache( "</p>\n" );
+    &cgiprint'Cache( $pageLinkStr );
 
     &cgiprint'Cache("<ul>\n");
+
+    local( $AddNum ) = "&num=$Num&old=$Old&rev=$Rev";
 
     if ($To < $From)
     {
@@ -229,26 +199,26 @@ __EOF__
 	    $Id = $DB_ID[$IdNum];
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
 	    # 後方参照は後回し．
-	    next if (( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 ) || ( $ADDFLAG{$Fid} == 2 ));
+	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
 	    # ノードを表示
 	    if ($ComType == 0)
 	    {
 		if ( $SYS_THREAD_FORMAT == 1 )
 		{
-		    &ViewTitleNodeAllThread( $Id );
+		    &ViewTitleNodeAllThread( $Id, 1 );
 		}
 		elsif ( $SYS_THREAD_FORMAT == 2 )
 		{
-		    &ViewTitleNodeNoThread( $Id );
+		    &ViewTitleNodeNoThread( $Id, 1 );
 		}
 		else
 		{
-		    &ViewTitleNodeThread( $Id );
+		    &ViewTitleNodeThread( $Id, 1 );
 		}
 	    }
 	    else
 	    {
-		&ViewTitleNodeMaint($Id, $ComType, $AddNum);
+		&ViewTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
 	    }
 	}
     }
@@ -269,56 +239,33 @@ __EOF__
 	    # 後は同じ
 	    $Id = $DB_ID[$IdNum];
 	    ($Fid = $DB_FID{$Id}) =~ s/,.*$//o;
-	    next if (( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 ) || ( $ADDFLAG{$Fid} == 2 ));
+	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
+
 	    if ($ComType == 0)
 	    {
 		if ( $SYS_THREAD_FORMAT == 1 )
 		{
-		    &ViewTitleNodeAllThread( $Id );
+		    &ViewTitleNodeAllThread( $Id, 1 );
 		}
 		elsif ( $SYS_THREAD_FORMAT == 2 )
 		{
-		    &ViewTitleNodeNoThread( $Id );
+		    &ViewTitleNodeNoThread( $Id, 1 );
 		}
 		else
 		{
-		    &ViewTitleNodeThread( $Id );
+		    &ViewTitleNodeThread( $Id, 1 );
 		}
 	    }
 	    else
 	    {
-		&ViewTitleNodeMaint($Id, $ComType, $AddNum);
+		&ViewTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
 	    }
 	}
     }
 
     &cgiprint'Cache("</ul>\n");
 
-    &cgiprint'Cache( "<p>" );
-    &cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$Old&rev=" . ( 1-$Rev ), $H_REVERSE ), ' ' ) if ( $SYS_REVERSE );
-    if ( $vRev )
-    {
-	if ( $Old )
-	{
-	    &cgiprint'Cache("$H_BOTTOM", &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$NextOld", $H_NEXTART ));
-	}
-	else
-	{
-	    &cgiprint'Cache( $H_BOTTOM, $H_NONEXTART );
-	}
-    }
-    else
-    {
-	if ( $From > 0 )
-	{
-	    &cgiprint'Cache( $H_BOTTOM, &TagA( "$PROGRAM?b=$BOARD&c=$vCom$vStr&num=$Num&old=$BackOld", $H_BACKART ));
-	}
-	else
-	{
-	    &cgiprint'Cache( $H_BOTTOM, $H_NOBACKART );
-	}
-    }
-    &cgiprint'Cache( "</p>\n" );
+    &cgiprint'Cache( $pageLinkStr );
 
     &MsgFooter;
 
@@ -334,7 +281,7 @@ sub ViewTitleNodeNoThread
 {
     local( $Id ) = @_;
 
-    &cgiprint'Cache("<li>", &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}), "\n");
+    &cgiprint'Cache( '<li>', &GetFormattedTitle( $Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, 1 ), "\n");
 }
 
 
@@ -343,19 +290,23 @@ sub ViewTitleNodeNoThread
 #
 sub ViewTitleNodeThread
 {
-    local( $Id ) = @_;
+    local( $Id, $top ) = @_;
 
     # ページ外ならおしまい．
     return if ( $ADDFLAG{$Id} != 2 );
 
-    &cgiprint'Cache( "<li>", &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}), "\n" );
+    &cgiprint'Cache( '<li>', &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, $top ), "\n" );
+
     $ADDFLAG{$Id} = 1;		# 整形済み
 
     # 娘が居れば……
     if ( $DB_AIDS{$Id} )
     {
 	&cgiprint'Cache( "<ul>\n" );
-	foreach ( split( /,/, $DB_AIDS{$Id} )) { &ViewTitleNodeThread( $_ ); }
+	foreach ( split( /,/, $DB_AIDS{$Id} ))
+	{
+	    &ViewTitleNodeThread( $_, 0 );
+	}
 	&cgiprint'Cache( "</ul>\n" );
     }
 }
@@ -366,12 +317,12 @@ sub ViewTitleNodeThread
 #
 sub ViewTitleNodeAllThread
 {
-    local( $Id ) = @_;
+    local( $Id, $top ) = @_;
 
     # 表示済みならおしまい．
     return if ( $ADDFLAG{$Id} == 1 );
 
-    &cgiprint'Cache( "<li>", &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}), "\n" );
+    &cgiprint'Cache( '<li>', &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, $top ), "\n" );
     $ADDFLAG{$Id} = 1;		# 整形済み
 
     # 娘が居れば……
@@ -380,7 +331,7 @@ sub ViewTitleNodeAllThread
 	&cgiprint'Cache( "<ul>\n" );
 	foreach ( split( /,/, $DB_AIDS{$Id} ))
 	{
-	    &ViewTitleNodeAllThread( $_ );
+	    &ViewTitleNodeAllThread( $_, 0 );
 	}
 	&cgiprint'Cache( "</ul>\n" );
     }
@@ -392,13 +343,13 @@ sub ViewTitleNodeAllThread
 #
 sub ViewTitleNodeMaint
 {
-    local($Id, $ComType, $AddNum) = @_;
+    local( $Id, $ComType, $AddNum, $top ) = @_;
 
     return if ( $ADDFLAG{$Id} != 2 );
 
     local($FromId) = $cgi'TAGS{'rfid'};
 
-    &cgiprint'Cache("<li>", &GetFormattedTitle($Id, $BOARD, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id})); #'
+    &cgiprint'Cache( '<li>', &GetFormattedTitle($Id, $DB_AIDS{$Id}, $DB_ICON{$Id}, $DB_TITLE{$Id}, $DB_NAME{$Id}, $DB_DATE{$Id}, $top ));
 
     &cgiprint'Cache(" .......... \n");
 
@@ -418,7 +369,6 @@ sub ViewTitleNodeMaint
     {
 	&cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=dp&id=$Id", $H_DELETE_ICON ), "\n" );
 	&cgiprint'Cache( &TagA( "$PROGRAM?b=$BOARD&c=f&s=on&id=$Id", $H_SUPERSEDE_ICON ), "\n" );
-__EOF__
     }
 
     # 移動コマンド(To)
@@ -441,7 +391,7 @@ __EOF__
 	&cgiprint'Cache("<ul>\n");
 	foreach (split(/,/, $DB_AIDS{$Id}))
 	{
-	    &ViewTitleNodeMaint($_, $ComType, $AddNum);
+	    &ViewTitleNodeMaint( $_, $ComType, $AddNum, 0 );
 	}
 	&cgiprint'Cache("</ul>\n");
     }

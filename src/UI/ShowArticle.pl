@@ -16,61 +16,23 @@
 #
 ShowArticle:
 {
-    local($Id, $Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url, $DateUtc, $Aid, @AidList, @FollowIdTree);
-
-    # lock system
-    local( $lockResult ) = $PC ? 1 : &cgi'lock( $LOCK_FILE_B );
-    &Fatal(1001, '') if ( $lockResult == 2 );
-    &Fatal(999, '') if ( $lockResult != 1 );
+    &LockBoard;
     # cache article DB
-    if ( $BOARD ) { &DbCache( $BOARD ); }
+    &DbCache( $BOARD ) if $BOARD;
 
-    $Id = $cgi'TAGS{'id'};
-    ($Fid, $Aids, $Date, $Subject, $Icon, $RemoteHost, $Name, $Email, $Url) = &GetArticlesInfo($Id);
-    $DateUtc = &GetUtcFromOldDateTimeFormat($Date);
-    @AidList = split(/,/, $Aids);
+    local( $id ) = $cgi'TAGS{'id'};
+    local( $fId, $aids, $date, $subject ) = &GetArticlesInfo( $id );
 
     # 未投稿記事は読めない
-    if ($Name eq '') { &Fatal(8, ''); }
+    if ( $subject eq '' ) { &Fatal( 8, '' ); }
 
     # 表示画面の作成
-    &MsgHeader('Message view', "$Subject", $DateUtc);
-    &ViewOriginalArticle($Id, 1, 1);
-
-    # article end
-    &cgiprint'Cache("$H_LINE\n<p>\n");
-
-    # 反応記事
-    &cgiprint'Cache("▼$H_REPLY\n");
-
-    if ( @AidList )
-    {
-	# 反応記事があるなら…
-	foreach $Aid (@AidList)
-	{
-	    # フォロー記事の木構造の取得
-	    # ex. '( a ( b ( c d ) ) ( e ) ( f ( g ) ) )'というリスト
-	    @FollowIdTree = ();
-	    &GetFollowIdTree($Aid, *FollowIdTree);
-	    
-	    # メイン関数の呼び出し(記事概要)
-	    &ThreadArticleMain('subject only', @FollowIdTree);
-	}
-    }
-    else
-    {
-	# 反応記事無し
-	&cgiprint'Cache("<ul>\n<li>$H_REPLYはありません\n</ul>\n");
-    }
-
-    &cgiprint'Cache("</p>\n");
-
-    # お約束
+    &MsgHeader( 'Message view', $subject );
+    &ViewOriginalArticle( $id, 1, 1 );
+    &ReplyArticles( split( /,/, $aids ));
     &MsgFooter;
 
-    # unlock system
-    &cgi'unlock( $LOCK_FILE_B ) unless $PC;
-
+    &UnlockBoard;
 }
 
 1;
