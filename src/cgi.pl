@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.20 1999-02-21 08:14:18 nakahiro Exp $
+# $Id: cgi.pl,v 2.21 1999-02-21 14:45:41 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -123,7 +123,7 @@ sub lock_file_link
 
     for ( $timeOut = 0; $timeOut < $lockWait; $timeOut++ )
     {
-	open( LOCKORG, ">$lockFile.org" ) || return( 0 );
+	open( LOCKORG, ">$lockFile.org" ) || return 0;
 	close( LOCKORG );
 	$lockFlag = 1, last if ( link( "$lockFile.org", $lockFile ));
 	unlink( "$lockFile.org" );
@@ -369,7 +369,7 @@ sub sendMail
 	$extension, $message, $labelTo,	@to ) = @_;
     local( $header, $body );
 
-    return( 0, '' ) if ( !( $fromEmail && $senderEmail && $subject &&
+    return ( 0, '' ) if ( !( $fromEmail && $senderEmail && $subject &&
 	$message && @to ));
 
     # creating header
@@ -380,23 +380,25 @@ sub sendMail
     $body = &smtpBody( *message );
 
     # initialize connection
-    &smtpInit( "S" ) || return( 0, $SMTP_ERRSTR );
+    &smtpInit( "S" ) || return ( 0, $SMTP_ERRSTR );
 
     # helo!
-    &smtpMsg( "S", "helo $SERVER_NAME$CRLF" ) || return( 0, $SMTP_ERRSTR );
+    &smtpMsg( "S", "helo $SERVER_NAME$CRLF" ) || return ( 0, $SMTP_ERRSTR );
     # from
-    &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) || return( 0, $SMTP_ERRSTR );
+    &smtpMsg( "S", "mail from: <$fromEmail>$CRLF" ) ||
+	return ( 0, $SMTP_ERRSTR );
     # rcpt to
     foreach ( @to )
     {
-	&smtpMsg( "S", "rcpt to: <$_>$CRLF" ) || return( 0, $SMTP_ERRSTR );
+	&smtpMsg( "S", "rcpt to: <$_>$CRLF" ) || return ( 0, $SMTP_ERRSTR );
     }
     # data block
-    &smtpMsg( "S", "data$CRLF" ) || return( 0, $SMTP_ERRSTR );
+    &smtpMsg( "S", "data$CRLF" ) || return ( 0, $SMTP_ERRSTR );
     # mail header and body
-    &smtpMsg( "S", "$header$CRLF$body" . ".$CRLF" ) || return( 0, $SMTP_ERRSTR );
+    &smtpMsg( "S", "$header$CRLF$body" . ".$CRLF" ) ||
+	return ( 0, $SMTP_ERRSTR );
     # quit
-    &smtpMsg( "S", "quit$CRLF" ) || return( 0, $SMTP_ERRSTR );
+    &smtpMsg( "S", "quit$CRLF" ) || return ( 0, $SMTP_ERRSTR );
 
     # success!
     1;
@@ -777,7 +779,7 @@ $DEFAULT_PASSWD_LENGTH = 6;
 $AUTH_TYPE = 1;			# 1 ... use HTTP-Cookies
 				# 2 ... use Server Authentication
 				# 3 ... use direct URL Authentication
-$F_COOKIE_RESET = "CookieReset\376";
+$COLSEP = "\377";
 
 
 ###
@@ -800,6 +802,9 @@ $F_COOKIE_RESET = "CookieReset\376";
 #		require( 'cgi.pl' );
 #		&cgi'Decode;
 #		$cgiauth'AUTH_TYPE = 3;
+#		$cgi'TAGS{'kinoT'} = 0 ... plain passwd / 1 ... encrypted
+#		$cgi'TAGS{'kinoU'} = user's name
+#		$cgi'TAGS{'kinoP'} = user's passwd
 #		( $status, $uid, $passwd, @userInfo ) = &cgiauth'CheckUser( $userdb );
 #
 # - ARGS
@@ -830,12 +835,15 @@ sub CheckUser
 	if ( $cgi'TAGS{'kinoU'} )
 	{
 	    # authentication data in TAGS.
-	    return( &CheckUserPasswd( $userdb, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} ));
+	    return &CheckUserPasswd( $userdb, 0, $cgi'TAGS{'kinoU'},
+		$cgi'TAGS{'kinoP'} );
 	}
 	elsif ( $cgi'COOKIES{'kinoauth'} )
 	{
 	    # authentication succeed if HTTP-Cookie was set.
-	    return( &GetUserInfo( $userdb, $cgi'COOKIES{'kinoauth'} ));
+	    local( $kinoU, $kinoP ) =
+		split( /$COLSEP/, $cgi'COOKIES{'kinoauth'}, 2 );
+	    return &CheckUserPasswd( $userdb, 1, $kinoU, $kinoP );
 	}
     }
     elsif (( $AUTH_TYPE == 2 ) && $cgi'REMOTE_USER )
@@ -843,18 +851,23 @@ sub CheckUser
 	# with Server Authentication
 
 	# authentication successes if REMOTE_USER was set.
-	return( &GetUserInfo( $userdb, $cgi'REMOTE_USER ));
+	return &GetUserInfo( $userdb, $cgi'REMOTE_USER );
     }
-    elsif ( $cgi'TAGS{'kinoU'} )
+    elsif (( $AUTH_TYPE == 3 ) && $cgi'TAGS{'kinoU'} )
     {
 	# with direct URL Authentication
 
 	# authentication data in TAGS.
-	return( &CheckUserPasswd( $userdb, $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} ));
+	return &CheckUserPasswd( $userdb, $cgi'TAGS{'kinoT'},
+	    $cgi'TAGS{'kinoU'}, $cgi'TAGS{'kinoP'} );
+    }
+    else
+    {
+	die 'not reached in &cgiauth\'CheckUser...';
     }
 
     # default authentication.
-    return( &CheckUserPasswd( $userdb, $GUEST, '' ));
+    return &GetUserInfo( $userdb, $GUEST );
 }
 
 
@@ -887,7 +900,7 @@ sub GetUserInfo
     local( $userdb, $user ) = @_;
 
     # no password check.
-    &CheckUserPasswd( $userdb, $user, undef );
+    &CheckUserPasswd( $userdb, 2, $user );
 }
 
 
@@ -911,17 +924,18 @@ sub CreateUserDb
     local( $userdb ) = @_;
 
     # already exists.
-    return( 0 ) if ( -e "$userdb" );
+    return 0 if ( -e "$userdb" );
 
     # create
-    open( USERDB, ">$userdb" ) || return( 0 );
+    open( USERDB, ">$userdb" ) || return 0;
     close( USERDB );
 
     # add guest user with no passwd.
-    if ( !defined( &AddUser( $userdb, $ADMIN, '', ())) || !defined( &AddUser( $userdb, $GUEST, '', ())))
+    if ( !defined( &AddUser( $userdb, $ADMIN, '', ())) ||
+	!defined( &AddUser( $userdb, $GUEST, '', ())))
     {
 	unlink( $userdb );
-	return( 0 );
+	return 0;
     }
 
     1;
@@ -967,7 +981,10 @@ sub AddUser
     close( USERDB );
 
     $id = &NewId( $userdb );
-    $newLine = sprintf( "%s\t%s\t%s\t%s\t%s", $id, $user, $^T, $cgi'REMOTE_HOST, ( substr( crypt( $passwd, $id ), 2 )));
+    local( $salt ) = &NewSalt();
+    $newLine = sprintf( "%s\t%s\t%s\t%s\t%s\t%s", $id, $user, $salt,
+	substr( crypt( $passwd, $salt ), 2 ), $^T,
+	( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR )); 
     foreach ( @userInfo ) { $newLine .= "\t" . $_; }
     open( USERDB, ">>$userdb" ) || return 2;
     print( USERDB $newLine . "\n" );
@@ -1000,30 +1017,32 @@ sub SetUserPasswd
     local( $userdb, $user, $passwd ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
-    local( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, $dInfo );
+    local( $dId, $dUser, $dSalt, $dPasswd, $dInfo );
 
-    open( USERDBTMP, ">$tmpFile" ) || return( 0 );
-    open( USERDB, "<$userdb" ) || return( 0 );
+    local( $salt ) = &NewSalt();
+    open( USERDBTMP, ">$tmpFile" ) || return 0;
+    open( USERDB, "<$userdb" ) || return 0;
     while( <USERDB> )
     {
 	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
 	chop;
-	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, $dInfo ) = split( /\t/, $_ );
+	( $dId, $dUser, $dSalt, $dPasswd, $dInfo ) = split( /\t/, $_, 5 );
 
 	if ( $dUser eq $user )
 	{
-	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dAddTime, $dAddHost, ( substr( crypt( $passwd, $dId ), 2 )), $dInfo );
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $salt,
+		substr( crypt( $passwd, $salt ), 2 ), $dInfo );
 	    $found = 1;
 	}
 	else
 	{
-	    print( USERDBTMP $_ . "\n" );
+	    print( USERDBTMP $_, "\n" );
 	}
     }
     close( USERDB );
     close( USERDBTMP );
 
-    rename( $tmpFile, $userdb ) || return( 0 );
+    rename( $tmpFile, $userdb ) || return 0;
 
     $found;
 }
@@ -1052,30 +1071,31 @@ sub SetUserInfo
     local( $userdb, $user, @userInfo ) = @_;
     local( $tmpFile ) = "$userdb.tmp.$$";
     local( $found ) = 0;
-    local( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo, $newLine );
+    local( $dId, $dUser, $dSalt, $dPasswd );
 
-    open( USERDBTMP, ">$tmpFile" ) || return( 0 );
-    open( USERDB, "<$userdb" ) || return( 0 );
+    open( USERDBTMP, ">$tmpFile" ) || return 0;
+    open( USERDB, "<$userdb" ) || return 0;
     while( <USERDB> )
     {
 	print( USERDBTMP $_ ), next if ( /^\#/o || /^$/o );
 	chop;
-	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo ) = split( /\t/, $_ );
+	( $dId, $dUser, $dSalt, $dPasswd ) = split( /\t/, $_, 5 );
 
 	if ( $dUser eq $user )
 	{
-	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, join( "\t", @userInfo ));
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dSalt,
+		$dPasswd, join( "\t", @userInfo ));
 	    $found = 1;
 	}
 	else
 	{
-	    print( USERDBTMP $_ . "\n" );
+	    print( USERDBTMP $_, "\n" );
 	}
     }
     close( USERDB );
     close( USERDBTMP );
 
-    rename( $tmpFile, $userdb ) || return( 0 );
+    rename( $tmpFile, $userdb ) || return 0;
 
     $found;
 }
@@ -1085,15 +1105,15 @@ sub SetUserInfo
 ## Header - header print
 #
 # - SYNOPSIS
-#	&cgiauth'Header( $lastModifiedP, $lastModifiedTime, $user, $cookieExpire );
+#	&cgiauth'Header( $lastModifiedP, $lastModifiedTime, $type, $expire );
 #
 # - ARGS
 #	$lastModifiedP		print last-modified header or not.
 #	$lastModifiedTime	time for last-modified header.
 #				if null, now is the time for last-modified.
-#	$user			user id.
-#				does not send HTTP Cookies if $user is null.
-#				reset HTTP Cookies if $user is $cgiauth'F_COOKIE_RESET.
+#	$type			not send auth-Cookies if 0.
+#				send auth-Cookies if 1.
+#				reset auth-Cookies if 2.
 #	$cookieExpire		expires HTTP Cookies or not.
 #
 # - DESCRIPTION
@@ -1104,29 +1124,37 @@ sub SetUserInfo
 #
 sub Header
 {
-    local( $lastModifiedP, $lastModifiedTime, $user, $expire ) = @_;
+    local( $lastModifiedP, $lastModifiedTime, $type, $expire ) = @_;
 
     local( $cookieFlag, @cookieList );
 
     $cookieFlag = 0;
 
-    if ( $user eq $F_COOKIE_RESET )
+    if ( $AUTH_TYPE == 1 )
     {
-	# not numeric. reset.
-	push( @cookieList, 'kinoauth=' );
-	$cookieFlag = 1;
+	if ( $type == 0 )
+	{
+	    # not send
+	}
+	elsif (( $type == 1 ) &&
+	       ( $cgi'COOKIES{'kinoauth'} ne "$UNAME$COLSEP$PASSWD" ))
+	{
+	    # set
+	    push( @cookieList, "kinoauth=$UNAME$COLSEP$PASSWD" );
+	    $cookieFlag = 1;
+	}
+	elsif (( $type == 2 ) && ( $cgi'COOKIES{'kinoauth'} ne '' ))
+	{
+	    # reset.
+	    push( @cookieList, 'kinoauth=' );
+	    $cookieFlag = 1;
+	}
     }
-    elsif ( $UID ne $cgi'COOKIES{'kinoauth'} )
-    {
-	# set
-	push( @cookieList, "kinoauth=$UID" );
-	$cookieFlag = 1;
-    }
-
+	
     if ( $cookieFlag )
     {
 	&cgi'Header( $lastModifiedP, $lastModifiedTime, 1, *cookieList,
-	    $expire );
+		    $expire );
     }
     else
     {
@@ -1171,12 +1199,12 @@ sub LinkTagWithAuth
 #
 # - ARGS
 #	$userdb		user db.
+#	$checkType	0 ... plain passwd / 1 ... encrypted / 2 ... no-check
 #	$user		user entry.
 #	$passwd		password.
 #
 # - DESCRIPTION
 #	check user's name and password.
-#	password will not be checked if undefined value.
 #
 # - RETURN
 #	returns status, user entry, encrypted password,
@@ -1192,59 +1220,154 @@ sub LinkTagWithAuth
 #
 sub CheckUserPasswd
 {
-    local( $userdb, $user, $passwd ) = @_;
-    local( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo );
+    local( $userdb, $checkType, $user, $passwd ) = @_;
 
     return ( 1 ) unless $user;
 
-    local( $retCode, $retUser, $retPasswd, @retInfo );
+    return ( &UpdateUserPasswd( $userdb, $user, $passwd ))
+	if ( $checkType == 0 );
+
+    local( $retCode, $retUser, $retPasswd, $retRest );
     $retCode = 3;		# Means `not found'.
 
+    local( $dId, $dUser, $dSalt, $dPasswd, $dRest );
     open( USERDB, "<$userdb" ) || return ( 2 );
     while( <USERDB> )
     {
 	next if (( $retCode != 3 ) || /^\#/o || /^$/o );
 	chop;
-	( $dId, $dUser, $dAddTime, $dAddHost, $dPasswd, @dInfo ) = split( /\t/, $_ );
+	( $dId, $dUser, $dSalt, $dPasswd, $dRest ) = split( /\t/, $_, 5 );
 
 	if (( $dUser eq $ADMIN ) && ( $dPasswd eq '' ))
 	{
 	    $retCode = 9;
+	    $retUser = $dUser;
+	    $retPasswd = $dPasswd;
+	    $retRest = $dRest;
 	}
-	elsif ( $dUser eq $user )
+
+	if ( $dUser eq $user )
 	{
-	    if (( $passwd eq $dPasswd ) || ( substr( crypt( $passwd, $dId ), 2 ) eq $dPasswd ))
+	    if ( $checkType == 2 )
 	    {
-		$UID = $dId;
+		$UNAME = $dUser;
+		$PASSWD = $dPasswd;
 		$retCode = 0;
 		$retUser = $dUser;
 		$retPasswd = $dPasswd;
-		@retInfo = @dInfo;
+		$retRest = $dRest;
 	    }
-	    else
+	    elsif (( $checkType == 1 ) && ( $passwd eq $dPasswd ))
 	    {
-		$retCode = 4;
-	    }
-	}
-	elsif ( $dId eq $user )
-	{
-	    if ( !defined( $passwd ))
-	    {
-		$UID = $dId;
+		$UNAME = $dUser;
+		$PASSWD = $dPasswd;
 		$retCode = 0;
 		$retUser = $dUser;
 		$retPasswd = $dPasswd;
-		@retInfo = @dInfo;
+		$retRest = $dRest;
 	    }
 	    else
 	    {
+		# authentication failed.
 		$retCode = 4;
 	    }
 	}
     }
     close( USERDB );
 
-    return ( $retCode, $retUser, $retPasswd, @retInfo );
+    return ( $retCode, $retUser, $retPasswd, split( /\t/, $retRest ));
+}
+
+
+###
+## UpdateUserPasswd - update user's salt.
+#
+# - SYNOPSIS
+#	&UpdateUserPasswd( $userdb, $user, $passwd );
+#
+# - ARGS
+#	$userdb		user db.
+#	$user		user entry.
+#	$passwd		password.
+#
+# - DESCRIPTION
+#	update user's salt.
+#
+# - RETURN
+#	update user's salt and returns status, user entry, encrypted password.
+#
+#	status
+#		0 ... succeed authentication.
+#		1 ... $user is null.
+#		2 ... cannot open DB file.
+#		3 ... $user was not found in DB.
+#		4 ... password incorrect.
+#		9 ... $ADMIN passwd is null.
+#
+sub UpdateUserPasswd
+{
+    local( $userdb, $user, $passwd ) = @_;
+
+    return ( 1 ) unless $user;
+
+    local( $tmpFile ) = "$userdb.tmp.$$";
+    local( $found ) = 0;
+    local( $dId, $dUser, $dSalt, $dPasswd );
+
+    local( $retCode, $retUser, $retPasswd, $retRest );
+    $retCode = 3;		# Means `not found'.
+
+    local( $dId, $dUser, $dSalt, $dPasswd, $dRest );
+
+    open( USERDBTMP, ">$tmpFile" ) || return ( 2 );
+    open( USERDB, "<$userdb" ) || return ( 2 );
+    while( <USERDB> )
+    {
+	print( USERDBTMP $_ ), next if (( $retCode != 3 ) || /^\#/o || /^$/o );
+	chop;
+	( $dId, $dUser, $dSalt, $dPasswd, $dRest ) = split( /\t/, $_, 5 );
+
+	if (( $dUser eq $ADMIN ) && ( $dPasswd eq '' ))
+	{
+	    $retCode = 9;
+	    $retUser = $dUser;
+	    $retPasswd = $dPasswd;
+	    $retRest = $dRest;
+	}
+
+	if ( $dUser eq $user )
+	{
+	    if ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dPasswd )
+	    {
+		$dSalt = &NewSalt();
+		$dPasswd = substr( crypt( $passwd, $dSalt ), 2 );
+		$UNAME = $dUser;
+		$PASSWD = $dPasswd;
+		$retCode = 0;
+		$retUser = $dUser;
+		$retPasswd = $dPasswd;
+		$retRest = $dRest;
+	    }
+	    else
+	    {
+		# authentication failed.
+		$retCode = 4;
+	    }
+	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $dSalt,
+		$dPasswd, $dRest );
+	    $found = 1;
+	}
+	else
+	{
+	    print( USERDBTMP $_, "\n" );
+	}
+    }
+    close( USERDB );
+    close( USERDBTMP );
+
+    rename( $tmpFile, $userdb ) || return ( 2 );
+
+    return ( $retCode, $retUser, $retPasswd, split( /\t/, $retRest ));
 }
 
 
@@ -1271,7 +1394,7 @@ sub NewId
     local( $userdb ) = @_;
     local( $dId, $maxId );
     $maxId = 0;
-    open( USERDB, "<$userdb" ) || return( undef );
+    open( USERDB, "<$userdb" ) || return undef;
     while( <USERDB> )
     {
 	next if ( /^\#/o || /^$/o );
@@ -1281,6 +1404,26 @@ sub NewId
     }
 
     ++$maxId;
+}
+
+
+###
+## NewSalt - get new salt.
+#
+# - SYNOPSIS
+#	&NewSalt();
+#
+# - DESCRIPTION
+#	get new salt.
+#
+# - RETURN
+#	returns generated new salt.
+#
+@SALT_STR = ( 'a' .. 'z', 'A' .. 'Z', 0 .. 9, '.', '/' );
+sub NewSalt
+{
+    $SALT_STR[ int( rand( $#SALT_STR + 1 ))] . 
+	$SALT_STR[ int( rand( $#SALT_STR + 1 ))];
 }
 
 
