@@ -185,6 +185,8 @@ __EOF__
 	    &cgiprint'Cache( "<ul>\n<li>", &TagA( "$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[全記事の先頭に移動する(このページの先頭，ではありません)]" ), "\n</ul>\n" );
 	}
 
+	&cgiprint'Cache( "<ul>\n" ) if ( $SYS_THREAD_FORMAT == 2 );
+
 	for( $IdNum = $From; $IdNum <= $To; $IdNum++ )
 	{
 	    # 該当記事のIDを取り出す
@@ -195,7 +197,7 @@ __EOF__
 	    next if (( $Fid ne '' ) && (( $ADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
 	    # ノードを表示
-	    &cgiprint'Cache( "<ul>\n" );
+	    &cgiprint'Cache( "<ul>\n" ) unless ( $SYS_THREAD_FORMAT == 2 );
 	    if ( $SYS_F_MT )
 	    {
 		&ThreadTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
@@ -215,8 +217,9 @@ __EOF__
 		    &ThreadTitleNodeThread( $Id, 1 );
 		}
 	    }
-	    &cgiprint'Cache( "</ul>\n" );
+	    &cgiprint'Cache( "</ul>\n" ) unless ( $SYS_THREAD_FORMAT == 2 );
 	}
+	&cgiprint'Cache( "</ul>\n" ) if ( $SYS_THREAD_FORMAT == 2 );
     }
     else
     {
@@ -230,6 +233,8 @@ __EOF__
 	    &cgiprint'Cache("<li>", &TagA( "$PROGRAM?b=$BOARD&c=mve&rtid=&rfid=" . $cgi'TAGS{'rfid'} . "&roid=" . $cgi'TAGS{'roid'} . $AddNum, "[全記事の先頭に移動する(このページの先頭，ではありません)]" ), "\n");
 	}
 
+	&cgiprint'Cache( "<ul>\n" ) if ( $SYS_THREAD_FORMAT == 2 );
+
 	for( $IdNum = $To; $IdNum >= $From; $IdNum-- )
 	{
 	    # 後は同じ
@@ -238,7 +243,7 @@ __EOF__
 #	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
 	    next if (( $Fid ne '' ) && (( $ADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
-	    &cgiprint'Cache( "<ul>\n" );
+	    &cgiprint'Cache( "<ul>\n" ) unless ( $SYS_THREAD_FORMAT == 2 );
 	    if ( $SYS_F_MT )
 	    {
 		&ThreadTitleNodeMaint( $Id, $ComType, $AddNum, 1 );
@@ -258,8 +263,9 @@ __EOF__
 		    &ThreadTitleNodeThread( $Id, 1 );
 		}
 	    }
-	    &cgiprint'Cache( "</ul>\n" );
+	    &cgiprint'Cache( "</ul>\n" ) unless ( $SYS_THREAD_FORMAT == 2 );
 	}
+	&cgiprint'Cache( "</ul>\n" ) if ( $SYS_THREAD_FORMAT == 2 );
     }
 
     &cgiprint'Cache( $pageLinkStr );

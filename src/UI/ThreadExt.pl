@@ -71,6 +71,8 @@ ThreadExt:
     }
     elsif ( $vRev )
     {
+	&cgiprint'Cache( "<ul>\n" ) if ( $SYS_THREAD_FORMAT == 2 );
+
 	for( $IdNum = $From; $IdNum <= $To; $IdNum++ )
 	{
 	    # 該当記事のIDを取り出す
@@ -81,7 +83,7 @@ ThreadExt:
 	    next if (( $Fid ne '' ) && (( $ADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
 	    # ノードを表示
-	    &cgiprint'Cache( "<ul>\n" );
+	    &cgiprint'Cache( "<ul>\n" ) unless ( $SYS_THREAD_FORMAT == 2 );
 	    if ( $SYS_THREAD_FORMAT == 1 )
 	    {
 		&ThreadTitleNodeAllThread( $Id, 1 );
@@ -94,11 +96,14 @@ ThreadExt:
 	    {
 		&ThreadTitleNodeThread( $Id, 1 );
 	    }
-	    &cgiprint'Cache( "</ul>\n" );
+	    &cgiprint'Cache( "</ul>\n" ) unless ( $SYS_THREAD_FORMAT == 2 );
 	}
+	&cgiprint'Cache( "</ul>\n" ) if ( $SYS_THREAD_FORMAT == 2 );
     }
     else
     {
+	&cgiprint'Cache( "<ul>\n" ) if ( $SYS_THREAD_FORMAT == 2 );
+
 	for( $IdNum = $To; $IdNum >= $From; $IdNum-- )
 	{
 	    $Id = $DB_ID[$IdNum];
@@ -106,7 +111,7 @@ ThreadExt:
 #	    next if ((( $Fid ne '' ) && ( $SYS_THREAD_FORMAT == 2 )) || ( $ADDFLAG{$Fid} == 2 ));
 	    next if (( $Fid ne '' ) && (( $ADDFLAG{$Fid} == 2 ) || ( $SYS_THREAD_FORMAT == 2 )));
 
-	    &cgiprint'Cache( "<ul>\n" );
+	    &cgiprint'Cache( "<ul>\n" ) unless ( $SYS_THREAD_FORMAT == 2 );
 	    if ( $SYS_THREAD_FORMAT == 1 )
 	    {
 		&ThreadTitleNodeAllThread( $Id, 1 );
@@ -119,8 +124,9 @@ ThreadExt:
 	    {
 		&ThreadTitleNodeThread( $Id, 1 );
 	    }
-	    &cgiprint'Cache( "</ul>\n" );
+	    &cgiprint'Cache( "</ul>\n" ) unless ( $SYS_THREAD_FORMAT == 2 );
 	}
+	&cgiprint'Cache( "</ul>\n" ) if ( $SYS_THREAD_FORMAT == 2 );
     }
 
     if ( $#IDLIST >= 0 )
