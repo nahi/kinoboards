@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.47 2000-06-14 14:41:21 nakahiro Exp $
+# $Id: cgi.pl,v 2.48 2000-06-14 15:20:26 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -1299,7 +1299,7 @@ sub checkUserPasswd
     local( $userdb, $checkType, $user, $passwd ) = @_;
 
     return ( 1 ) unless $user;
-    return ( 0 ) if ( $user eq $GUEST );
+    return ( 0, $GUEST, '' ) if ( $user eq $GUEST );
 
     return ( &updateUserPasswd( $userdb, $user, $passwd )) if ( $checkType == 0 );
 
