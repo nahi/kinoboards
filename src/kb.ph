@@ -1,15 +1,17 @@
 # This file implements Site Specific Definitions of KINOBOARDS.
 
 ###
-## ○管理者の名前，E-Mailアドレス，システムの名前
+## ○管理者のユーザ名，E-Mailアドレス，ウェブページURL，システムの名前
 #
 # 例:
 # $MAINT_NAME = 'KinoboardsAdmin';
 # $MAINT = 'nahi@keynauts.com';
+# $MAINT_URL = 'http://www.jin.gr.jp/~nahi/';
 # $SYSTEM_NAME = 'KINOBOARDS/1.0';
 #
 $MAINT_NAME = 'YourName';
 $MAINT = 'yourname@your.e-mail.domain';
+$MAINT_URL = '';		# 省略可能
 $SYSTEM_NAME = 'YourSystemName';
 
 ###
@@ -20,9 +22,17 @@ $SYSTEM_NAME = 'YourSystemName';
 #   1: HTTP-Cookiesによる認証を行う
 #   2: HTTPサーバによる認証を使う
 #   3: URLによる認証を行う
-$SYS_AUTH = 1;  # 現在は0と1しか指定できませんごめんなさい．m(..m
+$SYS_AUTH = 1;  # 現在は2を指定することができません．．．
 
   # 認証を行なうように指定した場合，以下も指定してください．
+  # 認証用ファイル（kb.user）を置くディレクトリを指定してください．
+  # デフォルト設定のままだとkbディレクトリに置かれます．
+  # これだと直接URLを入力すればダイジェスト化されたパスワードが見えてしまい，
+  # オフラインブルートフォースアタックに使われてしまいます．
+  # 極力，ウェブに公開されていないディレクトリを設定してください．
+  #   $AUTH_DIR = '/home/nahi/etc';
+  $AUTH_DIR = '.';
+
   # 管理者のユーザ名を指定してください．
   $ADMIN = 'admin';
 
@@ -71,6 +81,12 @@ $SYS_AUTH = 1;  # 現在は0と1しか指定できませんごめんなさい．m(..m
   #   0: 残さない
   #   1: 残す		ブラウザに依っては誤動作するかも．．．
   $SYS_TAGINSUPERSEDE = 1;
+
+  # 「新着メッセージ」を書き込めるのは管理者だけ，にもできます．
+  # 「リプライメッセージ」の書き込み権限には影響を与えません．
+  #   0: そのまま
+  #   1: 管理者のみが「新着」を書き込める
+  $SYS_NEWART_ADMINONLY = 0;
 
 ###
 ## ○タイムゾーン
@@ -330,7 +346,7 @@ $NAME_LENGTH = 60;	# 名前幅
 $MAIL_LENGTH = 60;	# E-mail幅
 $URL_LENGTH = 72;	# URL幅
 $KEYWORD_LENGTH = 60;	# 検索キーワード幅
-$BOARDNAME_LENGTH = 10;	# 掲示板名幅
+$BOARDNAME_LENGTH = 20;	# 掲示板名幅
 $DEF_TITLE_NUM = 30;	# タイトル一覧に表示するタイトルの数
 			# 0にすると全記事を表示するようになります．
 $DEF_ARTICLE_NUM = 15;	# まとめ読みする記事の数
@@ -370,6 +386,7 @@ $MSGICON_WIDTH = 20;		# 幅[dot]
 
 # ○メッセージの宣言
 #
+$H_LOGIN = 'ログイン';
 $H_BOARD = '掲示板';
 $H_ICON = 'アイコン';
 $H_SUBJECT = 'タイトル';
@@ -385,8 +402,6 @@ $H_REPLY = 'リプライ';
 $H_ORIG = 'リプライ元';
 $H_ORIG_TOP = 'オリジナル';
 $H_LINE = '<p>------------------------------</p>';
-$H_THREAD_ALL = '▲';
-$H_THREAD = '▼';
 $H_NEWARTICLE = 'new!';
 $H_HR = '<hr>';
 $H_TEXTTYPE = '書き込み形式';
@@ -403,42 +418,35 @@ $H_REPLYTHISARTICLEQUOTE = '引用してリプライを書き込む';
 $H_READREPLYALL = 'リプライをまとめ読み';
 $H_DELETE = '削除する';
 $H_SUPERSEDE = '訂正する';
-$H_BACKART = '前ページへ';
-$H_NEXTART = '次ページへ';
 $H_NOBACKART = '前のページはありません．';
 $H_NONEXTART = '次のページはありません．';
+$H_NOARTICLE = '該当するメッセージがありません．';
+
 $H_TOP = '←';
 $H_BOTTOM = '→';
+$H_BACKART = '前ページへ';
+$H_NEXTART = '次ページへ';
+
+$H_THREAD_ALL = '▲';
+$H_THREAD_ALL_L = 'スレッド全て';
+$H_THREAD = '▼';
+$H_THREAD_L = 'リプライ全て';
 $H_REVERSE = '△▽';
-$H_NOARTICLE = '該当するメッセージがありません．';
+$H_REVERSE_L = '逆順表示';
 $H_SUPERSEDE_ICON = '[※]';
+$H_SUPERSEDE_ICON_L = '訂正';
 $H_DELETE_ICON = '[×]';
+$H_DELETE_ICON_L = '削除';
 $H_RELINKFROM_MARK = '[←]';
+$H_RELINKFROM_MARK_L = 'リプライ先を変更';
 $H_RELINKTO_MARK = '[◎]';
+$H_RELINKTO_MARK_L = 'リプライ先に指定';
 $H_REORDERFROM_MARK = '[△]';
+$H_REORDERFROM_MARK_L = '順序を変更';
 $H_REORDERTO_MARK = '[▽]';
+$H_REORDERTO_MARK_L = '移動先に指定';
 
 
 #/////////////////////////////////////////////////////////////////////
+# $Id: kb.ph,v 5.23 1999-08-26 09:05:38 nakahiro Exp $
 1;
-
-
-# $Id: kb.ph,v 5.22 1999-08-23 20:17:22 nakahiro Exp $
-
-
-# KINOBOARDS: Kinoboards Is Network Opened BOARD System
-# Copyright (C) 1995, 96, 97 NAKAMURA Hiroshi.
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PRATICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.

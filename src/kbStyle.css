@@ -2,49 +2,53 @@
  * kbStyle.css: CSS style definition file for KINOBOARDS.
  */
 
-/* $Id: kbStyle.css,v 5.1 1999-08-23 20:17:24 nakahiro Exp $ */
+/* $Id: kbStyle.css,v 5.2 1999-08-26 09:05:39 nakahiro Exp $ */
 
 /* general definition */
 body
 {
-	background: #EEEEEE;
-	color: #000000;
+    background: #EEEEEE;
+    color: #000000;
 }
 
 h1, h2, h3, h4, h5, h6
 {
-	text-align: center;
+    text-align: center;
 }
 
 h1
 {
-	font-style: italic;
-	font-weight: bold;
-	font-variant: normal;
-	margin: 2%;
+    font-style: italic;
+    font-weight: bold;
+    font-variant: normal;
+    margin: 2%;
 }
 
 p.kbStatus
 {
-	text-align: right;
-	font-weight: bold;
-	margin-bottom: 0;
-}	
+    text-align: right;
+    font-weight: bold;
+    margin-bottom: 0;
+}    
 
 dt
 {
-	margin-left: 1em;
-	margin-top: 2ex;
+    margin-left: 1em;
+    margin-top: 2ex;
 }
 
-/* `address' part definition */
+span.accessKey
+{
+    text-decoration: underline;
+}
+
 address
 {
-	color: #333333;
-	background: #EEEEEE;
-	text-align: right;
-	font-family: Times, serif;
-	font-style: normal;
-	font-variant: normal;
-	font-weight: normal;
+    color: #333333;
+    background: #EEEEEE;
+    text-align: right;
+    font-family: Times, serif;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
 }
