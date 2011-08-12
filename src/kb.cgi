@@ -31,7 +31,7 @@ $PC = 0;	# for UNIX / WinNT
 ######################################################################
 
 
-# $Id: kb.cgi,v 5.43.2.10 2000-08-14 14:20:54 nakahiro Exp $
+# $Id: kb.cgi,v 5.43.2.10 2000/08/14 14:20:54 nakahiro Exp $
 
 # KINOBOARDS: Kinoboards Is Network Opened BOARD System
 # Copyright (C) 1995-2000 NAKAMURA Hiroshi.
@@ -617,8 +617,7 @@ sub FollowMail
     
     local( $StrSubject, $FstrSubject, $MailSubject, $StrFrom, $FstrFrom, $Message );
 
-    $StrSubject = ( !$SYS_ICON || ( $Icon eq $H_NOICON ))? "$Subject" :
-	"($Icon) $Subject";
+    $StrSubject = ( !$SYS_ICON || ( $Icon eq $H_NOICON ))? "$Subject" :	"($Icon) $Subject";
     $StrSubject =~ s/<[^>]*>//go;	# タグは要らない
     $StrSubject = &HTMLDecode( $StrSubject );
     $FstrSubject = ( $Ficon eq $H_NOICON )? $Fsubject : "($Ficon) $Fsubject";
@@ -628,7 +627,8 @@ sub FollowMail
     $StrFrom = $Email? "$Name <$Email>" : "$Name";
 
     local( $ffIds ) = &GetArticlesInfo( $Id );
-    local( $topId ) = ( $ffIds =~ m/([^,]+)$/o );
+    local( $topId ) = $ffIds || $Id;
+    $topId =~ s/^.*,//o;
 
     $Message = <<__EOF__;
 $SYSTEM_NAMEからのお知らせです．
@@ -2611,7 +2611,7 @@ sub PlainArticleToPreFormatted
     $Article =~ s/<URL:([^>][^>]*)>/__URL__$COLSEP$1$COLSEP/gi;
     $Article = &HTMLEncode( $Article );	# no tags are allowed.
     $Article =~ s/__URL__$COLSEP([^$COLSEP][^$COLSEP]*)$COLSEP/"<URL:" . &HTMLDecode( $1 ) . ">"/gie;
-    $Article = "<pre>\n" . $Article . "</pre>";
+    $Article = "<pre>" . $Article . "</pre>";
 }
 
 
