@@ -1,4 +1,4 @@
-# $Id: cgi.pl,v 2.52 2000-08-06 14:23:21 nakahiro Exp $
+# $Id: cgi.pl,v 2.52 2000/08/06 14:23:21 nakahiro Exp $
 
 
 # Small CGI tool package(use this with jcode.pl-2.0).
@@ -856,7 +856,7 @@ sub secureFeature
     $features =~ s/^\s+//o;
 
     local( @allowed ) = split( /\//, $allowedFeatures );
-    while ( $features =~ s/([^=\s]+)\s*=\s*('|")([^'"]*)\2\s*//go )
+    while ( $features =~ s/([^=\s]+)\s*=\s*('|")([^\2]*)\2\s*//go )
     {
 	return 0 if (( !$3 ) || ( !grep( /^$1$/i, @allowed )));
     }
@@ -1041,9 +1041,7 @@ sub addUser
 
     $id = &newId( $userdb );
     local( $salt ) = &newSalt();
-    $newLine = sprintf( "%s\t%s\t%s\t%s\t%s\t%s", $id, $user, $salt,
-	substr( crypt( $passwd, $salt ), 2 ), $^T,
-	( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR )); 
+    $newLine = sprintf( "%s\t%s\t%s\t%s\t%s\t%s", $id, $user, $salt, &getDigest( $passwd, $salt ), $^T, ( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR )); 
     foreach ( @userInfo ) { $newLine .= "\t" . $_; }
     open( USERDB, ">>$userdb" ) || return 2;
     print( USERDB $newLine . "\n" ) || return 2;
@@ -1093,7 +1091,7 @@ sub setUserPasswd
 
 	if ( $dUser eq $user )
 	{
-	    $dSPhrase = substr( crypt( $passwd, $salt ), 2 ) . ':';
+	    $dSPhrase = &getDigest( $passwd, $salt ) . ':';
 	    printf( USERDBTMP "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $dId, $dUser, $salt, $dSPhrase, $^T, ( $cgi'REMOTE_HOST || $cgi'REMOTE_ADDR ), $dInfo ) || return 0;
 	    $found = 1;
 	}
@@ -1337,7 +1335,7 @@ sub checkUserPasswd
 		# No check.
 		( $checkType == 2 ) ||
 		# Session check.
-		(( $checkType == 1 ) && ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dSessionDgst )) ||
+		(( $checkType == 1 ) && ( &getDigest( $passwd, $dSalt ) eq $dSessionDgst )) ||
 		# For backward compatibility to R7.1.1 or before.
 		(( $checkType == 1 ) && ( $dSessionDgst eq '' ) && ( $passwd eq $dPasswdDgst ))
 	    )
@@ -1425,15 +1423,15 @@ sub updateUserPasswd
 	}
 	elsif ( $dUser eq $user )
 	{
-	    if ( substr( crypt( $passwd, $dSalt ), 2 ) eq $dPasswdDgst )
+	    if ( &getDigest( $passwd, $dSalt ) eq $dPasswdDgst )
 	    {
 		$UID = $retUser = $dUser;
 		$PASSWD = $retKey = &createNewPasswd();
 		$retCode = 0;
 		$retRest = $dRest;
 		$dSalt = &newSalt();
-		$dPasswdDgst = substr( crypt( $passwd, $dSalt ), 2 );
-		$dSessionDgst = substr( crypt( $retKey, $dSalt ), 2 );
+		$dPasswdDgst = &getDigest( $passwd, $dSalt );
+		$dSessionDgst = &getDigest( $retKey, $dSalt );
 	    }
 	    else
 	    {
@@ -1514,13 +1512,44 @@ sub newSalt
 
 
 ###
+## getDigest - calc and get digest.
+#
+# - SYNOPSIS
+#	&getDigest( $msg, $key );
+#
+# - ARGS
+#	$msg	original message to digested.
+#	$key	key
+#
+# - DESCRIPTION
+#	Digests the given message.
+#
+# - RETURN
+#	digest.
+#
+sub getDigest
+{
+    local( $msg, $key ) = @_;
+    local( $crypted ) = crypt( $msg, $key );
+
+    if ( $crypted =~ /^\$\d+\$[^\$]*\$(.*)$/o )
+    {
+	# MD5
+	return $1;
+    }
+    else
+    {
+	# UNIX traditional
+	return substr( $crypted, 2 );
+    }    
+}
+
+
+###
 ## createNewPasswd - create password
 #
 # - SYNOPSIS
 #	&createNewPasswd();
-#
-# - ARGS
-#	nothing
 #
 # - DESCRIPTION
 #	create new password for new user.

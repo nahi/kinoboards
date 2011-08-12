@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="EUC-JP"?>
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "DTD/xhtml1-strict.dtd">
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
     xmlns:kb="http://www.jin.gr.jp/xmlns/kb-html-embedding"
     lang="ja" xml:lang="ja">
@@ -21,7 +21,6 @@
 <p>
 このページの見方については<kb:c_help type="boards" />を参照してください．
 現在，以下の掲示板が用意されています．
-<kb:c_board_link com="message-thread" board="test" />
 </p>
 
 <kb:c_board_link_all />
